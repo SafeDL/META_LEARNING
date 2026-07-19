@@ -1,0 +1,64 @@
+project:
+  output_root: results/sac_scenario_mining
+environment:
+  topology: merge
+  # MetaDrive's built-in SrS map template and seeded traffic instantiation.
+  scenario_source: procedural
+  horizon: 500
+  traffic_density: 0.35
+  use_render: false
+  max_reset_retries: 5
+  observation_schema: stage1_obs_v1
+scenario_split:
+  train:
+    start_seed: 0
+    num_scenarios: 40
+  validation:
+    start_seed: 1000
+    num_scenarios: 10
+  test:
+    start_seed: 2000
+    num_scenarios: 20
+normalization:
+  velocity: 30.0
+  lateral_velocity: 10.0
+  heading: 3.1415926
+  yaw_rate: 2.0
+  longitudinal_distance: 100.0
+  lateral_distance: 20.0
+  relative_distance: 50.0
+  lane_width: 5.0
+  curvature: 0.2
+  num_lanes: 4.0
+reward:
+  ttc_cap: 5.0
+  ttc_dense_threshold: 3.0
+  ttc_weight: 1.0
+  proximity_scale: 10.0
+  proximity_weight: 0.1
+  target_collision_bonus: 10.0
+  non_target_collision_penalty: 3.0
+  out_of_road_penalty: 5.0
+  reverse_penalty: 1.0
+  action_l2_weight: 0.01
+  action_smoothness_weight: 0.02
+evaluation:
+  critical_ttc_threshold: 1.5
+  episodes_per_policy: 100
+  top_k_scenarios: 10
+  replay_ttc_tolerance: 0.1
+sac:
+  policy: MlpPolicy
+  learning_rate: 0.0003
+  buffer_size: 100000
+  learning_starts: 5000
+  batch_size: 256
+  tau: 0.005
+  gamma: 0.99
+  train_freq: 1
+  gradient_steps: 1
+  ent_coef: auto
+  total_timesteps: 100000
+  policy_hidden_sizes: [256, 256]
+experiment:
+  device: auto
