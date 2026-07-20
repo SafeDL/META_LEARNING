@@ -7,8 +7,8 @@ import numpy as np
 
 @dataclass
 class EpisodeMetrics:
-    scenario_seed: int
-    episode_index: int
+    case_id: str
+    background_seed: int
     episode_return: float = 0.0
     episode_length: int = 0
     target_collision: bool = False

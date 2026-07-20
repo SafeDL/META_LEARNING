@@ -1,24 +1,44 @@
 project:
   output_root: results/sac_scenario_mining
+
 environment:
-  topology: merge
-  # MetaDrive's built-in SrS map template and seeded traffic instantiation.
-  scenario_source: procedural
-  horizon: 500
-  traffic_density: 0.35
+  topology: on_ramp_merge
+  metadrive_map: SrS
+  # Keep the SrS template's engine map seed fixed.  ``background_seed`` is a
+  # case field used only for explicitly generated background vehicles.
+  engine_seed: 0
+  horizon: 180
   use_render: false
-  max_reset_retries: 5
-  observation_schema: stage1_obs_v1
-scenario_split:
-  train:
-    start_seed: 0
-    num_scenarios: 40
-  validation:
-    start_seed: 1000
-    num_scenarios: 10
-  test:
-    start_seed: 2000
-    num_scenarios: 20
+  observation_schema: on_ramp_merge_obs_v2
+
+# A case table, not a seed range, defines every logical test case.  The table
+# is generated deterministically from these values and saved with each run.
+logical_scenario:
+  type: on_ramp_merge
+  sut_controller: idm_baseline
+  adversary_controller: sac_continuous_action
+  case_sets:
+    train:
+      case_seed: 101
+      num_cases: 96
+    validation:
+      case_seed: 202
+      num_cases: 24
+    test:
+      case_seed: 303
+      num_cases: 60
+  parameter_space:
+    sut_speed_mps: [8.0, 14.0]
+    adversary_speed_mps: [10.0, 18.0]
+    longitudinal_gap_m: [8.0, 20.0]
+    adversary_ramp_position_m: [0.0, 8.0]
+    background_density: [0.0, 0.08]
+  constraints:
+    min_initial_distance_m: 12.0
+    max_merge_arrival_time_gap_s: 4.0
+    require_ramp_adversary: true
+    require_mainline_sut: true
+
 normalization:
   velocity: 30.0
   lateral_velocity: 10.0
@@ -30,35 +50,45 @@ normalization:
   lane_width: 5.0
   curvature: 0.2
   num_lanes: 4.0
+
 reward:
   ttc_cap: 5.0
   ttc_dense_threshold: 3.0
   ttc_weight: 1.0
   proximity_scale: 10.0
   proximity_weight: 0.1
-  target_collision_bonus: 10.0
+  # A target collision terminates the episode.  Its one-off reward must exceed
+  # the return available from merely lingering at low TTC until the horizon.
+  target_collision_bonus: 200.0
   non_target_collision_penalty: 3.0
   out_of_road_penalty: 5.0
   reverse_penalty: 1.0
   action_l2_weight: 0.01
   action_smoothness_weight: 0.02
+
 evaluation:
   critical_ttc_threshold: 1.5
-  episodes_per_policy: 100
   top_k_scenarios: 10
   replay_ttc_tolerance: 0.1
+
 sac:
   policy: MlpPolicy
   learning_rate: 0.0003
-  buffer_size: 100000
+  buffer_size: 200000
   learning_starts: 5000
   batch_size: 256
   tau: 0.005
   gamma: 0.99
-  train_freq: 1
-  gradient_steps: 1
+  # Batch updates reduce GPU launch overhead while retaining continuous
+  # environment actions.  Four updates per 32 collected transitions keep the
+  # full 300k-step experiment practical on the configured GPU.
+  train_freq: 32
+  gradient_steps: 4
   ent_coef: auto
-  total_timesteps: 100000
+  total_timesteps: 300000
+  validation_interval: 25000
   policy_hidden_sizes: [256, 256]
+
 experiment:
+  training_seeds: [0, 1, 2]
   device: auto

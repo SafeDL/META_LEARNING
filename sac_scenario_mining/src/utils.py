@@ -69,9 +69,9 @@ def load_config(path: str) -> dict[str, Any]:
         text)
 
 
-def dump_json(path: str | Path, value: Mapping[str, Any]) -> None:
+def dump_json(path: str | Path, value: Any) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    Path(path).write_text(json.dumps(dict(value), indent=2, default=str),
+    Path(path).write_text(json.dumps(value, indent=2, default=str),
                           encoding="utf-8")
 
 

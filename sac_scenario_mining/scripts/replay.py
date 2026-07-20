@@ -1,4 +1,4 @@
-"""Action-trace replay for saved critical scenarios."""
+"""Action-trace replay for saved parameterized critical scenarios."""
 from __future__ import annotations
 
 import argparse
@@ -14,25 +14,21 @@ from ..src.utils import dump_json, load_config
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True)
-    parser.add_argument("--config",
-                        default="sac_scenario_mining/configs/merge_sac.yaml")
+    parser.add_argument("--config", default="sac_scenario_mining/configs/merge_sac.yaml")
     parser.add_argument("--render", choices=["topdown"])
     args = parser.parse_args()
-
     config = load_config(args.config)
     if args.render:
         config["environment"]["use_render"] = True
     manifest = load_manifest(args.manifest)
     actions = np.load(Path(args.manifest).with_name("actions.npy"))
-    env = Stage1AdversarialMergeEnv(config,
-                                    split="test",
-                                    seed=manifest["policy_seed"])
+    env = Stage1AdversarialMergeEnv(config, split="test", seed=manifest["policy_seed"])
     try:
-        env.reset(options={"scenario_seed": manifest["scenario_seed"]})
+        env.reset(options={"case": manifest["case"]})
         for action in actions:
             _, _, terminated, truncated, _ = env.step(action)
             if args.render:
-                env.render()
+                env.render(view=args.render)
             if terminated or truncated:
                 break
         record = env.episode_record()

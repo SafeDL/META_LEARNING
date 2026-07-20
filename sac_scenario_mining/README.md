@@ -1,96 +1,89 @@
-# SAC 驱动的 MetaDrive 对抗场景生成
+# MetaDrive on-ramp merge 的 SAC 对抗场景生成
 
-本模块在 MetaDrive 的 merge 场景中训练 SAC（Soft Actor-Critic）策略。SAC 控制对抗车辆（adversary），目标是在不依赖出界、逆行或碰撞无关车辆等无效行为的前提下，为被测车辆（SUT）生成高风险交互场景。
+本模块在 MetaDrive 的固定 `SrS` 地图模板上实现 `on_ramp_merge` 逻辑场景中的 SAC 对抗场景生成。它用于验证“学习到的匝道对抗车辆策略能否更有效地产生有效目标碰撞”，不是 AEB 测试，也不代表对任意真实 ADS 的安全结论。
 
-## 场景、角色与指标
+## 问题定义
 
-MetaDrive 提供内置 `SrS` merge 地图模板。本项目向它传入地图模板、场景 seed 和交通参数；并非录制数据集或本项目手写的随机道路/车辆生成器。当前 `SrS` 的道路块序列固定为 `I-S-r-S`，**不会随场景 seed 改变**。场景 seed 由 MetaDrive 的内部生成器用于确定该固定道路上的初始交通实例（车辆位置、车型、IDM 策略的随机初相等），并可能影响默认车的初始生成位置。`random_traffic=False` 使相同配置和相同场景 seed 的实例可复现。
+`SrS` 的地图拓扑和车道几何由 MetaDrive 模板提供；实验代码不从一组现成的具体场景中抽取样本，而是固定模板后，按配置随机采样并显式实例化逻辑参数。每个 case 由 `case_id + theta + background_seed` 定义：
 
-- adversary：MetaDrive 默认受控车，由 SAC 输出连续动作 `[steering, throttle/brake]`。
-- SUT：每次 reset 时离 adversary 最近的 IDM 交通车；一个 episode 内保持不变。
-- `target_collision`：adversary 与该固定 SUT 的碰撞，不包括与其他交通车的碰撞。
+- `sut_speed_mps`：主线 SUT 初速度；
+- `adversary_speed_mps`：匝道对抗车初速度；
+- `longitudinal_gap_m`：两车初始纵向间隔；
+- `adversary_ramp_position_m`：对抗车在入口匝道上的起始位置；
+- `background_density`：显式生成相邻主线背景车的概率参数。
+
+地图引擎 seed 固定为 `0`，以保持 `SrS` 的 `I-S-r-S` 几何不变。`background_seed` 只决定显式背景车的位置、速度和 IDM 随机性。因而，seed 改变的不只是地图拓扑：本项目把地图固定，并把交通参与者的初始条件和背景随机性写入 case，保证其可检查、可复现。
+
+角色固定如下：
+
+- SUT：主线汇入前车道上的 `TrafficDefaultVehicle`，使用 IDM 基准控制器；
+- adversary：入口匝道上的 MetaDrive 默认车；SAC 在每个仿真步输出连续动作 `[steering, throttle/brake]`；
+- background：可选的相邻主线 IDM 车，不改变 SUT/adversary 的语义角色。
+
+SAC 不改变 `theta`，不控制 SUT，也不直接把“碰撞”作为动作；它只通过连续驾驶动作影响汇入时序和相对运动。
+
+## 训练、验证与 held-out 测试
+
+配置文件为 [configs/merge_sac.yaml](configs/merge_sac.yaml)。训练、验证、测试分别使用由 case seed `101`、`202`、`303` 确定生成的 96、24、60 个 case。三者是互不重叠的 case 集，但共享同一 `on_ramp_merge` 逻辑任务族、地图模板、参数空间和角色定义。
+
+`seed 0/1/2` 是三次独立 SAC 优化的随机种子，影响网络初始化、经验采样与优化过程；它们不是三种地图或三类逻辑场景。每个 seed 训练 300,000 个环境步，并以 24 个 validation case 上的目标碰撞率、有效危险率、无效率和最小 TTC 选择最佳 checkpoint。Random 与三组 SAC 均在同一张 60-case held-out 表上评估，才可以公平比较。
+
+观测为固定 38 维的 `on_ramp_merge_obs_v2`，包含对抗车状态、SUT 相对状态、至多三辆邻车的相对状态以及道路特征。其维度和顺序是已训练模型的接口，不能随意删改。
+
+奖励由低 TTC、近距离、目标碰撞奖励构成，并惩罚非目标碰撞、出界/逆行和过激或不平滑动作。目标碰撞会终止 episode；非目标碰撞、任一角色出界、对象碰撞及 horizon 也会结束 episode。
+
+## 指标含义
+
+- `target_collision`：adversary 与固定 SUT 的碰撞；
+- `critical`：发生目标碰撞，或 `min_ttc <= 1.5 s`；
+- `invalid_before_critical`：达到危险事件前发生非目标碰撞、任一角色出界或对抗车逆行；
+- `valid_critical`：`critical` 且未在此前无效，比例即“有效场景率”；
+- `invalid_rate`：出现无效事件的 case 比例；
+- `target_collision_rate`：目标碰撞 case 比例；`median_min_ttc` 越小表示最接近风险更高，但不能单独代替有效性判断。
+
+## 已归档正式结果
+
+所有策略在相同 60 个 held-out case 上运行：
+
+| 策略 | 有效场景率 | 目标碰撞率 | 无效率 | 中位最小 TTC |
+| --- | ---: | ---: | ---: | ---: |
+| Random | 6.7% | 3.3% | 65.0% | 3.278 s |
+| SAC seed 0 | 96.7% | 91.7% | 3.3% | 1.035 s |
+| SAC seed 1 | 98.3% | 100.0% | 1.7% | 0.929 s |
+| SAC seed 2 | 100.0% | 100.0% | 0.0% | 0.861 s |
+
+自动验收为 3/3 seed 通过。seed 2 导出的 top-10 关键场景可由 `manifest.json + actions.npy` 回放，10/10 的目标碰撞与危险判定一致，最大 TTC 误差约 `8.4e-05 s`，小于 `0.1 s` 容差。
+
+这些结果支持：在这个固定 MetaDrive `SrS`、IDM SUT 的 `on_ramp_merge` 任务族内，三次 SAC 训练都显著高于随机连续动作基线。它们不支持对其他地图、真实道路、其他交通分布或特定 ADS 的泛化主张。
+
+> 历史归档 case 中仍可见 `adversary_target_speed_mps`。审计确认该字段从未参与环境初始化或 SAC 控制，当前配置和新生成 case 已移除它。回放加载旧 manifest 时会忽略该历史字段，因此既不改变已有实验行为，也不影响结果复现。
+
+## 目录与入口
 
 ```text
-critical       = target_collision OR min_ttc <= 1.5 s
-valid          = critical 发生前未出现非目标碰撞、adversary 出界或逆行
-valid_critical = critical AND valid
-invalid_rate   = 1 - valid_rate
+configs/merge_sac.yaml        场景参数、case 集与 SAC 超参数
+src/casebook.py               确定性 case 生成和边界校验
+src/env.py                    固定角色的 Gymnasium 环境
+src/metadrive_compat.py       MetaDrive 0.4.3 的地图、车辆和 IDM 适配
+src/{observation,reward,metrics,scenario_manifest}.py
+scripts/train_sac.py          训练与 checkpoint validation
+scripts/evaluate.py           Random/SAC 的固定 case 评估和关键场景导出
+scripts/replay.py             已导出动作轨迹回放
+scripts/visualize.py          加载策略的交互可视化
+scripts/{report,audit_results,audit_replays}.py
 ```
 
-奖励以接近 SUT 和降低 TTC 为稠密部分，以目标碰撞为奖励；非目标碰撞、出界、逆行、过大动作及动作突变会被惩罚。训练时每 5,000 步在 validation split 上选择 checkpoint，优先比较 `valid_critical_rate`，再比较更低的中位 `min_ttc`。
-
-## seed 的两层含义
-
-这里有两类互不相同的随机数种子：
-
-| 名称 | 取值 | 控制对象 |
-| --- | --- | --- |
-| 场景 seed | train: 0–39；validation: 1000–1009；test: 2000–2019 | MetaDrive 在固定 `SrS` 道路上的具体初始交通/交互实例；不改变道路拓扑 |
-| SAC 训练 seed | 0、1、2 | 网络初始化、采样和训练过程的随机性；分别得到三个独立策略 |
-
-“互不重叠的 seed 集合，但属于同一 merge 任务族”仅指第一行的**场景 seed**：训练从 40 个 merge 初始交通实例学习；验证和测试使用未在训练或选模阶段出现的实例。它们共享固定的 `SrS` merge 道路拓扑、车辆类型、交通规则、观测、动作和奖励定义，因此是在同一任务分布内检验对未见初始交通实例的泛化；它不证明对全新道路拓扑或不同驾驶任务的泛化。
-
-## 当前正式结果
-
-每个策略在 held-out test split 上运行 100 个 episode。Random 与三个 SAC 策略共享 test 场景池，但当前保存的评估并未把每一个 episode 的抽样顺序严格配对；下表支持总体比较，不应据此作严格的逐 episode 显著性检验。
-
-| 策略 | 有效关键场景率 | 目标碰撞率 | 无效率 | 结论 |
-| --- | ---: | ---: | ---: | --- |
-| Random | 3% | 3% | 1% | 随机基线 |
-| SAC（训练 seed 0） | 52% | 44% | 4% | 通过验收 |
-| SAC（训练 seed 1） | 71% | 58% | 29% | 风险提升明显，但无效率超过 25% |
-| SAC（训练 seed 2） | 80% | 77% | 20% | 通过验收，当前最佳 |
-
-SAC seed 0 和 2 同时满足性能提升与 `invalid_rate <= 25%`；因此 3 个独立训练运行中有 2 个满足验收条件。结果支持“该实现能够显著提升同一 merge 任务族内的有效风险场景率”，但不等同于已经证明跨道路模板或真实道路的泛化能力。完整工件和审计记录见 [`results/sac_scenario_mining/README.md`](../results/sac_scenario_mining/README.md)。
-
-## 代码结构
-
-```text
-sac_scenario_mining/
-├── configs/merge_sac.yaml  # 场景划分、环境、奖励、SAC 与评估参数
-├── src/                    # 可复用环境和领域逻辑
-│   ├── env.py              # Gymnasium 环境、角色绑定、事件与终止
-│   ├── metadrive_compat.py # 唯一的 MetaDrive 0.4.x 访问层
-│   ├── observation.py      # 固定的 38 维观测
-│   ├── reward.py           # TTC 和奖励计算
-│   ├── metrics.py          # episode 指标与聚合
-│   └── scenario_manifest.py# 可回放场景工件
-└── scripts/                # 命令行入口
-```
-
-## 使用
-
-在仓库根目录激活已安装 MetaDrive 的环境：
+在仓库根目录执行：
 
 ```powershell
 conda activate metadrive
-```
-
-训练一个独立 SAC 运行：
-
-```powershell
 python -m sac_scenario_mining.scripts.train_sac --seed 0 --run-name merge_sac_seed0
+python -m sac_scenario_mining.scripts.evaluate --policy random --split test --seed 123
+# 默认从固定 held-out case 表抽取 5 个互不重复的场景
+python -m sac_scenario_mining.scripts.visualize --selection-seed 42
+# 如需锁定单个场景：
+python -m sac_scenario_mining.scripts.visualize --case-id test_000
+python -m sac_scenario_mining.scripts.replay --manifest results/sac_scenario_mining/final_eval/sac_seed2/critical_scenarios/rank_001/manifest.json
 ```
 
-评估随机基线或已训练策略：
-
-```powershell
-python -m sac_scenario_mining.scripts.evaluate --policy random --split test
-python -m sac_scenario_mining.scripts.evaluate --policy-path results/sac_scenario_mining/merge_sac_seed2/best_model.zip --split test --deterministic
-```
-
-生成汇总和审计正式工件：
-
-```powershell
-python -m sac_scenario_mining.scripts.report
-python -m sac_scenario_mining.scripts.audit_results
-python -m sac_scenario_mining.scripts.audit_replays --scenarios-root results/sac_scenario_mining/final_eval/sac_seed2/critical_scenarios
-```
-
-不需要手动启动 `F:\PyCharm 2024.3.2\work\metadrive` 源码目录或独立服务。要在本地桌面窗口观看已训练策略，运行：
-
-```powershell
-python -m sac_scenario_mining.scripts.visualize
-```
-
-默认播放 SAC 训练 seed 2 在 held-out 场景 seed 2016 上的 rollout。精确回放已保存动作时可使用 `replay.py --manifest <manifest.json> --render topdown`。
+也可以在 PyCharm 中直接运行 `scripts/visualize.py`。默认行为是依据 `--selection-seed 0` 从固定 held-out test case 表中**无放回抽取 5 个不同 case 并顺序展示**；同一选择种子总会得到同一组 case。它不重新生成地图、交通流或逻辑场景参数，因而这五个展示仍可对应正式测试表。`--num-cases` 可调整数量，`--case-id` 则锁定一个具体 case。脚本会打开**一个并排窗口**：左侧为跟随主车（IDM SUT）的第三人称追踪画面，右侧为全局鸟瞰图，并叠加 case、最小 TTC、车间距与 SAC 动作。蓝色车是 SUT，红色车是 SAC 对抗车；两者的物理车型、控制器和碰撞几何仍与训练/测试完全一致，颜色仅用于角色辨识。按 `Q` 或 `Esc` 可提前关闭。此追踪画面不是车载传感器或第一人称画面。不需要手动启动 `F:\PyCharm 2024.3.2\work\metadrive`：它是 Python 包源码目录，不是独立服务。

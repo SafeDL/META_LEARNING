@@ -1,10 +1,10 @@
-"""Fixed, versioned 38-dimensional observation schema for Stage 1."""
+"""Fixed 38-dimensional observation for the on-ramp adversary and fixed SUT."""
 from __future__ import annotations
 
 from typing import Mapping, Sequence
 import numpy as np
 
-OBSERVATION_SCHEMA = "stage1_obs_v1"
+OBSERVATION_SCHEMA = "on_ramp_merge_obs_v2"
 OBS_FIELDS = (
     "adv_vx",
     "adv_vy",
