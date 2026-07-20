@@ -147,7 +147,7 @@ def establish_case_roles(env: Any, case: Mapping[str, Any]) -> tuple[Any, Any]:
     if not 0.0 <= main_long <= main_lane.length:
         raise ValueError(f"case {case['case_id']} places the SUT outside its mainline lane")
     adv.set_velocity(np.asarray(adv.heading, dtype=float) * float(theta["adversary_speed_mps"]))
-    set_role_appearance(adv, ADVERSARY_COLOR)
+    set_role_appearance(adv, ADVERSARY_COLOR, force_paint=True)
     sut = _spawn_idm(env, MAINLINE_LANE, main_long, float(theta["sut_speed_mps"]), int(case["background_seed"]) + 1)
     set_role_appearance(sut, SUT_COLOR)
 
@@ -214,11 +214,13 @@ def camera_frame(env: Any) -> np.ndarray:
         camera = env.engine.get_sensor("main_camera")
     except (AttributeError, ValueError) as exc:
         raise RuntimeError("main-camera output is unavailable; enable dual_view") from exc
-    return np.asarray(camera.perceive(to_float=False))
+    # MetaDrive 0.4.3's off-screen main camera returns BGR despite the public
+    # image-observation convention.  Normalize here so callers always get RGB.
+    return np.asarray(camera.perceive(to_float=False))[..., ::-1].copy()
 
 
-def set_role_appearance(vehicle: Any, color: tuple[float, float, float]) -> None:
-    """Assign a stable role color without changing vehicle physics or policy."""
+def set_role_appearance(vehicle: Any, color: tuple[float, float, float], force_paint: bool = False) -> None:
+    """Set a role's semantic colour and, when needed, its visible car paint."""
     vehicle._panda_color = tuple(float(channel) for channel in color)
     if not getattr(vehicle, "render", False):
         return
@@ -234,8 +236,12 @@ def set_role_appearance(vehicle: Any, color: tuple[float, float, float]) -> None
         material.setShininess(float(getattr(vehicle, "MATERIAL_SHININESS", 0.0)))
         material.setTwoside(False)
         vehicle.origin.setMaterial(material, True)
+        if force_paint:
+            # The adversary's baked yellow texture otherwise dominates its
+            # material in MetaDrive's off-screen renderer.  A high-priority
+            # tint produces a stable red car without touching its dynamics.
+            vehicle.origin.setColor(LVecBase4(1.0, 0.08, 0.06, 1.0), 1000)
     except ImportError:
-        # Physics-only installations intentionally do not provide Panda3D.
         pass
 
 

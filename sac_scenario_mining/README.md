@@ -86,4 +86,4 @@ python -m sac_scenario_mining.scripts.visualize --case-id test_000
 python -m sac_scenario_mining.scripts.replay --manifest results/sac_scenario_mining/final_eval/sac_seed2/critical_scenarios/rank_001/manifest.json
 ```
 
-也可以在 PyCharm 中直接运行 `scripts/visualize.py`。默认行为是依据 `--selection-seed 0` 从固定 held-out test case 表中**无放回抽取 5 个不同 case 并顺序展示**；同一选择种子总会得到同一组 case。它不重新生成地图、交通流或逻辑场景参数，因而这五个展示仍可对应正式测试表。`--num-cases` 可调整数量，`--case-id` 则锁定一个具体 case。脚本会打开**一个并排窗口**：左侧为跟随主车（IDM SUT）的第三人称追踪画面，右侧为全局鸟瞰图，并叠加 case、最小 TTC、车间距与 SAC 动作。蓝色车是 SUT，红色车是 SAC 对抗车；两者的物理车型、控制器和碰撞几何仍与训练/测试完全一致，颜色仅用于角色辨识。按 `Q` 或 `Esc` 可提前关闭。此追踪画面不是车载传感器或第一人称画面。不需要手动启动 `F:\PyCharm 2024.3.2\work\metadrive`：它是 Python 包源码目录，不是独立服务。
+也可以在 PyCharm 中直接运行 `scripts/visualize.py`。默认行为是依据 `--selection-seed 0` 从固定 held-out test case 表中**无放回抽取 5 个不同 case 并顺序展示**；同一选择种子总会得到同一组 case。它不重新生成地图、交通流或逻辑场景参数，因而这五个展示仍可对应正式测试表。`--num-cases` 可调整数量，`--case-id` 则锁定一个具体 case。脚本会打开**一个并排窗口**：左侧为跟随主车（IDM SUT）的第三人称追踪画面，右侧为全局鸟瞰图，并叠加 case、最小 TTC、车间距与 SAC 动作。两图均以蓝色表示 SUT、以红色表示 SAC 对抗车；两者的物理车型、控制器和碰撞几何仍与训练/测试完全一致，颜色仅用于角色辨识。按 `Q` 或 `Esc` 可提前关闭。不需要手动启动 `F:\PyCharm 2024.3.2\work\metadrive`：它是 Python 包源码目录，不是独立服务。
