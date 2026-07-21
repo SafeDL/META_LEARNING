@@ -8,13 +8,13 @@ import numpy as np
 @dataclass
 class EpisodeMetrics:
     task_id: str; case_id: str; episode_return: float = 0.0; episode_length: int = 0
-    target_collision: bool = False; non_target_collision: bool = False; adversary_out_of_road: bool = False; sut_out_of_road: bool = False; wrong_route: bool = False
+    target_collision: bool = False; non_target_collision: bool = False; adversary_out_of_road: bool = False; sut_out_of_road: bool = False; wrong_route: bool = False; lane_marking_violation: bool = False
     min_ttc: float = float("inf"); min_distance: float = float("inf"); termination_reason: str = "running"; target_contact_method: str = "no_pairwise_contact"
 
     def update(self, reward: float, ttc: float, distance: float, events: Mapping[str, bool], contact_method: str) -> None:
         self.episode_return += float(reward); self.episode_length += 1
         self.min_ttc = min(self.min_ttc, float(ttc)); self.min_distance = min(self.min_distance, float(distance))
-        for key in ("target_collision", "non_target_collision", "adversary_out_of_road", "sut_out_of_road", "wrong_route"):
+        for key in ("target_collision", "non_target_collision", "adversary_out_of_road", "sut_out_of_road", "wrong_route", "lane_marking_violation"):
             setattr(self, key, bool(getattr(self, key) or events.get(key, False)))
         if events.get("target_collision"):
             self.target_contact_method = contact_method

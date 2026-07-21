@@ -19,8 +19,12 @@ class ContextEncoder(nn.Module):
         for width in hidden_sizes: layers += [nn.Linear(last, width), nn.ReLU()]; last = width
         layers.append(nn.Linear(last, 2 * latent_dim)); self.model = nn.Sequential(*layers); self.latent_dim = latent_dim
     def forward(self, context: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        if context.ndim != 3: raise ValueError("context must have shape [tasks, transitions, features]")
-        output = self.model(context); mu, log_var = output.chunk(2, dim=-1)
+        if context.ndim != 4:
+            raise ValueError("context must have shape [tasks, episodes, transitions, features]")
+        # Adjacent transitions are correlated.  Pool each episode before the
+        # product, so an episode contributes one evidence factor, not hundreds.
+        output = self.model(context).mean(dim=2)
+        mu, log_var = output.chunk(2, dim=-1)
         return product_of_gaussians(mu, log_var.clamp(-10, 5))
     def prior(self, batch_size: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         return torch.zeros(batch_size, self.latent_dim, device=device), torch.zeros(batch_size, self.latent_dim, device=device)

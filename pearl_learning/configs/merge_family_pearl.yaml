@@ -1,14 +1,888 @@
-{
-  "project": {"output_root": "results/pearl_learning"},
-  "environment": {"horizon": 180, "observation_schema": "logical_merge_obs", "observation_dim": 37, "action_dim": 2, "use_render": false},
-  "sut": {"enable_lane_change": false, "target_speed_mps": 12.0},
-  "cases": {"per_task": {"train_pool": 32, "validation_support": 10, "validation_query": 20, "test_support": 10, "test_query": 20}},
-  "normalization": {"distance_m": 100.0, "speed_mps": 30.0, "acceleration_mps2": 10.0, "angle_rad": 3.141592653589793, "time_s": 10.0, "curvature": 0.2, "lane_count": 5.0},
-  "reward": {"ttc_cap": 5.0, "ttc_dense_threshold": 3.0, "ttc_weight": 1.0, "proximity_weight": 0.1, "target_collision_bonus": 200.0, "non_target_collision_penalty": 3.0, "out_of_road_penalty": 5.0, "wrong_route_penalty": 5.0, "action_l2_weight": 0.01, "action_smoothness_weight": 0.02},
-  "pearl": {"latent_dim": 5, "context_reward_scale": 200.0, "context_batch_size": 128, "kl_beta": 0.1},
-  "networks": {"context_hidden_sizes": [200, 200], "actor_hidden_sizes": [256, 256], "critic_hidden_sizes": [256, 256]},
-  "sac": {"actor_lr": 0.0003, "critic_lr": 0.0003, "context_lr": 0.0003, "alpha_lr": 0.0003, "gamma": 0.99, "tau": 0.005, "batch_size": 256},
-  "meta_training": {"meta_batch_size": 6, "bootstrap_episodes_per_task": 5, "gradient_updates_per_iteration": 100, "total_environment_steps": 1500000, "validation_interval_steps": 100000},
-  "evaluation": {"shots": [0, 1, 2, 5, 10], "query_cases_per_task": 20, "top_k_scenarios": 10, "replay_ttc_tolerance": 0.1},
-  "experiment": {"taskbook_seed": 7301, "device": "auto"}
-}
+project:
+  output_root: results/pearl_learning
+environment:
+  horizon: 180
+  observation_schema: logical_merge_obs
+  observation_dim: 37
+  action_dim: 2
+  use_render: false
+sut:
+  enable_lane_change: false
+  target_speed_mps: 12.0
+cases:
+  per_task:
+    train_pool: 32
+    validation_support: 10
+    validation_query: 20
+    test_support: 10
+    test_query: 20
+normalization:
+  distance_m: 100.0
+  speed_mps: 30.0
+  acceleration_mps2: 10.0
+  angle_rad: 3.141592653589793
+  time_s: 10.0
+  curvature: 0.2
+  lane_count: 5.0
+reward:
+  ttc_cap: 5.0
+  ttc_dense_threshold: 3.0
+  ttc_weight: 1.0
+  proximity_weight: 0.1
+  target_collision_bonus: 200.0
+  non_target_collision_penalty: 3.0
+  out_of_road_penalty: 5.0
+  wrong_route_penalty: 5.0
+  lane_marking_penalty: 0.0
+  action_l2_weight: 0.01
+  action_smoothness_weight: 0.02
+pearl:
+  latent_dim: 5
+  context_reward_scale: 200.0
+  context_batch_size: 256
+  context_transitions_per_episode: 32
+  context_sample_size_eval: 256
+  kl_beta: 0.1
+networks:
+  context_hidden_sizes:
+  - 200
+  - 200
+  actor_hidden_sizes:
+  - 256
+  - 256
+  critic_hidden_sizes:
+  - 256
+  - 256
+sac:
+  actor_lr: 0.0003
+  critic_lr: 0.0003
+  context_lr: 0.0003
+  alpha_lr: 0.0003
+  gamma: 0.99
+  tau: 0.005
+  batch_size: 256
+meta_training:
+  meta_batch_size: 6
+  bootstrap_episodes_per_task: 5
+  gradient_updates_per_iteration: 100
+  total_environment_steps: 1500000
+  validation_interval_steps: 100000
+evaluation:
+  shots:
+  - 0
+  - 1
+  - 2
+  - 5
+  - 10
+  query_cases_per_task: 20
+  top_k_scenarios: 10
+  replay_ttc_tolerance: 0.1
+  context_sampling_seed: 20260721
+experiment:
+  taskbook_seed: 7301
+  device: auto
+geometry_catalog:
+  schema: logical_merge_geometry_catalog
+  geometries:
+  - geometry_id: on_ramp_srs
+    split: meta_train
+    family: merge_like
+    logical_type: on_ramp_merge
+    map_config:
+      kind: on_ramp_srs
+      map: SrS
+      start_seed: 0
+    adversary_route:
+      route_id: srs_ramp_to_merge
+      initial_lane:
+      - 2r1_0_
+      - 2r1_1_
+      - 0
+      lane_sequence:
+      - - 2r1_0_
+        - 2r1_1_
+        - 0
+      - - 2r1_1_
+        - 2r1_2_
+        - 0
+      - - 2r1_2_
+        - 2r1_3_
+        - 0
+      - - 2r1_3_
+        - 2r0_0_
+        - 0
+    sut_route:
+      route_id: srs_mainline_to_merge
+      initial_lane:
+      - 1S0_0_
+      - 2r0_0_
+      - 2
+      lane_sequence:
+      - - 1S0_0_
+        - 2r0_0_
+        - 2
+      - - 2r0_0_
+        - 2r0_1_
+        - 2
+      - - 2r0_1_
+        - 2r0_2_
+        - 2
+      - - 2r0_2_
+        - 3S0_0_
+        - 2
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 12.0
+      sut:
+      - 8.0
+      - 22.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 6.0
+      max_route_distance_m: 6.0
+  - geometry_id: lane_drop_24
+    split: meta_train
+    family: merge_like
+    logical_type: lane_drop_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 2
+      merge_length_m: 24.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: lane_drop_32
+    split: meta_train
+    family: merge_like
+    logical_type: lane_drop_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 2
+      merge_length_m: 32.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: lane_drop_40
+    split: meta_validation
+    family: merge_like
+    logical_type: lane_drop_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 2
+      merge_length_m: 40.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: lane_drop_48
+    split: meta_test_template
+    family: merge_like
+    logical_type: lane_drop_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 2
+      merge_length_m: 48.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: bottleneck_24
+    split: meta_train
+    family: merge_like
+    logical_type: bottleneck_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 1
+      merge_length_m: 24.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-2-
+        - 0
+      - - 1y1-2-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: bottleneck_32
+    split: meta_train
+    family: merge_like
+    logical_type: bottleneck_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 1
+      merge_length_m: 32.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-2-
+        - 0
+      - - 1y1-2-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: bottleneck_40
+    split: meta_validation
+    family: merge_like
+    logical_type: bottleneck_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 1
+      merge_length_m: 40.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-2-
+        - 0
+      - - 1y1-2-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: bottleneck_48
+    split: meta_test_template
+    family: merge_like
+    logical_type: bottleneck_merge
+    map_config:
+      kind: bottleneck
+      bottle_lane_num: 3
+      neck_lane_num: 1
+      merge_length_m: 48.0
+    adversary_route:
+      route_id: outer_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 2
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 2
+      - - '>>'
+        - '>>>'
+        - 2
+      - - '>>>'
+        - 1y1-2-
+        - 0
+      - - 1y1-2-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: y_merge_24
+    split: meta_test_logical
+    family: merge_like
+    logical_type: y_merge
+    map_config:
+      kind: y_merge
+      bottle_lane_num: 2
+      neck_lane_num: 1
+      merge_length_m: 24.0
+    adversary_route:
+      route_id: y_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 1
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 1
+      - - '>>'
+        - '>>>'
+        - 1
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: y_mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: y_merge_32
+    split: meta_test_logical
+    family: merge_like
+    logical_type: y_merge
+    map_config:
+      kind: y_merge
+      bottle_lane_num: 2
+      neck_lane_num: 1
+      merge_length_m: 32.0
+    adversary_route:
+      route_id: y_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 1
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 1
+      - - '>>'
+        - '>>>'
+        - 1
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: y_mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: y_merge_40
+    split: meta_test_logical
+    family: merge_like
+    logical_type: y_merge
+    map_config:
+      kind: y_merge
+      bottle_lane_num: 2
+      neck_lane_num: 1
+      merge_length_m: 40.0
+    adversary_route:
+      route_id: y_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 1
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 1
+      - - '>>'
+        - '>>>'
+        - 1
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: y_mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0
+  - geometry_id: y_merge_48
+    split: meta_test_logical
+    family: merge_like
+    logical_type: y_merge
+    map_config:
+      kind: y_merge
+      bottle_lane_num: 2
+      neck_lane_num: 1
+      merge_length_m: 48.0
+    adversary_route:
+      route_id: y_branch_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 1
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 1
+      - - '>>'
+        - '>>>'
+        - 1
+      - - '>>>'
+        - 1y1-1-
+        - 0
+      - - 1y1-1-
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    sut_route:
+      route_id: y_mainline_to_shared_exit
+      initial_lane:
+      - '>'
+      - '>>'
+      - 0
+      lane_sequence:
+      - - '>'
+        - '>>'
+        - 0
+      - - '>>'
+        - '>>>'
+        - 0
+      - - '>>>'
+        - 1y0-0-
+        - 0
+      - - 1y0-0-
+        - 1y0-1-
+        - 0
+    spawn_regions:
+      adversary:
+      - 2.0
+      - 8.0
+      sut:
+      - 2.0
+      - 8.0
+    priority_spec:
+      sut_has_priority: true
+    conflict_spec:
+      conflict_radius_m: 4.0
+      max_route_distance_m: 1.0

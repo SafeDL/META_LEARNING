@@ -1,10 +1,11 @@
-"""Small, dependency-light configuration and deterministic JSON helpers."""
+"""Configuration and deterministic JSON helpers."""
 from __future__ import annotations
 
 import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
+import yaml
 
 
 def canonical_json(value: Any) -> str:
@@ -16,8 +17,8 @@ def content_hash(value: Any) -> str:
 
 
 def read_config(path: str | Path) -> dict[str, Any]:
-    """Read the project configuration, stored as JSON in a YAML-named file."""
-    value = json.loads(Path(path).read_text(encoding="utf-8"))
+    """Read the single project YAML configuration."""
+    value = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(value, Mapping):
         raise ValueError("configuration root must be a mapping")
     return dict(value)

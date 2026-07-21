@@ -31,25 +31,28 @@ class PEARLAgent:
         return self.actor.sample(observation, z, deterministic)[0]
     def prior(self, count: int = 1) -> tuple[torch.Tensor, torch.Tensor]: return self.context_encoder.prior(count, self.device)
 
-    def context_tensor(self, context_by_task: list[list[Transition]]) -> torch.Tensor:
+    def context_tensor(self, context_by_task: list[list[list[Transition]]]) -> torch.Tensor:
         rows = []
-        for transitions in context_by_task:
-            rows.append(np.asarray([np.concatenate([x.obs, x.action, [x.reward / self.reward_scale], x.next_obs, [float(x.terminated), float(x.truncated)]]) for x in transitions], dtype=np.float32))
+        for episodes in context_by_task:
+            rows.append(np.asarray([
+                [np.concatenate([x.obs, x.action, [x.reward / self.reward_scale], x.next_obs, [float(x.terminated), float(x.truncated)]]) for x in transitions]
+                for transitions in episodes
+            ], dtype=np.float32))
         return torch.as_tensor(np.stack(rows), device=self.device)
 
-    def infer_posterior(self, context_by_task: list[list[Transition]]) -> tuple[torch.Tensor, torch.Tensor]:
+    def infer_posterior(self, context_by_task: list[list[list[Transition]]]) -> tuple[torch.Tensor, torch.Tensor]:
         return self.context_encoder(self.context_tensor(context_by_task))
     def sample_latent(self, mu: torch.Tensor, log_var: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
         return mu if deterministic else mu + torch.randn_like(mu) * torch.exp(0.5 * log_var)
 
-    def update(self, context_by_task: list[list[Transition]], rl_by_task: list[list[Transition]]) -> dict[str, float]:
+    def update(self, context_by_task: list[list[list[Transition]]], rl_by_task: list[list[Transition]]) -> dict[str, float]:
         mu, log_var = self.infer_posterior(context_by_task); z = self.sample_latent(mu, log_var)
         batch_size, tasks = len(rl_by_task[0]), len(rl_by_task)
         obs = torch.as_tensor(np.concatenate([[x.obs for x in rows] for rows in rl_by_task]), dtype=torch.float32, device=self.device)
         actions = torch.as_tensor(np.concatenate([[x.action for x in rows] for rows in rl_by_task]), dtype=torch.float32, device=self.device)
         rewards = torch.as_tensor(np.concatenate([[x.reward for x in rows] for rows in rl_by_task]), dtype=torch.float32, device=self.device).unsqueeze(-1)
         next_obs = torch.as_tensor(np.concatenate([[x.next_obs for x in rows] for rows in rl_by_task]), dtype=torch.float32, device=self.device)
-        done = torch.as_tensor(np.concatenate([[float(x.terminated or x.truncated) for x in rows] for rows in rl_by_task]), dtype=torch.float32, device=self.device).unsqueeze(-1)
+        done = torch.as_tensor(np.concatenate([[float(x.terminated) for x in rows] for rows in rl_by_task]), dtype=torch.float32, device=self.device).unsqueeze(-1)
         expanded_z = z.repeat_interleave(batch_size, dim=0)
         with torch.no_grad():
             next_action, next_logp = self.actor.sample(next_obs, expanded_z.detach())
@@ -67,11 +70,21 @@ class PEARLAgent:
 
     def parameter_hash(self) -> str:
         digest = hashlib.sha256()
-        for module in (self.context_encoder, self.actor, self.q1, self.q2):
+        for module in (self.context_encoder, self.actor, self.q1, self.q2, self.target_q1, self.target_q2):
             for tensor in module.state_dict().values(): digest.update(tensor.detach().cpu().numpy().tobytes())
+        digest.update(self.log_alpha.detach().cpu().numpy().tobytes())
         return digest.hexdigest()
     def state_dict(self) -> dict[str, object]:
-        return {"context_encoder": self.context_encoder.state_dict(), "actor": self.actor.state_dict(), "q1": self.q1.state_dict(), "q2": self.q2.state_dict(), "target_q1": self.target_q1.state_dict(), "target_q2": self.target_q2.state_dict(), "log_alpha": self.log_alpha.detach().cpu()}
+        return {
+            "context_encoder": self.context_encoder.state_dict(), "actor": self.actor.state_dict(), "q1": self.q1.state_dict(), "q2": self.q2.state_dict(),
+            "target_q1": self.target_q1.state_dict(), "target_q2": self.target_q2.state_dict(), "log_alpha": self.log_alpha.detach().cpu(),
+            "actor_optimizer": self.actor_opt.state_dict(), "critic_optimizer": self.q_opt.state_dict(), "context_optimizer": self.context_opt.state_dict(), "alpha_optimizer": self.alpha_opt.state_dict(),
+        }
     def load_state_dict(self, state: Mapping[str, object]) -> None:
         for name in ("context_encoder", "actor", "q1", "q2", "target_q1", "target_q2"): getattr(self, name).load_state_dict(state[name])
         self.log_alpha.data.copy_(state["log_alpha"].to(self.device))
+        optimizer_states = ((self.actor_opt, "actor_optimizer"), (self.q_opt, "critic_optimizer"), (self.context_opt, "context_optimizer"), (self.alpha_opt, "alpha_optimizer"))
+        for optimizer, name in optimizer_states:
+            if name not in state:
+                raise ValueError(f"checkpoint lacks {name}; current checkpoints require resumable optimizer state")
+            optimizer.load_state_dict(state[name])

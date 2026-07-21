@@ -1,8 +1,11 @@
-"""The label-free, 37 dimensional logical_merge_obs contract."""
+"""The route-correct, label-free 37 dimensional logical_merge_obs contract."""
 from __future__ import annotations
 
 from typing import Any, Mapping
 import numpy as np
+
+from .routes import RoutePolyline
+
 
 OBSERVATION_SCHEMA = "logical_merge_obs"
 OBS_FIELDS = (
@@ -19,28 +22,27 @@ def _clip(value: float, scale: float) -> float:
     return float(np.clip(float(value) / max(float(scale), 1e-6), -1.0, 1.0))
 
 
-def _vehicle_state(vehicle: Any) -> dict[str, float]:
-    pos, velocity = np.asarray(vehicle.position, dtype=float), np.asarray(vehicle.velocity, dtype=float)
-    return {"x": float(pos[0]), "y": float(pos[1]), "vx": float(velocity[0]), "vy": float(velocity[1]),
-            "speed": float(np.linalg.norm(velocity)), "heading": float(getattr(vehicle, "heading_theta", 0.0)),
-            "acceleration": float(np.linalg.norm(np.asarray(getattr(vehicle, "acceleration", [0.0, 0.0]), dtype=float)))}
+def _vehicle_state(vehicle: Any) -> dict[str, Any]:
+    position = np.asarray(vehicle.position, dtype=float)
+    velocity = np.asarray(vehicle.velocity, dtype=float)
+    acceleration = np.asarray(getattr(vehicle, "acceleration", [0.0, 0.0]), dtype=float)
+    return {"position": position, "velocity": velocity, "acceleration": acceleration, "heading": float(getattr(vehicle, "heading_theta", 0.0))}
 
 
-def _route_terms(state: Mapping[str, float], frame: Mapping[str, Any], vehicle: Any, norm: Mapping[str, float]) -> tuple[list[float], float]:
-    origin = np.asarray(frame["origin"], dtype=float)
-    delta = np.array([state["x"], state["y"]]) - origin
-    distance = float(np.linalg.norm(delta))
-    lane = getattr(vehicle, "lane", None)
-    length = float(getattr(lane, "length", 1.0))
-    longitudinal = float(lane.local_coordinates(np.asarray(vehicle.position))[0]) if lane is not None else 0.0
-    remaining = max(0.0, length - longitudinal)
-    time = min(float(norm["time_s"]), distance / max(state["speed"], 0.1))
-    heading_error = float(np.arctan2(delta[1], delta[0]) - state["heading"])
-    return [
-        _clip(distance, norm["distance_m"]), _clip(state["speed"], norm["speed_mps"]), _clip(state["acceleration"], norm["acceleration_mps2"]),
-        _clip(float(lane.local_coordinates(np.asarray(vehicle.position))[1]) if lane is not None else 0.0, 5.0), _clip(heading_error, norm["angle_rad"]),
-        _clip(time, norm["time_s"]), _clip(longitudinal / max(length, 1.0), 1.0), 1.0 if bool(getattr(vehicle, "on_lane", True)) else 0.0,
-    ], remaining
+def _route_terms(state: Mapping[str, Any], vehicle: Any, route: RoutePolyline, conflict_s_m: float, norm: Mapping[str, float]) -> tuple[list[float], dict[str, float]]:
+    lane_width = float(getattr(getattr(vehicle, "lane", None), "width", 3.8))
+    projection = route.projection(state["position"], state["heading"], lane_width)
+    distance = float(conflict_s_m - projection.s_m)
+    route_speed = float(np.dot(state["velocity"], projection.tangent))
+    route_acceleration = float(np.dot(state["acceleration"], projection.tangent))
+    time = distance / route_speed if route_speed > 1e-6 and distance > 0.0 else float(norm["time_s"])
+    remaining = max(0.0, route.length_m - projection.s_m)
+    values = [
+        _clip(distance, norm["distance_m"]), _clip(route_speed, norm["speed_mps"]), _clip(route_acceleration, norm["acceleration_mps2"]),
+        _clip(projection.lateral_m, 5.0), _clip(projection.heading_error, norm["angle_rad"]), _clip(time, norm["time_s"]),
+        _clip(projection.s_m / max(route.length_m, 1e-6), 1.0), 1.0 if projection.on_route else 0.0,
+    ]
+    return values, {"distance": distance, "speed": route_speed, "time": min(float(norm["time_s"]), time), "remaining": remaining, "tangent": projection.tangent}
 
 
 def _ttc(relative_position: np.ndarray, relative_velocity: np.ndarray, cap: float) -> float:
@@ -53,24 +55,26 @@ def _ttc(relative_position: np.ndarray, relative_velocity: np.ndarray, cap: floa
 
 def build_observation(adversary: Any, sut: Any, frame: Mapping[str, Any], topology: Mapping[str, float], config: Mapping[str, Any]) -> np.ndarray:
     norm = config["normalization"]
-    adv, target = _vehicle_state(adversary), _vehicle_state(sut)
-    adv_terms, adv_remaining = _route_terms(adv, frame, adversary, norm)
-    sut_terms, sut_remaining = _route_terms(target, frame, sut, norm)
-    rel_p = np.array([target["x"] - adv["x"], target["y"] - adv["y"]])
-    rel_v = np.array([target["vx"] - adv["vx"], target["vy"] - adv["vy"]])
-    adv_time, sut_time = adv_terms[5] * norm["time_s"], sut_terms[5] * norm["time_s"]
+    adv_state, sut_state = _vehicle_state(adversary), _vehicle_state(sut)
+    adv_terms, adv = _route_terms(adv_state, adversary, frame["adversary_route"], float(frame["adversary_conflict_s_m"]), norm)
+    sut_terms, target = _route_terms(sut_state, sut, frame["sut_route"], float(frame["sut_conflict_s_m"]), norm)
+    relative_position = sut_state["position"] - adv_state["position"]
+    relative_velocity = sut_state["velocity"] - adv_state["velocity"]
+    tangent_dot = float(np.clip(np.dot(adv["tangent"], target["tangent"]), -1.0, 1.0))
     interaction = [
-        _clip(adv_time - sut_time, norm["time_s"]), _clip(float(np.linalg.norm(rel_p)), norm["distance_m"]),
-        _clip(target["speed"] - adv["speed"], norm["speed_mps"]), _clip(float(np.dot(rel_p, rel_v) / max(np.linalg.norm(rel_p), 1e-6)), norm["speed_mps"]),
-        _clip(_ttc(rel_p, rel_v, 5.0), norm["time_s"]), _clip(target["heading"] - adv["heading"], norm["angle_rad"]), 0.0, 1.0,
+        _clip(adv["time"] - target["time"], norm["time_s"]), _clip(float(np.linalg.norm(relative_position)), norm["distance_m"]),
+        _clip(target["speed"] - adv["speed"], norm["speed_mps"]), _clip(float(np.dot(relative_position, relative_velocity) / max(np.linalg.norm(relative_position), 1e-6)), norm["speed_mps"]),
+        _clip(_ttc(relative_position, relative_velocity, float(config["reward"]["ttc_cap"])), norm["time_s"]), _clip(float(np.arccos(tangent_dot)), norm["angle_rad"]),
+        0.0 if bool(frame["priority_spec"]["sut_has_priority"]) else 1.0, 1.0 if bool(frame["priority_spec"]["sut_has_priority"]) else 0.0,
     ]
-    lane_count = topology["lane_count"]
     descriptor = [
-        _clip(topology["num_incoming_branches"], norm["lane_count"]), _clip(topology["num_outgoing_branches"], norm["lane_count"]), _clip(lane_count, norm["lane_count"]), _clip(lane_count, norm["lane_count"]),
-        _clip(topology["merge_length_m"], norm["distance_m"]), _clip(adv_remaining, norm["distance_m"]), _clip(sut_remaining, norm["distance_m"]), _clip(topology["conflict_radius_m"], norm["distance_m"]),
-        _clip(topology["route_curvature"], norm["curvature"]), _clip(topology["route_curvature"], norm["curvature"]), _clip(topology["speed_limit_mps"], norm["speed_mps"]), _clip(topology["speed_limit_mps"], norm["speed_mps"]), _clip(topology["num_conflict_zones"], 2.0),
+        _clip(topology["num_incoming_branches"], norm["lane_count"]), _clip(topology["num_outgoing_branches"], norm["lane_count"]),
+        _clip(topology["adversary_lane_count"], norm["lane_count"]), _clip(topology["sut_lane_count"], norm["lane_count"]),
+        _clip(topology["merge_length_m"], norm["distance_m"]), _clip(adv["remaining"], norm["distance_m"]), _clip(target["remaining"], norm["distance_m"]),
+        _clip(topology["conflict_radius_m"], norm["distance_m"]), _clip(topology["adversary_route_curvature"], norm["curvature"]), _clip(topology["sut_route_curvature"], norm["curvature"]),
+        _clip(topology["adversary_speed_limit_mps"], norm["speed_mps"]), _clip(topology["sut_speed_limit_mps"], norm["speed_mps"]), _clip(topology["num_conflict_zones"], 2.0),
     ]
-    obs = np.asarray(adv_terms + sut_terms + interaction + descriptor, dtype=np.float32)
-    if obs.shape != (OBSERVATION_DIM,) or not np.all(np.isfinite(obs)):
-        raise ValueError(f"{OBSERVATION_SCHEMA} contract violated: {obs.shape}")
-    return np.clip(obs, -1.0, 1.0)
+    observation = np.asarray(adv_terms + sut_terms + interaction + descriptor, dtype=np.float32)
+    if observation.shape != (OBSERVATION_DIM,) or not np.all(np.isfinite(observation)):
+        raise ValueError(f"{OBSERVATION_SCHEMA} contract violated: {observation.shape}")
+    return np.clip(observation, -1.0, 1.0)

@@ -1,55 +1,86 @@
-"""Audit actual MetaDrive maps before any PEARL training is permitted."""
+"""Hard all-task topology audit for frozen taskbooks."""
 from __future__ import annotations
+
 import argparse
 from pathlib import Path
 from typing import Any
 import numpy as np
 
-from pearl_learning.src.casebook import build_casebook
-from pearl_learning.src.io import read_config, write_json
+from pearl_learning.src.casebook import load_casebook
+from pearl_learning.src.io import content_hash, read_config, write_json
 from pearl_learning.src.task_env import LogicalMergeEnv
-from pearl_learning.src.taskbook import build_taskbook
+from pearl_learning.src.taskbook import load_taskbook, taskbook_payload
 
 
-def lane_graph(env: Any) -> list[dict[str, Any]]:
-    rows = []
-    for start, ends in env._env.current_map.road_network.graph.items():
-        for end, lanes in ends.items():
-            for index, lane in enumerate(lanes):
-                rows.append({"lane_index": [str(start), str(end), index], "length_m": float(lane.length), "start": np.asarray(lane.position(0.0, 0.0), dtype=float).round(5).tolist(), "end": np.asarray(lane.position(float(lane.length), 0.0), dtype=float).round(5).tolist()})
-    return rows
+def _lane_graph(env: LogicalMergeEnv) -> list[dict[str, Any]]:
+    return env.adapter._lane_graph_payload(env._env)
 
 
-def audit_task(task: Any, cfg: dict[str, Any], root: Path) -> dict[str, Any]:
-    case = build_casebook(task, cfg)["test_support"][0]
+def _run_trace(task: Any, cfg: dict[str, Any], case: dict[str, Any], count: int = 16) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     wrapped = LogicalMergeEnv(task, cfg, [case])
+    trace: list[dict[str, Any]] = []
     try:
         observation, info = wrapped.reset(options={"case": case})
-        graph = lane_graph(wrapped)
-        before = (np.asarray(wrapped.adversary.position, dtype=float), np.asarray(wrapped.sut.position, dtype=float))
-        next_observation, _, _, _, step_info = wrapped.step(np.zeros(2, dtype=np.float32))
-        after = (np.asarray(wrapped.adversary.position, dtype=float), np.asarray(wrapped.sut.position, dtype=float))
-        route_motion = [float(np.linalg.norm(a - b)) for a, b in zip(before, after)]
-        # A genuine candidate needs two initial routes and both roles to move;
-        # map rendering is diagnostic only and never defines topology semantics.
-        result = {"task_id": task.task_id, "logical_type": task.logical_type, "status": "pass", "lane_graph": graph, "conflict_frame": {"origin": np.asarray(wrapped._frame["origin"]).round(5).tolist(), "radius_m": wrapped._frame["radius_m"]}, "adversary_lane_index": [str(x) for x in wrapped.adversary.lane_index], "sut_lane_index": [str(x) for x in wrapped.sut.lane_index], "initial_role_distance_m": float(np.linalg.norm(before[0] - before[1])), "route_motion_m_one_step": route_motion, "observation_shape": list(observation.shape), "observation_finite": bool(np.all(np.isfinite(observation)) and np.all(np.isfinite(next_observation))), "target_contact_probe_method": step_info["target_contact_method"], "replay_case_id": info["case_id"]}
-    except Exception as exc:
-        result = {"task_id": task.task_id, "logical_type": task.logical_type, "status": "fail", "error": f"{type(exc).__name__}: {exc}"}
+        ids = (str(wrapped.adversary.id), str(wrapped.sut.id))
+        for _ in range(count):
+            next_observation, _, terminated, truncated, step_info = wrapped.step(np.zeros(2, dtype=np.float32))
+            trace.append({"adv_s": float(step_info["adversary_route_progress_m"]), "sut_s": float(step_info["sut_route_progress_m"]), "wrong_route": bool(step_info["wrong_route"]), "ids": (str(wrapped.adversary.id), str(wrapped.sut.id)), "terminated": bool(terminated), "truncated": bool(truncated)})
+            observation = next_observation
+            if terminated or truncated:
+                break
+        summary = {
+            "task_id": task.task_id, "geometry_id": task.geometry_id, "map_hash": info["map_hash"], "lane_graph": _lane_graph(wrapped),
+            "conflict_frame": {"origin": np.asarray(wrapped._frame["origin"]).round(6).tolist(), "radius_m": wrapped._frame["radius_m"]},
+            "role_ids": ids, "adversary_lane_index": list(wrapped.adversary.lane_index), "sut_lane_index": list(wrapped.sut.lane_index),
+            "observation_shape": list(observation.shape), "observation_finite": bool(np.all(np.isfinite(observation))), "trace_length": len(trace),
+        }
+        return summary, trace
     finally:
         wrapped.close()
-    write_json(root / f"{task.task_id}.json", result)
-    return result
+
+
+def audit_task(task: Any, cfg: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
+    try:
+        first, trace = _run_trace(task, cfg, case)
+        second, replay = _run_trace(task, cfg, case)
+        progress = all(row["adv_s"] >= previous["adv_s"] - 1.0 and row["sut_s"] >= previous["sut_s"] - 1.0 for previous, row in zip(trace, trace[1:]))
+        stable_ids = all(tuple(row["ids"]) == tuple(first["role_ids"]) for row in trace)
+        natural_wrong = any(row["wrong_route"] for row in trace)
+        replayable = len(trace) == len(replay) and all(abs(a["adv_s"] - b["adv_s"]) <= 1e-5 and abs(a["sut_s"] - b["sut_s"]) <= 1e-5 for a, b in zip(trace, replay))
+        checks = {
+            "map_hash_matches_taskbook": first["map_hash"] == task.map_hash,
+            "conflict_route_constructed": bool(first["conflict_frame"]),
+            "zero_action_roles_move": len(trace) > 0 and trace[-1]["adv_s"] > trace[0]["adv_s"] and trace[-1]["sut_s"] > trace[0]["sut_s"],
+            "no_natural_wrong_route": not natural_wrong,
+            "route_progress_monotonic": progress,
+            "role_ids_stable": stable_ids,
+            "case_trace_replayable": replayable,
+            "observation_contract": first["observation_shape"] == [37] and first["observation_finite"],
+        }
+        return {**first, "checks": checks, "status": "pass" if all(checks.values()) else "fail"}
+    except Exception as exc:
+        return {"task_id": task.task_id, "geometry_id": task.geometry_id, "status": "fail", "error": f"{type(exc).__name__}: {exc}"}
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(); parser.add_argument("--config", required=True); args = parser.parse_args()
-    cfg = read_config(args.config); root = Path(cfg["project"]["output_root"]) / "topology_audit"; root.mkdir(parents=True, exist_ok=True)
-    tasks = build_taskbook(cfg)
-    representatives = [tasks["meta_train"][0], tasks["meta_train"][4], tasks["meta_train"][8], tasks["meta_test_logical"][0]]
-    report = [audit_task(task, cfg, root) for task in representatives]
-    write_json(root / "topology_audit.json", {"metadrive_required": True, "reports": report, "passed": sum(x["status"] == "pass" for x in report), "total": len(report)})
-    if any(x["status"] != "pass" for x in report): raise SystemExit("topology audit failed; do not start PEARL")
-    print(f"topology audit passed: {len(report)}/{len(report)}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", required=True); parser.add_argument("--taskbook", required=True); parser.add_argument("--casebook-root", required=True); parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    cfg = read_config(args.config); taskbook = load_taskbook(args.taskbook); reports = []
+    for tasks in taskbook.values():
+        for task in tasks:
+            case = load_casebook(task, args.casebook_root)["test_support"][0]
+            reports.append(audit_task(task, cfg, case))
+    taskbook_hash = content_hash(taskbook_payload(taskbook))
+    payload = {"schema": "logical_merge_topology_audit", "taskbook_hash": taskbook_hash, "reports": reports, "passed": sum(row["status"] == "pass" for row in reports), "total": len(reports)}
+    root = Path(args.output); root.mkdir(parents=True, exist_ok=True)
+    for report in reports:
+        write_json(root / f"{report['task_id']}.json", report)
+    write_json(root / "topology_audit.json", payload)
+    if payload["passed"] != payload["total"]:
+        raise SystemExit("topology audit failed; formal training is blocked")
+    print(f"topology audit passed: {payload['passed']}/{payload['total']}")
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()

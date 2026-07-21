@@ -1,16 +1,16 @@
-"""Explicit real-geometry lane-drop and bottleneck adapter."""
+"""Independent Y-merge adapter backed by a two-arm real PGMap Merge block."""
 from __future__ import annotations
 from typing import Any, Mapping
 
 from .base import MetaDriveAdapterBase
-from ..maps import bottleneck_env_class
+from ..maps import y_merge_env_class
 from ..routes import lane_index
 from ..task_spec import LogicalScenarioTaskSpec
 
 
-class BottleneckMergeAdapter(MetaDriveAdapterBase):
+class YMergeAdapter(MetaDriveAdapterBase):
     def build_env(self, task: LogicalScenarioTaskSpec, case: Mapping[str, Any], config: Mapping[str, Any]) -> Any:
-        Env = bottleneck_env_class()
+        Env = y_merge_env_class()
         recipe = task.map_config
         spawn = self._case_spawn(case, "adversary", task.spawn_regions["adversary"])
         return Env({

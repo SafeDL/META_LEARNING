@@ -1,45 +1,43 @@
 # PEARL 逻辑场景元强化学习
 
-`pearl_learning` 在 MetaDrive 0.4.3 中实现 PEARL-SAC：RL 控制一辆对抗车，固定 IDM SUT；从 support episode 推断任务潜变量 `z`，再以无梯度的 query episode 评估 few-shot 适配。它不修改 `sac_scenario_mining/`。
+Stage 2 现在只执行经过冻结几何、显式角色路线和全任务 topology audit 验证的逻辑汇入任务。它不修改 `sac_scenario_mining/`，且旧的 Stage 2 artifact 与当前 schema 不兼容。
 
-## 保留的核心设计
+`configs/merge_family_pearl.yaml` 是唯一配置文件，包含训练、评估和全部物理几何定义；运行环境需要 PyYAML 读取该配置。
 
-- 四种 merge-like 逻辑场景：`on_ramp_merge`、`lane_drop_merge`、`bottleneck_merge`、`y_merge`；`y_merge` 仅用于 held-out logical test。
-- task 仅保存 ID、split、逻辑类型、地图/冲突配置和随机种子；case 仅保存 ID、随机种子、对抗车速度和到达偏移。
-- SUT 的速度和换道策略固定在配置中，不被 task 或 case 随机化。
-- `logical_merge_obs` 是无任务标签的 37 维双车观测：两车状态、两车交互和道路拓扑。
-- 严格有效关键场景定义为：目标碰撞或低 TTC，且没有非目标碰撞、出界或 wrong-route。
-- 每个 task 具有独立 replay buffer；query 不写入 context，也不更新网络权重。
-- 训练周期性验证并保存 `best_model.pt`；评估保存 top-K 场景的参数化任务、case、动作和指标，可脱离策略回放。
+- `logical_merge_task` 明确保存物理 `geometry_id`、完整 adversary/SUT 路线、出生区间、优先级、冲突定义及 hash。
+- `logical_merge_obs` 保持 37 维，但以完整 route polyline 计算弧长距离、投影速度/加速度、路线进度和冲突角；不输入 metadata 标签。
+- `y_merge` 由独立 `YMergeAdapter` 的 2→1 PGMap Merge 几何实现；不再复用 on-ramp 或随机地图。
+- 目标碰撞使用物理 contact pair 或 OBB，压线与 wrong-route 分开记录；horizon truncation 不会关闭 SAC bootstrap。
+- 训练、few-shot 评估和基线命令均要求加载已冻结的 taskbook/casebook，正式 PEARL 训练还要求完整 gate manifest。
 
-冲突框架由 adversary 与 SUT 实际导航车道的最近几何交会区域计算。当前不进行 conflict-centric 观测下的重新训练。
+## 工作流
 
-## 环境
-
-在仓库根目录使用：
+所有示例均可将产物放入临时目录，避免覆盖版本化实验结果。
 
 ```powershell
-conda run -n metadrive python -c "import metadrive; print(metadrive.__version__)"
+# 1. 在真实 MetaDrive 中解析全部地图、冻结 taskbook/casebook
+conda run -n metadrive python -m pearl_learning.scripts.build_taskbook `
+  --config pearl_learning/configs/merge_family_pearl.yaml --output <taskbook-dir>
+
+# 2. 全任务物理与静态完整性审计
+conda run -n metadrive python -m pearl_learning.scripts.audit_topologies `
+  --config pearl_learning/configs/merge_family_pearl.yaml --taskbook <taskbook-dir> `
+  --casebook-root <taskbook-dir/..> --output <audit-dir>
+conda run -n metadrive python -m pearl_learning.scripts.audit_integrity `
+  --config pearl_learning/configs/merge_family_pearl.yaml --taskbook <taskbook-dir> `
+  --casebook-root <taskbook-dir/..> --output <integrity.json>
+
+# 3. smoke 训练；正式训练移除 --smoke 并提供 complete gate
+conda run -n metadrive python -m pearl_learning.scripts.train_pearl `
+  --config pearl_learning/configs/merge_family_pearl.yaml --taskbook <taskbook-dir> `
+  --casebook-root <taskbook-dir/..> --seed 0 --max-env-steps 1000 --run-name smoke --smoke `
+  --output-root <temporary-output-root>
+
+# 4. checkpoint-hash 隔离的 few-shot 评估
+conda run -n metadrive python -m pearl_learning.scripts.evaluate_fewshot `
+  --config pearl_learning/configs/merge_family_pearl.yaml --checkpoint <checkpoint.pt> `
+  --taskbook <taskbook-dir> --casebook-root <taskbook-dir/..> --split meta_test_logical `
+  --run-name run_001 --output-root <output-root>
 ```
 
-配置文件名为 `.yaml`，内容为 JSON，由标准库读取。
-
-## 常用命令
-
-```powershell
-# 冻结 taskbook/casebook，并在真实 MetaDrive 中检查四类代表场景
-conda run -n metadrive python -m pearl_learning.scripts.build_taskbook --config pearl_learning/configs/merge_family_pearl.yaml
-conda run -n metadrive python -m pearl_learning.scripts.audit_topologies --config pearl_learning/configs/merge_family_pearl.yaml
-
-# 确认 Stage 1 SAC 兼容性
-conda run -n metadrive python -m pearl_learning.scripts.verify_stage1_compatibility
-
-# 连通性训练；正式实验删除 --smoke
-conda run -n metadrive python -m pearl_learning.scripts.train_pearl --config pearl_learning/configs/merge_family_pearl.yaml --seed 0 --max-env-steps 1000 --run-name pearl_smoke --smoke
-
-# few-shot 评估与 top-K 回放
-conda run -n metadrive python -m pearl_learning.scripts.evaluate_fewshot --config pearl_learning/configs/merge_family_pearl.yaml --checkpoint <run>/best_model.pt --split meta_test_logical --query-cases 20
-conda run -n metadrive python -m pearl_learning.scripts.replay --manifest <evaluation>/<task_id>/shot_5/critical_scenarios/rank_001
-```
-
-旧的 56 维 smoke checkpoint 已删除，不能与当前实现混用。
+`run_baselines.py` 提供 per-task、pooled、scratch、fine-tune、oracle、cross-task matrix 和 PEARL no-context 的统一 baseline manifest；`build_formal_gate.py` 只有在全任务审计和全部正式 baseline 完成后才生成可用于正式 PEARL 训练的 gate。

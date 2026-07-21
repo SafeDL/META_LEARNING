@@ -13,6 +13,7 @@ class RewardBreakdown:
     non_target_collision: float
     out_of_road: float
     wrong_route: float
+    lane_marking_violation: float
     action_l2: float
     action_smoothness: float
     total: float
@@ -28,7 +29,8 @@ def compute_reward(ttc: float, distance: float, action: np.ndarray, previous_act
         bool(events.get(key)) for key in ("adversary_out_of_road", "sut_out_of_road")
     )
     wrong_route = -float(cfg["wrong_route_penalty"]) if events.get("wrong_route") else 0.0
+    lane_marking = -float(cfg.get("lane_marking_penalty", 0.0)) if events.get("lane_marking_violation") else 0.0
     a2 = -float(cfg["action_l2_weight"]) * float(np.dot(action, action))
     smooth = -float(cfg["action_smoothness_weight"]) * float(np.dot(action - previous_action, action - previous_action))
-    total = dense + proximity + target + non_target + out_of_road + wrong_route + a2 + smooth
-    return RewardBreakdown(dense, proximity, target, non_target, out_of_road, wrong_route, a2, smooth, total)
+    total = dense + proximity + target + non_target + out_of_road + wrong_route + lane_marking + a2 + smooth
+    return RewardBreakdown(dense, proximity, target, non_target, out_of_road, wrong_route, lane_marking, a2, smooth, total)

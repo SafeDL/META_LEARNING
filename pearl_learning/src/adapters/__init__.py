@@ -1,12 +1,13 @@
 from .base import LogicalScenarioAdapter
 from .bottleneck import BottleneckMergeAdapter
 from .on_ramp import OnRampMergeAdapter
+from .y_merge import YMergeAdapter
 
 ADAPTERS = {
     "on_ramp_merge": OnRampMergeAdapter,
     "lane_drop_merge": BottleneckMergeAdapter,
     "bottleneck_merge": BottleneckMergeAdapter,
-    "y_merge": OnRampMergeAdapter,
+    "y_merge": YMergeAdapter,
 }
 
 
