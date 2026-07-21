@@ -354,7 +354,7 @@ results/sac_scenario_mining/
 3. 新结果写入：
 
 ```text
-results/pearl_logical_scenario_mining/
+results/pearl_learning/
 ```
 
 4. Stage 2 环境不能破坏：
@@ -453,7 +453,7 @@ valid_critical_strict =
 在正式编码所有 Adapter 前，先新增：
 
 ```text
-python -m pearl_logical_scenario_mining.scripts.audit_topologies
+python -m pearl_learning.scripts.audit_topologies
 ```
 
 该脚本必须：
@@ -539,7 +539,7 @@ few-shot adaptation to an unseen logical scenario type
 新增：
 
 ```text
-pearl_logical_scenario_mining/src/task_spec.py
+pearl_learning/src/task_spec.py
 ```
 
 建议数据结构：
@@ -612,7 +612,7 @@ class LogicalScenarioTaskSpec:
 新增：
 
 ```text
-pearl_logical_scenario_mining/src/taskbook.py
+pearl_learning/src/taskbook.py
 ```
 
 ### 11.1 推荐任务数量
@@ -669,7 +669,7 @@ cases_per_task:
 新增：
 
 ```text
-pearl_logical_scenario_mining/src/adapters/
+pearl_learning/src/adapters/
 ```
 
 定义协议：
@@ -950,7 +950,7 @@ min_distance
 新增：
 
 ```text
-python -m pearl_logical_scenario_mining.scripts.audit_task_heterogeneity
+python -m pearl_learning.scripts.audit_task_heterogeneity
 ```
 
 ### 17.1 Per-task SAC
@@ -1273,7 +1273,7 @@ Actor 中使用 detached \(z\)。
 新增：
 
 ```text
-pearl_logical_scenario_mining/src/replay.py
+pearl_learning/src/replay.py
 ```
 
 结构：
@@ -1316,7 +1316,7 @@ Context batch 与 RL batch 独立采样。
 新增：
 
 ```text
-pearl_logical_scenario_mining/src/collector.py
+pearl_learning/src/collector.py
 ```
 
 核心接口：
@@ -1698,7 +1698,7 @@ cross-logical-scenario few-shot adaptation
 ## 32. 推荐目录结构
 
 ```text
-pearl_logical_scenario_mining/
+pearl_learning/
 ├── __init__.py
 ├── configs/
 │   ├── merge_family_pearl.yaml
@@ -1768,14 +1768,14 @@ pearl_logical_scenario_mining/
 创建：
 
 ```text
-pearl_logical_scenario_mining/configs/merge_family_pearl.yaml
+pearl_learning/configs/merge_family_pearl.yaml
 ```
 
 建议：
 
 ```yaml
 project:
-  output_root: results/pearl_logical_scenario_mining
+  output_root: results/pearl_learning
   stage1_checkpoint: results/sac_scenario_mining/merge_sac_seed2/best_model.zip
 
 environment:
@@ -2002,51 +2002,51 @@ experiment:
 ### 拓扑审计
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.audit_topologies \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml
+python -m pearl_learning.scripts.audit_topologies \
+  --config pearl_learning/configs/merge_family_pearl.yaml
 ```
 
 ### 构建 taskbook
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.build_taskbook \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml
+python -m pearl_learning.scripts.build_taskbook \
+  --config pearl_learning/configs/merge_family_pearl.yaml
 ```
 
 ### 环境 sanity
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.sanity \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml
+python -m pearl_learning.scripts.sanity \
+  --config pearl_learning/configs/merge_family_pearl.yaml
 ```
 
 ### 观测合同审计
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.audit_observation_contract \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml
+python -m pearl_learning.scripts.audit_observation_contract \
+  --config pearl_learning/configs/merge_family_pearl.yaml
 ```
 
 ### 任务异质性
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.audit_task_heterogeneity \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml
+python -m pearl_learning.scripts.audit_task_heterogeneity \
+  --config pearl_learning/configs/merge_family_pearl.yaml
 ```
 
 ### Pooled SAC
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.train_pooled_sac \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml \
+python -m pearl_learning.scripts.train_pooled_sac \
+  --config pearl_learning/configs/merge_family_pearl.yaml \
   --seed 0
 ```
 
 ### PEARL smoke
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.train_pearl \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml \
+python -m pearl_learning.scripts.train_pearl \
+  --config pearl_learning/configs/merge_family_pearl.yaml \
   --seed 0 \
   --max-env-steps 50000 \
   --run-name pearl_smoke_seed0
@@ -2055,8 +2055,8 @@ python -m pearl_logical_scenario_mining.scripts.train_pearl \
 ### 正式 PEARL
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.train_pearl \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml \
+python -m pearl_learning.scripts.train_pearl \
+  --config pearl_learning/configs/merge_family_pearl.yaml \
   --seed 0 \
   --run-name pearl_seed0
 ```
@@ -2064,26 +2064,26 @@ python -m pearl_logical_scenario_mining.scripts.train_pearl \
 ### 模板级 few-shot
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.evaluate_fewshot \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml \
-  --checkpoint results/pearl_logical_scenario_mining/pearl_seed0/best_model.pt \
+python -m pearl_learning.scripts.evaluate_fewshot \
+  --config pearl_learning/configs/merge_family_pearl.yaml \
+  --checkpoint results/pearl_learning/pearl_seed0/best_model.pt \
   --split meta_test_template
 ```
 
 ### 逻辑子类型级 few-shot
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.evaluate_fewshot \
-  --config pearl_logical_scenario_mining/configs/merge_family_pearl.yaml \
-  --checkpoint results/pearl_logical_scenario_mining/pearl_seed0/best_model.pt \
+python -m pearl_learning.scripts.evaluate_fewshot \
+  --config pearl_learning/configs/merge_family_pearl.yaml \
+  --checkpoint results/pearl_learning/pearl_seed0/best_model.pt \
   --split meta_test_logical
 ```
 
 ### 报告
 
 ```bash
-python -m pearl_logical_scenario_mining.scripts.report \
-  --results-root results/pearl_logical_scenario_mining
+python -m pearl_learning.scripts.report \
+  --results-root results/pearl_learning
 ```
 
 ---
@@ -2091,7 +2091,7 @@ python -m pearl_logical_scenario_mining.scripts.report \
 ## 36. 输出目录
 
 ```text
-results/pearl_logical_scenario_mining/
+results/pearl_learning/
 ├── topology_audit/
 ├── taskbooks/
 │   ├── meta_train_tasks.json

@@ -1,0 +1,14 @@
+{
+  "project": {"output_root": "results/pearl_learning"},
+  "environment": {"horizon": 180, "observation_schema": "logical_merge_obs", "observation_dim": 37, "action_dim": 2, "use_render": false},
+  "sut": {"enable_lane_change": false, "target_speed_mps": 12.0},
+  "cases": {"per_task": {"train_pool": 32, "validation_support": 10, "validation_query": 20, "test_support": 10, "test_query": 20}},
+  "normalization": {"distance_m": 100.0, "speed_mps": 30.0, "acceleration_mps2": 10.0, "angle_rad": 3.141592653589793, "time_s": 10.0, "curvature": 0.2, "lane_count": 5.0},
+  "reward": {"ttc_cap": 5.0, "ttc_dense_threshold": 3.0, "ttc_weight": 1.0, "proximity_weight": 0.1, "target_collision_bonus": 200.0, "non_target_collision_penalty": 3.0, "out_of_road_penalty": 5.0, "wrong_route_penalty": 5.0, "action_l2_weight": 0.01, "action_smoothness_weight": 0.02},
+  "pearl": {"latent_dim": 5, "context_reward_scale": 200.0, "context_batch_size": 128, "kl_beta": 0.1},
+  "networks": {"context_hidden_sizes": [200, 200], "actor_hidden_sizes": [256, 256], "critic_hidden_sizes": [256, 256]},
+  "sac": {"actor_lr": 0.0003, "critic_lr": 0.0003, "context_lr": 0.0003, "alpha_lr": 0.0003, "gamma": 0.99, "tau": 0.005, "batch_size": 256},
+  "meta_training": {"meta_batch_size": 6, "bootstrap_episodes_per_task": 5, "gradient_updates_per_iteration": 100, "total_environment_steps": 1500000, "validation_interval_steps": 100000},
+  "evaluation": {"shots": [0, 1, 2, 5, 10], "query_cases_per_task": 20, "top_k_scenarios": 10, "replay_ttc_tolerance": 0.1},
+  "experiment": {"taskbook_seed": 7301, "device": "auto"}
+}
