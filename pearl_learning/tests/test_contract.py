@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import copy
+import json
+import os
+import tempfile
 import unittest
 import numpy as np
 import torch
 
 from pearl_learning.src.adapters.base import MetaDriveAdapterBase
 from pearl_learning.src.context_encoder import ContextEncoder
+from pearl_learning.src.gates import REQUIRED_PRETRAIN_BASELINES, verify_formal_gate
+from pearl_learning.src.evaluator import compact_fewshot_result
 from pearl_learning.src.io import read_config
 from pearl_learning.src.pearl_agent import PEARLAgent
 from pearl_learning.src.replay import TaskReplayBuffer, Transition
@@ -14,6 +19,7 @@ from pearl_learning.src.reward import compute_reward
 from pearl_learning.src.observation import OBS_FIELDS, build_observation
 from pearl_learning.src.routes import RoutePolyline, wrap_to_pi
 from pearl_learning.src.task_spec import LogicalScenarioTaskSpec
+from pearl_learning.src.task_env import target_contact_matches_rule
 from pearl_learning.src.taskbook import build_taskbook
 
 
@@ -49,6 +55,15 @@ class ContractTests(unittest.TestCase):
         train_hashes = {task.map_hash for task in taskbook["meta_train"]}
         self.assertFalse(train_hashes & {task.map_hash for task in taskbook["meta_validation"]})
         self.assertFalse(train_hashes & {task.map_hash for task in taskbook["meta_test_logical"]})
+        relations = {task.priority_spec["target_contact_speed_relation"] for tasks in taskbook.values() for task in tasks}
+        self.assertTrue({"adversary_faster", "sut_faster"} <= relations)
+        train = taskbook["meta_train"]
+        self.assertEqual(len(train), 10)
+        by_map: dict[str, set[str]] = {}
+        for task in train:
+            recipe = json.dumps(task.map_config, sort_keys=True)
+            by_map.setdefault(recipe, set()).add(task.priority_spec["target_contact_entry_order"])
+        self.assertTrue(all(values == {"adversary_first", "sut_first"} for values in by_map.values()))
 
     def test_route_projection_wraps_heading_and_uses_arc_length(self):
         route = RoutePolyline((("a", "b", 0),), np.asarray([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]]), np.asarray([0.0, 10.0, 20.0]), (20.0,))
@@ -72,6 +87,16 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(float(observation[OBS_FIELDS.index("adversary_priority")]), 0.0)
         self.assertEqual(float(observation[OBS_FIELDS.index("sut_priority")]), 1.0)
 
+    def test_no_topology_ablation_masks_only_the_topology_descriptor(self):
+        route = RoutePolyline((("a", "b", 0),), np.asarray([[0.0, 0.0], [20.0, 0.0]]), np.asarray([0.0, 20.0]), (20.0,))
+        frame = {"adversary_route": route, "sut_route": route, "adversary_conflict_s_m": 10.0, "sut_conflict_s_m": 10.0, "priority_spec": {"sut_has_priority": True}}
+        topology = {"num_incoming_branches": 2.0, "num_outgoing_branches": 1.0, "adversary_lane_count": 1.0, "sut_lane_count": 1.0, "merge_length_m": 20.0, "conflict_radius_m": 3.0, "adversary_route_curvature": 0.0, "sut_route_curvature": 0.0, "adversary_speed_limit_mps": 15.0, "sut_speed_limit_mps": 15.0, "num_conflict_zones": 1.0}
+        full = build_observation(DummyVehicle([0.0, 0.0]), DummyVehicle([1.0, 0.0]), frame, topology, self.config)
+        ablated_config = copy.deepcopy(self.config); ablated_config["ablation"] = {"no_topology": True}
+        ablated = build_observation(DummyVehicle([0.0, 0.0]), DummyVehicle([1.0, 0.0]), frame, topology, ablated_config)
+        self.assertTrue(np.allclose(full[:24], ablated[:24]))
+        self.assertTrue(np.allclose(ablated[24:], 0.0))
+
     def test_pairwise_collision_uses_obb_without_crash_flags(self):
         adapter = DummyAdapter()
         first, second = DummyVehicle([0.0, 0.0]), DummyVehicle([1.0, 0.0])
@@ -79,6 +104,17 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(hit); self.assertEqual(method, "obb_overlap")
         hit, method = adapter.target_contact(object(), DummyVehicle([0.0, 0.0], crash=True), DummyVehicle([100.0, 0.0], crash=True))
         self.assertFalse(hit); self.assertEqual(method, "no_pairwise_contact")
+
+    def test_frozen_contact_rule_is_hidden_from_observation_but_uses_physical_speed(self):
+        adversary_first = {"sut_has_priority": True, "target_contact_speed_relation": "adversary_faster", "target_contact_speed_margin_mps": 0.5}
+        sut_first = {"sut_has_priority": True, "target_contact_speed_relation": "sut_faster", "target_contact_speed_margin_mps": 0.5}
+        self.assertTrue(target_contact_matches_rule(adversary_first, 8.0, 7.0))
+        self.assertFalse(target_contact_matches_rule(adversary_first, 7.0, 8.0))
+        self.assertTrue(target_contact_matches_rule(sut_first, 7.0, 8.0))
+        self.assertFalse(target_contact_matches_rule(sut_first, 8.0, 7.0))
+        entry_rule = {"sut_has_priority": True, "target_contact_entry_order": "adversary_first"}
+        self.assertTrue(target_contact_matches_rule(entry_rule, 0.0, 0.0, "adversary"))
+        self.assertFalse(target_contact_matches_rule(entry_rule, 0.0, 0.0, "sut"))
 
     def test_episode_balanced_context_preserves_episode_provenance(self):
         buffer = TaskReplayBuffer()
@@ -117,6 +153,28 @@ class ContractTests(unittest.TestCase):
         row = transition("episode", terminated=False, truncated=True)
         self.assertFalse(row.terminated)
         self.assertTrue(row.truncated)
+
+    def test_formal_gate_has_no_circular_pearl_no_context_requirement(self):
+        self.assertNotIn("pearl_no_context", REQUIRED_PRETRAIN_BASELINES)
+        descriptor, path = tempfile.mkstemp(suffix=".json")
+        os.close(descriptor)
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump({
+                "schema": "logical_merge_formal_gate", "taskbook_hash": "frozen",
+                "topology_audit": "pass", "integrity_audit": "pass", "heterogeneity_audit": "pass",
+                "baseline_environment_steps": 5000,
+                "completed_baselines": sorted(REQUIRED_PRETRAIN_BASELINES),
+                }, handle)
+            verify_formal_gate(path, "frozen")
+        finally:
+            os.unlink(path)
+
+    def test_compact_fewshot_result_removes_episode_records(self):
+        result = {"split": "meta_test_logical", "parameter_hash_before": "same", "parameter_hash_after": "same", "no_gradient_adaptation": True, "no_topology_ablation": False, "context_protocol": {}, "provenance": {}, "tasks": {"task": {"5": {"summary": {"valid_critical_strict_rate": 0.6}, "records": [{"case_id": "query"}], "support_environment_steps": 57}}}}
+        compact = compact_fewshot_result(result)
+        self.assertEqual(compact["tasks"]["task"]["5"]["summary"]["valid_critical_strict_rate"], 0.6)
+        self.assertNotIn("records", compact["tasks"]["task"]["5"])
 
 
 if __name__ == "__main__":

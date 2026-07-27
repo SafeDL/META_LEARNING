@@ -1,7 +1,6 @@
 """No-gradient, episode-balanced few-shot evaluation."""
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, Mapping
 import numpy as np
 import torch
@@ -9,8 +8,6 @@ import torch
 from .collector import Rollout, collect_episode
 from .io import content_hash
 from .metrics import summarize
-from .observation import OBSERVATION_SCHEMA
-from .scenario_manifest import save_manifest
 from .task_env import LogicalMergeEnv
 
 
@@ -27,21 +24,8 @@ def _sample_episode_context(rollouts: list[Rollout], total_size: int, per_episod
     return groups
 
 
-def _save_critical_scenarios(output_dir: Path, task: Any, shot: int, rollouts: list[Rollout], cases: list[Mapping[str, Any]], posterior_mean: list[float], top_k: int, provenance: Mapping[str, Any]) -> None:
-    candidates = [rollout for rollout in rollouts if rollout.record["valid_critical_strict"]]
-    cases_by_id = {case["case_id"]: case for case in cases}
-    for rank, rollout in enumerate(sorted(candidates, key=lambda item: item.record["min_ttc"])[:top_k], 1):
-        case_id = rollout.record["case_id"]
-        manifest = {
-            "task": task.to_dict(), "case": cases_by_id[case_id], "shot": shot, "posterior_mean": posterior_mean,
-            "observation_schema": OBSERVATION_SCHEMA, "termination_reason": rollout.record["termination_reason"],
-            "provenance": dict(provenance), "episode_id": rollout.episode_id,
-        }
-        save_manifest(output_dir / task.task_id / f"shot_{shot}" / "critical_scenarios" / f"rank_{rank:03d}", manifest, [row.action for row in rollout.transitions], rollout.record)
-
-
 def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], casebooks: Mapping[str, Mapping[str, list[dict[str, Any]]]],
-                     split: str, query_cases_per_task: int | None = None, output_dir: Path | None = None,
+                     split: str, query_cases_per_task: int | None = None,
                      provenance: Mapping[str, Any] | None = None) -> dict[str, Any]:
     device = agent.device
     shots = list(config["evaluation"]["shots"])
@@ -55,6 +39,7 @@ def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], ca
         env = LogicalMergeEnv(task, config, book[query_key])
         results: dict[str, Any] = {}
         support_rollouts: list[Rollout] = []
+        support_episode_lengths: list[int] = []
         try:
             mu, log_var = agent.prior()
             for shot in range(max(shots) + 1):
@@ -62,17 +47,18 @@ def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], ca
                     queries = [collect_episode(env, task, case, agent, mu, "deterministic_query", device, episode_id=f"{task.task_id}:query:{shot}:{index}", posterior_version=shot) for index, case in enumerate(book[query_key][:query_limit])]
                     records = [rollout.record for rollout in queries]
                     posterior_mean = mu.detach().cpu().tolist()
-                    if output_dir is not None:
-                        _save_critical_scenarios(output_dir, task, shot, queries, book[query_key][:query_limit], posterior_mean, int(config["evaluation"]["top_k_scenarios"]), output_provenance)
                     results[str(shot)] = {
                         "summary": summarize(records), "records": records, "posterior_mean": posterior_mean,
                         "posterior_variance": torch.exp(log_var).detach().cpu().tolist(), "context_episode_count": len(support_rollouts),
+                        "support_episode_lengths": list(support_episode_lengths),
+                        "support_environment_steps": int(sum(support_episode_lengths)),
                     }
                 if shot == max(shots):
                     break
                 case = book[support_key][shot]
                 rollout = collect_episode(env, task, case, agent, agent.sample_latent(mu, log_var), "prior_support" if shot == 0 else "posterior_rollout", device, episode_id=f"{task.task_id}:support:{shot}", posterior_version=shot)
                 support_rollouts.append(rollout)
+                support_episode_lengths.append(len(rollout.transitions))
                 rng = np.random.default_rng(int(content_hash({"seed": base_seed, "task": task.task_id, "shot": shot})[:16], 16))
                 context = _sample_episode_context(support_rollouts, int(config["pearl"]["context_sample_size_eval"]), int(config["pearl"]["context_transitions_per_episode"]), rng)
                 mu, log_var = agent.infer_posterior([context])
@@ -82,7 +68,24 @@ def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], ca
     after = agent.parameter_hash()
     if before != after:
         raise RuntimeError("meta-test changed model parameters, target critics, or alpha")
-    return {"split": split, "parameter_hash_before": before, "parameter_hash_after": after, "no_gradient_adaptation": True, "context_protocol": {"sample_size": int(config["pearl"]["context_sample_size_eval"]), "transitions_per_episode": int(config["pearl"]["context_transitions_per_episode"]), "seed": base_seed}, "provenance": output_provenance, "tasks": all_results}
+    return {"split": split, "parameter_hash_before": before, "parameter_hash_after": after, "no_gradient_adaptation": True, "no_topology_ablation": bool(config.get("ablation", {}).get("no_topology", False)), "context_protocol": {"sample_size": int(config["pearl"]["context_sample_size_eval"]), "transitions_per_episode": int(config["pearl"]["context_transitions_per_episode"]), "seed": base_seed}, "provenance": output_provenance, "tasks": all_results}
+
+
+def compact_fewshot_result(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Keep reportable few-shot metrics while dropping per-episode records."""
+    tasks: dict[str, Any] = {}
+    for task_id, shots in result["tasks"].items():
+        tasks[task_id] = {
+            shot: {
+                "summary": value["summary"],
+                "support_environment_steps": value["support_environment_steps"],
+            }
+            for shot, value in shots.items()
+        }
+    return {
+        key: result[key]
+        for key in ("split", "parameter_hash_before", "parameter_hash_after", "no_gradient_adaptation", "no_topology_ablation", "context_protocol", "provenance")
+    } | {"tasks": tasks}
 
 
 def validation_score(result: Mapping[str, Any], shot: int = 5) -> tuple[float, float, float, float, float]:

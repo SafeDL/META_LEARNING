@@ -1,0 +1,64 @@
+{
+  "schema": "pearl_final_key_results",
+  "metric": "mean valid_critical_strict_rate",
+  "taskbook_hash": "d28933ade2878c82bcd228883565394f8f8f7ae86147929c119fee1ca1be966a",
+  "selected_checkpoint": "models/selected_pearl/best_model.pt",
+  "evaluation_protocol": {
+    "split": "meta_test_logical",
+    "unseen_tasks": 4,
+    "query_cases_per_task": 20,
+    "adaptation": "posterior inference from K support episodes; no gradient or parameter update"
+  },
+  "selected_pearl": {
+    "K=0": 0.588,
+    "K=1": 0.575,
+    "K=2": 0.588,
+    "K=5": 0.6,
+    "K=10": 0.575
+  },
+  "topology_ablation_at_K=5": {
+    "selected_pearl": 0.6,
+    "without_topology": 0.575
+  },
+  "equal_new_task_interaction_budget": {
+    "online_sac_seeds": 3,
+    "K=1": {
+      "mean_support_environment_steps": 11.0,
+      "pearl": 0.575,
+      "scratch_sac_mean": 0.317,
+      "scratch_sac_std": 0.204,
+      "pooled_finetune_sac_mean": 0.267,
+      "pooled_finetune_sac_std": 0.208
+    },
+    "K=2": {
+      "mean_support_environment_steps": 19.0,
+      "pearl": 0.588,
+      "scratch_sac_mean": 0.079,
+      "scratch_sac_std": 0.044,
+      "pooled_finetune_sac_mean": 0.275,
+      "pooled_finetune_sac_std": 0.099
+    },
+    "K=5": {
+      "mean_support_environment_steps": 57.0,
+      "pearl": 0.6,
+      "scratch_sac_mean": 0.171,
+      "scratch_sac_std": 0.115,
+      "pooled_finetune_sac_mean": 0.325,
+      "pooled_finetune_sac_std": 0.094
+    },
+    "K=10": {
+      "mean_support_environment_steps": 119.5,
+      "pearl": 0.575,
+      "scratch_sac_mean": 0.196,
+      "scratch_sac_std": 0.059,
+      "pooled_finetune_sac_mean": 0.217,
+      "pooled_finetune_sac_std": 0.072
+    }
+  },
+  "long_budget_reference_not_equal_budget": {
+    "new_task_environment_steps": 5000,
+    "scratch_sac": 0.587,
+    "pooled_finetune_sac": 0.562,
+    "topology_conditioned_pooled_sac": 0.525
+  }
+}

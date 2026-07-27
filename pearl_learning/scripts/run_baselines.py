@@ -81,6 +81,9 @@ def main() -> None:
     parser.add_argument("--config", required=True); parser.add_argument("--taskbook", required=True); parser.add_argument("--casebook-root", required=True); parser.add_argument("--output", required=True)
     parser.add_argument("--baseline", choices=BASELINE_NAMES, required=True); parser.add_argument("--seed", type=int, required=True); parser.add_argument("--env-steps", type=int, required=True)
     parser.add_argument("--pretrain-steps", type=int, help="pooled pre-training budget; defaults to --env-steps")
+    parser.add_argument("--per-task-policy-root", help="reuse frozen per-task SAC policies when building the cross-task transfer matrix")
+    parser.add_argument("--pooled-pretrain-model", help="reuse a frozen pooled SAC checkpoint for pooled_finetune_sac")
+    parser.add_argument("--resume", action="store_true", help="resume reusable per-task artifacts for supported long-running baselines")
     parser.add_argument("--pearl-checkpoint", help="required by pearl_no_context")
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
@@ -120,23 +123,41 @@ def main() -> None:
         train_books = {task.task_id: casebooks[task.task_id] for task in train_tasks}
         if args.baseline in {"per_task_sac", "cross_task_policy_matrix"}:
             policies: dict[str, Any] = {}
+            partial_path = root / "per_task_partial_metrics.json"
+            partial_metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.baseline == "per_task_sac" and args.resume and partial_path.exists() else {}
             for index, task in enumerate(train_tasks):
                 env = LogicalMergeEnv(task, cfg, train_books[task.task_id]["train_pool"])
                 try:
-                    model = _new_sac(env, args.seed + index); model.learn(total_timesteps=args.env_steps)
-                    target = root / "policies" / f"{task.task_id}.zip"; target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
-                    artifacts[f"policy:{task.task_id}"] = str(target)
+                    source = Path(args.per_task_policy_root) / f"{task.task_id}.zip" if args.per_task_policy_root else None
+                    if args.baseline == "cross_task_policy_matrix" and source:
+                        if not source.exists():
+                            raise SystemExit(f"missing frozen per-task SAC policy: {source}")
+                        model = SAC.load(source, device="auto")
+                        artifacts[f"policy:{task.task_id}"] = str(source)
+                    else:
+                        target = root / "policies" / f"{task.task_id}.zip"; target.parent.mkdir(parents=True, exist_ok=True)
+                        if args.baseline == "per_task_sac" and args.resume and target.exists():
+                            model = SAC.load(target, device="auto")
+                        else:
+                            model = _new_sac(env, args.seed + index); model.learn(total_timesteps=args.env_steps); model.save(target)
+                        artifacts[f"policy:{task.task_id}"] = str(target)
                     policies[task.task_id] = model
                 finally:
                     env.close()
+                if args.baseline == "per_task_sac" and task.task_id not in partial_metrics:
+                    partial_metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
+                    _save_metrics(partial_path, {"tasks": partial_metrics})
             if args.baseline == "per_task_sac":
-                metrics = {task.task_id: _evaluate_sac(policies[task.task_id], task, cfg, query_cases(task)) for task in train_tasks}
-                artifacts["metrics"] = str(_save_metrics(root / "per_task_metrics.json", {"tasks": metrics}))
+                artifacts["metrics"] = str(_save_metrics(root / "per_task_metrics.json", {"tasks": partial_metrics}))
             else:
-                matrix = {
-                    policy_id: {task.task_id: _evaluate_sac(model, task, cfg, query_cases(task)) for task in evaluation_tasks}
-                    for policy_id, model in policies.items()
-                }
+                partial_path = root / "cross_task_partial_matrix.json"
+                matrix = json.loads(partial_path.read_text(encoding="utf-8")).get("matrix", {}) if args.resume and partial_path.exists() else {}
+                for policy_id, model in policies.items():
+                    rows = matrix.setdefault(policy_id, {})
+                    for task in evaluation_tasks:
+                        if task.task_id not in rows:
+                            rows[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
+                            _save_metrics(partial_path, {"policy_tasks": list(policies), "evaluation_tasks": [item.task_id for item in evaluation_tasks], "matrix": matrix})
                 artifacts["matrix"] = str(_save_metrics(root / "cross_task_matrix.json", {"policy_tasks": list(policies), "evaluation_tasks": [task.task_id for task in evaluation_tasks], "matrix": matrix}))
 
         elif args.baseline in {"topology_conditioned_pooled_sac", "oracle_task_conditioned_sac"}:
@@ -144,46 +165,82 @@ def main() -> None:
             geometry_ids = [task.geometry_id for task in all_tasks]
             env = OracleTaskObservation(pooled, geometry_ids) if args.baseline == "oracle_task_conditioned_sac" else pooled
             try:
-                model = _new_sac(env, args.seed); model.learn(total_timesteps=args.env_steps)
-                target = root / "model.zip"; target.parent.mkdir(parents=True, exist_ok=True); model.save(target); artifacts["model"] = str(target)
+                target = root / "model.zip"; target.parent.mkdir(parents=True, exist_ok=True)
+                if args.resume and target.exists():
+                    model = SAC.load(target, env=env, device="auto")
+                else:
+                    model = _new_sac(env, args.seed); model.learn(total_timesteps=args.env_steps); model.save(target)
+                artifacts["model"] = str(target)
             finally:
                 env.close()
             transform = None
             if args.baseline == "oracle_task_conditioned_sac":
                 positions = {geometry_id: index for index, geometry_id in enumerate(geometry_ids)}
                 transform = lambda observation, task: np.concatenate([np.asarray(observation, dtype=np.float32), np.eye(len(geometry_ids), dtype=np.float32)[positions[task.geometry_id]]])
-            metrics = {task.task_id: _evaluate_sac(model, task, cfg, query_cases(task), transform) for task in evaluation_tasks}
-            artifacts["metrics"] = str(_save_metrics(root / "heldout_metrics.json", {"tasks": metrics}))
+            # The non-privileged pooled baseline is also evaluated on the
+            # frozen meta-train queries.  This is the matched comparator for
+            # per-task SAC in the heterogeneity audit; held-out metrics remain
+            # present in the same artifact.
+            report_tasks = list(train_tasks) + evaluation_tasks if args.baseline == "topology_conditioned_pooled_sac" else evaluation_tasks
+            partial_path = root / "pooled_partial_metrics.json"
+            metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.resume and partial_path.exists() else {}
+            for task in report_tasks:
+                if task.task_id not in metrics:
+                    metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task), transform)
+                    _save_metrics(partial_path, {"tasks": metrics})
+            artifacts["metrics"] = str(_save_metrics(root / "pooled_metrics.json", {"tasks": metrics}))
 
         elif args.baseline == "scratch_sac":
-            metrics = {}
+            partial_path = root / "scratch_partial_metrics.json"
+            metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.resume and partial_path.exists() else {}
             for index, task in enumerate(evaluation_tasks):
                 env = LogicalMergeEnv(task, cfg, casebooks[task.task_id]["test_support"])
+                target = root / "policies" / f"{task.task_id}.zip"
                 try:
-                    model = _new_sac(env, args.seed + index); model.learn(total_timesteps=args.env_steps)
-                    target = root / "policies" / f"{task.task_id}.zip"; target.parent.mkdir(parents=True, exist_ok=True); model.save(target); artifacts[f"policy:{task.task_id}"] = str(target)
+                    if args.resume and target.exists():
+                        model = SAC.load(target, device="auto")
+                    else:
+                        model = _new_sac(env, args.seed + index); model.learn(total_timesteps=args.env_steps)
+                        target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
+                    artifacts[f"policy:{task.task_id}"] = str(target)
                 finally:
                     env.close()
-                metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
+                if task.task_id not in metrics:
+                    metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
+                    _save_metrics(partial_path, {"support_steps": args.env_steps, "tasks": metrics})
             artifacts["metrics"] = str(_save_metrics(root / "scratch_metrics.json", {"support_steps": args.env_steps, "tasks": metrics}))
 
         elif args.baseline == "pooled_finetune_sac":
             pretrain_steps = int(args.pretrain_steps or args.env_steps)
-            pooled = PooledLogicalMergeEnv(train_tasks, cfg, train_books, args.seed)
-            try:
-                base = _new_sac(pooled, args.seed); base.learn(total_timesteps=pretrain_steps)
-                base_path = root / "pooled_pretrain.zip"; base_path.parent.mkdir(parents=True, exist_ok=True); base.save(base_path); artifacts["pooled_pretrain"] = str(base_path)
-            finally:
-                pooled.close()
-            metrics = {}
+            if args.pooled_pretrain_model:
+                base_path = Path(args.pooled_pretrain_model)
+                if not base_path.exists():
+                    raise SystemExit(f"missing frozen pooled SAC checkpoint: {base_path}")
+                artifacts["pooled_pretrain"] = str(base_path)
+            else:
+                pooled = PooledLogicalMergeEnv(train_tasks, cfg, train_books, args.seed)
+                try:
+                    base = _new_sac(pooled, args.seed); base.learn(total_timesteps=pretrain_steps)
+                    base_path = root / "pooled_pretrain.zip"; base_path.parent.mkdir(parents=True, exist_ok=True); base.save(base_path); artifacts["pooled_pretrain"] = str(base_path)
+                finally:
+                    pooled.close()
+            partial_path = root / "pooled_finetune_partial_metrics.json"
+            metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.resume and partial_path.exists() else {}
             for index, task in enumerate(evaluation_tasks):
                 env = LogicalMergeEnv(task, cfg, casebooks[task.task_id]["test_support"])
+                target = root / "finetuned" / f"{task.task_id}.zip"
                 try:
-                    model = SAC.load(base_path, env=env, device="auto"); model.set_random_seed(args.seed + index); model.learn(total_timesteps=args.env_steps, reset_num_timesteps=False)
-                    target = root / "finetuned" / f"{task.task_id}.zip"; target.parent.mkdir(parents=True, exist_ok=True); model.save(target); artifacts[f"finetuned:{task.task_id}"] = str(target)
+                    if args.resume and target.exists():
+                        model = SAC.load(target, device="auto")
+                    else:
+                        model = SAC.load(base_path, env=env, device="auto"); model.set_random_seed(args.seed + index); model.learn(total_timesteps=args.env_steps, reset_num_timesteps=False)
+                        target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
+                    artifacts[f"finetuned:{task.task_id}"] = str(target)
                 finally:
                     env.close()
-                metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
+                if task.task_id not in metrics:
+                    metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
+                    _save_metrics(partial_path, {"pretrain_steps": pretrain_steps, "support_steps": args.env_steps, "tasks": metrics})
             artifacts["metrics"] = str(_save_metrics(root / "pooled_finetune_metrics.json", {"pretrain_steps": pretrain_steps, "support_steps": args.env_steps, "tasks": metrics}))
 
         else:

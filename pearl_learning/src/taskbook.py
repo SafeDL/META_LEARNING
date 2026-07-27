@@ -25,7 +25,45 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     ids = [str(item.get("geometry_id", "")) for item in geometries if isinstance(item, Mapping)]
     if len(ids) != len(geometries) or len(ids) != len(set(ids)):
         raise ValueError("geometry catalog has missing or duplicate geometry_id values")
-    return [dict(item) for item in geometries]
+    rules = data.get("target_contact_rules")
+    if not isinstance(rules, Mapping) or set(rules) != set(ids):
+        raise ValueError("geometry catalog must define exactly one target_contact_rules entry per geometry")
+    variants = data.get("meta_train_target_contact_rule_variants", {})
+    if not isinstance(variants, Mapping) or not set(variants) <= set(ids):
+        raise ValueError("meta_train_target_contact_rule_variants must map known geometry ids to rule lists")
+    entry_orders = data.get("target_contact_entry_orders", {})
+    if not isinstance(entry_orders, Mapping) or set(entry_orders) != set(ids):
+        raise ValueError("geometry catalog must define exactly one target_contact_entry_orders entry per geometry")
+    entry_semantics = data.get("target_contact_entry_order_semantics")
+    if entry_semantics != "pre_step_arrival_time":
+        raise ValueError("geometry catalog must freeze pre_step_arrival_time entry-order semantics")
+    resolved: list[dict[str, Any]] = []
+    for item in geometries:
+        source = dict(item); source_id = str(source["geometry_id"])
+        candidate_rules = variants.get(source_id, [rules[source_id]])
+        if source.get("split") != "meta_train" and source_id in variants:
+            raise ValueError("rule variants are permitted only for meta_train geometries")
+        if not isinstance(candidate_rules, list) or not candidate_rules:
+            raise ValueError(f"rule variants for {source_id} must be a non-empty list")
+        for rule in candidate_rules:
+            if not isinstance(rule, Mapping):
+                raise ValueError(f"target-contact rule for {source_id} must be a mapping")
+            geometry = dict(source)
+            priority = dict(geometry.get("priority_spec", {}))
+            priority["target_contact_entry_order"] = str(entry_orders[source_id])
+            priority["target_contact_entry_order_semantics"] = str(entry_semantics)
+            priority.update(dict(rule))
+            relation = str(priority.get("target_contact_entry_order", "any"))
+            if relation == "any":
+                relation = str(priority.get("target_contact_speed_relation", "any"))
+            if len(candidate_rules) > 1:
+                geometry["geometry_id"] = f"{source_id}__rule_{relation}"
+            geometry["priority_spec"] = priority
+            resolved.append(geometry)
+    expanded_ids = [str(item["geometry_id"]) for item in resolved]
+    if len(expanded_ids) != len(set(expanded_ids)):
+        raise ValueError("rule expansion produced duplicate geometry ids")
+    return resolved
 
 
 def _global_case_seed(seed: int, geometry_id: str) -> int:
@@ -140,13 +178,12 @@ def save_taskbook(taskbook: Mapping[str, Iterable[LogicalScenarioTaskSpec]], out
     root = Path(output_dir)
     for split, tasks in payload.items():
         write_json(root / f"{split}_tasks.json", tasks)
-    write_json(root / "taskbook_hash.json", {"schema": TASKBOOK_SCHEMA, "task_schema": TASK_SCHEMA, "sha256": digest})
     return digest
 
 
 def load_taskbook(path: str | Path) -> dict[str, list[LogicalScenarioTaskSpec]]:
     root = Path(path)
-    metadata = json.loads((root / "taskbook_hash.json").read_text(encoding="utf-8"))
+    metadata = json.loads((root / "taskbook_provenance.json").read_text(encoding="utf-8"))
     if metadata.get("schema") != TASKBOOK_SCHEMA or metadata.get("task_schema") != TASK_SCHEMA:
         raise ValueError("taskbook schema is unsupported or not executable")
     taskbook: dict[str, list[LogicalScenarioTaskSpec]] = {}
@@ -156,6 +193,6 @@ def load_taskbook(path: str | Path) -> dict[str, list[LogicalScenarioTaskSpec]]:
             raise ValueError(f"{split} taskbook payload is not a list")
         taskbook[split] = [LogicalScenarioTaskSpec.from_dict(row) for row in data]
     validate_taskbook(taskbook)
-    if content_hash(taskbook_payload(taskbook)) != metadata.get("sha256"):
+    if content_hash(taskbook_payload(taskbook)) != metadata.get("taskbook_hash"):
         raise ValueError("taskbook SHA-256 does not match its payload")
     return taskbook

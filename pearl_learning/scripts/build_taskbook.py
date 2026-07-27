@@ -8,7 +8,7 @@ from pathlib import Path
 from pearl_learning.src.casebook import build_casebook, save_casebook, validate_casebook_disjoint
 from pearl_learning.src.io import content_hash, read_config, write_json
 from pearl_learning.src.task_env import LogicalMergeEnv
-from pearl_learning.src.taskbook import build_taskbook, replace_geometry_hashes, save_taskbook, validate_taskbook
+from pearl_learning.src.taskbook import TASKBOOK_SCHEMA, build_taskbook, replace_geometry_hashes, save_taskbook, validate_taskbook
 
 
 def _resolve_task(task, cfg):
@@ -43,6 +43,7 @@ def main() -> None:
     case_root = root.parent
     case_hashes = {task_id: save_casebook(next(task for tasks in resolved.values() for task in tasks if task.task_id == task_id), book, str(case_root)) for task_id, book in casebooks.items()}
     write_json(root / "taskbook_provenance.json", {
+        "schema": TASKBOOK_SCHEMA, "task_schema": "logical_merge_task",
         "taskbook_hash": digest, "casebook_hashes": case_hashes,
         "geometry_catalog_hash": content_hash(cfg["geometry_catalog"]),
     })

@@ -41,6 +41,9 @@ pearl:
   context_reward_scale: 200.0
   context_batch_size: 256
   context_transitions_per_episode: 32
+  # Randomize training contexts from one through this capacity so K=1/2
+  # posterior inference is trained under the same protocol as few-shot eval.
+  context_min_episodes: 1
   context_sample_size_eval: 256
   kl_beta: 0.1
 networks:
@@ -75,14 +78,98 @@ evaluation:
   - 5
   - 10
   query_cases_per_task: 20
-  top_k_scenarios: 10
-  replay_ttc_tolerance: 0.1
   context_sampling_seed: 20260721
 experiment:
   taskbook_seed: 7301
   device: auto
 geometry_catalog:
   schema: logical_merge_geometry_catalog
+  # Frozen task rules.  The speed-relation key is deliberately not an
+  # observation field: it is identifiable only from support interactions.
+  target_contact_rules:
+    on_ramp_srs:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    lane_drop_24:
+      target_contact_speed_relation: sut_faster
+      target_contact_speed_margin_mps: 3.0
+    lane_drop_32:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    lane_drop_40:
+      target_contact_speed_relation: sut_faster
+      target_contact_speed_margin_mps: 3.0
+    lane_drop_48:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    bottleneck_24:
+      target_contact_speed_relation: sut_faster
+      target_contact_speed_margin_mps: 3.0
+    bottleneck_32:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    bottleneck_40:
+      target_contact_speed_relation: sut_faster
+      target_contact_speed_margin_mps: 3.0
+    bottleneck_48:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    y_merge_24:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    y_merge_32:
+      target_contact_speed_relation: sut_faster
+      target_contact_speed_margin_mps: 3.0
+    y_merge_40:
+      target_contact_speed_relation: adversary_faster
+      target_contact_speed_margin_mps: 3.0
+    y_merge_48:
+      target_contact_speed_relation: sut_faster
+      target_contact_speed_margin_mps: 3.0
+  target_contact_entry_orders:
+    on_ramp_srs: adversary_first
+    lane_drop_24: sut_first
+    lane_drop_32: adversary_first
+    lane_drop_40: sut_first
+    lane_drop_48: adversary_first
+    bottleneck_24: sut_first
+    bottleneck_32: adversary_first
+    bottleneck_40: sut_first
+    bottleneck_48: adversary_first
+    y_merge_24: adversary_first
+    y_merge_32: sut_first
+    y_merge_40: adversary_first
+    y_merge_48: sut_first
+  target_contact_entry_order_semantics: pre_step_arrival_time
+  # Each meta-train physical geometry occurs with both hidden rule values.
+  # This prevents a geometry descriptor from serving as a proxy for the
+  # reward rule; only interaction outcomes in support can disambiguate it.
+  meta_train_target_contact_rule_variants:
+    on_ramp_srs:
+    - target_contact_speed_relation: any
+      target_contact_entry_order: adversary_first
+    - target_contact_speed_relation: any
+      target_contact_entry_order: sut_first
+    lane_drop_24:
+    - target_contact_speed_relation: any
+      target_contact_entry_order: adversary_first
+    - target_contact_speed_relation: any
+      target_contact_entry_order: sut_first
+    lane_drop_32:
+    - target_contact_speed_relation: any
+      target_contact_entry_order: adversary_first
+    - target_contact_speed_relation: any
+      target_contact_entry_order: sut_first
+    bottleneck_24:
+    - target_contact_speed_relation: any
+      target_contact_entry_order: adversary_first
+    - target_contact_speed_relation: any
+      target_contact_entry_order: sut_first
+    bottleneck_32:
+    - target_contact_speed_relation: any
+      target_contact_entry_order: adversary_first
+    - target_contact_speed_relation: any
+      target_contact_entry_order: sut_first
   geometries:
   - geometry_id: on_ramp_srs
     split: meta_train

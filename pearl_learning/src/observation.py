@@ -74,6 +74,8 @@ def build_observation(adversary: Any, sut: Any, frame: Mapping[str, Any], topolo
         _clip(topology["conflict_radius_m"], norm["distance_m"]), _clip(topology["adversary_route_curvature"], norm["curvature"]), _clip(topology["sut_route_curvature"], norm["curvature"]),
         _clip(topology["adversary_speed_limit_mps"], norm["speed_mps"]), _clip(topology["sut_speed_limit_mps"], norm["speed_mps"]), _clip(topology["num_conflict_zones"], 2.0),
     ]
+    if bool(config.get("ablation", {}).get("no_topology", False)):
+        descriptor = [0.0] * len(descriptor)
     observation = np.asarray(adv_terms + sut_terms + interaction + descriptor, dtype=np.float32)
     if observation.shape != (OBSERVATION_DIM,) or not np.all(np.isfinite(observation)):
         raise ValueError(f"{OBSERVATION_SCHEMA} contract violated: {observation.shape}")

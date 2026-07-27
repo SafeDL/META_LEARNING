@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Any, Mapping
 import subprocess
@@ -29,16 +30,27 @@ def _file_hash(path: Path) -> str:
 
 
 def save_checkpoint(path: str | Path, agent: Any, config: Mapping[str, Any], taskbook_hash: str, step: int, *,
-                    casebook_hashes: Mapping[str, str], training_seed: int, rng_state: Mapping[str, Any]) -> dict[str, Any]:
+                    casebook_hashes: Mapping[str, str], training_seed: int, rng_state: Mapping[str, Any],
+                    trainer_state: Mapping[str, Any] | None = None) -> dict[str, Any]:
     target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
     metadata = {
         "schema": CHECKPOINT_SCHEMA, "git_commit": git_commit(), "config_hash": content_hash(config), "taskbook_hash": taskbook_hash,
         "casebook_hashes": dict(casebook_hashes), "training_seed": int(training_seed), "step": int(step),
         "observation_schema": config["environment"]["observation_schema"], "observation_dim": int(config["environment"]["observation_dim"]), "action_dim": int(config["environment"]["action_dim"]),
+        "no_topology_ablation": bool(config.get("ablation", {}).get("no_topology", False)),
     }
-    torch.save({"agent": agent.state_dict(), "rng_state": dict(rng_state), **metadata}, target)
+    payload = {"agent": agent.state_dict(), "rng_state": dict(rng_state), **metadata}
+    if trainer_state is not None:
+        payload["trainer_state"] = dict(trainer_state)
+    temporary = target.with_name(f".{target.name}.tmp")
+    try:
+        torch.save(payload, temporary)
+        os.replace(temporary, target)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
     metadata["checkpoint_hash"] = _file_hash(target)
-    write_json(target.with_suffix(".manifest.json"), {"checkpoint": target.name, **metadata})
+    write_json(target.with_suffix(".manifest.json"), {"checkpoint": target.name, "resumable_trainer_state": trainer_state is not None, **metadata})
     return metadata
 
 

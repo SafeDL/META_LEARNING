@@ -16,6 +16,11 @@ BASELINE_NAMES = (
     "pooled_finetune_sac", "oracle_task_conditioned_sac", "pearl_no_context",
 )
 
+# ``pearl_no_context`` evaluates a trained PEARL actor and therefore cannot be
+# available before a formal PEARL run.  Keeping the two phases explicit avoids
+# a circular formal-training gate.
+PRETRAIN_BASELINE_NAMES = tuple(name for name in BASELINE_NAMES if name != "pearl_no_context")
+
 
 @dataclass(frozen=True)
 class BaselineSpec:

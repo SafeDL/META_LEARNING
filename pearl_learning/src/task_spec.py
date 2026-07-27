@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
 import re
 from typing import Any, Mapping
 
@@ -102,6 +103,17 @@ class LogicalScenarioTaskSpec:
         priority = _mapping(self.priority_spec, "priority_spec")
         if not isinstance(priority.get("sut_has_priority"), bool):
             raise ValueError("priority_spec.sut_has_priority must be boolean")
+        contact_rule = str(priority.get("target_contact_speed_relation", "any"))
+        if contact_rule not in {"any", "adversary_faster", "sut_faster"}:
+            raise ValueError("priority_spec.target_contact_speed_relation must be any, adversary_faster, or sut_faster")
+        margin = float(priority.get("target_contact_speed_margin_mps", 0.0))
+        if not math.isfinite(margin) or margin < 0.0:
+            raise ValueError("priority_spec.target_contact_speed_margin_mps must be a finite non-negative number")
+        entry_order = str(priority.get("target_contact_entry_order", "any"))
+        if entry_order not in {"any", "adversary_first", "sut_first"}:
+            raise ValueError("priority_spec.target_contact_entry_order must be any, adversary_first, or sut_first")
+        if entry_order != "any" and priority.get("target_contact_entry_order_semantics") != "pre_step_arrival_time":
+            raise ValueError("arrival-order tasks must freeze pre_step_arrival_time semantics")
         conflict = _mapping(self.conflict_spec, "conflict_spec")
         if float(conflict.get("conflict_radius_m", 0.0)) <= 0.0:
             raise ValueError("conflict_spec.conflict_radius_m must be positive")
