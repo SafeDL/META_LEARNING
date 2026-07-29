@@ -1,26 +1,47 @@
 from __future__ import annotations
 
 import copy
+import argparse
 import json
 import os
 import tempfile
 import unittest
+from pathlib import Path
 import numpy as np
 import torch
 
 from pearl_learning.src.adapters.base import MetaDriveAdapterBase
 from pearl_learning.src.context_encoder import ContextEncoder
 from pearl_learning.src.gates import REQUIRED_PRETRAIN_BASELINES, verify_formal_gate
-from pearl_learning.src.evaluator import compact_fewshot_result
+from pearl_learning.src.evaluator import _mask_context_fields, _posterior_action_disagreement, compact_fewshot_result, infer_support_posteriors
 from pearl_learning.src.io import read_config
+from pearl_learning.src.io import content_hash, write_json
+from pearl_learning.src.metrics import summarize
 from pearl_learning.src.pearl_agent import PEARLAgent
 from pearl_learning.src.replay import TaskReplayBuffer, Transition
 from pearl_learning.src.reward import compute_reward
 from pearl_learning.src.observation import OBS_FIELDS, build_observation
 from pearl_learning.src.routes import RoutePolyline, wrap_to_pi
 from pearl_learning.src.task_spec import LogicalScenarioTaskSpec
+from pearl_learning.src.task_representation import (
+    INTERACTION_OBSERVATION_FIELDS,
+    INTERACTION_OBSERVATION_INDEXES,
+    configure_disentangled_representation,
+    representation_target,
+)
 from pearl_learning.src.task_env import target_contact_matches_rule
-from pearl_learning.src.taskbook import build_taskbook
+from pearl_learning.src.taskbook import build_taskbook, taskbook_payload
+from pearl_learning.src.casebook import build_casebook
+from pearl_learning.src.transferability import task_descriptor, transferability_report
+from pearl_learning.src.transferability_calibration import calibration_report
+from pearl_learning.src.transferability_decision import transferability_decision_report
+from pearl_learning.src.validation_freeze import freeze_validation_protocol, verify_validation_freeze
+from pearl_learning.src.support_selection import order_support_cases
+from pearl_learning.scripts.run_equal_budget_analysis import _case_groups, _selected_support_cases
+from pearl_learning.scripts.build_transferability_taskbook import extend_validation_catalog
+from pearl_learning.scripts.run_formal_baseline_suite import baseline_commands
+from pearl_learning.scripts.audit_task_heterogeneity import heterogeneity_report
+from pearl_learning.scripts.run_baselines import _latest_sac_checkpoint
 
 
 def transition(episode: str, terminated: bool = False, truncated: bool = False) -> Transition:
@@ -170,11 +191,344 @@ class ContractTests(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_formal_baseline_suite_covers_required_names_and_dependencies(self):
+        args = argparse.Namespace(
+            config="config", taskbook="taskbook", casebook_root="casebooks",
+            output="baselines", seed=7, environment_steps=5000, checkpoint_interval_steps=1000,
+        )
+        commands = dict(baseline_commands(args))
+        self.assertEqual(set(commands), REQUIRED_PRETRAIN_BASELINES)
+        cross = " ".join(commands["cross_task_policy_matrix"]).replace("\\", "/")
+        finetune = " ".join(commands["pooled_finetune_sac"]).replace("\\", "/")
+        pooled = " ".join(commands["topology_conditioned_pooled_sac"])
+        self.assertIn("baselines/per_task_sac/policies", cross)
+        self.assertIn("baselines/topology_conditioned_pooled_sac/model.zip", finetune)
+        self.assertIn("--pooled-steps-per-task 5000", pooled)
+        self.assertIn("--checkpoint-interval-steps 1000", " ".join(commands["per_task_sac"]))
+
+    def test_heterogeneity_audit_aggregates_distinct_seed_roots_without_records(self):
+        taskbook = build_taskbook(self.config)
+        digest = content_hash(taskbook_payload(taskbook))
+        train_ids = [task.task_id for task in taskbook["meta_train"]]
+        with tempfile.TemporaryDirectory() as directory:
+            roots = []
+            for seed in (3, 4):
+                root = os.path.join(directory, f"seed_{seed}"); roots.append(root)
+                for baseline in ("per_task_sac", "cross_task_policy_matrix", "topology_conditioned_pooled_sac"):
+                    budget = {
+                        "scope": "pooled_shared" if baseline == "topology_conditioned_pooled_sac" else "per_task_independent",
+                        "per_task_environment_steps": 5000,
+                        "total_environment_steps": 5000 * len(train_ids),
+                    }
+                    write_json(os.path.join(root, baseline, "baseline_manifest.json"), {
+                        "baseline": baseline, "taskbook_hash": digest, "status": "completed", "seed": seed,
+                        "training_budget": budget,
+                    })
+                per_task = {task_id: {"summary": {"valid_critical_strict_rate": 0.6}} for task_id in train_ids}
+                pooled = {task_id: {"summary": {"valid_critical_strict_rate": 0.5}} for task_id in train_ids}
+                write_json(os.path.join(root, "per_task_sac", "per_task_metrics.json"), {"tasks": per_task})
+                write_json(os.path.join(root, "topology_conditioned_pooled_sac", "pooled_metrics.json"), {"tasks": pooled})
+                write_json(os.path.join(root, "cross_task_policy_matrix", "cross_task_matrix.json"), {
+                    "policy_tasks": train_ids, "evaluation_tasks": [], "matrix": {},
+                })
+            report = heterogeneity_report(taskbook, roots, minimum_gap=0.02, minimum_seeds=2)
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["seed_count"], 2)
+        self.assertEqual(report["seed_evidence"][0]["training_budget"]["pooled_total_environment_steps"], 5000 * len(train_ids))
+        self.assertTrue(all("records" not in str(item) for item in report["seed_evidence"]))
+
+    def test_heterogeneity_audit_rejects_unbalanced_pooled_budget(self):
+        taskbook = build_taskbook(self.config)
+        digest = content_hash(taskbook_payload(taskbook))
+        train_ids = [task.task_id for task in taskbook["meta_train"]]
+        with tempfile.TemporaryDirectory() as directory:
+            for baseline, budget in {
+                "per_task_sac": {"per_task_environment_steps": 20000, "total_environment_steps": 20000 * len(train_ids)},
+                "cross_task_policy_matrix": {"per_task_environment_steps": 20000, "total_environment_steps": 0},
+                "topology_conditioned_pooled_sac": {"per_task_environment_steps": 2000, "total_environment_steps": 20000},
+            }.items():
+                write_json(os.path.join(directory, baseline, "baseline_manifest.json"), {
+                    "baseline": baseline, "taskbook_hash": digest, "status": "completed", "seed": 3,
+                    "training_budget": budget,
+                })
+            values = {task_id: {"summary": {"valid_critical_strict_rate": 0.5}} for task_id in train_ids}
+            write_json(os.path.join(directory, "per_task_sac", "per_task_metrics.json"), {"tasks": values})
+            write_json(os.path.join(directory, "topology_conditioned_pooled_sac", "pooled_metrics.json"), {"tasks": values})
+            write_json(os.path.join(directory, "cross_task_policy_matrix", "cross_task_matrix.json"), {
+                "policy_tasks": train_ids, "evaluation_tasks": [], "matrix": {},
+            })
+            with self.assertRaises(SystemExit):
+                heterogeneity_report(taskbook, [directory], minimum_gap=0.02, minimum_seeds=1)
+
+    def test_sac_checkpoint_resume_prefers_latest_step(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = os.path.join(directory, "checkpoints"); os.makedirs(root)
+            for step in (5000, 15000, 10000):
+                open(os.path.join(root, f"task_{step}_steps.zip"), "wb").close()
+            latest = _latest_sac_checkpoint(Path(root), "task")
+        self.assertEqual(latest.name, "task_15000_steps.zip")
+
     def test_compact_fewshot_result_removes_episode_records(self):
         result = {"split": "meta_test_logical", "parameter_hash_before": "same", "parameter_hash_after": "same", "no_gradient_adaptation": True, "no_topology_ablation": False, "context_protocol": {}, "provenance": {}, "tasks": {"task": {"5": {"summary": {"valid_critical_strict_rate": 0.6}, "records": [{"case_id": "query"}], "support_environment_steps": 57}}}}
         compact = compact_fewshot_result(result)
         self.assertEqual(compact["tasks"]["task"]["5"]["summary"]["valid_critical_strict_rate"], 0.6)
         self.assertNotIn("records", compact["tasks"]["task"]["5"])
+
+    def test_summary_reports_valid_critical_initial_condition_diversity_as_secondary_diagnostic(self):
+        records = [
+            {"case_id": "a", "valid_critical_strict": True, "target_collision": True, "critical": True, "valid": True, "min_ttc": 0.5, "min_distance": 1.0},
+            {"case_id": "b", "valid_critical_strict": True, "target_collision": True, "critical": True, "valid": True, "min_ttc": 0.4, "min_distance": 0.8},
+            {"case_id": "c", "valid_critical_strict": False, "target_collision": False, "critical": False, "valid": True, "min_ttc": 3.0, "min_distance": 8.0},
+        ]
+        metadata = {
+            "a": {"adversary_speed_mps": 10.0, "adversary_spawn_m": 0.0, "sut_spawn_m": 0.0},
+            "b": {"adversary_speed_mps": 20.0, "adversary_spawn_m": 10.0, "sut_spawn_m": 10.0},
+            "c": {"adversary_speed_mps": 15.0, "adversary_spawn_m": 5.0, "sut_spawn_m": 5.0},
+        }
+        summary = summarize(records, case_metadata=metadata)
+        self.assertEqual(summary["valid_critical_case_count"], 2)
+        self.assertGreater(float(summary["valid_critical_initial_condition_diversity"]), 0.0)
+        self.assertEqual(summary["valid_critical_case_metadata_coverage"], 1.0)
+
+    def test_support_selection_is_deterministic_and_pre_execution_only(self):
+        cases = [
+            {"case_id": "case_0", "adversary_speed_mps": 10.0, "adversary_spawn_m": 0.0, "sut_spawn_m": 0.0},
+            {"case_id": "case_1", "adversary_speed_mps": 11.0, "adversary_spawn_m": 10.0, "sut_spawn_m": 10.0},
+            {"case_id": "case_2", "adversary_speed_mps": 16.0, "adversary_spawn_m": 100.0, "sut_spawn_m": -20.0},
+        ]
+        first, provenance = order_support_cases(cases, "initial_condition_diversity", seed=9)
+        second, again = order_support_cases(cases, "initial_condition_diversity", seed=9)
+        self.assertEqual([row["case_id"] for row in first], [row["case_id"] for row in second])
+        self.assertEqual(provenance, again)
+        self.assertEqual(provenance["selected_case_ids"][0], "case_0")
+        self.assertFalse(provenance["uses_query_cases"])
+        self.assertFalse(provenance["uses_rollout_outcomes"])
+        randomized, _ = order_support_cases(cases, "random", seed=9)
+        self.assertEqual(sorted(row["case_id"] for row in randomized), sorted(row["case_id"] for row in cases))
+        with self.assertRaises(ValueError):
+            order_support_cases(cases, "posterior_action_disagreement", seed=9)
+
+    def test_posterior_action_disagreement_is_deterministic_and_parameter_free(self):
+        agent = PEARLAgent(37, 2, self.config, torch.device("cpu"))
+        before = agent.parameter_hash()
+        mu, log_var = agent.prior()
+        observations = np.vstack([np.zeros(37, dtype=np.float32), np.ones(37, dtype=np.float32)])
+        first = _posterior_action_disagreement(agent, observations, mu, log_var, seed=17)
+        second = _posterior_action_disagreement(agent, observations, mu, log_var, seed=17)
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 2)
+        self.assertTrue(all(np.isfinite(score) and score >= 0.0 for score in first))
+        self.assertEqual(before, agent.parameter_hash())
+
+    def test_representation_intervention_masks_only_declared_observation_fields(self):
+        original = Transition(
+            np.ones(37, dtype=np.float32), np.zeros(2, dtype=np.float32), 0.0,
+            np.ones(37, dtype=np.float32), False, True, "horizon", "task", "episode", "case", "prior_support", 0,
+        )
+        masked = _mask_context_fields([[original]], (1, 3, 24))[0][0]
+        self.assertTrue(np.all(masked.obs[[1, 3, 24]] == 0.0))
+        self.assertTrue(np.all(masked.next_obs[[1, 3, 24]] == 0.0))
+        self.assertTrue(np.all(masked.obs[[0, 2, 4]] == 1.0))
+        self.assertTrue(np.all(original.obs == 1.0))
+        self.assertEqual(masked.case_id, original.case_id)
+
+    def test_support_posterior_diagnostic_rejects_negative_shots_before_environment_creation(self):
+        agent = PEARLAgent(37, 2, self.config, torch.device("cpu"))
+        with self.assertRaises(ValueError):
+            infer_support_posteriors(agent, self.config, [], {}, "meta_test_logical", [-1])
+        report = infer_support_posteriors(agent, self.config, [], {}, "meta_test_logical", [0], {"taskbook_hash": "frozen"})
+        self.assertEqual(report["taskbook_hash"], "frozen")
+
+    def test_equal_budget_validation_uses_disjoint_validation_case_groups(self):
+        self.assertEqual(_case_groups("meta_validation"), ("validation_support", "validation_query"))
+        self.assertEqual(_case_groups("meta_test_logical"), ("test_support", "test_query"))
+
+    def test_equal_budget_reuses_exact_selected_support_prefix(self):
+        cases = [{"case_id": "a"}, {"case_id": "b"}, {"case_id": "c"}]
+        self.assertEqual([case["case_id"] for case in _selected_support_cases(cases, ["c", "a"])], ["c", "a"])
+        for selected in ([], ["a", "a"], ["missing"]):
+            with self.assertRaises(RuntimeError):
+                _selected_support_cases(cases, selected)
+
+    def test_transferability_calibration_rejects_insufficient_or_single_class_validation(self):
+        descriptor = {
+            "schema": "logical_merge_transferability_report_v1", "taskbook_hash": "frozen",
+            "candidate_split": "meta_validation", "uses_hidden_rules": False,
+            "candidates": [{"task_id": "task", "nearest_meta_train": {"similarity": 0.5, "distance": {"total": 0.2}}, "coverage_flags": {"unseen_logical_type": False, "unseen_map_kind": False}}],
+        }
+        taskwise = {
+            "schema": "pearl_equal_new_task_budget", "taskbook_hash": "frozen", "split": "meta_validation",
+            "budgets": {"5": {"tasks": {"task": {"support_environment_steps": 57, "pearl_valid_critical_strict_rate": 0.6, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3}}}},
+        }
+        report = calibration_report(descriptor, taskwise, shot=5, minimum_independent_tasks=2)
+        self.assertEqual(report["status"], "insufficient_validation_evidence_no_threshold")
+        self.assertIn("too_few_independent_validation_tasks", report["reasons"])
+        self.assertIn("validation_labels_have_only_one_class", report["reasons"])
+
+    def test_transferability_decision_defers_without_validated_threshold(self):
+        descriptor = {
+            "schema": "logical_merge_transferability_report_v1", "taskbook_hash": "frozen",
+            "candidate_split": "meta_test_logical", "uses_hidden_rules": False,
+            "candidates": [{"task_id": "task", "nearest_meta_train": {"similarity": 0.9, "distance": {"total": 0.1}}, "coverage_flags": {"unseen_logical_type": True, "unseen_map_kind": True}}],
+        }
+        insufficient = {
+            "schema": "logical_merge_transferability_calibration_v1", "taskbook_hash": "frozen",
+            "split": "meta_validation", "status": "insufficient_validation_evidence_no_threshold",
+            "reasons": ["too_few_independent_validation_tasks"],
+        }
+        decision = transferability_decision_report(descriptor, insufficient)
+        self.assertEqual(decision["status"], "deferred_insufficient_validation_evidence")
+        self.assertFalse(decision["uses_query_cases_for_decision"])
+        self.assertFalse(decision["decisions"][0]["allow_meta_adaptation"])
+        calibrated = dict(insufficient) | {"status": "calibrated_validation_only", "threshold": 0.8}
+        out_of_sample_deferred = transferability_decision_report(descriptor, calibrated)
+        self.assertEqual(out_of_sample_deferred["status"], "deferred_insufficient_out_of_sample_validation")
+        calibrated["leave_one_task_out"] = {"coverage": 1.0, "evaluable_task_count": 3}
+        accepted = transferability_decision_report(descriptor, calibrated)
+        self.assertTrue(accepted["decisions"][0]["allow_meta_adaptation"])
+
+    def test_transferability_calibration_reports_leave_one_task_out_coverage(self):
+        descriptor = {
+            "schema": "logical_merge_transferability_report_v1", "taskbook_hash": "frozen",
+            "candidate_split": "meta_validation", "uses_hidden_rules": False,
+            "candidates": [
+                {"task_id": "positive_a", "nearest_meta_train": {"similarity": 0.9, "distance": {"total": 0.1}}, "coverage_flags": {"unseen_logical_type": False, "unseen_map_kind": False}},
+                {"task_id": "negative", "nearest_meta_train": {"similarity": 0.1, "distance": {"total": 0.9}}, "coverage_flags": {"unseen_logical_type": True, "unseen_map_kind": True}},
+                {"task_id": "positive_b", "nearest_meta_train": {"similarity": 0.8, "distance": {"total": 0.2}}, "coverage_flags": {"unseen_logical_type": False, "unseen_map_kind": False}},
+            ],
+        }
+        taskwise = {
+            "schema": "pearl_equal_new_task_budget", "taskbook_hash": "frozen", "split": "meta_validation",
+            "budgets": {"5": {"tasks": {
+                "positive_a": {"support_environment_steps": 57, "pearl_valid_critical_strict_rate": 0.8, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+                "negative": {"support_environment_steps": 57, "pearl_valid_critical_strict_rate": 0.1, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+                "positive_b": {"support_environment_steps": 57, "pearl_valid_critical_strict_rate": 0.7, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+            }}},
+        }
+        report = calibration_report(descriptor, taskwise, shot=5, minimum_independent_tasks=3)
+        self.assertEqual(report["status"], "calibrated_validation_only")
+        self.assertEqual(report["leave_one_task_out"]["evaluable_task_count"], 2)
+        self.assertEqual(report["leave_one_task_out"]["skipped_task_ids"], ["negative"])
+
+    def test_transferability_calibrates_and_enforces_support_only_uncertainty_threshold(self):
+        task_ids = ["positive_a", "positive_b", "negative_a", "negative_b"]
+        descriptor = {
+            "schema": "logical_merge_transferability_report_v1", "taskbook_hash": "frozen",
+            "candidate_split": "meta_validation", "uses_hidden_rules": False,
+            "candidates": [{"task_id": task_id, "nearest_meta_train": {"similarity": 0.9, "distance": {"total": 0.1}}, "coverage_flags": {"unseen_logical_type": False, "unseen_map_kind": False}} for task_id in task_ids],
+        }
+        taskwise = {"schema": "pearl_equal_new_task_budget", "taskbook_hash": "frozen", "split": "meta_validation", "budgets": {"5": {"tasks": {
+            "positive_a": {"support_environment_steps": 50, "pearl_valid_critical_strict_rate": 0.8, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+            "positive_b": {"support_environment_steps": 50, "pearl_valid_critical_strict_rate": 0.7, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+            "negative_a": {"support_environment_steps": 50, "pearl_valid_critical_strict_rate": 0.1, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+            "negative_b": {"support_environment_steps": 50, "pearl_valid_critical_strict_rate": 0.1, "scratch_sac_mean": 0.2, "pooled_finetune_sac_mean": 0.3},
+        }}}}
+        posterior = {
+            "schema": "logical_merge_support_posterior_diagnostic_v1", "taskbook_hash": "frozen", "split": "meta_validation",
+            "uses_query_cases": False, "no_gradient_adaptation": True,
+            "tasks": {task_id: {"5": {"posterior_variance": [[value, value]]}} for task_id, value in {"positive_a": 0.1, "positive_b": 0.2, "negative_a": 0.8, "negative_b": 0.9}.items()},
+        }
+        report = calibration_report(descriptor, taskwise, shot=5, minimum_independent_tasks=4, posterior_audit=posterior)
+        self.assertEqual(report["status"], "calibrated_validation_only")
+        self.assertIsNotNone(report["uncertainty_threshold"])
+        self.assertEqual(report["posterior_uncertainty_input"], "support_only_posterior_variance")
+        candidate = dict(descriptor) | {"candidate_split": "meta_test_logical", "candidates": [descriptor["candidates"][0], descriptor["candidates"][2]]}
+        deployed_posterior = dict(posterior) | {"split": "meta_test_logical", "tasks": {"positive_a": posterior["tasks"]["positive_a"], "negative_a": posterior["tasks"]["negative_a"]}}
+        without = transferability_decision_report(candidate, report)
+        self.assertEqual(without["status"], "deferred_missing_posterior_uncertainty")
+        decision = transferability_decision_report(candidate, report, posterior_audit=deployed_posterior)
+        self.assertTrue(decision["decisions"][0]["allow_meta_adaptation"])
+        self.assertFalse(decision["decisions"][1]["allow_meta_adaptation"])
+
+    def test_validation_freeze_binds_validation_policies_to_one_checkpoint_before_holdout(self):
+        policies = ["fixed", "random", "initial_condition_diversity", "posterior_action_disagreement"]
+        evaluations = {
+            policy: {
+                "split": "meta_validation", "support_selection": policy, "no_gradient_adaptation": True,
+                "parameter_hash_before": "unchanged", "parameter_hash_after": "unchanged",
+                "provenance": {"taskbook_hash": "frozen", "checkpoint_hash": "checkpoint"},
+            }
+            for policy in policies
+        }
+        budgets = {
+            policy: {
+                "schema": "pearl_equal_new_task_budget", "taskbook_hash": "frozen", "split": "meta_validation",
+                "protocol": {"support_selection": policy},
+            }
+            for policy in policies
+        }
+        representation = {
+            "schema": "logical_merge_task_representation_audit_v1", "split": "meta_validation",
+            "uses_query_cases": False, "parameter_hash_before": "same", "parameter_hash_after": "same",
+            "provenance": {"taskbook_hash": "frozen"},
+        }
+        calibration = {
+            "schema": "logical_merge_transferability_calibration_v1", "taskbook_hash": "frozen",
+            "split": "meta_validation", "status": "insufficient_validation_evidence_no_threshold",
+        }
+        frozen = freeze_validation_protocol(
+            taskbook_hash="frozen", evaluations=evaluations, required_policies=policies,
+            equal_budget=budgets, representation_audits=[representation], calibration=calibration,
+        )
+        self.assertEqual(frozen["status"], "validation_frozen_for_holdout")
+        self.assertFalse(frozen["uses_holdout_query_results"])
+        verify_validation_freeze(frozen, taskbook_hash="frozen", checkpoint_hash="checkpoint")
+        with self.assertRaises(ValueError):
+            verify_validation_freeze(frozen, taskbook_hash="changed", checkpoint_hash="checkpoint")
+        evaluations["random"]["provenance"]["checkpoint_hash"] = "other"
+        with self.assertRaises(ValueError):
+            freeze_validation_protocol(taskbook_hash="frozen", evaluations=evaluations, required_policies=policies)
+
+    def test_transferability_candidate_catalog_has_eight_disjoint_validation_tasks(self):
+        expanded = extend_validation_catalog(self.config, [36.0, 44.0, 52.0])
+        taskbook = build_taskbook(expanded)
+        validation = taskbook["meta_validation"]
+        self.assertEqual(len(validation), 8)
+        self.assertEqual(len({task.geometry_id for task in validation}), 8)
+        self.assertTrue(all(task.split == "meta_validation" for task in validation))
+        self.assertTrue({"adversary_first", "sut_first"} <= {task.priority_spec["target_contact_entry_order"] for task in validation})
+
+    def test_disentangled_agent_updates_semantic_heads_without_task_id_input(self):
+        config = configure_disentangled_representation(self.config, enabled=True, latent_dims=[2, 2, 1], geometry_weight=0.1, interaction_weight=0.1, rule_weight=0.1)
+        task = build_taskbook(config)["meta_train"][0]
+        agent = PEARLAgent(37, 2, config, torch.device("cpu"))
+        rows = [transition("representation") for _ in range(2)]
+        metrics = agent.update([[rows]], [rows], [representation_target(task)])
+        self.assertGreaterEqual(metrics["auxiliary_loss"], 0.0)
+        self.assertIn("task_representation", agent.state_dict())
+        self.assertTrue(agent.disentangled)
+
+    def test_disentangled_decoder_uses_declared_blocks_and_interaction_fields(self):
+        config = configure_disentangled_representation(self.config, enabled=True, latent_dims=[2, 2, 1], geometry_weight=0.1, interaction_weight=0.1, rule_weight=0.1)
+        agent = PEARLAgent(37, 2, config, torch.device("cpu"))
+        decoded = agent.decode_task_representation(torch.zeros((3, 5), dtype=torch.float32))
+        self.assertEqual(tuple(decoded["geometry"].shape), (3, 5))
+        self.assertEqual(tuple(decoded["interaction"].shape), (3, 3))
+        self.assertEqual(tuple(decoded["entry_order_probability"].shape), (3, 1))
+        self.assertEqual(INTERACTION_OBSERVATION_FIELDS, ("arrival_time_difference", "relative_route_speed", "ttc"))
+        self.assertEqual(INTERACTION_OBSERVATION_INDEXES, (16, 18, 20))
+        with self.assertRaises(ValueError):
+            agent.decode_task_representation(torch.zeros((3, 4), dtype=torch.float32))
+
+    def test_transferability_descriptor_hides_rules_by_default(self):
+        taskbook = build_taskbook(self.config)
+        task = taskbook["meta_test_logical"][0]
+        cases = build_casebook(task, self.config)["test_support"]
+        normal = task_descriptor(task, cases)
+        oracle = task_descriptor(task, cases, include_hidden_rules=True)
+        self.assertFalse(normal["uses_hidden_rules"])
+        self.assertNotIn("oracle_hidden", normal["groups"]["rules"])
+        self.assertIn("oracle_hidden", oracle["groups"]["rules"])
+        self.assertTrue(all("test_support" in row["case_id"] for row in cases))
+
+    def test_transferability_report_uses_support_only_and_flags_unseen_logical_type(self):
+        taskbook = build_taskbook(self.config)
+        casebooks = {task.task_id: build_casebook(task, self.config) for tasks in taskbook.values() for task in tasks}
+        report = transferability_report(taskbook, casebooks, candidate_split="meta_test_logical")
+        self.assertEqual(report["status"], "diagnostic_only_not_calibrated")
+        self.assertTrue(all(row["descriptor"]["uses_query_cases"] is False for row in report["candidates"]))
+        self.assertTrue(all(row["coverage_flags"]["unseen_logical_type"] for row in report["candidates"]))
+        self.assertTrue(all(len(row["top_meta_train_neighbors"]) == 3 for row in report["candidates"]))
 
 
 if __name__ == "__main__":

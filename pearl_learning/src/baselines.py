@@ -89,7 +89,8 @@ class OracleTaskObservation(gym.ObservationWrapper):
 def write_baseline_manifest(output_root: str | Path, *, name: str, taskbook_hash: str, seed: int, env_steps: int,
                             smoke: bool, artifacts: Mapping[str, str] | None = None,
                             config_hash: str | None = None, casebook_hashes: Mapping[str, str] | None = None,
-                            checkpoint_hash: str | None = None) -> Path:
+                            checkpoint_hash: str | None = None,
+                            training_budget: Mapping[str, int | str] | None = None) -> Path:
     if name not in SPECS:
         raise ValueError(f"unknown baseline {name}")
     root = Path(output_root) / name
@@ -100,6 +101,7 @@ def write_baseline_manifest(output_root: str | Path, *, name: str, taskbook_hash
         "seed": int(seed), "environment_steps": int(env_steps), "status": "smoke_completed" if smoke else "completed",
         "config_hash": config_hash, "casebook_hashes": dict(casebook_hashes or {}),
         "checkpoint_hash": checkpoint_hash, "artifacts": dict(artifacts or {}),
+        "training_budget": dict(training_budget or {}),
     }
     target = root / "baseline_manifest.json"; write_json(target, payload)
     return target

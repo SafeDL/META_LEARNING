@@ -14,24 +14,46 @@ from .io import content_hash, write_json
 from .pearl_agent import PEARLAgent
 from .replay import TaskReplayBuffers
 from .task_env import LogicalMergeEnv
+from .task_representation import representation_target
 
 
-def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[Any], casebooks: Mapping[str, Mapping[str, list[dict[str, Any]]]],
-          taskbook_hash: str, max_env_steps: int, seed: int, run_name: str, smoke: bool = False,
-          gate_manifest: str | None = None, resume_checkpoint: str | None = None,
-          checkpoint_interval_steps: int | None = None) -> Path:
+def train(
+    config: Mapping[str, Any],
+    tasks: list[Any],
+    validation_tasks: list[Any],
+    casebooks: Mapping[str, Mapping[str, list[dict[str, Any]]]],
+    taskbook_hash: str,
+    max_env_steps: int,
+    seed: int,
+    run_name: str,
+    smoke: bool = False,
+    gate_manifest: str | None = None,
+    resume_checkpoint: str | None = None,
+    checkpoint_interval_steps: int | None = None,
+) -> Path:
     if not smoke:
         verify_formal_gate(gate_manifest, taskbook_hash)
-    rng = np.random.default_rng(seed); torch.manual_seed(seed)
-    device = torch.device("cuda" if torch.cuda.is_available() and config["experiment"].get("device") != "cpu" else "cpu")
-    observation_dim, action_dim = int(config["environment"]["observation_dim"]), int(config["environment"]["action_dim"])
+    rng = np.random.default_rng(seed)
+    torch.manual_seed(seed)
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() and config["experiment"].get("device") != "cpu" else "cpu"
+    )
+    observation_dim = int(config["environment"]["observation_dim"])
+    action_dim = int(config["environment"]["action_dim"])
     agent = PEARLAgent(observation_dim, action_dim, config, device)
+    semantic_targets = None
+    if bool(config.get("task_representation", {}).get("enabled", False)):
+        semantic_targets = {task.task_id: representation_target(task) for task in tasks}
     root = Path(config["project"]["output_root"]) / ("smoke" if smoke else "models") / run_name
     root.mkdir(parents=True, exist_ok=True)
     casebook_hashes = {task_id: content_hash(book) for task_id, book in casebooks.items()}
     write_json(root / "config_resolved.json", dict(config))
-    steps, progress, episode_counter, best_score = 0, [], 0, None
-    validation_interval, next_validation = int(config["meta_training"]["validation_interval_steps"]), int(config["meta_training"]["validation_interval_steps"])
+    steps = 0
+    gradient_updates = 0
+    episode_counter = 0
+    best_score = None
+    validation_interval = int(config["meta_training"]["validation_interval_steps"])
+    next_validation = validation_interval
     buffers = TaskReplayBuffers([task.task_id for task in tasks])
     if resume_checkpoint:
         checkpoint = load_checkpoint(resume_checkpoint, agent, device)
@@ -39,33 +61,59 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
             raise ValueError("resume checkpoint does not match the frozen taskbook/configuration")
         state = checkpoint.get("trainer_state")
         if not isinstance(state, Mapping):
-            raise ValueError("resume checkpoint lacks trainer replay/progress state")
+            raise ValueError("resume checkpoint lacks trainer state")
         buffers = state["buffers"]
         if set(buffers.buffers) != {task.task_id for task in tasks}:
             raise ValueError("resume checkpoint replay tasks do not match the requested meta-train tasks")
-        steps = int(state["steps"]); progress = list(state["progress"]); episode_counter = int(state["episode_counter"])
-        best_score = state.get("best_score"); next_validation = int(state["next_validation"])
+        steps = int(state["steps"])
+        gradient_updates = int(state.get("gradient_updates", len(state.get("progress", ()))))
+        episode_counter = int(state["episode_counter"])
+        best_score = state.get("best_score")
+        next_validation = int(state["next_validation"])
         rng.bit_generator.state = checkpoint["rng_state"]["numpy_generator"]
         cpu_rng = torch.as_tensor(checkpoint["rng_state"]["torch"], dtype=torch.uint8, device="cpu").clone()
         torch.set_rng_state(cpu_rng)
         if torch.cuda.is_available() and checkpoint["rng_state"].get("cuda") is not None:
-            torch.cuda.set_rng_state_all([torch.as_tensor(state, dtype=torch.uint8, device="cpu").clone() for state in checkpoint["rng_state"]["cuda"]])
+            torch.cuda.set_rng_state_all(
+                [
+                    torch.as_tensor(state, dtype=torch.uint8, device="cpu").clone()
+                    for state in checkpoint["rng_state"]["cuda"]
+                ]
+            )
     checkpoint_interval = int(checkpoint_interval_steps) if checkpoint_interval_steps else None
     next_checkpoint = ((steps // checkpoint_interval) + 1) * checkpoint_interval if checkpoint_interval else None
 
     def rng_state() -> dict[str, Any]:
-        return {"numpy_generator": rng.bit_generator.state, "torch": torch.get_rng_state(),
-                "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None}
+        return {
+            "numpy_generator": rng.bit_generator.state,
+            "torch": torch.get_rng_state(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        }
 
     def trainer_state() -> dict[str, Any]:
-        return {"buffers": buffers, "steps": steps, "progress": progress, "episode_counter": episode_counter,
-                "best_score": best_score, "next_validation": next_validation}
+        return {
+            "buffers": buffers,
+            "steps": steps,
+            "gradient_updates": gradient_updates,
+            "episode_counter": episode_counter,
+            "best_score": best_score,
+            "next_validation": next_validation,
+        }
 
     def save(path: Path) -> None:
-        save_checkpoint(path, agent, config, taskbook_hash, steps, casebook_hashes=casebook_hashes,
-                        training_seed=seed, rng_state=rng_state(), trainer_state=trainer_state())
+        save_checkpoint(
+            path,
+            agent,
+            config,
+            taskbook_hash,
+            steps,
+            casebook_hashes=casebook_hashes,
+            training_seed=seed,
+            rng_state=rng_state(),
+            trainer_state=trainer_state(),
+        )
 
-    def collect(task: Any, case: dict[str, Any], z: torch.Tensor, mode: str, posterior_version: int):
+    def collect(task: Any, case: dict[str, Any], z: torch.Tensor, mode: str, posterior_version: int) -> Any:
         nonlocal episode_counter
         episode_counter += 1
         collection_config = config
@@ -80,7 +128,17 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
             }
         env = LogicalMergeEnv(task, collection_config, casebooks[task.task_id]["train_pool"])
         try:
-            return collect_episode(env, task, case, agent, z, mode, device, episode_id=f"{task.task_id}:{episode_counter:08d}", posterior_version=posterior_version)
+            return collect_episode(
+                env,
+                task,
+                case,
+                agent,
+                z,
+                mode,
+                device,
+                episode_id=f"{task.task_id}:{episode_counter:08d}",
+                posterior_version=posterior_version,
+            )
         finally:
             env.close()
 
@@ -89,11 +147,23 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
         book = casebooks[task.task_id]["train_pool"]
         prior_case = book[int(rng.integers(len(book)))]
         prior_mu, prior_log_var = agent.prior()
-        prior = collect(task, prior_case, agent.sample_latent(prior_mu, prior_log_var), "prior_support", 0)
+        prior = collect(
+            task,
+            prior_case,
+            agent.sample_latent(prior_mu, prior_log_var),
+            "prior_support",
+            0,
+        )
         buffers.add_episode(task.task_id, prior.transitions)
         posterior_mu, posterior_log_var = agent.infer_posterior([[prior.transitions]])
         posterior_case = book[int(rng.integers(len(book)))]
-        posterior = collect(task, posterior_case, agent.sample_latent(posterior_mu, posterior_log_var), "posterior_rollout", 1)
+        posterior = collect(
+            task,
+            posterior_case,
+            agent.sample_latent(posterior_mu, posterior_log_var),
+            "posterior_rollout",
+            1,
+        )
         buffers.add_episode(task.task_id, posterior.transitions)
         return len(prior.transitions) + len(posterior.transitions)
 
@@ -106,13 +176,20 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
                     break
 
     batch_size = min(32, int(config["sac"]["batch_size"])) if smoke else int(config["sac"]["batch_size"])
-    context_size = min(64, int(config["pearl"]["context_batch_size"])) if smoke else int(config["pearl"]["context_batch_size"])
+    configured_context_size = int(config["pearl"]["context_batch_size"])
+    context_size = min(64, configured_context_size) if smoke else configured_context_size
     transitions_per_episode = int(config["pearl"]["context_transitions_per_episode"])
     max_context_episodes = max(1, context_size // transitions_per_episode)
-    min_context_episodes = min(max_context_episodes, max(1, int(config["pearl"].get("context_min_episodes", 1))))
+    min_context_episodes = min(
+        max_context_episodes,
+        max(1, int(config["pearl"].get("context_min_episodes", 1))),
+    )
     updates_per_iteration = 1 if smoke else int(config["meta_training"]["gradient_updates_per_iteration"])
     while steps < max_env_steps:
-        sampled = [tasks[int(rng.integers(len(tasks)))] for _ in range(min(int(config["meta_training"]["meta_batch_size"]), len(tasks)))]
+        sampled = [
+            tasks[int(rng.integers(len(tasks)))]
+            for _ in range(min(int(config["meta_training"]["meta_batch_size"]), len(tasks)))
+        ]
         sampled = list({task.task_id: task for task in sampled}.values())
         for task in sampled:
             steps += collect_prior_posterior_pair(task)
@@ -120,7 +197,13 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
                 break
         ready = [task for task in tasks if len(buffers.buffers[task.task_id]) >= max(batch_size, 2)]
         for _ in range(updates_per_iteration if ready else 0):
-            selected = list(rng.choice(ready, size=min(len(ready), int(config["meta_training"]["meta_batch_size"])), replace=False))
+            selected = list(
+                rng.choice(
+                    ready,
+                    size=min(len(ready), int(config["meta_training"]["meta_batch_size"])),
+                    replace=False,
+                )
+            )
             # Few-shot evaluation starts at one support episode and grows to
             # the configured context capacity.  Training only at the maximum
             # capacity makes posterior inference brittle for K=1/2, so expose
@@ -133,8 +216,11 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
                 rng,
             )
             rl = buffers.sample_per_task([task.task_id for task in selected], batch_size, rng)
-            metrics = agent.update(context, rl)
-            progress.append({**metrics, "environment_steps": steps, "buffer_tasks": len(ready)})
+            task_targets = None if semantic_targets is None else [
+                semantic_targets[task.task_id] for task in selected
+            ]
+            agent.update(context, rl, task_targets)
+            gradient_updates += 1
         if validation_tasks and steps >= next_validation:
             validation = evaluate_fewshot(agent, config, validation_tasks, casebooks, "meta_validation")
             score = validation_score(validation)
@@ -149,7 +235,7 @@ def train(config: Mapping[str, Any], tasks: list[Any], validation_tasks: list[An
         save(root / "best_model.pt")
     write_json(root / "training_summary.json", {
         "environment_steps": steps,
-        "gradient_updates": len(progress),
+        "gradient_updates": gradient_updates,
         "best_validation_score": best_score,
         "selected_checkpoint": "best_model.pt",
     })

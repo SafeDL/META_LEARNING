@@ -41,7 +41,7 @@ def _evaluate_sac(model: Any, task: Any, config: Mapping[str, Any], cases: list[
             records.append(env.episode_record())
     finally:
         env.close()
-    return {"summary": summarize(records), "records": records}
+    return {"summary": summarize(records, case_metadata={str(case["case_id"]): case for case in cases}), "records": records}
 
 
 def _evaluate_no_context(agent: PEARLAgent, task: Any, config: Mapping[str, Any],
@@ -62,7 +62,7 @@ def _evaluate_no_context(agent: PEARLAgent, task: Any, config: Mapping[str, Any]
                 records.append(env.episode_record())
     finally:
         env.close()
-    return {"summary": summarize(records), "records": records, "context": "unit_normal_prior"}
+    return {"summary": summarize(records, case_metadata={str(case["case_id"]): case for case in cases}), "records": records, "context": "unit_normal_prior"}
 
 
 def _save_metrics(output: Path, payload: Mapping[str, Any]) -> Path:
@@ -76,17 +76,51 @@ def _new_sac(env: Any, seed: int) -> Any:
     return SAC("MlpPolicy", env, seed=seed, verbose=0)
 
 
+def _latest_sac_checkpoint(root: Path, prefix: str) -> Path | None:
+    candidates = list(root.glob(f"{prefix}_*_steps.zip"))
+    if not candidates:
+        return None
+    def steps(path: Path) -> int:
+        suffix = path.stem.removeprefix(f"{prefix}_").removesuffix("_steps")
+        return int(suffix)
+    return max(candidates, key=steps)
+
+
+def _learn_sac(model: Any, total_steps: int, checkpoint_root: Path | None, checkpoint_prefix: str, checkpoint_interval_steps: int = 0) -> None:
+    remaining = max(0, int(total_steps) - int(model.num_timesteps))
+    if not remaining:
+        return
+    callback = None
+    if checkpoint_root is not None and checkpoint_interval_steps:
+        from stable_baselines3.common.callbacks import CheckpointCallback
+        checkpoint_root.mkdir(parents=True, exist_ok=True)
+        callback = CheckpointCallback(save_freq=int(checkpoint_interval_steps), save_path=str(checkpoint_root), name_prefix=checkpoint_prefix)
+    model.learn(total_timesteps=remaining, reset_num_timesteps=False, callback=callback)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True); parser.add_argument("--taskbook", required=True); parser.add_argument("--casebook-root", required=True); parser.add_argument("--output", required=True)
     parser.add_argument("--baseline", choices=BASELINE_NAMES, required=True); parser.add_argument("--seed", type=int, required=True); parser.add_argument("--env-steps", type=int, required=True)
     parser.add_argument("--pretrain-steps", type=int, help="pooled pre-training budget; defaults to --env-steps")
+    parser.add_argument(
+        "--pooled-steps-per-task", type=int,
+        help="for a pooled SAC policy, allocate this many training steps to each meta-train task",
+    )
     parser.add_argument("--per-task-policy-root", help="reuse frozen per-task SAC policies when building the cross-task transfer matrix")
     parser.add_argument("--pooled-pretrain-model", help="reuse a frozen pooled SAC checkpoint for pooled_finetune_sac")
     parser.add_argument("--resume", action="store_true", help="resume reusable per-task artifacts for supported long-running baselines")
     parser.add_argument("--pearl-checkpoint", help="required by pearl_no_context")
+    parser.add_argument("--checkpoint-interval-steps", type=int, default=0, help="save resumable SAC checkpoints every N steps for per-task training")
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--formal-run", action="store_true", help="explicitly authorize a non-smoke baseline run after a separate resource plan has been approved")
     args = parser.parse_args()
+    if not args.smoke and not args.formal_run:
+        parser.error("non-smoke baseline runs are disabled by default; use --smoke for a flow check, or pass --formal-run only after approving a separate experiment and resource plan")
+    if args.checkpoint_interval_steps < 0:
+        raise ValueError("--checkpoint-interval-steps must be non-negative")
+    if args.pooled_steps_per_task is not None and args.pooled_steps_per_task <= 0:
+        raise ValueError("--pooled-steps-per-task must be positive")
     cfg = read_config(args.config)
     taskbook = load_taskbook(args.taskbook)
     taskbook_hash = content_hash(taskbook_payload(taskbook))
@@ -98,6 +132,7 @@ def main() -> None:
     root = Path(args.output) / args.baseline
     artifacts: dict[str, str] = {}
     checkpoint_hash: str | None = None
+    training_budget: dict[str, int | str] = {"scope": "single_policy", "total_environment_steps": int(args.env_steps)}
 
     if args.baseline == "pearl_no_context":
         if not args.pearl_checkpoint:
@@ -122,6 +157,11 @@ def main() -> None:
 
         train_books = {task.task_id: casebooks[task.task_id] for task in train_tasks}
         if args.baseline in {"per_task_sac", "cross_task_policy_matrix"}:
+            training_budget = {
+                "scope": "per_task_independent" if args.baseline == "per_task_sac" else "evaluation_only",
+                "per_task_environment_steps": int(args.env_steps),
+                "total_environment_steps": int(args.env_steps) * len(train_tasks) if args.baseline == "per_task_sac" else 0,
+            }
             policies: dict[str, Any] = {}
             partial_path = root / "per_task_partial_metrics.json"
             partial_metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.baseline == "per_task_sac" and args.resume and partial_path.exists() else {}
@@ -136,17 +176,33 @@ def main() -> None:
                         artifacts[f"policy:{task.task_id}"] = str(source)
                     else:
                         target = root / "policies" / f"{task.task_id}.zip"; target.parent.mkdir(parents=True, exist_ok=True)
+                        checkpoint_root = root / "checkpoints" / task.task_id if args.baseline == "per_task_sac" and args.checkpoint_interval_steps else None
+                        partial_checkpoint = _latest_sac_checkpoint(checkpoint_root, task.task_id) if args.baseline == "per_task_sac" and args.resume and checkpoint_root is not None else None
                         if args.baseline == "per_task_sac" and args.resume and target.exists():
                             model = SAC.load(target, device="auto")
+                        elif args.baseline == "per_task_sac" and partial_checkpoint is not None:
+                            model = SAC.load(partial_checkpoint, env=env, device="auto")
                         else:
-                            model = _new_sac(env, args.seed + index); model.learn(total_timesteps=args.env_steps); model.save(target)
+                            model = _new_sac(env, args.seed + index)
+                        _learn_sac(model, args.env_steps, checkpoint_root, task.task_id, args.checkpoint_interval_steps)
+                        if args.baseline in {"per_task_sac", "cross_task_policy_matrix"}:
+                            model.save(target)
                         artifacts[f"policy:{task.task_id}"] = str(target)
-                    policies[task.task_id] = model
+                    # The per-task baseline evaluates and persists one policy
+                    # at a time.  Retaining every completed GPU model here
+                    # grows device memory linearly with the number of tasks;
+                    # only the cross-task matrix needs the in-memory mapping.
+                    if args.baseline == "cross_task_policy_matrix":
+                        policies[task.task_id] = model
                 finally:
                     env.close()
                 if args.baseline == "per_task_sac" and task.task_id not in partial_metrics:
                     partial_metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
                     _save_metrics(partial_path, {"tasks": partial_metrics})
+                if args.baseline == "per_task_sac":
+                    del model
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
             if args.baseline == "per_task_sac":
                 artifacts["metrics"] = str(_save_metrics(root / "per_task_metrics.json", {"tasks": partial_metrics}))
             else:
@@ -161,6 +217,13 @@ def main() -> None:
                 artifacts["matrix"] = str(_save_metrics(root / "cross_task_matrix.json", {"policy_tasks": list(policies), "evaluation_tasks": [task.task_id for task in evaluation_tasks], "matrix": matrix}))
 
         elif args.baseline in {"topology_conditioned_pooled_sac", "oracle_task_conditioned_sac"}:
+            pooled_steps_per_task = int(args.pooled_steps_per_task) if args.pooled_steps_per_task is not None else None
+            pooled_total_steps = int(args.env_steps) if pooled_steps_per_task is None else pooled_steps_per_task * len(train_tasks)
+            training_budget = {
+                "scope": "pooled_shared",
+                "per_task_environment_steps": pooled_steps_per_task if pooled_steps_per_task is not None else pooled_total_steps / len(train_tasks),
+                "total_environment_steps": pooled_total_steps,
+            }
             pooled = PooledLogicalMergeEnv(train_tasks, cfg, train_books, args.seed)
             geometry_ids = [task.geometry_id for task in all_tasks]
             env = OracleTaskObservation(pooled, geometry_ids) if args.baseline == "oracle_task_conditioned_sac" else pooled
@@ -169,7 +232,7 @@ def main() -> None:
                 if args.resume and target.exists():
                     model = SAC.load(target, env=env, device="auto")
                 else:
-                    model = _new_sac(env, args.seed); model.learn(total_timesteps=args.env_steps); model.save(target)
+                    model = _new_sac(env, args.seed); model.learn(total_timesteps=pooled_total_steps); model.save(target)
                 artifacts["model"] = str(target)
             finally:
                 env.close()
@@ -249,7 +312,7 @@ def main() -> None:
     write_baseline_manifest(
         args.output, name=args.baseline, taskbook_hash=taskbook_hash, seed=args.seed, env_steps=args.env_steps,
         smoke=args.smoke, artifacts=artifacts, config_hash=content_hash(cfg), casebook_hashes=case_hashes,
-        checkpoint_hash=checkpoint_hash,
+        checkpoint_hash=checkpoint_hash, training_budget=training_budget,
     )
 
 
