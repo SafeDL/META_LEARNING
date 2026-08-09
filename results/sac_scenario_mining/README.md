@@ -6,7 +6,7 @@
 
 | 目录或文件 | 生成入口 | 内容与用途 |
 | --- | --- | --- |
-| `merge_sac_seed0/`、`seed1/`、`seed2/` | `train_sac --seed N` | 三次各 300,000 环境步的独立 SAC 训练；保存解析后配置、版本、训练/验证 case 表、Monitor、优化日志和各 checkpoint 的验证汇总。 |
+| `merge_sac_seed0/`、`seed1/`、`seed2/` | `train_sac --seed N` | 三次各 300,000 环境步的独立 SAC 训练；保存解析后配置、版本、训练/验证 case 表、Monitor、优化日志和各 checkpoint 的紧凑验证汇总。 |
 | `final_eval/random/` | `evaluate --policy random --seed 123` | 同一张 60-case held-out 表上的随机连续动作基线。 |
 | `final_eval/sac_seed{0,1,2}/` | `evaluate --policy-path .../best_model.zip` | 三个按 validation 选择的 SAC 模型的 held-out 结果、episode 明细、case 表和 top-k 可回放关键场景。 |
 | `final_eval/comparison.csv`、`plots/` | `report` | 策略对比、训练回报、actor/critic/熵系数损失、validation 指标和 TTC 分布图。 |
@@ -14,6 +14,8 @@
 | `final_eval/sac_seed2/replay_audit.json` | `audit_replays` | seed 2 top-10 关键场景的动作轨迹回放审计。 |
 
 训练时，根目录的 `validation_case_table.json` 是各 validation checkpoint 的唯一固定 case 表；当前代码不会在以后重复写入相同 case 表。正式 held-out 评估目录仍各自保存 `case_table.json`，以保证结果自包含。
+
+中间 validation 目录只长期保留 `summary.json`。逐 checkpoint 的重复 case 表、逐 episode 记录和 top-k 动作轨迹不参与模型选择或报告生成，且可由对应模型与固定 case 表重建，因此不作为最终实验材料保留。`final_eval/` 中的 held-out episode、top-k 场景和回放证据完整保留。
 
 ## 实验口径
 

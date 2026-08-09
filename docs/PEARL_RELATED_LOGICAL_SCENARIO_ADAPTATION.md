@@ -72,7 +72,7 @@ PEARL 的后验为 \(q_\phi(z\mid C)\)，默认潜变量维度为 5。context tr
 
 少样本公平对比由 `run_equal_budget_analysis.py` 完成：对每个 K，将 scratch SAC 和 pooled fine-tune SAC 的新任务环境步数设置为 PEARL 前 K 个 support episode 的实际累计步数，并使用同一组冻结 query case。在线 SAC 每环境步均执行一次梯度更新，计算上对 SAC 更有利；长预算 SAC 只作为充分在线训练的参考，不能证明低样本优势。
 
-当前保留的 smoke 产物只验证主程序闭环，不构成性能结果：它使用精简任务/查询集，在 1,027 个环境步和 3 次梯度更新后完成 checkpoint 加载、support 后验、独立 query 与参数哈希不变验证。smoke 的单个 Y-merge 任务严格有效关键率为 0，不得用来评价正式模型。
+`--smoke` 只用于快速验证训练、checkpoint 加载、support 后验、独立 query 与参数哈希不变约束。smoke 结果可由 README 中的命令重建，不作为正式性能材料长期保留。
 
 ## 7. 正式结果（冻结 `meta_test_logical`）
 
