@@ -1,306 +1,107 @@
-# PEARL 第二阶段训练目标（Codex Implementation Specification v2）
+# PEARL 逻辑场景少样本适应：当前实现与实验说明
 
-## 1. 阶段目标
+本文档说明仓库中已经实现的 PEARL-SAC 流程、冻结实验协议与当前保留的正式结果；它不再是待实现的需求清单。唯一运行配置为 [`../pearl_learning/configs/merge_family_pearl.yaml`](../pearl_learning/configs/merge_family_pearl.yaml)，最终结果的机器可读来源为 [`../results/pearl_learning/key_results.json`](../results/pearl_learning/key_results.json)。
 
-本阶段目标：
+## 1. 研究问题与当前结论范围
 
-> 验证 PEARL 是否能够在固定 SUT、统一动作空间和统一奖励下，通过少量 support episode 适配未见逻辑场景，并优于普通多任务 SAC 和从头训练 SAC。
+目标是在**固定 SUT**、统一二维连续动作空间和统一奖励下，令场景挖掘策略在未见逻辑场景上先执行少量 support episode，再仅通过后验推断适应，并在独立 query case 上寻找严格有效的安全关键场景。
 
-当前代码基础：
-- Task/Case 分离；
-- LogicalScenarioTaskSpec；
-- Adapter 环境接口；
-- PEARL-SAC；
-- task replay buffer；
-- few-shot evaluation。
+当前结果支持以下受限结论：在固定 taskbook 的四个未见 Y-merge 任务上、以 PEARL 已实际执行的 support 环境步数作为在线基线预算时，PEARL 的无梯度少样本适应优于 scratch SAC 与 pooled fine-tune SAC。该结论不外推到任意任务分布、任意训练预算或统计显著性结论。
 
-本阶段重点不是继续扩展网络，而是修正任务定义和实验闭环。
+## 2. 冻结任务、case 与数据隔离
 
-当前代码的GPU训练环境在系统的:
-conda activate metadrive
+一个任务由实际地图、路线、冲突几何、优先权/目标接触规则和固定 SUT 共同定义；case 只给出同一任务内的可复现实例初始条件（例如速度、出生位置和随机种子），不能改变任务逻辑。
 
----
+`build_taskbook.py` 将几何目录解析为冻结 taskbook，并记录地图、路线和冲突区哈希；`casebook.py` 为每个任务冻结互不重叠的 case 集。默认每任务有 32 个 `train_pool`、10 个验证 support、20 个验证 query、10 个测试 support 和 20 个测试 query case。加载、训练和评估都会核验输入内容哈希与 split 隔离；当前正式 taskbook 哈希为：
 
-## 2. Task定义
-
-Task必须表示逻辑场景模板：
-
-\[
-T_i=(G_i,C_i,R_i,\pi_{SUT})
-\]
-
-其中：
-- G_i：道路拓扑；
-- C_i：冲突区域和交互结构；
-- R_i：规则和优先权；
-- SUT保持固定。
-
-Task差异来源：
-
-- on_ramp_merge；
-- lane_drop_merge；
-- bottleneck_merge；
-- y_merge。
-
-禁止使用SUT参数作为主要task变化。
-
----
-
-## 3. Adapter要求
-
-必须独立实现：
-
-```
-OnRampMergeAdapter
-LaneDropMergeAdapter
-BottleneckMergeAdapter
-YMergeAdapter
+```text
+d28933ade2878c82bcd228883565394f8f8f7ae86147929c119fee1ca1be966a
 ```
 
-每个Adapter必须拥有：
+当前划分为：
 
-- 独立地图构造；
-- 独立route；
-- 独立conflict geometry；
-- 独立spawn规则。
+| Split | 物理几何 / 逻辑类型 | 用途 |
+| --- | --- | --- |
+| `meta_train` | on-ramp、lane-drop、bottleneck；其中若干几何各有两种隐藏目标接触规则变体 | 学习共享策略与上下文推断 |
+| `meta_validation` | `lane_drop_40`、`bottleneck_40` | checkpoint 选择、门控与验证性分析 |
+| `meta_test_template` | `lane_drop_48`、`bottleneck_48` | 未见模板测试 |
+| `meta_test_logical` | `y_merge_{24,32,40,48}` | 未见逻辑类型的正式少样本测试 |
 
-禁止：
+`meta_train` 与 `meta_test_logical` 的 `logical_type` 不重叠。训练中，同一物理几何包含不同的隐藏规则变体，因此拓扑描述符不能作为目标接触规则的代理标签；任务 ID、任务哈希和模板索引均不进入网络输入。
 
-```
-lane_drop_merge -> BottleneckMergeAdapter
-y_merge -> OnRampMergeAdapter
-```
+## 3. 实际环境与适配器实现
 
-否则无法证明跨逻辑场景泛化。
+`LogicalMergeEnv`（`pearl_learning/src/task_env.py`）控制对抗车，动作空间为二维连续动作；SUT 是参数固定、关闭换道的 IDM 控制器，默认目标速度为 12 m/s，单 episode 上限为 180 步。每次重置都会复建实际 MetaDrive 环境、设置冻结 case，并复核运行时地图哈希。
 
----
+代码中有三个独立的适配器实现：
 
-## 4. Case定义
+- `OnRampMergeAdapter`：`on_ramp_merge`；
+- `BottleneckMergeAdapter`：`lane_drop_merge` 与 `bottleneck_merge`；二者共享车道收缩/汇入实现，但通过车道数、瓶颈长度、路线和冲突规格区分几何；
+- `YMergeAdapter`：`y_merge`。
 
-Case只表示同一逻辑任务下的初始条件：
+因此，旧版“lane-drop 必须使用独立 `LaneDropMergeAdapter`”的表述与当前代码不符，不能作为当前实现已满足的条件。当前的泛化结论基于已冻结并审计的任务/地图哈希，而不是“每个逻辑名称都对应一个独立 Adapter 类”的前提。
 
-包括：
+## 4. 观测、奖励与主指标
 
-- adversary speed；
-- SUT speed；
-- initial gap；
-- arrival offset；
-- traffic seed。
+观测模式为 `logical_merge_obs`，维度 37，归一化到 `[-1, 1]`。其中包含两车相对冲突区的路线状态、到达时间差、TTC、相对速度、可见优先权和拓扑描述符（分支数、车道数、汇入长度、路线曲率等）。目标接触资格规则不会输入观测。
 
-Case不能改变逻辑场景。
+奖励对低 TTC 与近距离给出稠密项；满足目标条件的 adversary–SUT 接触奖励为 +200，并对非目标碰撞、出界、错误路线和不平滑动作进行惩罚。
 
----
+正式主指标为四任务平均 `valid_critical_strict_rate`。一个 query episode 只有同时满足以下条件才计为成功：出现目标 adversary–SUT 接触或低 TTC 的关键事件，且没有非目标碰撞、任一车辆出界或错误路线。它不等同于任意碰撞率；`target_collision_rate`、`critical_rate`、`invalid_rate` 和最小 TTC 均为辅助诊断指标。
 
-## 5. PEARL训练目标
+## 5. PEARL-SAC 与无梯度 K-shot 适应
 
-任务后验：
+PEARL 的后验为 \(q_\phi(z\mid C)\)，默认潜变量维度为 5。context transition 为 `[obs, action, reward / 200, next_obs, terminated, truncated]`；每个 episode 先池化 32 条 transition，再将 episode 证据用 Product-of-Gaussians 合并。actor 输入 `(obs, z)`，双 critic 输入 `(obs, action, z)`；不存在任务标签输入通路。
 
-\[
-z_i=q_\phi(z|C_i)
-\]
+训练时，对每个 meta-train 任务先以先验采样 `z` 收集一集 `prior_support`，再由该 context 推断后验并收集 `posterior_rollout`；二者均进入任务独立 replay。优化使用双 Q SAC TD 损失、`0.1 × KL(q(z|C)||N(0,I))`、actor 损失和自动熵温度，target critic 的软更新系数为 0.005。训练 context 会随机使用 1 到 8 个 episode，以覆盖少样本后验条件。
 
-策略：
+评估严格按以下顺序执行：
 
-\[
-a_t=\pi_	heta(a_t|o_t,z_i)
-\]
+1. K=0 时直接以先验后验均值执行独立 query，绝不先收集 support。
+2. 每执行一集 support 后，重新由已收集的 support 推断后验；K=1、2、5、10 分别表示真实执行的 support episode 数。
+3. 每个 K 下使用后验均值确定性地执行冻结、独立的 query case；query 不进入 support 选择、后验或梯度计算。
+4. 评估前后计算 context encoder、actor、critic、target critic 与温度参数哈希；发生任何变化即报错。
 
-训练流程：
+每个 context 最多容纳 256 条 transition，即至多 8 个 episode × 32 条 transition。因此 K=10 的成本仍是实际执行 10 个 support episode，但后验只从其中按固定随机种子抽取最多 8 集证据；不可将 K=10 解读为编码器同时使用了全部 10 集。
 
-1. sample meta tasks；
-2. prior rollout；
-3. context inference；
-4. posterior rollout；
-5. SAC update。
+默认 support 选择策略为 `fixed`。代码还提供随机、初始条件多样性和 posterior-action-disagreement 策略，它们只能作为单独声明的候选实验；不能与当前固定 support 的正式结果混用。
 
-Context：
+## 6. 实验门控、基线与验证状态
 
-\[
-(o_t,a_t,r_t,o_{t+1})
-\]
+正式 PEARL 训练必须显式传入 `--formal-run` 和与 taskbook 哈希相匹配的 formal gate。gate 会要求 topology/integrity audit 通过、任务异质性审计表明 pooled SAC 弱于 per-task SAC、存在正的匹配环境步数预算，并已完成 `per_task_sac`、`cross_task_policy_matrix`、`topology_conditioned_pooled_sac`、`scratch_sac`、`pooled_finetune_sac` 与 `oracle_task_conditioned_sac` 基线。
 
-保持：
+少样本公平对比由 `run_equal_budget_analysis.py` 完成：对每个 K，将 scratch SAC 和 pooled fine-tune SAC 的新任务环境步数设置为 PEARL 前 K 个 support episode 的实际累计步数，并使用同一组冻结 query case。在线 SAC 每环境步均执行一次梯度更新，计算上对 SAC 更有利；长预算 SAC 只作为充分在线训练的参考，不能证明低样本优势。
 
-- actor使用detach(z)；
-- context encoder接收Q gradient；
-- KL regularization；
-- meta-test不更新网络。
+当前保留的 smoke 产物只验证主程序闭环，不构成性能结果：它使用精简任务/查询集，在 1,027 个环境步和 3 次梯度更新后完成 checkpoint 加载、support 后验、独立 query 与参数哈希不变验证。smoke 的单个 Y-merge 任务严格有效关键率为 0，不得用来评价正式模型。
 
----
+## 7. 正式结果（冻结 `meta_test_logical`）
 
-## 6. Few-shot评估修正
+正式评估使用选定 checkpoint `results/pearl_learning/models/selected_pearl/best_model.pt`（训练 seed 2、step 40,004）。测试含 4 个未见的 Y-merge 任务，每任务 20 个独立 query case，主指标为跨任务平均 `valid_critical_strict_rate`。
 
-必须：
+| Support episodes K | PEARL 严格有效关键率 |
+| ---: | ---: |
+| 0 | 0.588 |
+| 1 | 0.575 |
+| 2 | 0.588 |
+| 5 | **0.600** |
+| 10 | 0.575 |
 
-### K=0
+K=5 时平均需 57 个新任务环境步，且不更新模型参数。移除拓扑描述符的 K=5 消融为 0.575，低于完整观测模型的 0.600。
 
-直接：
+| K | 平均新任务交互步数 | PEARL（无梯度） | scratch SAC（3 seeds） | pooled fine-tune SAC（3 seeds） |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 11.0 | **0.575** | 0.317 ± 0.204 | 0.267 ± 0.208 |
+| 2 | 19.0 | **0.588** | 0.079 ± 0.044 | 0.275 ± 0.099 |
+| 5 | 57.0 | **0.600** | 0.171 ± 0.115 | 0.325 ± 0.094 |
+| 10 | 119.5 | **0.575** | 0.196 ± 0.059 | 0.217 ± 0.072 |
 
-```
-z = prior
-evaluate query
-```
+作为非等预算参考，在每个新任务额外训练 5,000 环境步时，scratch SAC、pooled fine-tune SAC 和 topology-conditioned pooled SAC 分别达到 0.587、0.562 和 0.525。该组数值不能与上表作低样本效率比较。
 
-不能提前收集support。
+## 8. 复核入口
 
+- 实现与命令：[`../pearl_learning/README.md`](../pearl_learning/README.md)
+- 最终结果说明：[`../results/pearl_learning/README.md`](../results/pearl_learning/README.md)
+- 机器可读汇总：[`../results/pearl_learning/key_results.json`](../results/pearl_learning/key_results.json)
+- 关键契约测试：`conda run -n metadrive python -m unittest pearl_learning.tests.test_contract`
 
-### K>0
-
-循环：
-
-```
-evaluate query
-
-collect support episode
-
-update posterior
-
-continue
-```
-
-输出：
-
-```
-Success@0
-Success@1
-Success@2
-Success@5
-Success@10
-```
-
----
-
-## 7. Observation要求
-
-增加消融：
-
-### PEARL-full
-
-```
-dynamic state
-+
-topology descriptor
-+
-latent z
-```
-
-### PEARL-no-topology
-
-```
-dynamic state
-+
-latent z
-```
-
-禁止：
-
-- task_id；
-- logical_type label；
-- template index。
-
-目的：
-
-证明收益来自任务推断，而不是标签泄漏。
-
----
-
-## 8. 必须增加Baseline
-
-正式PEARL前实现：
-
-### Per-task SAC
-
-验证不同task存在策略差异。
-
-### Pooled Multi-task SAC
-
-验证普通多任务是否不足。
-
-### Scratch SAC
-
-同环境预算重新训练。
-
-### PEARL
-
-比较：
-
-```
-PEARL@0
-PEARL@5
-PEARL@10
-```
-
----
-
-## 9. Task Heterogeneity Audit
-
-新增：
-
-```
-audit_task_heterogeneity.py
-```
-
-生成：
-
-- policy transfer matrix；
-- per-task SAC性能；
-- pooled SAC gap。
-
-如果：
-
-```
-Pooled SAC ≈ Per-task SAC
-```
-
-则task过于简单，不进入正式PEARL实验。
-
----
-
-## 10. 指标
-
-分别报告：
-
-### Collision
-
-```
-target_collision_rate
-```
-
-### Critical
-
-```
-critical_success_rate
-min TTC
-```
-
-### Validity
-
-```
-valid_critical_strict_rate
-invalid_rate
-```
-
-禁止只使用collision rate。
-
----
-
-## 11. 正式训练条件
-
-必须满足：
-
-- 四个Adapter通过topology audit；
-- train/test task无泄漏；
-- support/query无泄漏；
-- posterior随support更新；
-- no-gradient adaptation通过；
-- baseline完成。
-
----
-
-## 12. 最终目标
-
-证明：
-
-> PEARL不是简单识别场景类别，而是通过少量交互学习逻辑场景中的风险模式，使场景挖掘器能够在未见逻辑场景上快速发现有效安全关键测试场景。
-
-
+测试覆盖冻结输入、观测维度、support/query 隔离、无梯度适应、匹配预算、任务异质性审计与迁移诊断的关键约束。正式复跑仍应使用对应的 taskbook、casebook、checkpoint manifest 和解析配置，以维持 provenance 一致性。
