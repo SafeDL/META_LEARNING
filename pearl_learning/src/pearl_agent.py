@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+from itertools import chain
 from typing import Any, Mapping
 
 import numpy as np
@@ -10,6 +11,18 @@ import torch
 from torch import nn
 
 from .context_encoder import ContextEncoder
+from .moe import (
+    DESCRIPTOR_FIELDS,
+    DESCRIPTOR_SCHEMA,
+    PhysicalTaskDescriptor,
+    PosteriorRoutedMoEActor,
+    PosteriorRouter,
+    RouteContext,
+    RoutingOutput,
+    load_balance_loss,
+    intervene_route as build_intervened_route,
+    route_context,
+)
 from .networks import Critic, GaussianActor
 from .replay import Transition
 from .task_representation import INTERACTION_OBSERVATION_INDEXES
@@ -22,12 +35,14 @@ class PEARLAgent:
         networks = config["networks"]
         sac = config["sac"]
         self.observation_schema = str(config["environment"]["observation_schema"])
+        self.observation_dim = int(observation_dim)
         self.action_dim = int(action_dim)
         self.latent_dim = int(pearl["latent_dim"])
         self.reward_scale = float(pearl["context_reward_scale"])
         self.gamma = float(sac["gamma"])
         self.tau = float(sac["tau"])
         self.kl_beta = float(pearl["kl_beta"])
+        self.no_context_training = bool(config.get("ablation", {}).get("no_context_training", False))
 
         context_dim = observation_dim + action_dim + 1 + observation_dim + 2
         self.context_encoder = ContextEncoder(
@@ -35,12 +50,66 @@ class PEARLAgent:
             self.latent_dim,
             list(networks["context_hidden_sizes"]),
         ).to(device)
-        self.actor = GaussianActor(
-            observation_dim,
-            self.latent_dim,
-            action_dim,
-            list(networks["actor_hidden_sizes"]),
-        ).to(device)
+        if self.no_context_training:
+            self.context_encoder.requires_grad_(False)
+        self.actor_architecture = str(networks.get("actor_architecture", "dense"))
+        self.actor_hidden_sizes = [int(value) for value in networks["actor_hidden_sizes"]]
+        self.critic_hidden_sizes = [int(value) for value in networks["critic_hidden_sizes"]]
+        self.context_hidden_sizes = [int(value) for value in networks["context_hidden_sizes"]]
+        self.router_hidden_sizes: list[int] | None = None
+        self.expert_hidden_size: int | None = None
+        self.router: PosteriorRouter | None = None
+        self.descriptor_schema: str | None = None
+        self.num_experts: int | None = None
+        self.top_k: int | None = None
+        self.routing: str | None = None
+        self.router_input_mode: str | None = None
+        self.load_balance_weight = 0.0
+        if self.actor_architecture == "dense":
+            self.actor = GaussianActor(
+                observation_dim,
+                self.latent_dim,
+                action_dim,
+                self.actor_hidden_sizes,
+            ).to(device)
+        elif self.actor_architecture == "posterior_routed_moe":
+            moe = dict(networks.get("moe", {}))
+            self.descriptor_schema = str(moe.get("descriptor_schema", ""))
+            if self.descriptor_schema != DESCRIPTOR_SCHEMA:
+                raise ValueError(f"unsupported MoE descriptor schema: {self.descriptor_schema!r}")
+            normalization = dict(moe.get("descriptor_normalization", {}))
+            if tuple(normalization) != DESCRIPTOR_FIELDS:
+                raise ValueError("MoE descriptor_normalization must exactly follow the descriptor field order")
+            self.num_experts = int(moe["num_experts"])
+            self.top_k = int(moe["top_k"])
+            self.routing = str(moe["routing"])
+            self.router_input_mode = str(
+                moe.get("input_mode", "static_posterior_mean_logvar")
+            )
+            self.load_balance_weight = float(moe["load_balance_weight"])
+            self.router_hidden_sizes = [int(value) for value in moe["router_hidden_sizes"]]
+            self.expert_hidden_size = int(moe["expert_hidden_size"])
+            if self.load_balance_weight < 0.0:
+                raise ValueError("load_balance_weight must be non-negative")
+            self.router = PosteriorRouter(
+                len(DESCRIPTOR_FIELDS),
+                self.latent_dim,
+                self.num_experts,
+                self.top_k,
+                self.routing,
+                self.router_hidden_sizes,
+                self.router_input_mode,
+            ).to(device)
+            self.actor = PosteriorRoutedMoEActor(
+                observation_dim,
+                self.latent_dim,
+                action_dim,
+                self.actor_hidden_sizes,
+                self.num_experts,
+                self.expert_hidden_size,
+            ).to(device)
+        else:
+            raise ValueError(f"unsupported actor_architecture: {self.actor_architecture!r}")
         critic_sizes = list(networks["critic_hidden_sizes"])
         self.q1 = Critic(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
         self.q2 = Critic(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
@@ -49,6 +118,8 @@ class PEARLAgent:
 
         representation = dict(config.get("task_representation", {}))
         self.disentangled = bool(representation.get("enabled", False))
+        if self.no_context_training and self.disentangled:
+            raise ValueError("no-context training cannot enable disentangled posterior supervision")
         self.geometry_decoder: nn.Module | None = None
         self.interaction_decoder: nn.Module | None = None
         self.rule_decoder: nn.Module | None = None
@@ -81,7 +152,10 @@ class PEARLAgent:
             ).to(device)
             self.rule_decoder = nn.Linear(self.rule_dim, 1).to(device)
 
-        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=float(sac["actor_lr"]))
+        actor_parameters = self.actor.parameters() if self.router is None else chain(
+            self.actor.parameters(), self.router.parameters()
+        )
+        self.actor_opt = torch.optim.Adam(actor_parameters, lr=float(sac["actor_lr"]))
         critic_parameters = list(self.q1.parameters()) + list(self.q2.parameters())
         self.q_opt = torch.optim.Adam(critic_parameters, lr=float(sac["critic_lr"]))
         context_parameters = list(self.context_encoder.parameters())
@@ -93,13 +167,94 @@ class PEARLAgent:
         self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
         self.alpha_opt = torch.optim.Adam([self.log_alpha], lr=float(sac["alpha_lr"]))
         self.target_entropy = -float(action_dim)
+        self.last_router_audits: list[dict[str, Any]] = []
 
     @property
     def alpha(self) -> torch.Tensor:
         return self.log_alpha.exp()
 
-    def act(self, observation: torch.Tensor, z: torch.Tensor, deterministic: bool) -> torch.Tensor:
-        return self.actor.sample(observation, z, deterministic)[0]
+    def act(
+        self,
+        observation: torch.Tensor,
+        z: torch.Tensor,
+        deterministic: bool,
+        route: RouteContext | None = None,
+    ) -> torch.Tensor:
+        if self.actor_architecture == "dense":
+            if route is not None:
+                raise ValueError("dense actor does not accept a route context")
+            return self.actor.sample(observation, z, deterministic)[0]
+        if route is None:
+            raise ValueError("posterior-routed MoE actor requires an explicit task-level route context")
+        weights = route.weight_tensor(self.device).expand(len(observation), -1)
+        return self.actor.sample(observation, z, weights, deterministic)[0]
+
+    def compute_route(
+        self,
+        descriptor: PhysicalTaskDescriptor,
+        posterior_mean: torch.Tensor,
+        posterior_log_variance: torch.Tensor,
+        posterior_version: int,
+        *,
+        gradient_enabled: bool = False,
+    ) -> RouteContext | None:
+        """Compute one task route; collection callers cache it for the episode."""
+        if self.actor_architecture == "dense":
+            return None
+        if descriptor.schema != self.descriptor_schema or descriptor.fields != DESCRIPTOR_FIELDS:
+            raise ValueError("physical task descriptor is incompatible with the configured router")
+        if posterior_mean.shape != (1, self.latent_dim) or posterior_log_variance.shape != (1, self.latent_dim):
+            raise ValueError("a collection route requires posterior tensors with shape [1, latent_dim]")
+        descriptor_tensor = descriptor.tensor(self.device).unsqueeze(0)
+        with torch.set_grad_enabled(gradient_enabled):
+            output = self.router(descriptor_tensor, posterior_mean, posterior_log_variance)
+        return route_context(
+            descriptor,
+            posterior_version,
+            posterior_mean,
+            posterior_log_variance,
+            output,
+            gradient_enabled=gradient_enabled,
+        )
+
+    def intervene_route(
+        self,
+        source: RouteContext,
+        *,
+        posterior_version: int,
+        mode: str,
+        expert_index: int | None = None,
+    ) -> RouteContext:
+        if self.actor_architecture != "posterior_routed_moe":
+            raise ValueError("route interventions require a MoE actor")
+        if mode == "frozen_prior":
+            weights = source.weights
+        elif mode == "uniform":
+            weights = [1.0 / self.num_experts] * self.num_experts
+        elif mode == "expert_knockout":
+            if expert_index is None or not 0 <= int(expert_index) < self.num_experts:
+                raise ValueError("expert_knockout requires a valid expert_index")
+            weights = list(source.weights)
+            weights[int(expert_index)] = 0.0
+            if sum(weights) <= 0.0:
+                raise ValueError("cannot knock out the only active expert")
+        else:
+            raise ValueError(f"unsupported route intervention: {mode!r}")
+        return build_intervened_route(
+            source,
+            weights,
+            posterior_version=posterior_version,
+            intervention=mode if expert_index is None else f"{mode}:{expert_index}",
+        )
+
+    def expert_action_means(
+        self,
+        observation: torch.Tensor,
+        latent: torch.Tensor,
+    ) -> torch.Tensor:
+        if self.actor_architecture != "posterior_routed_moe":
+            raise ValueError("expert action audit requires a MoE actor")
+        return self.actor.expert_action_means(observation, latent)
 
     def prior(self, count: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
         return self.context_encoder.prior(count, self.device)
@@ -202,10 +357,17 @@ class PEARLAgent:
         context_by_task: list[list[list[Transition]]],
         rl_by_task: list[list[Transition]],
         task_targets: list[Mapping[str, Any]] | None = None,
+        task_descriptors: list[PhysicalTaskDescriptor] | None = None,
+        posterior_versions: list[int] | None = None,
     ) -> dict[str, float]:
-        context = self.context_tensor(context_by_task)
-        mu, log_var = self.context_encoder(context)
-        z = self.sample_latent(mu, log_var)
+        context = None
+        if self.no_context_training:
+            mu, log_var = self.prior(len(context_by_task))
+            z = mu
+        else:
+            context = self.context_tensor(context_by_task)
+            mu, log_var = self.context_encoder(context)
+            z = self.sample_latent(mu, log_var)
         batch_size = len(rl_by_task[0])
         transitions = [transition for task_rows in rl_by_task for transition in task_rows]
         obs = torch.as_tensor(
@@ -234,8 +396,35 @@ class PEARLAgent:
             device=self.device,
         ).unsqueeze(-1)
         expanded_z = z.repeat_interleave(batch_size, dim=0)
+        training_route: RoutingOutput | None = None
+        descriptor_tensor: torch.Tensor | None = None
+        if self.actor_architecture == "posterior_routed_moe":
+            if task_descriptors is None or len(task_descriptors) != len(context_by_task):
+                raise ValueError("MoE update requires one physical descriptor per sampled task")
+            if any(
+                descriptor.schema != self.descriptor_schema or descriptor.fields != DESCRIPTOR_FIELDS
+                for descriptor in task_descriptors
+            ):
+                raise ValueError("MoE update received an incompatible physical task descriptor")
+            descriptor_tensor = torch.stack(
+                [descriptor.tensor(self.device) for descriptor in task_descriptors]
+            )
+        hashes_before_critic = self.module_hashes()
+        actor_hashes_before_critic = {
+            name: hashes_before_critic[name]
+            for name in (("actor", "router") if self.router is not None else ("actor",))
+        }
         with torch.no_grad():
-            next_action, next_logp = self.actor.sample(next_obs, expanded_z.detach())
+            if self.actor_architecture == "dense":
+                next_action, next_logp = self.actor.sample(next_obs, expanded_z.detach())
+            else:
+                target_route = self.router(descriptor_tensor, mu.detach(), log_var.detach())
+                target_weights = target_route.weights.repeat_interleave(batch_size, dim=0)
+                next_action, next_logp = self.actor.sample(
+                    next_obs,
+                    expanded_z.detach(),
+                    target_weights,
+                )
             next_value = torch.minimum(
                 self.target_q1(next_obs, next_action, expanded_z.detach()),
                 self.target_q2(next_obs, next_action, expanded_z.detach()),
@@ -246,26 +435,105 @@ class PEARLAgent:
             + nn.functional.mse_loss(self.q2(obs, actions, expanded_z), target)
         )
         kl = self.context_encoder.kl_to_unit_normal(mu, log_var)
-        auxiliary, auxiliary_metrics = self._auxiliary_loss(mu, context, task_targets)
-        encoder_loss = q_loss + self.kl_beta * kl + auxiliary
+        zero = torch.zeros((), device=self.device)
+        if self.no_context_training:
+            auxiliary = zero
+            auxiliary_metrics = {
+                "geometry_aux_loss": zero,
+                "interaction_aux_loss": zero,
+                "rule_aux_loss": zero,
+            }
+            encoder_loss = q_loss
+        else:
+            auxiliary, auxiliary_metrics = self._auxiliary_loss(mu, context, task_targets)
+            encoder_loss = q_loss + self.kl_beta * kl + auxiliary
         self.q_opt.zero_grad()
         self.context_opt.zero_grad()
         encoder_loss.backward()
         self.q_opt.step()
-        self.context_opt.step()
+        if not self.no_context_training:
+            self.context_opt.step()
+        hashes_after_critic = self.module_hashes()
+        critic_phase_actor_unchanged = all(
+            hashes_after_critic[name] == value
+            for name, value in actor_hashes_before_critic.items()
+        )
+        critic_hashes_before_actor = {
+            name: hashes_after_critic[name] for name in ("q1", "q2")
+        }
+
+        # Remove gradients from the critic/encoder phase so the actor boundary
+        # is directly auditable instead of being obscured by stale gradients.
+        self.q_opt.zero_grad(set_to_none=True)
+        self.context_opt.zero_grad(set_to_none=True)
 
         actor_z = expanded_z.detach()
-        policy_action, logp = self.actor.sample(obs, actor_z)
-        actor_loss = (
+        if self.actor_architecture == "dense":
+            policy_action, logp = self.actor.sample(obs, actor_z)
+            balance = zero
+        else:
+            training_route = self.router(descriptor_tensor, mu.detach(), log_var.detach())
+            actor_weights = training_route.weights.repeat_interleave(batch_size, dim=0)
+            policy_action, logp = self.actor.sample(obs, actor_z, actor_weights)
+            balance = load_balance_loss(training_route.weights)
+        for critic in (self.q1, self.q2):
+            critic.requires_grad_(False)
+        actor_main_loss = (
             self.alpha.detach() * logp
             - torch.minimum(
                 self.q1(obs, policy_action, actor_z),
                 self.q2(obs, policy_action, actor_z),
             )
         ).mean()
-        self.actor_opt.zero_grad()
-        actor_loss.backward()
+        actor_total_loss = actor_main_loss + self.load_balance_weight * balance
+        self.actor_opt.zero_grad(set_to_none=True)
+        actor_total_loss.backward()
+        actor_gradients = self._actor_gradient_audit()
         self.actor_opt.step()
+        hashes_after_actor = self.module_hashes()
+        actor_phase_critic_unchanged = all(
+            hashes_after_actor[name] == value
+            for name, value in critic_hashes_before_actor.items()
+        )
+        for critic in (self.q1, self.q2):
+            critic.requires_grad_(True)
+        self.last_router_audits = []
+        if training_route is not None:
+            versions = posterior_versions or [0] * len(context_by_task)
+            if len(versions) != len(context_by_task):
+                raise ValueError("posterior_versions must match the task batch")
+            routing_metrics = self._routing_metrics(training_route)
+            hashes = self.module_hashes()
+            for index, descriptor in enumerate(task_descriptors):
+                single_output = RoutingOutput(
+                    training_route.logits[index:index + 1],
+                    training_route.soft_weights[index:index + 1],
+                    training_route.top_k_mask[index:index + 1],
+                    training_route.weights[index:index + 1],
+                    training_route.entropy[index:index + 1],
+                    training_route.top_k_indexes[index:index + 1],
+                )
+                audit = route_context(
+                    descriptor,
+                    int(versions[index]),
+                    mu[index:index + 1],
+                    log_var[index:index + 1],
+                    single_output,
+                    gradient_enabled=True,
+                ).audit_dict()
+                audit.update({
+                    "actor_main_loss": float(actor_main_loss.detach()),
+                    "balance_loss": float(balance.detach()),
+                    "expert_load": [
+                        routing_metrics[f"expert_{expert}_load"]
+                        for expert in range(self.num_experts)
+                    ],
+                    "expert_load_cv": routing_metrics["expert_load_cv"],
+                    "gradient_norms": dict(actor_gradients),
+                    "module_hashes_after_update": hashes,
+                    "parameter_hash_after_update": self.parameter_hash(),
+                })
+                self.last_router_audits.append(audit)
 
         alpha_loss = -(self.log_alpha * (logp.detach() + self.target_entropy)).mean()
         self.alpha_opt.zero_grad()
@@ -278,23 +546,113 @@ class PEARLAgent:
         return {
             "q_loss": float(q_loss.detach()),
             "kl": float(kl.detach()),
-            "actor_loss": float(actor_loss.detach()),
+            "actor_loss": float(actor_main_loss.detach()),
+            "actor_total_loss": float(actor_total_loss.detach()),
+            "balance_loss": float(balance.detach()),
+            "critic_phase_actor_unchanged": float(critic_phase_actor_unchanged),
+            "actor_phase_critic_unchanged": float(actor_phase_critic_unchanged),
             "alpha": float(self.alpha.detach()),
             "posterior_variance": float(torch.exp(log_var).mean().detach()),
             "auxiliary_loss": float(auxiliary.detach()),
+            **actor_gradients,
+            **self._routing_metrics(training_route),
             **{name: float(value.detach()) for name, value in auxiliary_metrics.items()},
         }
 
+    @staticmethod
+    def _gradient_norm(parameters: Any) -> float:
+        squares = [parameter.grad.detach().square().sum() for parameter in parameters if parameter.grad is not None]
+        return 0.0 if not squares else float(torch.sqrt(torch.stack(squares).sum()).detach())
+
+    def _actor_gradient_audit(self) -> dict[str, float]:
+        result = {
+            "actor_shared_gradient_norm": self._gradient_norm(
+                self.actor.parameters() if self.actor_architecture == "dense" else self.actor.shared_trunk.parameters()
+            ),
+            "context_encoder_actor_gradient_norm": self._gradient_norm(self.context_encoder.parameters()),
+            "critic_actor_gradient_norm": self._gradient_norm(chain(self.q1.parameters(), self.q2.parameters())),
+        }
+        if self.actor_architecture == "posterior_routed_moe":
+            result["router_gradient_norm"] = self._gradient_norm(self.router.parameters())
+            result["actor_head_gradient_norm"] = self._gradient_norm(self.actor.gaussian_head.parameters())
+            for index, expert in enumerate(self.actor.residual_experts):
+                result[f"expert_{index}_gradient_norm"] = self._gradient_norm(expert.parameters())
+        return result
+
+    def _routing_metrics(self, output: RoutingOutput | None) -> dict[str, float]:
+        if output is None:
+            return {}
+        load = output.weights.detach().mean(dim=0)
+        mean = load.mean()
+        cv = load.std(unbiased=False) / mean.clamp_min(1e-12)
+        metrics = {
+            "router_entropy": float(output.entropy.detach().mean()),
+            "expert_load_cv": float(cv),
+        }
+        metrics.update({f"expert_{index}_load": float(value) for index, value in enumerate(load)})
+        return metrics
+
     def parameter_hash(self) -> str:
         digest = hashlib.sha256()
-        modules = [self.context_encoder, self.actor, self.q1, self.q2, self.target_q1, self.target_q2]
+        for value in self.module_hashes().values():
+            digest.update(value.encode("ascii"))
+        return digest.hexdigest()
+
+    def module_hashes(self) -> dict[str, str]:
+        modules = {
+            "context_encoder": self.context_encoder,
+            "actor": self.actor,
+            "q1": self.q1,
+            "q2": self.q2,
+            "target_q1": self.target_q1,
+            "target_q2": self.target_q2,
+        }
         if self.disentangled:
-            modules += [self.geometry_decoder, self.interaction_decoder, self.rule_decoder]
-        for module in modules:
+            modules.update({
+                "geometry_decoder": self.geometry_decoder,
+                "interaction_decoder": self.interaction_decoder,
+                "rule_decoder": self.rule_decoder,
+            })
+        if self.router is not None:
+            modules["router"] = self.router
+        result: dict[str, str] = {}
+        for name, module in modules.items():
+            digest = hashlib.sha256()
             for tensor in module.state_dict().values():
                 digest.update(tensor.detach().cpu().numpy().tobytes())
-        digest.update(self.log_alpha.detach().cpu().numpy().tobytes())
-        return digest.hexdigest()
+            result[name] = digest.hexdigest()
+        alpha_digest = hashlib.sha256(self.log_alpha.detach().cpu().numpy().tobytes())
+        result["log_alpha"] = alpha_digest.hexdigest()
+        return result
+
+    def architecture_metadata(self) -> dict[str, Any]:
+        metadata: dict[str, Any] = {
+            "schema": "pearl_actor_architecture_v1",
+            "actor_architecture": self.actor_architecture,
+            "observation_schema": self.observation_schema,
+            "observation_dim": self.observation_dim,
+            "action_dim": self.action_dim,
+            "latent_dim": self.latent_dim,
+            "actor_hidden_sizes": self.actor_hidden_sizes,
+            "critic_hidden_sizes": self.critic_hidden_sizes,
+            "context_hidden_sizes": self.context_hidden_sizes,
+        }
+        if self.actor_architecture == "posterior_routed_moe":
+            metadata["moe"] = {
+                "descriptor_schema": self.descriptor_schema,
+                "descriptor_fields": list(DESCRIPTOR_FIELDS),
+                "num_experts": self.num_experts,
+                "top_k": self.top_k,
+                "routing": self.routing,
+                "router_input_fields": list(self.router.input_fields),
+                "load_balance_weight": self.load_balance_weight,
+                "router_hidden_sizes": self.router_hidden_sizes,
+                "expert_hidden_size": self.expert_hidden_size,
+                "actor_form": "shared_trunk_plus_weighted_residual_experts_plus_unified_gaussian_head",
+                "critic_architecture": "dense_twin_critics",
+                "posterior_gradient_boundary": "router_receives_detached_mean_and_log_variance",
+            }
+        return metadata
 
     def state_dict(self) -> dict[str, object]:
         result = {
@@ -309,7 +667,10 @@ class PEARLAgent:
             "critic_optimizer": self.q_opt.state_dict(),
             "context_optimizer": self.context_opt.state_dict(),
             "alpha_optimizer": self.alpha_opt.state_dict(),
+            "architecture_metadata": self.architecture_metadata(),
         }
+        if self.router is not None:
+            result["router"] = self.router.state_dict()
         if self.disentangled:
             result["task_representation"] = {
                 "geometry_decoder": self.geometry_decoder.state_dict(),
@@ -319,8 +680,16 @@ class PEARLAgent:
         return result
 
     def load_state_dict(self, state: Mapping[str, object]) -> None:
+        if state.get("architecture_metadata") != self.architecture_metadata():
+            raise ValueError("checkpoint agent state has incompatible architecture metadata")
         for name in ("context_encoder", "actor", "q1", "q2", "target_q1", "target_q2"):
             getattr(self, name).load_state_dict(state[name])
+        if self.router is not None:
+            if "router" not in state:
+                raise ValueError("MoE checkpoint lacks router state")
+            self.router.load_state_dict(state["router"])
+        elif "router" in state:
+            raise ValueError("dense agent cannot load MoE router state")
         representation_state = state.get("task_representation")
         if self.disentangled:
             if not isinstance(representation_state, Mapping):

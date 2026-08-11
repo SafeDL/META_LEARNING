@@ -37,7 +37,7 @@ def main() -> None:
     except ValueError:
         casebooks_are_disjoint = False
     agent_update = inspect.getsource(PEARLAgent.update)
-    agent_hash = inspect.getsource(PEARLAgent.parameter_hash)
+    agent_hash = inspect.getsource(PEARLAgent.parameter_hash) + inspect.getsource(PEARLAgent.module_hashes)
     evaluator_source = inspect.getsource(evaluate_fewshot)
     required_episode_fields = {"task_id", "episode_id", "case_id", "collection_mode", "posterior_version", "terminated", "truncated", "termination_reason"}
     payload_hash = content_hash(taskbook_payload(taskbook))
@@ -48,9 +48,18 @@ def main() -> None:
         "casebook_split_isolation": casebooks_are_disjoint,
         "observation_contract": cfg["environment"]["observation_schema"] == OBSERVATION_SCHEMA and int(cfg["environment"]["observation_dim"]) == OBSERVATION_DIM,
         "observation_label_free": len(OBS_FIELDS) == OBSERVATION_DIM and "template_index" not in OBS_FIELDS,
-        "truncation_bootstrap": "float(x.terminated)" in agent_update and "float(x.truncated)" not in agent_update,
+        "truncation_bootstrap": (
+            "transition.terminated" in agent_update
+            and "transition.truncated" not in agent_update
+            and "(1 - done)" in agent_update
+        ),
         "episode_replay_provenance": required_episode_fields <= set(ReplayEpisode.__dataclass_fields__),
-        "no_gradient_hash_scope": all(token in agent_hash for token in ("target_q1", "target_q2", "log_alpha")) and "if before != after" in evaluator_source,
+        "no_gradient_hash_scope": (
+            all(token in agent_hash for token in ("context_encoder", "actor", "q1", "q2", "target_q1", "target_q2", "log_alpha"))
+            and "module_hashes_before" in evaluator_source
+            and "module_hashes_after" in evaluator_source
+            and "if before != after or module_hashes_before != module_hashes_after" in evaluator_source
+        ),
     }
     result = {"schema": "logical_merge_integrity_audit", "taskbook_hash": payload_hash, "casebook_hashes": {task_id: content_hash(book) for task_id, book in casebooks.items()}, "checks": checks, "status": "pass" if all(checks.values()) else "fail"}
     write_json(args.output, result)

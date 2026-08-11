@@ -1,0 +1,1604 @@
+{
+  "cases": {
+    "match_rule_variant_initial_conditions": true,
+    "per_task": {
+      "test_query": 20,
+      "test_support": 10,
+      "train_pool": 32,
+      "validation_query": 20,
+      "validation_support": 10
+    }
+  },
+  "environment": {
+    "action_dim": 2,
+    "horizon": 180,
+    "observation_dim": 37,
+    "observation_schema": "logical_merge_obs",
+    "use_render": false
+  },
+  "evaluation": {
+    "context_protocol": "fixed_nested_v1",
+    "context_sampling_seed": 20260721,
+    "query_cases_per_task": 4,
+    "selection_shot": 4,
+    "shots": [
+      0,
+      1,
+      2,
+      4
+    ]
+  },
+  "experiment": {
+    "device": "auto",
+    "run_kind": "routed_moe_specialization_pilot",
+    "taskbook_seed": 7301
+  },
+  "geometry_catalog": {
+    "evaluation_target_contact_rule_variants": {
+      "bottleneck_40": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "bottleneck_48": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "lane_drop_40": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "lane_drop_48": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "y_merge_24": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "y_merge_32": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "y_merge_40": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "y_merge_48": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ]
+    },
+    "geometries": [
+      {
+        "adversary_route": {
+          "initial_lane": [
+            "2r1_0_",
+            "2r1_1_",
+            0
+          ],
+          "lane_sequence": [
+            [
+              "2r1_0_",
+              "2r1_1_",
+              0
+            ],
+            [
+              "2r1_1_",
+              "2r1_2_",
+              0
+            ],
+            [
+              "2r1_2_",
+              "2r1_3_",
+              0
+            ],
+            [
+              "2r1_3_",
+              "2r0_0_",
+              0
+            ]
+          ],
+          "route_id": "srs_ramp_to_merge"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 6.0,
+          "max_route_distance_m": 6.0
+        },
+        "family": "merge_like",
+        "geometry_id": "on_ramp_srs",
+        "logical_type": "on_ramp_merge",
+        "map_config": {
+          "kind": "on_ramp_srs",
+          "map": "SrS",
+          "start_seed": 0
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            12.0
+          ],
+          "sut": [
+            8.0,
+            22.0
+          ]
+        },
+        "split": "meta_train",
+        "sut_route": {
+          "initial_lane": [
+            "1S0_0_",
+            "2r0_0_",
+            2
+          ],
+          "lane_sequence": [
+            [
+              "1S0_0_",
+              "2r0_0_",
+              2
+            ],
+            [
+              "2r0_0_",
+              "2r0_1_",
+              2
+            ],
+            [
+              "2r0_1_",
+              "2r0_2_",
+              2
+            ],
+            [
+              "2r0_2_",
+              "3S0_0_",
+              2
+            ]
+          ],
+          "route_id": "srs_mainline_to_merge"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "lane_drop_24",
+        "logical_type": "lane_drop_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 24.0,
+          "neck_lane_num": 2
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_train",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "lane_drop_32",
+        "logical_type": "lane_drop_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 32.0,
+          "neck_lane_num": 2
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_train",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "lane_drop_40",
+        "logical_type": "lane_drop_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 40.0,
+          "neck_lane_num": 2
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_validation",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "lane_drop_48",
+        "logical_type": "lane_drop_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 48.0,
+          "neck_lane_num": 2
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_test_template",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-2-",
+              0
+            ],
+            [
+              "1y1-2-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "bottleneck_24",
+        "logical_type": "bottleneck_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 24.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_train",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-2-",
+              0
+            ],
+            [
+              "1y1-2-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "bottleneck_32",
+        "logical_type": "bottleneck_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 32.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_train",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-2-",
+              0
+            ],
+            [
+              "1y1-2-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "bottleneck_40",
+        "logical_type": "bottleneck_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 40.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_validation",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            2
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              2
+            ],
+            [
+              ">>",
+              ">>>",
+              2
+            ],
+            [
+              ">>>",
+              "1y1-2-",
+              0
+            ],
+            [
+              "1y1-2-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "outer_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "bottleneck_48",
+        "logical_type": "bottleneck_merge",
+        "map_config": {
+          "bottle_lane_num": 3,
+          "kind": "bottleneck",
+          "merge_length_m": 48.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_test_template",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            1
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              1
+            ],
+            [
+              ">>",
+              ">>>",
+              1
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "y_merge_24",
+        "logical_type": "y_merge",
+        "map_config": {
+          "bottle_lane_num": 2,
+          "kind": "y_merge",
+          "merge_length_m": 24.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_test_logical",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            1
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              1
+            ],
+            [
+              ">>",
+              ">>>",
+              1
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "y_merge_32",
+        "logical_type": "y_merge",
+        "map_config": {
+          "bottle_lane_num": 2,
+          "kind": "y_merge",
+          "merge_length_m": 32.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_test_logical",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            1
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              1
+            ],
+            [
+              ">>",
+              ">>>",
+              1
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "y_merge_40",
+        "logical_type": "y_merge",
+        "map_config": {
+          "bottle_lane_num": 2,
+          "kind": "y_merge",
+          "merge_length_m": 40.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_test_logical",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_mainline_to_shared_exit"
+        }
+      },
+      {
+        "adversary_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            1
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              1
+            ],
+            [
+              ">>",
+              ">>>",
+              1
+            ],
+            [
+              ">>>",
+              "1y1-1-",
+              0
+            ],
+            [
+              "1y1-1-",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_branch_to_shared_exit"
+        },
+        "conflict_spec": {
+          "conflict_radius_m": 4.0,
+          "max_route_distance_m": 1.0
+        },
+        "family": "merge_like",
+        "geometry_id": "y_merge_48",
+        "logical_type": "y_merge",
+        "map_config": {
+          "bottle_lane_num": 2,
+          "kind": "y_merge",
+          "merge_length_m": 48.0,
+          "neck_lane_num": 1
+        },
+        "priority_spec": {
+          "sut_has_priority": true
+        },
+        "spawn_regions": {
+          "adversary": [
+            2.0,
+            8.0
+          ],
+          "sut": [
+            2.0,
+            8.0
+          ]
+        },
+        "split": "meta_test_logical",
+        "sut_route": {
+          "initial_lane": [
+            ">",
+            ">>",
+            0
+          ],
+          "lane_sequence": [
+            [
+              ">",
+              ">>",
+              0
+            ],
+            [
+              ">>",
+              ">>>",
+              0
+            ],
+            [
+              ">>>",
+              "1y0-0-",
+              0
+            ],
+            [
+              "1y0-0-",
+              "1y0-1-",
+              0
+            ]
+          ],
+          "route_id": "y_mainline_to_shared_exit"
+        }
+      }
+    ],
+    "meta_train_target_contact_rule_variants": {
+      "bottleneck_24": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "bottleneck_32": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "lane_drop_24": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "lane_drop_32": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ],
+      "on_ramp_srs": [
+        {
+          "target_contact_entry_order": "adversary_first",
+          "target_contact_speed_relation": "any"
+        },
+        {
+          "target_contact_entry_order": "sut_first",
+          "target_contact_speed_relation": "any"
+        }
+      ]
+    },
+    "schema": "logical_merge_geometry_catalog",
+    "target_contact_entry_order_semantics": "pre_step_arrival_time",
+    "target_contact_entry_orders": {
+      "bottleneck_24": "sut_first",
+      "bottleneck_32": "adversary_first",
+      "bottleneck_40": "sut_first",
+      "bottleneck_48": "adversary_first",
+      "lane_drop_24": "sut_first",
+      "lane_drop_32": "adversary_first",
+      "lane_drop_40": "sut_first",
+      "lane_drop_48": "adversary_first",
+      "on_ramp_srs": "adversary_first",
+      "y_merge_24": "adversary_first",
+      "y_merge_32": "sut_first",
+      "y_merge_40": "adversary_first",
+      "y_merge_48": "sut_first"
+    },
+    "target_contact_rules": {
+      "bottleneck_24": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "sut_faster"
+      },
+      "bottleneck_32": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "bottleneck_40": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "sut_faster"
+      },
+      "bottleneck_48": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "lane_drop_24": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "sut_faster"
+      },
+      "lane_drop_32": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "lane_drop_40": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "sut_faster"
+      },
+      "lane_drop_48": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "on_ramp_srs": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "y_merge_24": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "y_merge_32": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "sut_faster"
+      },
+      "y_merge_40": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "adversary_faster"
+      },
+      "y_merge_48": {
+        "target_contact_speed_margin_mps": 3.0,
+        "target_contact_speed_relation": "sut_faster"
+      }
+    }
+  },
+  "meta_training": {
+    "bootstrap_episodes_per_task": 1,
+    "gradient_updates_per_iteration": 5,
+    "meta_batch_size": 6,
+    "total_environment_steps": 1500000,
+    "validation_interval_steps": 1000000
+  },
+  "networks": {
+    "actor_architecture": "posterior_routed_moe",
+    "actor_hidden_sizes": [
+      256,
+      256
+    ],
+    "context_hidden_sizes": [
+      200,
+      200
+    ],
+    "critic_hidden_sizes": [
+      256,
+      256
+    ],
+    "moe": {
+      "descriptor_normalization": {
+        "adversary_lane_count": 5.0,
+        "adversary_route_curvature": 0.2,
+        "conflict_radius_m": 10.0,
+        "merge_length_m": 100.0,
+        "sut_lane_count": 5.0,
+        "sut_route_curvature": 0.2
+      },
+      "descriptor_schema": "merge_physical_task_descriptor_v1",
+      "expert_hidden_size": 128,
+      "input_mode": "static",
+      "load_balance_weight": 0.001,
+      "num_experts": 4,
+      "router_hidden_sizes": [
+        64,
+        64
+      ],
+      "routing": "top_k",
+      "top_k": 2
+    }
+  },
+  "normalization": {
+    "acceleration_mps2": 10.0,
+    "angle_rad": 3.141592653589793,
+    "curvature": 0.2,
+    "distance_m": 100.0,
+    "lane_count": 5.0,
+    "speed_mps": 30.0,
+    "time_s": 10.0
+  },
+  "pearl": {
+    "context_batch_size": 256,
+    "context_min_episodes": 1,
+    "context_reward_scale": 200.0,
+    "context_sample_size_eval": 256,
+    "context_transitions_per_episode": 32,
+    "kl_beta": 0.1,
+    "latent_dim": 5
+  },
+  "posterior_adaptation": {
+    "bootstrap_samples": 10000,
+    "confidence_level": 0.95,
+    "pass_criteria": {
+      "full_minus_no_context_ci_lower_gt": 0.0,
+      "require_all_methods": true,
+      "require_holdout": true,
+      "rule_pair_accuracy_ci_lower_gt": 0.5
+    },
+    "primary_metric": "valid_critical_strict_rate",
+    "primary_shot": 4,
+    "required_methods": [
+      "pearl_full",
+      "pearl_no_context",
+      "deterministic_latent",
+      "topology_only",
+      "context_only_no_topology"
+    ],
+    "schema": "posterior_adaptation_protocol_v1",
+    "training_seeds": [
+      11,
+      22,
+      33
+    ]
+  },
+  "project": {
+    "output_root": "results/pearl_learning/posterior_routed_moe_mechanism/specialization_pilot/runs"
+  },
+  "reward": {
+    "action_l2_weight": 0.01,
+    "action_smoothness_weight": 0.02,
+    "lane_marking_penalty": 0.0,
+    "non_target_collision_penalty": 3.0,
+    "out_of_road_penalty": 5.0,
+    "proximity_weight": 0.1,
+    "target_collision_bonus": 200.0,
+    "ttc_cap": 5.0,
+    "ttc_dense_threshold": 3.0,
+    "ttc_weight": 1.0,
+    "wrong_route_penalty": 5.0
+  },
+  "routed_moe": {
+    "schema": "posterior_routed_moe_engineering_v1",
+    "smoke_environment_steps": 1200,
+    "status_scope": "engineering_correctness_only",
+    "training_seeds": [
+      17,
+      29
+    ]
+  },
+  "sac": {
+    "actor_lr": 0.0003,
+    "alpha_lr": 0.0003,
+    "batch_size": 128,
+    "context_lr": 0.0003,
+    "critic_lr": 0.0003,
+    "gamma": 0.99,
+    "tau": 0.005
+  },
+  "specialization_pilot": {
+    "environment_steps_per_variant": 10000,
+    "input_modes": [
+      "static",
+      "posterior_mean",
+      "static_posterior_mean",
+      "static_posterior_mean_logvar"
+    ],
+    "load_balance_weights": [
+      0.0,
+      0.001
+    ],
+    "query_cases_per_task": 4,
+    "schema": "posterior_routed_moe_specialization_pilot_v1",
+    "scope": "validation_only_router_signal_diagnostic_not_formal_mechanism_validation",
+    "train_task_count": 10,
+    "training_seed": 41,
+    "validation_task_count": 4
+  },
+  "sut": {
+    "enable_lane_change": false,
+    "target_speed_mps": 12.0
+  }
+}

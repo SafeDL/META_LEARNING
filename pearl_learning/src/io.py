@@ -18,10 +18,26 @@ def content_hash(value: Any) -> str:
 
 def read_config(path: str | Path) -> dict[str, Any]:
     """Read the single project YAML configuration."""
-    value = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    source = Path(path)
+    value = yaml.safe_load(source.read_text(encoding="utf-8"))
     if not isinstance(value, Mapping):
         raise ValueError("configuration root must be a mapping")
-    return dict(value)
+    local = dict(value)
+    parent = local.pop("extends", None)
+    if parent is None:
+        return local
+    base = read_config(source.parent / str(parent))
+
+    def merge(left: Mapping[str, Any], right: Mapping[str, Any]) -> dict[str, Any]:
+        result = dict(left)
+        for key, item in right.items():
+            if isinstance(result.get(key), Mapping) and isinstance(item, Mapping):
+                result[key] = merge(result[key], item)
+            else:
+                result[key] = item
+        return result
+
+    return merge(base, local)
 
 
 def write_json(path: str | Path, value: Any) -> None:

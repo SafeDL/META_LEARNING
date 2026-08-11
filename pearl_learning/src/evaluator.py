@@ -10,7 +10,7 @@ from .collector import Rollout, collect_episode
 from .io import content_hash
 from .metrics import summarize
 from .observation import OBS_FIELDS
-from .task_env import LogicalMergeEnv
+from .task_env import LogicalMergeEnv, freeze_physical_task_descriptor
 from .task_representation import (
     INTERACTION_OBSERVATION_INDEXES,
     representation_target,
@@ -50,6 +50,121 @@ def _sample_episode_context(rollouts: list[Rollout], total_size: int, per_episod
     return groups
 
 
+_CONTEXT_PROTOCOLS = {"resampled_episode_balanced_v1", "fixed_nested_v1"}
+
+
+def _context_protocol(config: Mapping[str, Any]) -> str:
+    protocol = str(config["evaluation"].get("context_protocol", "resampled_episode_balanced_v1"))
+    if protocol not in _CONTEXT_PROTOCOLS:
+        raise ValueError(f"unsupported evaluation context protocol: {protocol}")
+    return protocol
+
+
+def _fixed_episode_context_block(
+    rollout: Rollout,
+    per_episode: int,
+    *,
+    base_seed: int,
+    task_id: str,
+) -> tuple[list[Any], dict[str, Any]]:
+    if per_episode <= 0 or not rollout.transitions:
+        raise ValueError("a fixed context block requires a positive size and a non-empty rollout")
+    sample_seed = int(content_hash({
+        "seed": int(base_seed),
+        "task_id": str(task_id),
+        "case_id": str(rollout.record["case_id"]),
+        "episode_id": rollout.episode_id,
+        "purpose": "fixed_episode_context_block_v1",
+    })[:16], 16)
+    rng = np.random.default_rng(sample_seed)
+    indexes = np.asarray(rng.choice(
+        len(rollout.transitions),
+        size=int(per_episode),
+        replace=len(rollout.transitions) < int(per_episode),
+    )).reshape(-1)
+    audit = {
+        "episode_id": rollout.episode_id,
+        "case_id": str(rollout.record["case_id"]),
+        "episode_length": len(rollout.transitions),
+        "sample_seed": sample_seed,
+        "transition_indexes": [int(index) for index in indexes],
+    }
+    audit["sample_hash"] = content_hash(audit)
+    return [rollout.transitions[int(index)] for index in indexes], audit
+
+
+def _posterior_context(
+    rollouts: list[Rollout],
+    fixed_blocks: list[list[Any]],
+    fixed_audits: list[dict[str, Any]],
+    *,
+    protocol: str,
+    total_size: int,
+    per_episode: int,
+    base_seed: int,
+    task_id: str,
+    shot: int,
+) -> tuple[list[list[Any]], dict[str, Any]]:
+    capacity = int(total_size) // int(per_episode)
+    if capacity < 1:
+        raise ValueError("context_sample_size_eval must hold at least one episode block")
+    if protocol == "fixed_nested_v1":
+        if len(rollouts) > capacity:
+            raise ValueError(
+                f"fixed nested context has {len(rollouts)} episodes but capacity is {capacity}; "
+                "increase context_sample_size_eval or reduce K"
+            )
+        if len(fixed_blocks) != len(rollouts) or len(fixed_audits) != len(rollouts):
+            raise RuntimeError("fixed context blocks are not aligned with support rollouts")
+        context = [list(block) for block in fixed_blocks]
+        episode_audits = [dict(row) for row in fixed_audits]
+    else:
+        rng = np.random.default_rng(int(content_hash({
+            "seed": int(base_seed), "task": str(task_id), "shot": int(shot),
+        })[:16], 16))
+        context = _sample_episode_context(rollouts, total_size, per_episode, rng)
+        episode_audits = [{
+            "episode_id": group[0].episode_id,
+            "case_id": group[0].case_id,
+            "sample_hash": content_hash({
+                "episode_id": group[0].episode_id,
+                "case_id": group[0].case_id,
+                "transition_count": len(group),
+                "shot": int(shot),
+            }),
+        } for group in context]
+    hashes = [str(row["sample_hash"]) for row in episode_audits]
+    return context, {
+        "context_episode_count": len(context),
+        "context_transition_count": int(sum(len(group) for group in context)),
+        "context_episode_sample_hashes": hashes,
+        "context_sample_hash": content_hash(hashes),
+        "context_episode_samples": episode_audits,
+    }
+
+
+def _add_posterior_deltas(results: dict[str, Any]) -> None:
+    ordered = sorted(results, key=int)
+    if not ordered:
+        return
+    reference_mu = np.asarray(results[ordered[0]]["posterior_mean"], dtype=float)
+    reference_log_var = np.asarray(results[ordered[0]]["posterior_log_variance"], dtype=float)
+    previous_mu = reference_mu
+    previous_log_var = reference_log_var
+    for key in ordered:
+        row = results[key]
+        mu = np.asarray(row["posterior_mean"], dtype=float)
+        log_var = np.asarray(row["posterior_log_variance"], dtype=float)
+        row["posterior_change"] = {
+            "mean_l2_from_k0": float(np.linalg.norm(mu - reference_mu)),
+            "mean_l2_from_previous_k": float(np.linalg.norm(mu - previous_mu)),
+            "log_variance_l2_from_k0": float(np.linalg.norm(log_var - reference_log_var)),
+            "log_variance_l2_from_previous_k": float(np.linalg.norm(log_var - previous_log_var)),
+        }
+        previous_mu = mu
+        previous_log_var = log_var
+
+
 def _initial_observations(env: LogicalMergeEnv, cases: list[dict[str, Any]]) -> np.ndarray:
     """Read candidate initial observations without taking an environment step."""
     observations = []
@@ -63,7 +178,8 @@ def _initial_observations(env: LogicalMergeEnv, cases: list[dict[str, Any]]) -> 
 
 
 def _posterior_action_disagreement(agent: Any, observations: np.ndarray, mu: torch.Tensor,
-                                   log_var: torch.Tensor, *, seed: int, samples: int = 16) -> list[float]:
+                                   log_var: torch.Tensor, *, seed: int, samples: int = 16,
+                                   descriptor: Any = None, posterior_version: int = 0) -> list[float]:
     """Score initial states by deterministic-action variance across posterior samples.
 
     This is a decision-uncertainty proxy, not an estimate of information gain:
@@ -79,9 +195,9 @@ def _posterior_action_disagreement(agent: Any, observations: np.ndarray, mu: tor
     latent = mu.detach().repeat(count, 1)
     latent = latent + torch.as_tensor(noise, device=agent.device).repeat(len(observations), 1) * torch.exp(0.5 * log_var.detach()).repeat(count, 1)
     observation = torch.as_tensor(observations, dtype=torch.float32, device=agent.device).repeat_interleave(samples, dim=0)
+    route = agent.compute_route(descriptor, mu, log_var, posterior_version) if descriptor is not None else None
     with torch.no_grad():
-        mean, _ = agent.actor(observation, latent)
-        actions = torch.tanh(mean).reshape(len(observations), samples, -1)
+        actions = agent.act(observation, latent, True, route).reshape(len(observations), samples, -1)
         scores = actions.var(dim=1, unbiased=False).sum(dim=-1)
     return [float(score) for score in scores.detach().cpu()]
 
@@ -115,56 +231,203 @@ def _posterior_block_l2_shift(agent: Any, reference: torch.Tensor, changed: torc
     return result
 
 
-def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], casebooks: Mapping[str, Mapping[str, list[dict[str, Any]]]],
-                     split: str, query_cases_per_task: int | None = None,
-                     provenance: Mapping[str, Any] | None = None,
-                     support_selection: str = "fixed") -> dict[str, Any]:
+def _expert_action_audit(
+    agent: Any,
+    task: Any,
+    config: Mapping[str, Any],
+    cases: list[dict[str, Any]],
+    latent: torch.Tensor,
+) -> dict[str, Any]:
+    """Compare anonymous expert actions on query initial states post hoc."""
+    env = LogicalMergeEnv(task, config, cases)
+    observations = _initial_observations(env, cases)
+    tensor = torch.as_tensor(observations, dtype=torch.float32, device=agent.device)
+    expanded_latent = latent.detach().expand(len(tensor), -1)
+    with torch.no_grad():
+        actions = agent.expert_action_means(tensor, expanded_latent)
+    pairwise = {}
+    for left in range(actions.shape[1]):
+        for right in range(left + 1, actions.shape[1]):
+            distance = torch.linalg.vector_norm(actions[:, left] - actions[:, right], dim=-1)
+            pairwise[f"{left}:{right}"] = float(distance.mean())
+    return {
+        "posthoc_only": True,
+        "uses_query_initial_observations": True,
+        "uses_query_outcomes": False,
+        "expert_action_means": actions.detach().cpu().tolist(),
+        "pairwise_mean_action_l2": pairwise,
+    }
+
+
+def evaluate_fewshot(
+    agent: Any,
+    config: Mapping[str, Any],
+    tasks: list[Any],
+    casebooks: Mapping[str, Mapping[str, list[dict[str, Any]]]],
+    split: str,
+    query_cases_per_task: int | None = None,
+    provenance: Mapping[str, Any] | None = None,
+    support_selection: str = "fixed",
+    adaptation_mode: str = "posterior_sampled",
+    query_latent_mode: str = "adaptive",
+    query_route_mode: str = "adaptive",
+    knockout_expert: int | None = None,
+    mechanism_audit: bool = False,
+) -> dict[str, Any]:
+    if adaptation_mode not in {"posterior_sampled", "posterior_deterministic", "no_context"}:
+        raise ValueError(f"unsupported adaptation mode: {adaptation_mode}")
+    if query_latent_mode not in {"adaptive", "frozen_prior"}:
+        raise ValueError(f"unsupported query_latent_mode: {query_latent_mode}")
+    if query_route_mode not in {"adaptive", "frozen_prior", "uniform"}:
+        raise ValueError(f"unsupported query_route_mode: {query_route_mode}")
+    if (query_route_mode != "adaptive" or knockout_expert is not None) and agent.actor_architecture != "posterior_routed_moe":
+        raise ValueError("query route interventions require a MoE actor")
     device = agent.device
-    shots = list(config["evaluation"]["shots"])
+    shots = sorted(set(int(shot) for shot in config["evaluation"]["shots"]))
+    if not shots or shots[0] != 0:
+        raise ValueError("few-shot evaluation must include K=0")
     query_limit = query_cases_per_task or int(config["evaluation"]["query_cases_per_task"])
-    before = agent.parameter_hash(); all_results: dict[str, Any] = {}; selection_by_task: dict[str, Any] = {}
-    support_key, query_key = ("validation_support", "validation_query") if split == "meta_validation" else ("test_support", "test_query")
+    before = agent.parameter_hash()
+    module_hashes_before = agent.module_hashes()
+    all_results: dict[str, Any] = {}
+    selection_by_task: dict[str, Any] = {}
+    support_key, query_key = (
+        ("validation_support", "validation_query")
+        if split == "meta_validation"
+        else ("test_support", "test_query")
+    )
     base_seed = int(config["evaluation"]["context_sampling_seed"])
+    protocol = _context_protocol(config)
+    total_size = int(config["pearl"]["context_sample_size_eval"])
+    per_episode = int(config["pearl"]["context_transitions_per_episode"])
+    capacity = total_size // per_episode
+    if protocol == "fixed_nested_v1" and max(shots) > capacity:
+        raise ValueError(f"K={max(shots)} exceeds fixed nested context capacity {capacity}")
     output_provenance = dict(provenance or {})
     for task in tasks:
         book = casebooks[task.task_id]
-        selection_seed = int(content_hash({"seed": base_seed, "task": task.task_id, "policy": support_selection})[:16], 16)
+        descriptor = None
+        if agent.actor_architecture == "posterior_routed_moe":
+            descriptor = freeze_physical_task_descriptor(task, config, book[support_key])
+        selection_seed = int(content_hash({
+            "seed": base_seed, "task": task.task_id, "policy": support_selection,
+        })[:16], 16)
         if support_selection in DYNAMIC_POLICIES:
-            # Validate the frozen pool through the same metadata path while
-            # leaving its order undecided until each support posterior exists.
-            ordered_support, static_selection = order_support_cases(book[support_key], "fixed", seed=selection_seed)
+            ordered_support, static_selection = order_support_cases(
+                book[support_key], "fixed", seed=selection_seed,
+            )
             selection = {
-                **static_selection, "policy": support_selection, "seed": selection_seed,
-                "selected_case_ids": [], "selection_rounds": [],
+                **static_selection,
+                "policy": support_selection,
+                "seed": selection_seed,
+                "selected_case_ids": [],
+                "selection_rounds": [],
                 "score": "posterior deterministic-action disagreement on initial observations",
-                "uses_initial_observations": True, "uses_past_support_rollout_outcomes": True,
-                "uses_unexecuted_rollout_outcomes": False, "uses_query_cases": False,
-                "uses_hidden_rules": False, "initial_observation_environment_steps": 0,
+                "uses_initial_observations": True,
+                "uses_past_support_rollout_outcomes": True,
+                "uses_unexecuted_rollout_outcomes": False,
+                "uses_query_cases": False,
+                "uses_hidden_rules": False,
+                "initial_observation_environment_steps": 0,
                 "initial_observation_count": 0,
             }
         else:
-            ordered_support, selection = order_support_cases(book[support_key], support_selection, seed=selection_seed)
+            ordered_support, selection = order_support_cases(
+                book[support_key], support_selection, seed=selection_seed,
+            )
         if max(shots) > len(ordered_support):
             raise ValueError(f"task {task.task_id} lacks support cases for K={max(shots)}")
         env = LogicalMergeEnv(task, config, book[query_key])
         results: dict[str, Any] = {}
         support_rollouts: list[Rollout] = []
         support_episode_lengths: list[int] = []
+        fixed_blocks: list[list[Any]] = []
+        fixed_audits: list[dict[str, Any]] = []
+        expert_audit_latents: dict[str, torch.Tensor] = {}
+        context: list[list[Any]] = []
+        context_audit = {
+            "context_episode_count": 0,
+            "context_transition_count": 0,
+            "context_episode_sample_hashes": [],
+            "context_sample_hash": content_hash([]),
+            "context_episode_samples": [],
+        }
         try:
-            mu, log_var = agent.prior()
+            prior_mu, prior_log_var = agent.prior()
+            mu, log_var = prior_mu, prior_log_var
+            prior_route = agent.compute_route(
+                descriptor, prior_mu, prior_log_var, 0
+            ) if descriptor is not None else None
             for shot in range(max(shots) + 1):
+                route_mu = prior_mu if adaptation_mode == "no_context" else mu
+                route_log_var = prior_log_var if adaptation_mode == "no_context" else log_var
+                route = agent.compute_route(
+                    descriptor, route_mu, route_log_var, shot
+                ) if descriptor is not None else None
                 if shot in shots:
                     query_cases = book[query_key][:query_limit]
-                    queries = [collect_episode(env, task, case, agent, mu, "deterministic_query", device, episode_id=f"{task.task_id}:query:{shot}:{index}", posterior_version=shot) for index, case in enumerate(query_cases)]
+                    policy_mu = (
+                        prior_mu
+                        if adaptation_mode == "no_context" or query_latent_mode == "frozen_prior"
+                        else mu
+                    )
+                    query_route = route
+                    if query_route_mode == "frozen_prior":
+                        query_route = agent.intervene_route(
+                            prior_route, posterior_version=shot, mode="frozen_prior"
+                        )
+                    elif query_route_mode == "uniform":
+                        query_route = agent.intervene_route(
+                            route, posterior_version=shot, mode="uniform"
+                        )
+                    if knockout_expert is not None:
+                        query_route = agent.intervene_route(
+                            query_route,
+                            posterior_version=shot,
+                            mode="expert_knockout",
+                            expert_index=knockout_expert,
+                        )
+                    queries = [
+                        collect_episode(
+                            env,
+                            task,
+                            case,
+                            agent,
+                            policy_mu,
+                            "deterministic_query",
+                            device,
+                            episode_id=f"{task.task_id}:query:{shot}:{index}",
+                            posterior_version=shot,
+                            route_context=query_route,
+                        )
+                        for index, case in enumerate(query_cases)
+                    ]
                     records = [rollout.record for rollout in queries]
-                    posterior_mean = mu.detach().cpu().tolist()
                     results[str(shot)] = {
-                        "summary": summarize(records, case_metadata={str(case["case_id"]): case for case in query_cases}), "records": records, "posterior_mean": posterior_mean,
-                        "posterior_variance": torch.exp(log_var).detach().cpu().tolist(), "context_episode_count": len(support_rollouts),
+                        "summary": summarize(
+                            records,
+                            case_metadata={str(case["case_id"]): case for case in query_cases},
+                        ),
+                        "records": records,
+                        "posterior_mean": mu.detach().cpu().tolist(),
+                        "posterior_log_variance": log_var.detach().cpu().tolist(),
+                        "posterior_variance": torch.exp(log_var).detach().cpu().tolist(),
+                        "posterior_used_for_policy": (
+                            adaptation_mode != "no_context" and query_latent_mode != "frozen_prior"
+                        ),
+                        "router_audit": None if query_route is None else {
+                            **query_route.audit_dict(), "parameter_hash": before,
+                        },
+                        "query_route_hashes": [record.get("route_hash") for record in records],
+                        "query_route_consistent": len({record.get("route_hash") for record in records}) == 1,
+                        **context_audit,
                         "support_episode_lengths": list(support_episode_lengths),
                         "support_environment_steps": int(sum(support_episode_lengths)),
                         "support_case_ids": [str(case["case_id"]) for case in ordered_support[:shot]],
+                        "expert_action_audit": None,
                     }
+                    if mechanism_audit and agent.actor_architecture == "posterior_routed_moe":
+                        expert_audit_latents[str(shot)] = policy_mu.detach().clone()
                 if shot == max(shots):
                     break
                 if support_selection in DYNAMIC_POLICIES:
@@ -172,18 +435,28 @@ def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], ca
                     candidate_ids = [str(item["case_id"]) for item in remaining]
                     initial = _initial_observations(env, remaining)
                     scores = _posterior_action_disagreement(
-                        agent, initial, mu, log_var,
+                        agent,
+                        initial,
+                        mu,
+                        log_var,
                         seed=int(content_hash({"seed": selection_seed, "round": shot})[:16], 16),
+                        descriptor=descriptor,
+                        posterior_version=shot,
                     )
-                    score_by_id = {str(item["case_id"]): float(score) for item, score in zip(remaining, scores)}
-                    # Stable lower-index tie breaking keeps a rerun identical.
-                    chosen_offset = max(range(len(remaining)), key=lambda index: (scores[index], -index))
+                    score_by_id = {
+                        str(item["case_id"]): float(score)
+                        for item, score in zip(remaining, scores)
+                    }
+                    chosen_offset = max(
+                        range(len(remaining)), key=lambda index: (scores[index], -index),
+                    )
                     case = remaining.pop(chosen_offset)
                     ordered_support[shot:] = [case, *remaining]
                     selection["selected_case_ids"].append(str(case["case_id"]))
                     selection["initial_observation_count"] += len(candidate_ids)
                     selection["selection_rounds"].append({
-                        "round": shot, "candidate_case_ids": candidate_ids,
+                        "round": shot,
+                        "candidate_case_ids": candidate_ids,
                         "scores": score_by_id,
                         "selected_case_id": str(case["case_id"]),
                         "initial_observation_count": len(candidate_ids),
@@ -191,20 +464,94 @@ def evaluate_fewshot(agent: Any, config: Mapping[str, Any], tasks: list[Any], ca
                     })
                 else:
                     case = ordered_support[shot]
-                rollout = collect_episode(env, task, case, agent, agent.sample_latent(mu, log_var), "prior_support" if shot == 0 else "posterior_rollout", device, episode_id=f"{task.task_id}:support:{shot}", posterior_version=shot)
+                if adaptation_mode == "no_context":
+                    support_z = agent.sample_latent(prior_mu, prior_log_var)
+                    mode = "prior_support"
+                elif adaptation_mode == "posterior_deterministic":
+                    support_z = mu
+                    mode = "prior_support" if shot == 0 else "posterior_rollout"
+                else:
+                    support_z = agent.sample_latent(mu, log_var)
+                    mode = "prior_support" if shot == 0 else "posterior_rollout"
+                rollout = collect_episode(
+                    env,
+                    task,
+                    case,
+                    agent,
+                    support_z,
+                    mode,
+                    device,
+                    episode_id=f"{task.task_id}:support:{shot}",
+                    posterior_version=shot,
+                    route_context=route,
+                )
                 support_rollouts.append(rollout)
                 support_episode_lengths.append(len(rollout.transitions))
-                rng = np.random.default_rng(int(content_hash({"seed": base_seed, "task": task.task_id, "shot": shot})[:16], 16))
-                context = _sample_episode_context(support_rollouts, int(config["pearl"]["context_sample_size_eval"]), int(config["pearl"]["context_transitions_per_episode"]), rng)
-                mu, log_var = agent.infer_posterior([context])
+                if protocol == "fixed_nested_v1":
+                    block, audit = _fixed_episode_context_block(
+                        rollout,
+                        per_episode,
+                        base_seed=base_seed,
+                        task_id=task.task_id,
+                    )
+                    fixed_blocks.append(block)
+                    fixed_audits.append(audit)
+                context, context_audit = _posterior_context(
+                    support_rollouts,
+                    fixed_blocks,
+                    fixed_audits,
+                    protocol=protocol,
+                    total_size=total_size,
+                    per_episode=per_episode,
+                    base_seed=base_seed,
+                    task_id=task.task_id,
+                    shot=shot,
+                )
+                with torch.no_grad():
+                    mu, log_var = agent.infer_posterior([context])
         finally:
             env.close()
+        # MetaDrive owns a single global engine, so post-hoc audit environments
+        # must only be created after the task's rollout environment is closed.
+        for shot, latent in expert_audit_latents.items():
+            results[shot]["expert_action_audit"] = _expert_action_audit(
+                agent, task, config, book[query_key][:query_limit], latent,
+            )
+        _add_posterior_deltas(results)
         all_results[task.task_id] = results
         selection_by_task[task.task_id] = selection
     after = agent.parameter_hash()
-    if before != after:
-        raise RuntimeError("meta-test changed model parameters, target critics, or alpha")
-    return {"split": split, "parameter_hash_before": before, "parameter_hash_after": after, "no_gradient_adaptation": True, "no_topology_ablation": bool(config.get("ablation", {}).get("no_topology", False)), "support_selection": support_selection, "support_selection_by_task": selection_by_task, "context_protocol": {"sample_size": int(config["pearl"]["context_sample_size_eval"]), "transitions_per_episode": int(config["pearl"]["context_transitions_per_episode"]), "seed": base_seed}, "provenance": output_provenance, "tasks": all_results}
+    module_hashes_after = agent.module_hashes()
+    if before != after or module_hashes_before != module_hashes_after:
+        raise RuntimeError("few-shot evaluation changed PEARL parameters")
+    return {
+        "split": split,
+        "parameter_hash_before": before,
+        "parameter_hash_after": after,
+        "module_hashes_before": module_hashes_before,
+        "module_hashes_after": module_hashes_after,
+        "no_gradient_adaptation": True,
+        "no_topology_ablation": bool(config.get("ablation", {}).get("no_topology", False)),
+        "adaptation_mode": adaptation_mode,
+        "mechanism_intervention": {
+            "query_latent_mode": query_latent_mode,
+            "query_route_mode": query_route_mode,
+            "knockout_expert": knockout_expert,
+            "support_collection": "adaptive_unintervened",
+            "mechanism_audit": bool(mechanism_audit),
+        },
+        "support_selection": support_selection,
+        "support_selection_by_task": selection_by_task,
+        "context_protocol": {
+            "name": protocol,
+            "sample_size": total_size,
+            "transitions_per_episode": per_episode,
+            "episode_capacity": capacity,
+            "seed": base_seed,
+        },
+        "provenance": output_provenance,
+        "tasks": all_results,
+    }
 
 
 def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[Any], casebooks: Mapping[str, Mapping[str, list[dict[str, Any]]]],
@@ -216,47 +563,110 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
         raise ValueError("posterior diagnostic shots must be non-negative")
     support_key = "validation_support" if split == "meta_validation" else "test_support"
     base_seed = int(config["evaluation"]["context_sampling_seed"])
+    protocol = _context_protocol(config)
+    total_size = int(config["pearl"]["context_sample_size_eval"])
+    per_episode = int(config["pearl"]["context_transitions_per_episode"])
+    capacity = total_size // per_episode
+    if protocol == "fixed_nested_v1" and max(requested) > capacity:
+        raise ValueError(f"K={max(requested)} exceeds fixed nested context capacity {capacity}")
     output_provenance = dict(provenance or {})
-    before = agent.parameter_hash(); all_results: dict[str, Any] = {}
+    before = agent.parameter_hash()
+    module_hashes_before = agent.module_hashes()
+    all_results: dict[str, Any] = {}
     for task in tasks:
         book = casebooks[task.task_id]
+        descriptor = None
+        if agent.actor_architecture == "posterior_routed_moe":
+            descriptor = freeze_physical_task_descriptor(task, config, book[support_key])
         if max(requested) > len(book[support_key]):
             raise ValueError(f"task {task.task_id} lacks support cases for K={max(requested)}")
         env = LogicalMergeEnv(task, config, book[support_key])
         rollouts: list[Rollout] = []
         episode_lengths: list[int] = []
+        support_records: list[dict[str, object]] = []
+        fixed_blocks: list[list[Any]] = []
+        fixed_audits: list[dict[str, Any]] = []
+        context_audit = {
+            "context_episode_count": 0,
+            "context_transition_count": 0,
+            "context_episode_sample_hashes": [],
+            "context_sample_hash": content_hash([]),
+            "context_episode_samples": [],
+        }
         task_results: dict[str, Any] = {}
         try:
             mu, log_var = agent.prior()
             for shot in range(max(requested) + 1):
+                route = agent.compute_route(
+                    descriptor, mu, log_var, shot
+                ) if descriptor is not None else None
                 if shot in requested:
                     task_results[str(shot)] = {
                         "posterior_mean": mu.detach().cpu().tolist(),
+                        "posterior_log_variance": log_var.detach().cpu().tolist(),
                         "posterior_variance": torch.exp(log_var).detach().cpu().tolist(),
-                        "context_episode_count": len(rollouts),
+                        "router_audit": None if route is None else {
+                            **route.audit_dict(), "parameter_hash": before,
+                        },
+                        **context_audit,
                         "support_case_ids": [str(case["case_id"]) for case in book[support_key][:shot]],
+                        "support_episode_lengths": list(episode_lengths),
+                        "support_episode_records": list(support_records),
                         "support_environment_steps": int(sum(episode_lengths)),
                     }
                 if shot == max(requested):
                     break
                 case = book[support_key][shot]
-                rollout = collect_episode(env, task, case, agent, agent.sample_latent(mu, log_var), "prior_support" if shot == 0 else "posterior_rollout", agent.device, episode_id=f"{task.task_id}:posterior_support:{shot}", posterior_version=shot)
-                rollouts.append(rollout); episode_lengths.append(len(rollout.transitions))
-                rng = np.random.default_rng(int(content_hash({"seed": base_seed, "task": task.task_id, "shot": shot})[:16], 16))
-                context = _sample_episode_context(rollouts, int(config["pearl"]["context_sample_size_eval"]), int(config["pearl"]["context_transitions_per_episode"]), rng)
-                mu, log_var = agent.infer_posterior([context])
+                rollout = collect_episode(
+                    env, task, case, agent, agent.sample_latent(mu, log_var),
+                    "prior_support" if shot == 0 else "posterior_rollout", agent.device,
+                    episode_id=f"{task.task_id}:posterior_support:{shot}",
+                    posterior_version=shot, route_context=route,
+                )
+                rollouts.append(rollout)
+                episode_lengths.append(len(rollout.transitions))
+                support_records.append(dict(rollout.record))
+                if protocol == "fixed_nested_v1":
+                    block, audit = _fixed_episode_context_block(
+                        rollout,
+                        per_episode,
+                        base_seed=base_seed,
+                        task_id=task.task_id,
+                    )
+                    fixed_blocks.append(block)
+                    fixed_audits.append(audit)
+                context, context_audit = _posterior_context(
+                    rollouts,
+                    fixed_blocks,
+                    fixed_audits,
+                    protocol=protocol,
+                    total_size=total_size,
+                    per_episode=per_episode,
+                    base_seed=base_seed,
+                    task_id=task.task_id,
+                    shot=shot,
+                )
+                with torch.no_grad():
+                    mu, log_var = agent.infer_posterior([context])
         finally:
             env.close()
+        _add_posterior_deltas(task_results)
         all_results[task.task_id] = task_results
     after = agent.parameter_hash()
-    if before != after:
+    module_hashes_after = agent.module_hashes()
+    if before != after or module_hashes_before != module_hashes_after:
         raise RuntimeError("support posterior diagnostic changed model parameters")
     return {
         "schema": "logical_merge_support_posterior_diagnostic_v1", "split": split,
         "taskbook_hash": output_provenance.get("taskbook_hash"),
         "uses_query_cases": False, "parameter_hash_before": before, "parameter_hash_after": after,
+        "module_hashes_before": module_hashes_before, "module_hashes_after": module_hashes_after,
         "no_gradient_adaptation": True,
-        "context_protocol": {"sample_size": int(config["pearl"]["context_sample_size_eval"]), "transitions_per_episode": int(config["pearl"]["context_transitions_per_episode"]), "seed": base_seed},
+        "context_protocol": {
+            "name": protocol, "sample_size": total_size,
+            "transitions_per_episode": per_episode, "episode_capacity": capacity,
+            "seed": base_seed,
+        },
         "provenance": output_provenance, "tasks": all_results,
     }
 
@@ -278,6 +688,12 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
         raise ValueError("task-representation audit requires positive support-episode counts")
     support_key = "validation_support" if split == "meta_validation" else "test_support"
     base_seed = int(config["evaluation"]["context_sampling_seed"])
+    protocol = _context_protocol(config)
+    total_size = int(config["pearl"]["context_sample_size_eval"])
+    per_episode = int(config["pearl"]["context_transitions_per_episode"])
+    capacity = total_size // per_episode
+    if protocol == "fixed_nested_v1" and max(requested) > capacity:
+        raise ValueError(f"K={max(requested)} exceeds fixed nested context capacity {capacity}")
     before = agent.parameter_hash(); all_results: dict[str, Any] = {}
     aggregate: dict[str, list[float]] = {
         str(shot): [] for shot in requested
@@ -293,31 +709,57 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
     }
     for task in tasks:
         book = casebooks[task.task_id]
+        descriptor = None
+        if agent.actor_architecture == "posterior_routed_moe":
+            descriptor = freeze_physical_task_descriptor(task, config, book[support_key])
         if max(requested) > len(book[support_key]):
             raise ValueError(f"task {task.task_id} lacks support cases for K={max(requested)}")
         posthoc_target = representation_target(task)
         env = LogicalMergeEnv(task, config, book[support_key])
         rollouts: list[Rollout] = []
         episode_lengths: list[int] = []
+        fixed_blocks: list[list[Any]] = []
+        fixed_audits: list[dict[str, Any]] = []
         task_results: dict[str, Any] = {}
         try:
             mu, log_var = agent.prior()
             context: list[list[Any]] | None = None
             for shot in range(1, max(requested) + 1):
                 case = book[support_key][shot - 1]
+                route = agent.compute_route(
+                    descriptor, mu, log_var, shot - 1
+                ) if descriptor is not None else None
                 rollout = collect_episode(
                     env, task, case, agent, agent.sample_latent(mu, log_var),
                     "prior_support" if shot == 1 else "posterior_rollout", agent.device,
                     episode_id=f"{task.task_id}:representation_support:{shot - 1}",
                     posterior_version=shot - 1,
+                    route_context=route,
                 )
-                rollouts.append(rollout); episode_lengths.append(len(rollout.transitions))
-                rng = np.random.default_rng(int(content_hash({"seed": base_seed, "task": task.task_id, "shot": shot - 1})[:16], 16))
-                context = _sample_episode_context(
-                    rollouts, int(config["pearl"]["context_sample_size_eval"]),
-                    int(config["pearl"]["context_transitions_per_episode"]), rng,
+                rollouts.append(rollout)
+                episode_lengths.append(len(rollout.transitions))
+                if protocol == "fixed_nested_v1":
+                    block, audit = _fixed_episode_context_block(
+                        rollout,
+                        per_episode,
+                        base_seed=base_seed,
+                        task_id=task.task_id,
+                    )
+                    fixed_blocks.append(block)
+                    fixed_audits.append(audit)
+                context, context_audit = _posterior_context(
+                    rollouts,
+                    fixed_blocks,
+                    fixed_audits,
+                    protocol=protocol,
+                    total_size=total_size,
+                    per_episode=per_episode,
+                    base_seed=base_seed,
+                    task_id=task.task_id,
+                    shot=shot - 1,
                 )
-                mu, log_var = agent.infer_posterior([context])
+                with torch.no_grad():
+                    mu, log_var = agent.infer_posterior([context])
                 if shot not in requested:
                     continue
                 with torch.no_grad():
@@ -349,7 +791,9 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                 rule_correct[key].append(float((rule_probability >= 0.5) == bool(rule_target)))
                 task_results[key] = {
                     "posterior_mean": mu.detach().cpu().tolist(),
+                    "posterior_log_variance": log_var.detach().cpu().tolist(),
                     "posterior_variance": torch.exp(log_var).detach().cpu().tolist(),
+                    **context_audit,
                     "support_case_ids": [str(item["case_id"]) for item in book[support_key][:shot]],
                     "support_environment_steps": int(sum(episode_lengths)),
                     "geometry_prediction": decoded["geometry"].detach().cpu().tolist(),
@@ -362,6 +806,9 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                     "interaction_mse": interaction_value,
                     "entry_order_bce": rule_value,
                     "entry_order_correct": bool(rule_correct[key][-1]),
+                    "router_audit": None if route is None else {
+                        **route.audit_dict(), "parameter_hash": before,
+                    },
                     "observation_mask_interventions": interventions,
                 }
         finally:
@@ -406,8 +853,10 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
         "parameter_hash_after": after,
         "no_gradient_adaptation": True,
         "context_protocol": {
-            "sample_size": int(config["pearl"]["context_sample_size_eval"]),
-            "transitions_per_episode": int(config["pearl"]["context_transitions_per_episode"]),
+            "name": protocol,
+            "sample_size": total_size,
+            "transitions_per_episode": per_episode,
+            "episode_capacity": capacity,
             "seed": base_seed,
         },
         "provenance": dict(provenance or {}),
@@ -422,15 +871,46 @@ def compact_fewshot_result(result: Mapping[str, Any]) -> dict[str, Any]:
     for task_id, shots in result["tasks"].items():
         tasks[task_id] = {
             shot: {
-                "summary": value["summary"],
-                "support_environment_steps": value["support_environment_steps"],
-                "support_case_ids": list(value.get("support_case_ids", [])),
+                key: value[key]
+                for key in (
+                    "summary",
+                    "posterior_mean",
+                    "posterior_log_variance",
+                    "posterior_variance",
+                    "posterior_change",
+                    "posterior_used_for_policy",
+                    "context_episode_count",
+                    "context_transition_count",
+                    "context_episode_sample_hashes",
+                    "context_sample_hash",
+                    "context_episode_samples",
+                    "support_episode_lengths",
+                    "support_environment_steps",
+                    "support_case_ids",
+                    "router_audit",
+                    "query_route_hashes",
+                    "query_route_consistent",
+                    "expert_action_audit",
+                )
+                if key in value
             }
             for shot, value in shots.items()
         }
     compact = {
         key: result[key]
-        for key in ("split", "parameter_hash_before", "parameter_hash_after", "no_gradient_adaptation", "no_topology_ablation", "context_protocol", "provenance")
+        for key in (
+            "split",
+            "parameter_hash_before",
+            "parameter_hash_after",
+            "module_hashes_before",
+            "module_hashes_after",
+            "no_gradient_adaptation",
+            "no_topology_ablation",
+            "adaptation_mode",
+            "context_protocol",
+            "mechanism_intervention",
+            "provenance",
+        )
         if key in result
     } | {"tasks": tasks}
     if "support_selection" in result:

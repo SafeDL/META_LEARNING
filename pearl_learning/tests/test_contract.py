@@ -12,8 +12,17 @@ import torch
 
 from pearl_learning.src.adapters.base import MetaDriveAdapterBase
 from pearl_learning.src.context_encoder import ContextEncoder
-from pearl_learning.src.gates import REQUIRED_PRETRAIN_BASELINES, verify_formal_gate
-from pearl_learning.src.evaluator import _mask_context_fields, _posterior_action_disagreement, compact_fewshot_result, infer_support_posteriors
+from pearl_learning.src.formal_validation import REQUIRED_PRETRAIN_BASELINES, verify_formal_validation
+from pearl_learning.src.posterior_adaptation_analysis import paired_method_effect, task_cluster_interval
+from pearl_learning.src.collector import Rollout
+from pearl_learning.src.evaluator import (
+    _fixed_episode_context_block,
+    _mask_context_fields,
+    _posterior_action_disagreement,
+    _posterior_context,
+    compact_fewshot_result,
+    infer_support_posteriors,
+)
 from pearl_learning.src.io import read_config
 from pearl_learning.src.io import content_hash, write_json
 from pearl_learning.src.metrics import summarize
@@ -31,7 +40,11 @@ from pearl_learning.src.task_representation import (
 )
 from pearl_learning.src.task_env import target_contact_matches_rule
 from pearl_learning.src.taskbook import build_taskbook, taskbook_payload
-from pearl_learning.src.casebook import build_casebook
+from pearl_learning.src.casebook import (
+    build_casebook,
+    physical_geometry_id,
+    validate_casebook_disjoint,
+)
 from pearl_learning.src.transferability import task_descriptor, transferability_report
 from pearl_learning.src.transferability_calibration import calibration_report
 from pearl_learning.src.transferability_decision import transferability_decision_report
@@ -65,7 +78,7 @@ class DummyAdapter(MetaDriveAdapterBase):
 class ContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.config = read_config("pearl_learning/configs/merge_family_pearl.yaml")
+        cls.config = read_config("pearl_learning/configs/dense_pearl_baseline.yaml")
 
     def test_task_schema_rejects_non_current_and_split_hashes_are_disjoint(self):
         taskbook = build_taskbook(self.config)
@@ -159,8 +172,150 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             encoder(torch.zeros((2, 3, 4)))
 
+    def test_empty_context_prior_is_exact_unit_normal(self):
+        agent = PEARLAgent(37, 2, self.config, torch.device("cpu"))
+        mu, log_var = agent.prior(3)
+        self.assertTrue(torch.equal(mu, torch.zeros_like(mu)))
+        self.assertTrue(torch.equal(log_var, torch.zeros_like(log_var)))
+
+    def test_fixed_context_is_a_nested_episode_prefix(self):
+        first = Rollout(
+            [transition("episode-a") for _ in range(40)],
+            {"case_id": "case-a"},
+            "prior_support",
+            "episode-a",
+        )
+        second = Rollout(
+            [transition("episode-b") for _ in range(40)],
+            {"case_id": "case-b"},
+            "posterior_rollout",
+            "episode-b",
+        )
+        first_block, first_audit = _fixed_episode_context_block(
+            first, 32, base_seed=17, task_id="task",
+        )
+        again, again_audit = _fixed_episode_context_block(
+            first, 32, base_seed=17, task_id="task",
+        )
+        second_block, second_audit = _fixed_episode_context_block(
+            second, 32, base_seed=17, task_id="task",
+        )
+        self.assertEqual(first_audit, again_audit)
+        self.assertEqual(
+            [row.episode_id for row in first_block],
+            [row.episode_id for row in again],
+        )
+        context_one, audit_one = _posterior_context(
+            [first],
+            [first_block],
+            [first_audit],
+            protocol="fixed_nested_v1",
+            total_size=64,
+            per_episode=32,
+            base_seed=17,
+            task_id="task",
+            shot=0,
+        )
+        context_two, audit_two = _posterior_context(
+            [first, second],
+            [first_block, second_block],
+            [first_audit, second_audit],
+            protocol="fixed_nested_v1",
+            total_size=64,
+            per_episode=32,
+            base_seed=17,
+            task_id="task",
+            shot=1,
+        )
+        self.assertEqual(len(context_one), 1)
+        self.assertEqual(len(context_two), 2)
+        self.assertEqual(
+            audit_one["context_episode_sample_hashes"],
+            audit_two["context_episode_sample_hashes"][:1],
+        )
+        self.assertEqual(audit_two["context_transition_count"], 64)
+
+    def test_adaptation_task_pairs_match_initial_conditions_but_not_ids_or_seeds(self):
+        config = read_config("pearl_learning/configs/posterior_adaptation_protocol.yaml")
+        taskbook = build_taskbook(config)
+        self.assertEqual(
+            {split: len(tasks) for split, tasks in taskbook.items()},
+            {
+                "meta_train": 10,
+                "meta_validation": 4,
+                "meta_test_template": 4,
+                "meta_test_logical": 8,
+            },
+        )
+        casebooks = {
+            task.task_id: build_casebook(task, config)
+            for tasks in taskbook.values()
+            for task in tasks
+        }
+        validate_casebook_disjoint(casebooks)
+        for split in ("meta_validation", "meta_test_template", "meta_test_logical"):
+            pairs: dict[str, list[LogicalScenarioTaskSpec]] = {}
+            for task in taskbook[split]:
+                pairs.setdefault(physical_geometry_id(task.geometry_id), []).append(task)
+            for tasks in pairs.values():
+                self.assertEqual(len(tasks), 2)
+                self.assertEqual(
+                    {task.priority_spec["target_contact_entry_order"] for task in tasks},
+                    {"adversary_first", "sut_first"},
+                )
+                left, right = tasks
+                self.assertEqual(left.map_config, right.map_config)
+                self.assertEqual(left.adversary_route, right.adversary_route)
+                self.assertEqual(left.sut_route, right.sut_route)
+                for case_split in ("validation_support", "validation_query", "test_support", "test_query"):
+                    left_cases = casebooks[left.task_id][case_split]
+                    right_cases = casebooks[right.task_id][case_split]
+                    for left_case, right_case in zip(left_cases, right_cases):
+                        for field in ("adversary_speed_mps", "adversary_spawn_m", "sut_spawn_m"):
+                            self.assertEqual(left_case[field], right_case[field])
+                        self.assertNotEqual(left_case["case_id"], right_case["case_id"])
+                        self.assertNotEqual(left_case["case_seed"], right_case["case_seed"])
+
+    def test_adaptation_statistics_pair_methods_by_seed_and_task(self):
+        rows = []
+        for seed in (11, 22, 33):
+            for task_id, gain in (("task-a", 0.2), ("task-b", 0.1)):
+                rows.extend((
+                    {"method": "pearl_full", "training_seed": seed, "task_id": task_id, "K": 4, "valid_critical_strict_rate": 0.5 + gain},
+                    {"method": "pearl_no_context", "training_seed": seed, "task_id": task_id, "K": 4, "valid_critical_strict_rate": 0.5},
+                ))
+        effect = paired_method_effect(
+            rows,
+            method="pearl_full",
+            reference="pearl_no_context",
+            shot=4,
+            metric="valid_critical_strict_rate",
+            samples=200,
+            confidence=0.95,
+        )
+        self.assertEqual(effect["training_seed_count"], 3)
+        self.assertAlmostEqual(float(effect["mean"]), 0.15)
+        self.assertGreater(float(effect["ci_lower"]), 0.0)
+        first = task_cluster_interval(
+            {"task-a": [0.1, 0.2], "task-b": [0.3, 0.4]},
+            samples=100,
+            confidence=0.95,
+            seed=7,
+        )
+        second = task_cluster_interval(
+            {"task-a": [0.1, 0.2], "task-b": [0.3, 0.4]},
+            samples=100,
+            confidence=0.95,
+            seed=7,
+        )
+        self.assertEqual(first, second)
+
     def test_parameter_hash_includes_target_critics_and_alpha(self):
         agent = PEARLAgent(37, 2, self.config, torch.device("cpu"))
+        self.assertEqual(
+            set(agent.module_hashes()),
+            {"context_encoder", "actor", "q1", "q2", "target_q1", "target_q2", "log_alpha"},
+        )
         before = agent.parameter_hash()
         with torch.no_grad():
             next(agent.target_q1.parameters()).add_(1.0)
@@ -170,24 +325,36 @@ class ContractTests(unittest.TestCase):
             agent.log_alpha.add_(0.5)
         self.assertNotEqual(before, agent.parameter_hash())
 
+    def test_topology_only_training_keeps_context_encoder_frozen(self):
+        config = copy.deepcopy(self.config)
+        config["ablation"] = {"no_context_training": True}
+        agent = PEARLAgent(37, 2, config, torch.device("cpu"))
+        before = agent.module_hashes()
+        context = [[[transition("context") for _ in range(32)]]]
+        rl = [[transition("rl") for _ in range(8)]]
+        agent.update(context, rl)
+        after = agent.module_hashes()
+        self.assertEqual(before["context_encoder"], after["context_encoder"])
+        self.assertNotEqual(before["actor"], after["actor"])
+
     def test_truncated_transition_is_not_bootstrap_terminal(self):
         row = transition("episode", terminated=False, truncated=True)
         self.assertFalse(row.terminated)
         self.assertTrue(row.truncated)
 
-    def test_formal_gate_has_no_circular_pearl_no_context_requirement(self):
+    def test_formal_validation_has_no_circular_pearl_no_context_requirement(self):
         self.assertNotIn("pearl_no_context", REQUIRED_PRETRAIN_BASELINES)
         descriptor, path = tempfile.mkstemp(suffix=".json")
         os.close(descriptor)
         try:
             with open(path, "w", encoding="utf-8") as handle:
                 json.dump({
-                "schema": "logical_merge_formal_gate", "taskbook_hash": "frozen",
+                "schema": "logical_merge_formal_validation", "taskbook_hash": "frozen",
                 "topology_audit": "pass", "integrity_audit": "pass", "heterogeneity_audit": "pass",
                 "baseline_environment_steps": 5000,
                 "completed_baselines": sorted(REQUIRED_PRETRAIN_BASELINES),
                 }, handle)
-            verify_formal_gate(path, "frozen")
+            verify_formal_validation(path, "frozen")
         finally:
             os.unlink(path)
 
@@ -276,9 +443,9 @@ class ContractTests(unittest.TestCase):
 
     def test_summary_reports_valid_critical_initial_condition_diversity_as_secondary_diagnostic(self):
         records = [
-            {"case_id": "a", "valid_critical_strict": True, "target_collision": True, "critical": True, "valid": True, "min_ttc": 0.5, "min_distance": 1.0},
-            {"case_id": "b", "valid_critical_strict": True, "target_collision": True, "critical": True, "valid": True, "min_ttc": 0.4, "min_distance": 0.8},
-            {"case_id": "c", "valid_critical_strict": False, "target_collision": False, "critical": False, "valid": True, "min_ttc": 3.0, "min_distance": 8.0},
+            {"case_id": "a", "episode_return": 2.0, "episode_length": 4, "valid_critical_strict": True, "target_collision": True, "critical": True, "valid": True, "min_ttc": 0.5, "min_distance": 1.0},
+            {"case_id": "b", "episode_return": 4.0, "episode_length": 6, "valid_critical_strict": True, "target_collision": True, "critical": True, "valid": True, "min_ttc": 0.4, "min_distance": 0.8},
+            {"case_id": "c", "episode_return": 0.0, "episode_length": 8, "valid_critical_strict": False, "target_collision": False, "critical": False, "valid": True, "min_ttc": 3.0, "min_distance": 8.0},
         ]
         metadata = {
             "a": {"adversary_speed_mps": 10.0, "adversary_spawn_m": 0.0, "sut_spawn_m": 0.0},
@@ -289,6 +456,9 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(summary["valid_critical_case_count"], 2)
         self.assertGreater(float(summary["valid_critical_initial_condition_diversity"]), 0.0)
         self.assertEqual(summary["valid_critical_case_metadata_coverage"], 1.0)
+        self.assertEqual(summary["mean_episode_return"], 2.0)
+        self.assertEqual(summary["query_environment_steps"], 18)
+        self.assertEqual(summary["environment_steps_to_first_valid_critical"], 4)
 
     def test_support_selection_is_deterministic_and_pre_execution_only(self):
         cases = [

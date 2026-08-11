@@ -12,9 +12,22 @@ CASE_SPLITS = ("train_pool", "validation_support", "validation_query", "test_sup
 CASEBOOK_SCHEMA = "logical_merge_casebook"
 
 
+def physical_geometry_id(geometry_id: str) -> str:
+    return str(geometry_id).split("__rule_", 1)[0]
+
+
 def build_casebook(task: LogicalScenarioTaskSpec, config: Mapping[str, Any]) -> dict[str, list[dict[str, Any]]]:
     counts = config["cases"]["per_task"]
+    match_variants = bool(config["cases"].get("match_rule_variant_initial_conditions", False))
     rng = np.random.default_rng(task.case_seed)
+    value_rng = None
+    if match_variants:
+        value_seed = int(content_hash({
+            "taskbook_seed": int(config.get("experiment", {}).get("taskbook_seed", 7301)),
+            "physical_geometry_id": physical_geometry_id(task.geometry_id),
+            "purpose": "matched_rule_variant_initial_conditions",
+        })[:16], 16)
+        value_rng = np.random.default_rng(value_seed)
     result: dict[str, list[dict[str, Any]]] = {}
     used: set[int] = set()
     for group in CASE_SPLITS:
@@ -24,11 +37,12 @@ def build_casebook(task: LogicalScenarioTaskSpec, config: Mapping[str, Any]) -> 
             while seed in used:
                 seed = int(rng.integers(1, 2**31 - 1))
             used.add(seed)
+            sample_rng = value_rng or rng
             entries.append({
                 "case_id": f"{task.task_id}_{group}_{index:03d}", "case_seed": seed,
-                "adversary_speed_mps": float(rng.uniform(10.0, 17.0)),
-                "adversary_spawn_m": float(rng.uniform(*task.spawn_regions["adversary"])),
-                "sut_spawn_m": float(rng.uniform(*task.spawn_regions["sut"])),
+                "adversary_speed_mps": float(sample_rng.uniform(10.0, 17.0)),
+                "adversary_spawn_m": float(sample_rng.uniform(*task.spawn_regions["adversary"])),
+                "sut_spawn_m": float(sample_rng.uniform(*task.spawn_regions["sut"])),
             })
         result[group] = entries
     validate_casebook(task, result)

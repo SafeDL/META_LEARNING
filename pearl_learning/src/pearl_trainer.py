@@ -1,6 +1,7 @@
 """PEARL trainer with prior→posterior collection per sampled task."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Mapping
 import numpy as np
@@ -9,12 +10,31 @@ import torch
 from .checkpoint import load_checkpoint, save_checkpoint
 from .collector import collect_episode
 from .evaluator import evaluate_fewshot, validation_score
-from .gates import verify_formal_gate
+from .formal_validation import verify_formal_validation
 from .io import content_hash, write_json
 from .pearl_agent import PEARLAgent
 from .replay import TaskReplayBuffers
 from .task_env import LogicalMergeEnv
+from .task_env import freeze_physical_task_descriptor
 from .task_representation import representation_target
+
+
+def _training_context_episode_count(
+    buffers: TaskReplayBuffers,
+    task_ids: list[str],
+    minimum: int,
+    maximum: int,
+    rng: np.random.Generator,
+) -> int:
+    """Choose one shape-safe episode count shared by a meta-batch."""
+    if not task_ids:
+        raise ValueError("a training context batch requires at least one task")
+    available = min(len(buffers.buffers[task_id].episodes) for task_id in task_ids)
+    if available < 1:
+        raise RuntimeError("all sampled tasks need at least one complete replay episode")
+    upper = min(int(maximum), available)
+    lower = min(int(minimum), upper)
+    return int(rng.integers(lower, upper + 1))
 
 
 def train(
@@ -27,12 +47,13 @@ def train(
     seed: int,
     run_name: str,
     smoke: bool = False,
-    gate_manifest: str | None = None,
+    diagnostic_run: bool = False,
+    formal_validation: str | None = None,
     resume_checkpoint: str | None = None,
     checkpoint_interval_steps: int | None = None,
 ) -> Path:
-    if not smoke:
-        verify_formal_gate(gate_manifest, taskbook_hash)
+    if not smoke and not diagnostic_run:
+        verify_formal_validation(formal_validation, taskbook_hash)
     rng = np.random.default_rng(seed)
     torch.manual_seed(seed)
     device = torch.device(
@@ -46,6 +67,22 @@ def train(
         semantic_targets = {task.task_id: representation_target(task) for task in tasks}
     root = Path(config["project"]["output_root"]) / ("smoke" if smoke else "models") / run_name
     root.mkdir(parents=True, exist_ok=True)
+    router_audit_path = root / "router_audit.jsonl"
+    training_update_path = root / "training_updates.jsonl"
+    if not resume_checkpoint and router_audit_path.exists():
+        router_audit_path.unlink()
+    if not resume_checkpoint and training_update_path.exists():
+        training_update_path.unlink()
+    task_descriptors = {}
+    if agent.actor_architecture == "posterior_routed_moe":
+        task_descriptors = {
+            task.task_id: freeze_physical_task_descriptor(
+                task,
+                config,
+                casebooks[task.task_id]["train_pool"],
+            )
+            for task in tasks
+        }
     casebook_hashes = {task_id: content_hash(book) for task_id, book in casebooks.items()}
     write_json(root / "config_resolved.json", dict(config))
     steps = 0
@@ -113,7 +150,25 @@ def train(
             trainer_state=trainer_state(),
         )
 
-    def collect(task: Any, case: dict[str, Any], z: torch.Tensor, mode: str, posterior_version: int) -> Any:
+    def log_route(task: Any, phase: str, route: Any, **extra: Any) -> None:
+        if route is None:
+            return
+        row = {
+            "schema": "posterior_router_audit_v1",
+            "training_seed": int(seed),
+            "task_ref": content_hash({"task_id": task.task_id}),
+            "phase": phase,
+            "environment_steps": int(steps),
+            "posthoc_only": False,
+            "parameter_hash": agent.parameter_hash(),
+            **route.audit_dict(),
+            **extra,
+        }
+        with router_audit_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+
+    def collect(task: Any, case: dict[str, Any], z: torch.Tensor, mode: str,
+                posterior_version: int, route: Any = None) -> Any:
         nonlocal episode_counter
         episode_counter += 1
         collection_config = config
@@ -138,6 +193,7 @@ def train(
                 device,
                 episode_id=f"{task.task_id}:{episode_counter:08d}",
                 posterior_version=posterior_version,
+                route_context=route,
             )
         finally:
             env.close()
@@ -147,23 +203,36 @@ def train(
         book = casebooks[task.task_id]["train_pool"]
         prior_case = book[int(rng.integers(len(book)))]
         prior_mu, prior_log_var = agent.prior()
+        prior_route = agent.compute_route(
+            task_descriptors[task.task_id], prior_mu, prior_log_var, 0
+        ) if task_descriptors else None
         prior = collect(
             task,
             prior_case,
-            agent.sample_latent(prior_mu, prior_log_var),
+            prior_mu if agent.no_context_training else agent.sample_latent(prior_mu, prior_log_var),
             "prior_support",
             0,
+            prior_route,
         )
+        log_route(task, "collection", prior_route, collection_mode="prior_support")
         buffers.add_episode(task.task_id, prior.transitions)
-        posterior_mu, posterior_log_var = agent.infer_posterior([[prior.transitions]])
+        if agent.no_context_training:
+            posterior_mu, posterior_log_var = prior_mu, prior_log_var
+        else:
+            posterior_mu, posterior_log_var = agent.infer_posterior([[prior.transitions]])
+        posterior_route = agent.compute_route(
+            task_descriptors[task.task_id], posterior_mu, posterior_log_var, 1
+        ) if task_descriptors else None
         posterior_case = book[int(rng.integers(len(book)))]
         posterior = collect(
             task,
             posterior_case,
-            agent.sample_latent(posterior_mu, posterior_log_var),
+            posterior_mu if agent.no_context_training else agent.sample_latent(posterior_mu, posterior_log_var),
             "posterior_rollout",
             1,
+            posterior_route,
         )
+        log_route(task, "collection", posterior_route, collection_mode="posterior_rollout")
         buffers.add_episode(task.task_id, posterior.transitions)
         return len(prior.transitions) + len(posterior.transitions)
 
@@ -208,7 +277,13 @@ def train(
             # the configured context capacity.  Training only at the maximum
             # capacity makes posterior inference brittle for K=1/2, so expose
             # the encoder to the entire evaluation support-count range.
-            context_episodes = int(rng.integers(min_context_episodes, max_context_episodes + 1))
+            context_episodes = _training_context_episode_count(
+                buffers,
+                [task.task_id for task in selected],
+                min_context_episodes,
+                max_context_episodes,
+                rng,
+            )
             context = buffers.context_per_task(
                 [task.task_id for task in selected],
                 context_episodes * transitions_per_episode,
@@ -219,11 +294,41 @@ def train(
             task_targets = None if semantic_targets is None else [
                 semantic_targets[task.task_id] for task in selected
             ]
-            agent.update(context, rl, task_targets)
+            metrics = agent.update(
+                context,
+                rl,
+                task_targets,
+                None if not task_descriptors else [task_descriptors[task.task_id] for task in selected],
+                [context_episodes] * len(selected),
+            )
+            with training_update_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({
+                    "schema": "pearl_training_update_v1",
+                    "training_seed": int(seed),
+                    "environment_steps": int(steps),
+                    "gradient_update": int(gradient_updates + 1),
+                    **metrics,
+                }, ensure_ascii=False, sort_keys=True) + "\n")
+            for task, audit in zip(selected, agent.last_router_audits):
+                row = {
+                    "schema": "posterior_router_audit_v1",
+                    "training_seed": int(seed),
+                    "task_ref": content_hash({"task_id": task.task_id}),
+                    "phase": "actor_update",
+                    "environment_steps": int(steps),
+                    "gradient_update": int(gradient_updates + 1),
+                    "posthoc_only": False,
+                    **audit,
+                }
+                with router_audit_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
             gradient_updates += 1
         if validation_tasks and steps >= next_validation:
             validation = evaluate_fewshot(agent, config, validation_tasks, casebooks, "meta_validation")
-            score = validation_score(validation)
+            score = validation_score(
+                validation,
+                shot=int(config["evaluation"].get("selection_shot", 5)),
+            )
             if best_score is None or score > best_score:
                 best_score = score
                 save(root / "best_model.pt")

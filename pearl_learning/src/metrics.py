@@ -107,9 +107,14 @@ def summarize(
     bool_rate = lambda key: float(np.mean([bool(row[key]) for row in records]))
     values = lambda key: np.asarray([float(row[key]) for row in records], dtype=float)
     first = next((index + 1 for index, row in enumerate(records) if row["valid_critical_strict"]), None)
+    episode_lengths = values("episode_length").astype(int)
+    steps_to_first = None if first is None else int(episode_lengths[:first].sum())
     count, diversity, coverage = _valid_critical_initial_condition_diversity(records, case_metadata)
     return {
         "episodes": len(records),
+        "mean_episode_return": float(np.mean(values("episode_return"))),
+        "mean_episode_length": float(np.mean(episode_lengths)),
+        "query_environment_steps": int(episode_lengths.sum()),
         "valid_critical_strict_rate": bool_rate("valid_critical_strict"),
         "target_collision_rate": bool_rate("target_collision"),
         "critical_rate": bool_rate("critical"),
@@ -117,6 +122,7 @@ def summarize(
         "median_min_ttc": float(np.median(values("min_ttc"))),
         "median_min_distance": float(np.median(values("min_distance"))),
         "episodes_to_first_valid_critical": first,
+        "environment_steps_to_first_valid_critical": steps_to_first,
         "valid_critical_case_count": count,
         "valid_critical_initial_condition_diversity": diversity,
         "valid_critical_case_metadata_coverage": coverage,

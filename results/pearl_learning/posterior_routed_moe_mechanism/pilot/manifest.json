@@ -1,0 +1,62 @@
+{
+  "allows_gate3": false,
+  "artifact_hashes": {
+    "capacity_compute_profile.json": "fde86b566644615c37c222010829cac9cd3ef614e64a52529c8a8fd6bf54fa59",
+    "compact_results.json": "203931858a4494a98c2450a2d0aff6b3fe7891868b84fc001951e5c26aa23b81",
+    "expert_specialization.json": "9c628f63304f9e84518d048fbaac053e46075ad7623cd4a7fe62b4d001d5cd3f",
+    "factorial_effects.json": "3b5ccd49705333b913d1fb4e6b39ef16cb999d85176a71481a3161ef8cbdca3b",
+    "frozen_validation_selection.json": "187fdca6b9236f567ec3fb725a117bd93e0852a3d3390dca5e6b2131788f56ea",
+    "router_input_ablations.json": "b88efa51f136dee93af5555d379778d1c6762236984b9950d195bb16f03ca27b",
+    "routing_interventions.json": "aa46957cb4979022ae9deb9522607c528506fc026047b2f23caa765153f0efbc",
+    "statistical_summary.json": "811c87fabdaf536de310219ad79704afeeff42d6479e65cb7a91129972d10071",
+    "test_report.json": "12d0ecf1a56340aea9d3c5fa5cb840eb7c3787fe219b8d9de8c578b84721fed7"
+  },
+  "checkpoints": {
+    "moe_sac": "results/pearl_learning/gate2/pilot/runs/models/moe_sac_seed_41_steps_10000/best_model.pt",
+    "pearl": "results/pearl_learning/gate2/pilot/runs/models/pearl_seed_41_steps_10000/best_model.pt",
+    "pearl_moe": "results/pearl_learning/gate2/pilot/runs/models/pearl_moe_seed_41_steps_10000/best_model.pt",
+    "sac": "results/pearl_learning/gate2/pilot/runs/models/sac_seed_41_steps_10000/best_model.pt"
+  },
+  "checks": {
+    "all_four_methods_trained_and_evaluated": true,
+    "all_methods_have_gradient_updates": true,
+    "all_metrics_finite": true,
+    "automated_tests": true,
+    "intervention_contracts": true,
+    "matched_support_across_interventions": true,
+    "no_expert_collapse": true,
+    "nonzero_expert_action_difference": true,
+    "parameter_invariance": true,
+    "posterior_dependent_route_change": true
+  },
+  "environment_steps_per_method": 10000,
+  "formal_gaps": [
+    "3-5 training seeds",
+    "24+ train and 8-12 validation tasks",
+    "capacity-matched dense controls",
+    "matched router-input ablations",
+    "random routing and router swap",
+    "hierarchical interval estimates",
+    "frozen independent meta-test"
+  ],
+  "formal_gate2_status": "INCOMPLETE",
+  "gate": "Gate 2",
+  "pilot_passed": true,
+  "performance_gate_passed": false,
+  "performance_signal": {
+    "factorial_interaction": -0.125,
+    "full_minus_frozen_router": 0.0,
+    "interpretation": "no positive PEARL-MoE performance or causal routing signal in this pilot",
+    "pearl_moe_minus_moe_sac": -0.125,
+    "pearl_moe_minus_pearl": 0.0,
+    "primary_k": 4,
+    "primary_metric": "valid_critical_strict_rate"
+  },
+  "schema": "gate2_pilot_manifest_v1",
+  "scope": "pilot_code_and_mechanism_sanity_not_formal_gate2",
+  "status": "PILOT",
+  "test_split_used": false,
+  "train_task_count": 10,
+  "training_seed": 41,
+  "validation_task_count": 2
+}

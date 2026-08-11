@@ -8,6 +8,7 @@ import numpy as np
 
 from .adapters import adapter_for
 from .metrics import EpisodeMetrics
+from .moe import PhysicalTaskDescriptor, physical_task_descriptor
 from .observation import OBSERVATION_DIM, OBSERVATION_SCHEMA, build_observation
 from .reward import compute_reward
 from .task_spec import LogicalScenarioTaskSpec
@@ -126,6 +127,17 @@ class LogicalMergeEnv(gym.Env):
             "conflict_hash": content_hash({"origin": np.asarray(self._frame["origin"]).round(6).tolist(), "radius_m": self._frame["radius_m"]}),
         }
 
+    def physical_task_descriptor(self) -> PhysicalTaskDescriptor:
+        """Return the frozen allowlisted descriptor for the initialized map."""
+        if self._env is None or self._frame is None:
+            raise RuntimeError("reset before requesting the physical task descriptor")
+        moe = self.config.get("networks", {}).get("moe", {})
+        return physical_task_descriptor(
+            self.adapter.topology_features(self._env, self.task),
+            schema=str(moe.get("descriptor_schema", "")),
+            normalization=dict(moe.get("descriptor_normalization", {})),
+        )
+
     def _observation(self) -> np.ndarray:
         config = self.config
         if self._mask_topology_for_episode:
@@ -220,3 +232,17 @@ class LogicalMergeEnv(gym.Env):
     def close(self) -> None:
         if self._env is not None:
             self._env.close(); self._env = None
+
+
+def freeze_physical_task_descriptor(
+    task: LogicalScenarioTaskSpec,
+    config: Mapping[str, Any],
+    cases: list[Mapping[str, Any]],
+) -> PhysicalTaskDescriptor:
+    """Initialize one trusted case, freeze its static descriptor, then close it."""
+    env = LogicalMergeEnv(task, config, cases)
+    try:
+        env.reset(options={"case": cases[0]})
+        return env.physical_task_descriptor()
+    finally:
+        env.close()

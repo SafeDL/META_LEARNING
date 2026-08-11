@@ -1,0 +1,38 @@
+extends: posterior_adaptation_protocol.yaml
+
+project:
+  output_root: results/pearl_learning/posterior_routed_moe/runs
+
+networks:
+  actor_architecture: posterior_routed_moe
+  moe:
+    descriptor_schema: merge_physical_task_descriptor_v1
+    descriptor_normalization:
+      adversary_lane_count: 5.0
+      sut_lane_count: 5.0
+      merge_length_m: 100.0
+      conflict_radius_m: 10.0
+      adversary_route_curvature: 0.2
+      sut_route_curvature: 0.2
+    num_experts: 2
+    top_k: 2
+    routing: soft
+    router_hidden_sizes:
+    - 64
+    - 64
+    expert_hidden_size: 128
+    load_balance_weight: 0.01
+
+meta_training:
+  # This configuration validates implementation stability, not performance superiority.
+  bootstrap_episodes_per_task: 1
+  gradient_updates_per_iteration: 1
+  validation_interval_steps: 1000000
+
+routed_moe:
+  schema: posterior_routed_moe_engineering_v1
+  training_seeds:
+  - 17
+  - 29
+  smoke_environment_steps: 1200
+  status_scope: engineering_correctness_only

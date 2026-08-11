@@ -28,9 +28,14 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     rules = data.get("target_contact_rules")
     if not isinstance(rules, Mapping) or set(rules) != set(ids):
         raise ValueError("geometry catalog must define exactly one target_contact_rules entry per geometry")
-    variants = data.get("meta_train_target_contact_rule_variants", {})
-    if not isinstance(variants, Mapping) or not set(variants) <= set(ids):
+    train_variants = data.get("meta_train_target_contact_rule_variants", {})
+    evaluation_variants = data.get("evaluation_target_contact_rule_variants", {})
+    if not isinstance(train_variants, Mapping) or not set(train_variants) <= set(ids):
         raise ValueError("meta_train_target_contact_rule_variants must map known geometry ids to rule lists")
+    if not isinstance(evaluation_variants, Mapping) or not set(evaluation_variants) <= set(ids):
+        raise ValueError("evaluation_target_contact_rule_variants must map known geometry ids to rule lists")
+    if set(train_variants) & set(evaluation_variants):
+        raise ValueError("a geometry cannot have both training and evaluation rule variants")
     entry_orders = data.get("target_contact_entry_orders", {})
     if not isinstance(entry_orders, Mapping) or set(entry_orders) != set(ids):
         raise ValueError("geometry catalog must define exactly one target_contact_entry_orders entry per geometry")
@@ -40,9 +45,13 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     resolved: list[dict[str, Any]] = []
     for item in geometries:
         source = dict(item); source_id = str(source["geometry_id"])
-        candidate_rules = variants.get(source_id, [rules[source_id]])
-        if source.get("split") != "meta_train" and source_id in variants:
+        split = source.get("split")
+        if split == "meta_train" and source_id in evaluation_variants:
+            raise ValueError("evaluation rule variants are not permitted for meta_train geometries")
+        if split != "meta_train" and source_id in train_variants:
             raise ValueError("rule variants are permitted only for meta_train geometries")
+        variants = train_variants if split == "meta_train" else evaluation_variants
+        candidate_rules = variants.get(source_id, [rules[source_id]])
         if not isinstance(candidate_rules, list) or not candidate_rules:
             raise ValueError(f"rule variants for {source_id} must be a non-empty list")
         for rule in candidate_rules:

@@ -42,6 +42,23 @@ def main() -> None:
         choices=["fixed", "random", "initial_condition_diversity", "posterior_action_disagreement"],
         default="fixed",
     )
+    parser.add_argument(
+        "--adaptation-mode",
+        choices=["posterior_sampled", "posterior_deterministic", "no_context"],
+        default="posterior_sampled",
+    )
+    parser.add_argument(
+        "--query-latent-mode",
+        choices=["adaptive", "frozen_prior"],
+        default="adaptive",
+    )
+    parser.add_argument(
+        "--query-route-mode",
+        choices=["adaptive", "frozen_prior", "uniform"],
+        default="adaptive",
+    )
+    parser.add_argument("--knockout-expert", type=int)
+    parser.add_argument("--mechanism-audit", action="store_true")
     parser.add_argument("--validation-freeze-manifest", help="require this validation freeze before a holdout split")
     args = parser.parse_args()
     cfg = read_config(args.config)
@@ -71,6 +88,10 @@ def main() -> None:
         )
     if bool(checkpoint.get("no_topology_ablation", False)) != bool(args.no_topology):
         raise ValueError("checkpoint topology-ablation mode does not match evaluation mode")
+    if bool(checkpoint.get("no_context_training", False)) != bool(
+        cfg.get("ablation", {}).get("no_context_training", False)
+    ):
+        raise ValueError("checkpoint no-context-training mode does not match evaluation configuration")
     taskbook = load_taskbook(args.taskbook)
     expected_hash = content_hash(taskbook_payload(taskbook))
     if checkpoint["taskbook_hash"] != expected_hash:
@@ -93,6 +114,7 @@ def main() -> None:
         "casebook_hashes": checkpoint["casebook_hashes"],
         "checkpoint_hash": checkpoint_hash,
         "training_seed": checkpoint["training_seed"],
+        "no_context_training": bool(checkpoint.get("no_context_training", False)),
         "evaluation_rng": "checkpoint_rng_state",
     }
     result = evaluate_fewshot(
@@ -104,6 +126,11 @@ def main() -> None:
         args.query_cases,
         provenance,
         args.support_selection,
+        args.adaptation_mode,
+        args.query_latent_mode,
+        args.query_route_mode,
+        args.knockout_expert,
+        args.mechanism_audit,
     )
     write_json(root / "metrics.json", compact_fewshot_result(result))
     print(f"no-gradient few-shot result: {root / 'metrics.json'}")

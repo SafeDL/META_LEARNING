@@ -1,7 +1,7 @@
 # 编码规范
 
 - 使用 Python 3，缩进为 4 个空格，遵循 PEP 8 的基本布局。
-- GPU环境运行在系统的: `conda activate tread`
+- GPU 环境运行在系统的: `conda activate metadrive`
 - 导入顺序：标准库、第三方库、本项目模块。
 - 命名：类用 `PascalCase`；函数、变量用 `snake_case`；常量用 `UPPER_CASE`。
 - 不添加无必要的 CLI 参数；默认实验参数要写在脚本常量或配置文件中,从而使得代码可以直接运行。

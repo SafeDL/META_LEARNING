@@ -17,13 +17,19 @@ def main() -> None:
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--max-env-steps", type=int)
     parser.add_argument("--run-name", required=True)
-    parser.add_argument("--smoke", action="store_true")
-    parser.add_argument(
+    run_mode = parser.add_mutually_exclusive_group(required=True)
+    run_mode.add_argument("--smoke", action="store_true")
+    run_mode.add_argument(
         "--formal-run",
         action="store_true",
         help="explicitly authorize a non-smoke training run after a separate resource plan has been approved",
     )
-    parser.add_argument("--gate-manifest")
+    run_mode.add_argument(
+        "--diagnostic-run",
+        action="store_true",
+        help="run the complete meta-train split for a declared non-formal diagnostic; never unlocks formal adaptation validation",
+    )
+    parser.add_argument("--formal-validation")
     parser.add_argument("--output-root")
     parser.add_argument("--resume-checkpoint")
     parser.add_argument("--checkpoint-interval-steps", type=int)
@@ -36,12 +42,9 @@ def main() -> None:
     parser.add_argument("--interaction-aux-weight", type=float, default=0.1)
     parser.add_argument("--rule-aux-weight", type=float, default=0.1)
     args = parser.parse_args()
-    if not args.smoke and not args.formal_run:
-        parser.error(
-            "non-smoke PEARL training is disabled by default; use --smoke for a main-flow check, "
-            "or pass --formal-run only after approving a separate experiment and resource plan"
-        )
     cfg = read_config(args.config)
+    if args.diagnostic_run:
+        cfg["experiment"] = {**cfg["experiment"], "run_kind": "medium_diagnostic"}
     if args.output_root:
         cfg["project"] = {**cfg["project"], "output_root": args.output_root}
     if args.no_topology:
@@ -80,7 +83,8 @@ def main() -> None:
         args.seed,
         args.run_name,
         args.smoke,
-        args.gate_manifest,
+        args.diagnostic_run,
+        args.formal_validation,
         args.resume_checkpoint,
         args.checkpoint_interval_steps,
     )

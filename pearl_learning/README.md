@@ -2,9 +2,9 @@
 
 本目录实现一个面向汇入类危险场景的 PEARL-SAC 流程。它解决的问题不是“对每个新场景重新训练一个策略”，而是：先在多个冻结的 `meta_train` 任务上学习共享策略；面对未见任务时，只通过少量 **support episode** 推断任务后验，再在相互隔离的 **query case** 上执行策略并评估。
 
-当前唯一配置为 `configs/merge_family_pearl.yaml`；所有网络尺寸、训练预算、任务划分和指标定义均由它约束。
+dense 基线配置为 `configs/dense_pearl_baseline.yaml`，后验适应协议为 `configs/posterior_adaptation_protocol.yaml`，posterior-routed MoE 配置为 `configs/posterior_routed_moe.yaml`。后两者通过显式 `extends` 复用前一层配置，并在加载时解析为完整配置；checkpoint 保存的是解析后的配置哈希。
 
-> 当前阶段的默认目标是验证主程序闭环，而不是自动拉起正式训练或做消融。`--smoke` 是唯一默认可运行的训练模式；非 smoke 的 PEARL 和 SAC 命令必须显式传入 `--formal-run`，且 PEARL 还需要匹配的 formal gate。
+> 当前阶段的默认目标是验证主程序闭环，而不是自动拉起正式训练或做消融。`--smoke` 是唯一默认可运行的训练模式；非 smoke 的 PEARL 和 SAC 命令必须显式传入 `--formal-run`，且 PEARL 还需要匹配的 formal validation。
 
 ## 1. 实现整体设计
 
@@ -56,6 +56,8 @@ geometry catalog
 4. 训练时按任务采样 transition batch，并随机抽取 1 到 8 个 context episode，使编码器在 K=1、K=2 等少样本条件下也接受训练。优化目标为双 Q 的 SAC TD 损失、`0.1 × KL(q(z|c) || N(0,I))`、actor 损失和自动熵温度；target critics 用 `tau=0.005` 软更新。
 5. 验证集严格指标提升时写入 `best_model.pt`。checkpoint 同时保存网络、优化器、replay、环境步数/更新计数、随机数状态及输入哈希；`last_model.pt` 仅在显式设置 `--checkpoint-interval-steps` 时写入。
 
+后验路由 MoE 使用 actor-only residual 结构：router 仅接收真实地图初始化后冻结的 6 维物理描述符以及 `stop_gradient(mu, log_var)`；route 在一个 episode 内固定，只在 posterior version 更新后重算。actor 使用共享主干、加权残差 experts 和统一 Gaussian head，双 critic 与 context encoder 保持 dense。实现与审计入口见 [`POSTERIOR_ROUTED_MOE_IMPLEMENTATION.md`](../docs/pearl/POSTERIOR_ROUTED_MOE_IMPLEMENTATION.md)。
+
 可选的 `--disentangled-representation` 将 5 维后验划为几何/交互/规则三块（默认 `2/2/1`），并加入辅助解码损失。这是独立候选设计，默认 PEARL 不启用；其审计输出仅是后验语义诊断，不能替代性能比较或因果解耦证明。
 
 ## 4. K-shot 无梯度适应与 query 评估
@@ -91,7 +93,7 @@ geometry catalog
 
 ```powershell
 conda run -n metadrive python -m pearl_learning.scripts.train_pearl `
-  --config pearl_learning/configs/merge_family_pearl.yaml `
+  --config pearl_learning/configs/dense_pearl_baseline.yaml `
   --taskbook results/pearl_learning/taskbooks `
   --casebook-root results/pearl_learning `
   --seed 0 --run-name main_flow_smoke --smoke --max-env-steps 1000 `
@@ -99,7 +101,7 @@ conda run -n metadrive python -m pearl_learning.scripts.train_pearl `
   --output-root results/pearl_learning/verification
 
 conda run -n metadrive python -m pearl_learning.scripts.evaluate_fewshot `
-  --config pearl_learning/configs/merge_family_pearl.yaml `
+  --config pearl_learning/configs/dense_pearl_baseline.yaml `
   --checkpoint results/pearl_learning/verification/smoke/main_flow_smoke/best_model.pt `
   --taskbook results/pearl_learning/taskbooks `
   --casebook-root results/pearl_learning `
@@ -107,12 +109,12 @@ conda run -n metadrive python -m pearl_learning.scripts.evaluate_fewshot `
   --output-root results/pearl_learning/verification
 ```
 
-正式实验必须另行确认任务、随机种子、总步数、显存/内存预算和输出目录。其命令至少应同时包含 `--formal-run`，并对 PEARL 提供与 taskbook 匹配的 `--gate-manifest`；省略任一条件会拒绝运行。例如：
+正式实验必须另行确认任务、随机种子、总步数、显存/内存预算和输出目录。其命令至少应同时包含 `--formal-run`，并对 PEARL 提供与 taskbook 匹配的 `--formal-validation`；省略任一条件会拒绝运行。例如：
 
 ```powershell
 conda run -n metadrive python -m pearl_learning.scripts.train_pearl `
   --config <config> --taskbook <taskbook-dir> --casebook-root <casebook-root> `
-  --gate-manifest <formal-gate.json> --seed <seed> --run-name <run-name> `
+  --formal-validation <formal-validation.json> --seed <seed> --run-name <run-name> `
   --max-env-steps <steps> --output-root <new-output-root> --formal-run
 ```
 
@@ -121,14 +123,15 @@ conda run -n metadrive python -m pearl_learning.scripts.train_pearl `
 - few-shot 输出：`<output-root>/evaluations/<split>/<run-name>/metrics.json`；smoke 输出位于 `<output-root>/smoke/`。输出保留逐任务/逐 K 汇总、support 环境步数、选用的 support case 与 provenance，不保留逐轨迹。
 - `audit_integrity.py`、`audit_topologies.py` 检查冻结输入、真实地图/路线与 split 隔离；`audit_task_heterogeneity.py` 检查正式基线的任务异质性和预算对称性。这些 audit 是前提与数据质量检查，不是关键性能结果本身。
 - `audit_support.py posterior` 只产生 support 后验和参数哈希；`audit_support.py representation` 审计可选解耦表示。`audit_transferability.py`、`calibrate_transferability.py`、`decide_transferability.py` 组成候选的迁移诊断/保守拒绝接口。它们不读取测试 query 来拟合阈值，且在验证证据不足时应输出 `defer`。
-- 契约测试：`conda run -n metadrive python -m unittest pearl_learning.tests.test_contract`。测试覆盖冻结输入、观测维度、support/query 隔离、无梯度适应和精简结果结构。
+- 契约测试：`conda run -n metadrive python -m pytest pearl_learning/tests -q`。当前 64 项测试同时覆盖 dense 回归以及 MoE 数值、梯度、生命周期、泄漏与 checkpoint 契约。
 
 ## 8. 目录
 
-- `configs/merge_family_pearl.yaml`：唯一运行配置及几何目录。
+- `configs/dense_pearl_baseline.yaml`、`posterior_adaptation_protocol.yaml`、`posterior_routed_moe.yaml`：dense 基线、后验适应与路由 MoE 配置。
+- `configs/posterior_routed_moe_pilot.yaml`、`posterior_routed_moe_specialization_pilot.yaml`：2×2 工程 pilot 与 4-expert 路由专门化诊断；两者均不是正式性能实验。
 - `src/taskbook.py`、`src/casebook.py`、`src/task_env.py`：冻结任务、case 和 MetaDrive 环境。
 - `src/observation.py`、`src/reward.py`、`src/metrics.py`：观测、奖励与严格安全指标。
-- `src/context_encoder.py`、`src/pearl_agent.py`、`src/pearl_trainer.py`：PEARL-SAC 核心。
+- `src/context_encoder.py`、`src/moe.py`、`src/pearl_agent.py`、`src/pearl_trainer.py`：PEARL-SAC 与 posterior-routed MoE 核心。
 - `src/evaluator.py`、`src/baselines.py`：few-shot 评估、等预算比较与基线注册。
 - `scripts/`：构建、训练、评估、审计与正式实验入口。
-- `tests/test_contract.py`：关键实现契约。
+- `tests/test_contract.py`、`tests/test_routed_moe.py`、`tests/test_routed_moe_mechanisms.py`：dense/协议回归、路由 MoE 与机制干预契约。
