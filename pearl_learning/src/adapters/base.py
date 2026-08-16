@@ -17,7 +17,7 @@ class LogicalScenarioAdapter(Protocol):
     def conflict_frame(self, env: Any, task: LogicalScenarioTaskSpec, adversary: Any, sut: Any) -> dict[str, Any]: ...
     def topology_features(self, env: Any, task: LogicalScenarioTaskSpec) -> dict[str, float]: ...
     def target_contact(self, env: Any, adversary: Any, sut: Any) -> tuple[bool, str]: ...
-    def route_status(self, env: Any, vehicle: Any, role: str, previous_s_m: float | None) -> tuple[float, bool]: ...
+    def route_status(self, env: Any, vehicle: Any, role: str, previous_s_m: float | None) -> tuple[float, bool, bool]: ...
     def map_hash(self, env: Any) -> str: ...
     def validate_episode_roles(self, env: Any, adversary: Any, sut: Any) -> None: ...
 
@@ -209,7 +209,7 @@ class MetaDriveAdapterBase(ABC):
             return False, "center_distance_low_confidence"
         return False, "no_pairwise_contact"
 
-    def route_status(self, env: Any, vehicle: Any, role: str, previous_s_m: float | None) -> tuple[float, bool]:
+    def route_status(self, env: Any, vehicle: Any, role: str, previous_s_m: float | None) -> tuple[float, bool, bool]:
         route = self._routes[role]
         projection = route.projection(vehicle.position, float(getattr(vehicle, "heading_theta", 0.0)), float(getattr(vehicle.lane, "width", 3.8)))
         current = tuple(getattr(vehicle, "lane_index", (None, None, -1)))
@@ -222,8 +222,31 @@ class MetaDriveAdapterBase(ABC):
         forward_connected = current[1] in planned_nodes
         backwards = abs(projection.heading_error) > math.pi / 2.0
         regressed = previous_s_m is not None and projection.s_m < previous_s_m - 1.0
-        wrong_route = bool((not route_membership and not forward_connected) or backwards or regressed)
-        return projection.s_m, wrong_route
+        # A frozen route ends at the experiment's ODD boundary.  MetaDrive may
+        # either keep the final lane index while setting ``on_road=False`` or
+        # switch immediately to an unplanned successor lane.  Both are normal
+        # completion, not an invalid route departure.  The check is deliberately
+        # narrow: the vehicle centre must be within its final half-length, on
+        # the route corridor, and aligned forward.  Mid-route branches remain
+        # invalid regardless of graph connectivity.
+        completion_margin = max(1.0, 0.5 * float(getattr(vehicle, "LENGTH", 5.0)))
+        completed_route = bool(
+            projection.s_m >= route.length_m - completion_margin
+            and projection.on_route
+            and not backwards
+        )
+        geometric_lane_change = bool(
+            route.in_lane_change(projection.s_m)
+            and projection.on_route
+            and not backwards
+            and not regressed
+        )
+        wrong_route = bool(
+            ((not route_membership and not forward_connected) and not completed_route and not geometric_lane_change)
+            or backwards
+            or regressed
+        )
+        return projection.s_m, wrong_route, completed_route
 
     def validate_episode_roles(self, env: Any, adversary: Any, sut: Any) -> None:
         if adversary is sut or str(adversary.id) == str(sut.id):

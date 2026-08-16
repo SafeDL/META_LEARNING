@@ -177,7 +177,7 @@ VCSR 的现有定义继续作为主指标，不能因约束训练而悄悄修改
 - [evaluator.py](../../pearl_learning/src/evaluator.py)：分项 cost、Pareto 和 SUT split 输出。
 - `pearl_learning/configs/constrained_scenario_mining.yaml`：唯一正式约束配置。
 
-遵守 [style.md](../style.md)：共享计算只保留一个实现，非法状态显式报错；不创建 `*_v2_final` 脚本、旧格式 fallback 或只转发参数的 wrapper。
+遵守 [style.md](../style.md)：共享计算只保留一个实现，非法状态显式报错；不创建带版本号或“最终版”后缀的重复脚本、旧格式 fallback 或只转发参数的 wrapper。
 
 ## 必须通过的自动测试
 
@@ -185,7 +185,7 @@ VCSR 的现有定义继续作为主指标，不能因约束训练而悄悄修改
 
 - 用手工构造轨迹验证 TTC/PET、加速度、jerk、阈值边界和不可计算状态。
 - episode 汇总可从 step records 精确重算；单位与仿真时间步一致。
-- 原有 VCSR 和 invalid 定义在新代码上对冻结旧记录回放结果不变。
+- VCSR 和 invalid 定义须在当前实现生成的新记录上做独立回放一致性验证；退役格式的旧记录不作为兼容性基准。
 - `undetermined` 责任状态不会被计为 valid。
 
 ### 约束优化

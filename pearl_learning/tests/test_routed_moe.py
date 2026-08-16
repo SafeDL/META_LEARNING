@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import torch
 
-from pearl_learning.src.checkpoint import load_checkpoint, save_checkpoint
+from pearl_learning.src.checkpoint import CHECKPOINT_SCHEMA, METHOD_CONTRACT, load_checkpoint, save_checkpoint
 from pearl_learning.src.collector import collect_episode
 from pearl_learning.src.io import read_config
 from pearl_learning.src.moe import (
@@ -237,6 +237,24 @@ def test_collector_keeps_one_route_for_whole_episode_and_records_hash():
     assert second.record["route_hash"] == rollout.record["route_hash"]
 
 
+def test_posterior_sampled_query_uses_deterministic_conditional_policy():
+    config = small_config(architecture="dense")
+    agent = PEARLAgent(37, 2, config, torch.device("cpu"))
+    mu, log_var = agent.prior()
+    first_latent = agent.sample_latent_seeded(mu, log_var, 91)
+    repeated_latent = agent.sample_latent_seeded(mu, log_var, 91)
+    other_latent = agent.sample_latent_seeded(mu, log_var, 92)
+    assert torch.equal(first_latent, repeated_latent)
+    assert not torch.equal(first_latent, other_latent)
+    task = type("Task", (), {"task_id": "task"})()
+    rollout = collect_episode(
+        TinyEnv(), task, {"case_id": "query"}, agent, first_latent,
+        "posterior_sampled_query", torch.device("cpu"), episode_id="episode",
+        posterior_version=0,
+    )
+    assert rollout.record["collection_mode"] == "posterior_sampled_query"
+
+
 def checkpoint_roundtrip(architecture: str):
     config = small_config(architecture=architecture)
     agent = PEARLAgent(37, 2, config, torch.device("cpu"))
@@ -257,6 +275,8 @@ def checkpoint_roundtrip(architecture: str):
         )
         restored = PEARLAgent(37, 2, config, torch.device("cpu"))
         payload = load_checkpoint(path, restored, torch.device("cpu"))
+        assert payload["schema"] == CHECKPOINT_SCHEMA
+        assert payload["method_contract"] == METHOD_CONTRACT
         assert restored.parameter_hash() == before_hash
         assert payload["trainer_state"] == {"marker": 7}
         assert payload["architecture"] == agent.architecture_metadata()
@@ -290,3 +310,22 @@ def test_checkpoint_rejects_architecture_mismatch():
         dense = PEARLAgent(37, 2, small_config(architecture="dense"), torch.device("cpu"))
         with pytest.raises(ValueError, match="architecture"):
             load_checkpoint(path, dense, torch.device("cpu"))
+
+
+def test_checkpoint_rejects_retired_method_contract_without_fallback():
+    config = small_config(architecture="dense")
+    agent = PEARLAgent(37, 2, config, torch.device("cpu"))
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "incompatible.pt"
+        save_checkpoint(
+            path, agent, config, "taskbook", 0,
+            casebook_hashes={}, training_seed=1,
+            rng_state={"numpy_generator": np.random.default_rng().bit_generator.state,
+                       "torch": torch.get_rng_state(), "cuda": None},
+            trainer_state={},
+        )
+        payload = torch.load(path, map_location="cpu", weights_only=False)
+        payload.pop("method_contract")
+        torch.save(payload, path)
+        with pytest.raises(ValueError, match="incompatible checkpoints"):
+            load_checkpoint(path, agent, torch.device("cpu"))

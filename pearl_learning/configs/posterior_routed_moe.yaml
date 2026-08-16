@@ -1,7 +1,7 @@
 extends: posterior_adaptation_protocol.yaml
 
 project:
-  output_root: results/pearl_learning/posterior_routed_moe/runs
+  output_root: results/pearl_learning/posterior_routed_moe
 
 networks:
   actor_architecture: posterior_routed_moe
@@ -23,16 +23,11 @@ networks:
     expert_hidden_size: 128
     load_balance_weight: 0.01
 
-meta_training:
-  # This configuration validates implementation stability, not performance superiority.
-  bootstrap_episodes_per_task: 1
-  gradient_updates_per_iteration: 1
-  validation_interval_steps: 1000000
-
 routed_moe:
-  schema: posterior_routed_moe_engineering_v1
+  schema: posterior_routed_moe
   training_seeds:
-  - 17
-  - 29
-  smoke_environment_steps: 1200
-  status_scope: engineering_correctness_only
+  - 11
+  - 22
+  - 33
+  requires_dense_pearl_validation: true
+  status_scope: formal_pending_dense_pearl_validation

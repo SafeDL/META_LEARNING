@@ -11,7 +11,8 @@
 
 ## 结果保留原则
 
-- SAC 保留三组训练配置、日志、每个 validation checkpoint 的紧凑汇总，以及完整 held-out 结果和回放证据。
+- SAC 按各模块协议保留配置、必要日志与可追溯 held-out 证据。
+- PEARL 已切换到当前完整协议；所有旧 checkpoint/指标均已删除，目前只保留冻结 taskbook/casebook 输入，尚无当前实现的性能结论。
 - PEARL 保留选定正式模型、冻结 taskbook/casebook、manifest 和最终机器可读汇总。
 - 中间 validation 的重复 case 表、逐 episode 记录、top-k 动作轨迹、smoke 模型和临时 checkpoint 不纳入长期结果；它们均可由保留的输入与脚本重建。
 

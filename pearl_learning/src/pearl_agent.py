@@ -38,7 +38,11 @@ class PEARLAgent:
         self.observation_dim = int(observation_dim)
         self.action_dim = int(action_dim)
         self.latent_dim = int(pearl["latent_dim"])
+        self.context_aggregation = str(pearl["context_aggregation"])
         self.reward_scale = float(pearl["context_reward_scale"])
+        self.critic_reward_scale = float(pearl.get("critic_reward_scale", 1.0))
+        if self.reward_scale <= 0.0 or self.critic_reward_scale <= 0.0:
+            raise ValueError("PEARL context and critic reward scales must be positive")
         self.gamma = float(sac["gamma"])
         self.tau = float(sac["tau"])
         self.kl_beta = float(pearl["kl_beta"])
@@ -49,6 +53,7 @@ class PEARLAgent:
             context_dim,
             self.latent_dim,
             list(networks["context_hidden_sizes"]),
+            self.context_aggregation,
         ).to(device)
         if self.no_context_training:
             self.context_encoder.requires_grad_(False)
@@ -171,7 +176,10 @@ class PEARLAgent:
 
     @property
     def alpha(self) -> torch.Tensor:
-        return self.log_alpha.exp()
+        # A positive reward rescaling must also rescale entropy regularization
+        # to preserve the SAC objective and optimal policy. ``log_alpha``
+        # remains the dimensionless automatically tuned temperature.
+        return self.critic_reward_scale * self.log_alpha.exp()
 
     def act(
         self,
@@ -288,6 +296,18 @@ class PEARLAgent:
             return mu
         return mu + torch.randn_like(mu) * torch.exp(0.5 * log_var)
 
+    def sample_latent_seeded(
+        self,
+        mu: torch.Tensor,
+        log_var: torch.Tensor,
+        seed: int,
+    ) -> torch.Tensor:
+        """Sample a posterior latent without consuming the training RNG stream."""
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(int(seed))
+        noise = torch.randn(mu.shape, generator=generator, dtype=mu.dtype, device="cpu").to(self.device)
+        return mu + noise * torch.exp(0.5 * log_var)
+
     def decode_task_representation(self, posterior_mean: torch.Tensor) -> dict[str, torch.Tensor]:
         """Decode the declared latent blocks for support-only semantic audits.
 
@@ -380,7 +400,7 @@ class PEARLAgent:
             dtype=torch.float32,
             device=self.device,
         )
-        rewards = torch.as_tensor(
+        rewards = self.critic_reward_scale * torch.as_tensor(
             np.asarray([transition.reward for transition in transitions]),
             dtype=torch.float32,
             device=self.device,
@@ -391,6 +411,8 @@ class PEARLAgent:
             device=self.device,
         )
         done = torch.as_tensor(
+            # Time-limit truncation is not an MDP terminal: bootstrap through
+            # it, while physical/rule terminations stop the Bellman target.
             np.asarray([float(transition.terminated) for transition in transitions]),
             dtype=torch.float32,
             device=self.device,
@@ -553,6 +575,7 @@ class PEARLAgent:
             "actor_phase_critic_unchanged": float(actor_phase_critic_unchanged),
             "alpha": float(self.alpha.detach()),
             "posterior_variance": float(torch.exp(log_var).mean().detach()),
+            "critic_reward_scale": self.critic_reward_scale,
             "auxiliary_loss": float(auxiliary.detach()),
             **actor_gradients,
             **self._routing_metrics(training_route),
@@ -627,12 +650,13 @@ class PEARLAgent:
 
     def architecture_metadata(self) -> dict[str, Any]:
         metadata: dict[str, Any] = {
-            "schema": "pearl_actor_architecture_v1",
+            "schema": "pearl_actor_architecture",
             "actor_architecture": self.actor_architecture,
             "observation_schema": self.observation_schema,
             "observation_dim": self.observation_dim,
             "action_dim": self.action_dim,
             "latent_dim": self.latent_dim,
+            "context_aggregation": self.context_aggregation,
             "actor_hidden_sizes": self.actor_hidden_sizes,
             "critic_hidden_sizes": self.critic_hidden_sizes,
             "context_hidden_sizes": self.context_hidden_sizes,

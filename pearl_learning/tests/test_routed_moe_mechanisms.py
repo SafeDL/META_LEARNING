@@ -111,11 +111,12 @@ def test_training_context_count_is_shape_safe_across_uneven_task_replay():
             replace(transition(f"a-{index}", final=True), task_id="a"),
         ]
         buffers.add_episode("a", rows)
-    rows = [
-        replace(transition("b-0"), task_id="b"),
-        replace(transition("b-0", final=True), task_id="b"),
-    ]
-    buffers.add_episode("b", rows)
+    for index in range(2):
+        rows = [
+            replace(transition(f"b-{index}"), task_id="b"),
+            replace(transition(f"b-{index}", final=True), task_id="b"),
+        ]
+        buffers.add_episode("b", rows)
     count = _training_context_episode_count(
         buffers, ["a", "b"], 1, 8, np.random.default_rng(3),
     )

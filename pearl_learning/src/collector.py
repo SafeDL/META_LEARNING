@@ -32,7 +32,7 @@ def collect_episode(env: Any, task: Any, case: dict[str, object], agent: Any, z:
             action = agent.act(
                 tensor,
                 z,
-                deterministic=mode == "deterministic_query",
+                deterministic=mode in {"deterministic_query", "posterior_sampled_query"},
                 route=route_context,
             ).squeeze(0).cpu().numpy()
         next_observation, reward, terminated, truncated, info = env.step(action)
@@ -47,6 +47,7 @@ def collect_episode(env: Any, task: Any, case: dict[str, object], agent: Any, z:
             break
     record = env.episode_record()
     record.update({
+        "collection_mode": mode,
         "posterior_version": int(posterior_version),
         "router_schema": None if route_context is None else "posterior_router_v1",
         "route_hash": None if route_context is None else route_context.route_hash,

@@ -14,6 +14,25 @@ _CALIBRATION_STATUSES = {
 }
 
 
+def _validation_evaluation(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Select the deterministic posterior-mean view from the maintained suite."""
+    if payload.get("schema") != "pearl_fewshot_evaluation_suite":
+        return payload
+    regimes = payload.get("evaluation_regimes")
+    if not isinstance(regimes, Mapping):
+        raise ValueError("validation evaluation suite lacks evaluation regimes")
+    validation = regimes.get("validation_known_logical_type")
+    if not isinstance(validation, Mapping) or validation.get("split") != "meta_validation":
+        raise ValueError("validation evaluation suite lacks the validation regime")
+    modes = validation.get("query_modes")
+    if not isinstance(modes, Mapping):
+        raise ValueError("validation evaluation suite lacks query execution modes")
+    selected = modes.get("posterior_mean_deterministic")
+    if not isinstance(selected, Mapping):
+        raise ValueError("validation freeze requires posterior_mean_deterministic metrics")
+    return selected
+
+
 def _provenance_hash(payload: Mapping[str, Any], taskbook_hash: str) -> str:
     provenance = payload.get("provenance")
     if not isinstance(provenance, Mapping) or provenance.get("taskbook_hash") != taskbook_hash:
@@ -44,7 +63,7 @@ def freeze_validation_protocol(*, taskbook_hash: str, evaluations: Mapping[str, 
     checkpoint_hashes: set[str] = set()
     evaluation_hashes: dict[str, str] = {}
     for policy in expected:
-        payload = evaluations[policy]
+        payload = _validation_evaluation(evaluations[policy])
         if payload.get("split") != "meta_validation":
             raise ValueError(f"{policy} evaluation is not validation-only")
         if payload.get("support_selection") != policy:

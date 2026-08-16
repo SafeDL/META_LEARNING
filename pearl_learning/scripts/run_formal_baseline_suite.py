@@ -52,10 +52,12 @@ def baseline_commands(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
         ("scratch_sac", ["--baseline", "scratch_sac", *common]),
         ("pooled_finetune_sac", [
             "--baseline", "pooled_finetune_sac", *common,
-            "--pretrain-steps", str(args.environment_steps),
             "--pooled-pretrain-model", str(root / "topology_conditioned_pooled_sac" / "model.zip"),
         ]),
-        ("oracle_task_conditioned_sac", ["--baseline", "oracle_task_conditioned_sac", *common]),
+        ("oracle_task_conditioned_sac", [
+            "--baseline", "oracle_task_conditioned_sac", *common,
+            "--pooled-steps-per-task", str(args.environment_steps),
+        ]),
     ]
 
 
@@ -96,6 +98,22 @@ def main() -> None:
             if not _is_complete(root, baseline, taskbook_hash, args.environment_steps):
                 raise RuntimeError(f"baseline {baseline} did not write a matching completed manifest")
             completed.append(baseline)
+        if baseline == "per_task_sac":
+            subprocess.run([
+                sys.executable, "-m", "pearl_learning.scripts.select_per_task_sac_checkpoints",
+                "--config", args.config,
+                "--taskbook", args.taskbook,
+                "--casebook-root", args.casebook_root,
+                "--baseline-root", args.output,
+            ], check=True)
+        if baseline == "topology_conditioned_pooled_sac":
+            subprocess.run([
+                sys.executable, "-m", "pearl_learning.scripts.select_pooled_sac_checkpoint",
+                "--config", args.config,
+                "--taskbook", args.taskbook,
+                "--casebook-root", args.casebook_root,
+                "--baseline-root", args.output,
+            ], check=True)
         write_json(progress_path, {
             "schema": SUITE_SCHEMA,
             "taskbook_hash": taskbook_hash,

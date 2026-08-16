@@ -17,27 +17,27 @@ def main() -> None:
 
     config = read_config(args.config)
     protocol = config.get("posterior_adaptation")
-    if not isinstance(protocol, dict) or protocol.get("schema") != "posterior_adaptation_protocol_v1":
-        raise ValueError("configuration lacks a posterior_adaptation_protocol_v1 declaration")
+    if not isinstance(protocol, dict) or protocol.get("schema") != "posterior_adaptation_protocol":
+        raise ValueError("configuration lacks the posterior_adaptation_protocol declaration")
     taskbook = load_taskbook(args.taskbook)
     shots = [int(value) for value in config["evaluation"]["shots"]]
     if shots != [0, 1, 2, 4, 8]:
         raise ValueError("posterior adaptation requires frozen shots [0, 1, 2, 4, 8]")
-    if config["evaluation"].get("context_protocol") != "fixed_nested_v1":
-        raise ValueError("posterior adaptation requires fixed_nested_v1 context sampling")
+    if config["evaluation"].get("context_protocol") != "fixed_nested":
+        raise ValueError("posterior adaptation requires fixed_nested context sampling")
     if int(config["pearl"]["context_sample_size_eval"]) != 256:
         raise ValueError("posterior adaptation requires context_sample_size_eval=256")
     if int(config["pearl"]["context_transitions_per_episode"]) != 32:
         raise ValueError("posterior adaptation requires context_transitions_per_episode=32")
     payload = {
-        "schema": "posterior_adaptation_frozen_protocol_v1",
+        "schema": "posterior_adaptation_frozen_protocol",
         "status": "preregistered_before_holdout",
         "config_hash": content_hash(config),
         "taskbook_hash": content_hash(taskbook_payload(taskbook)),
         "shots": shots,
         "support_selection": "fixed",
         "context_protocol": {
-            "name": "fixed_nested_v1",
+            "name": "fixed_nested",
             "sample_size": 256,
             "transitions_per_episode": 32,
             "episode_capacity": 8,

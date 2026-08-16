@@ -36,25 +36,26 @@ _INTERVENTION_MASKS = {
     ),
 }
 
-
-def _sample_episode_context(rollouts: list[Rollout], total_size: int, per_episode: int, rng: np.random.Generator) -> list[list[Any]]:
-    if not rollouts:
-        raise ValueError("cannot infer a posterior without a support episode")
-    count = min(len(rollouts), max(1, int(total_size) // int(per_episode)))
-    indexes = rng.choice(len(rollouts), size=count, replace=False)
-    groups = []
-    for index in np.asarray(indexes).reshape(-1):
-        rows = rollouts[int(index)].transitions
-        chosen = rng.choice(len(rows), size=int(per_episode), replace=len(rows) < int(per_episode))
-        groups.append([rows[int(item)] for item in np.asarray(chosen).reshape(-1)])
-    return groups
+QUERY_EXECUTION_MODES = {"posterior_mean_deterministic", "posterior_sampled"}
+EVALUATION_REGIMES = {
+    "meta_validation": "validation_known_logical_type",
+    "meta_test_template": "id_known_logical_type",
+    "meta_test_logical": "ood_unseen_logical_type",
+}
 
 
-_CONTEXT_PROTOCOLS = {"resampled_episode_balanced_v1", "fixed_nested_v1"}
+def evaluation_regime(split: str) -> str:
+    try:
+        return EVALUATION_REGIMES[split]
+    except KeyError as error:
+        raise ValueError(f"unsupported evaluation split: {split!r}") from error
+
+
+_CONTEXT_PROTOCOLS = {"fixed_nested"}
 
 
 def _context_protocol(config: Mapping[str, Any]) -> str:
-    protocol = str(config["evaluation"].get("context_protocol", "resampled_episode_balanced_v1"))
+    protocol = str(config["evaluation"].get("context_protocol", "fixed_nested"))
     if protocol not in _CONTEXT_PROTOCOLS:
         raise ValueError(f"unsupported evaluation context protocol: {protocol}")
     return protocol
@@ -74,7 +75,7 @@ def _fixed_episode_context_block(
         "task_id": str(task_id),
         "case_id": str(rollout.record["case_id"]),
         "episode_id": rollout.episode_id,
-        "purpose": "fixed_episode_context_block_v1",
+        "purpose": "fixed_episode_context_block",
     })[:16], 16)
     rng = np.random.default_rng(sample_seed)
     indexes = np.asarray(rng.choice(
@@ -98,41 +99,21 @@ def _posterior_context(
     fixed_blocks: list[list[Any]],
     fixed_audits: list[dict[str, Any]],
     *,
-    protocol: str,
     total_size: int,
     per_episode: int,
-    base_seed: int,
-    task_id: str,
-    shot: int,
 ) -> tuple[list[list[Any]], dict[str, Any]]:
     capacity = int(total_size) // int(per_episode)
     if capacity < 1:
         raise ValueError("context_sample_size_eval must hold at least one episode block")
-    if protocol == "fixed_nested_v1":
-        if len(rollouts) > capacity:
-            raise ValueError(
-                f"fixed nested context has {len(rollouts)} episodes but capacity is {capacity}; "
-                "increase context_sample_size_eval or reduce K"
-            )
-        if len(fixed_blocks) != len(rollouts) or len(fixed_audits) != len(rollouts):
-            raise RuntimeError("fixed context blocks are not aligned with support rollouts")
-        context = [list(block) for block in fixed_blocks]
-        episode_audits = [dict(row) for row in fixed_audits]
-    else:
-        rng = np.random.default_rng(int(content_hash({
-            "seed": int(base_seed), "task": str(task_id), "shot": int(shot),
-        })[:16], 16))
-        context = _sample_episode_context(rollouts, total_size, per_episode, rng)
-        episode_audits = [{
-            "episode_id": group[0].episode_id,
-            "case_id": group[0].case_id,
-            "sample_hash": content_hash({
-                "episode_id": group[0].episode_id,
-                "case_id": group[0].case_id,
-                "transition_count": len(group),
-                "shot": int(shot),
-            }),
-        } for group in context]
+    if len(rollouts) > capacity:
+        raise ValueError(
+            f"fixed nested context has {len(rollouts)} episodes but capacity is {capacity}; "
+            "increase context_sample_size_eval or reduce K"
+        )
+    if len(fixed_blocks) != len(rollouts) or len(fixed_audits) != len(rollouts):
+        raise RuntimeError("fixed context blocks are not aligned with support rollouts")
+    context = [list(block) for block in fixed_blocks]
+    episode_audits = [dict(row) for row in fixed_audits]
     hashes = [str(row["sample_hash"]) for row in episode_audits]
     return context, {
         "context_episode_count": len(context),
@@ -273,6 +254,7 @@ def evaluate_fewshot(
     query_route_mode: str = "adaptive",
     knockout_expert: int | None = None,
     mechanism_audit: bool = False,
+    query_execution_mode: str = "posterior_mean_deterministic",
 ) -> dict[str, Any]:
     if adaptation_mode not in {"posterior_sampled", "posterior_deterministic", "no_context"}:
         raise ValueError(f"unsupported adaptation mode: {adaptation_mode}")
@@ -280,6 +262,9 @@ def evaluate_fewshot(
         raise ValueError(f"unsupported query_latent_mode: {query_latent_mode}")
     if query_route_mode not in {"adaptive", "frozen_prior", "uniform"}:
         raise ValueError(f"unsupported query_route_mode: {query_route_mode}")
+    if query_execution_mode not in QUERY_EXECUTION_MODES:
+        raise ValueError(f"unsupported query_execution_mode: {query_execution_mode}")
+    regime = evaluation_regime(split)
     if (query_route_mode != "adaptive" or knockout_expert is not None) and agent.actor_architecture != "posterior_routed_moe":
         raise ValueError("query route interventions require a MoE actor")
     device = agent.device
@@ -301,7 +286,7 @@ def evaluate_fewshot(
     total_size = int(config["pearl"]["context_sample_size_eval"])
     per_episode = int(config["pearl"]["context_transitions_per_episode"])
     capacity = total_size // per_episode
-    if protocol == "fixed_nested_v1" and max(shots) > capacity:
+    if protocol == "fixed_nested" and max(shots) > capacity:
         raise ValueError(f"K={max(shots)} exceeds fixed nested context capacity {capacity}")
     output_provenance = dict(provenance or {})
     for task in tasks:
@@ -371,6 +356,11 @@ def evaluate_fewshot(
                         if adaptation_mode == "no_context" or query_latent_mode == "frozen_prior"
                         else mu
                     )
+                    policy_log_var = (
+                        prior_log_var
+                        if adaptation_mode == "no_context" or query_latent_mode == "frozen_prior"
+                        else log_var
+                    )
                     query_route = route
                     if query_route_mode == "frozen_prior":
                         query_route = agent.intervene_route(
@@ -387,21 +377,35 @@ def evaluate_fewshot(
                             mode="expert_knockout",
                             expert_index=knockout_expert,
                         )
-                    queries = [
-                        collect_episode(
+                    query_latents = []
+                    queries = []
+                    for index, case in enumerate(query_cases):
+                        if query_execution_mode == "posterior_mean_deterministic":
+                            query_z = policy_mu
+                            collection_mode = "deterministic_query"
+                        else:
+                            sample_seed = int(content_hash({
+                                "base_seed": base_seed,
+                                "task_id": task.task_id,
+                                "shot": shot,
+                                "case_id": str(case["case_id"]),
+                                "purpose": "posterior_sampled_query",
+                            })[:16], 16)
+                            query_z = agent.sample_latent_seeded(policy_mu, policy_log_var, sample_seed)
+                            collection_mode = "posterior_sampled_query"
+                        query_latents.append(content_hash(query_z.detach().cpu().tolist()))
+                        queries.append(collect_episode(
                             env,
                             task,
                             case,
                             agent,
-                            policy_mu,
-                            "deterministic_query",
+                            query_z,
+                            collection_mode,
                             device,
                             episode_id=f"{task.task_id}:query:{shot}:{index}",
                             posterior_version=shot,
                             route_context=query_route,
-                        )
-                        for index, case in enumerate(query_cases)
-                    ]
+                        ))
                     records = [rollout.record for rollout in queries]
                     results[str(shot)] = {
                         "summary": summarize(
@@ -415,6 +419,8 @@ def evaluate_fewshot(
                         "posterior_used_for_policy": (
                             adaptation_mode != "no_context" and query_latent_mode != "frozen_prior"
                         ),
+                        "query_execution_mode": query_execution_mode,
+                        "query_latent_hashes": query_latents,
                         "router_audit": None if query_route is None else {
                             **query_route.audit_dict(), "parameter_hash": before,
                         },
@@ -487,7 +493,7 @@ def evaluate_fewshot(
                 )
                 support_rollouts.append(rollout)
                 support_episode_lengths.append(len(rollout.transitions))
-                if protocol == "fixed_nested_v1":
+                if protocol == "fixed_nested":
                     block, audit = _fixed_episode_context_block(
                         rollout,
                         per_episode,
@@ -500,12 +506,8 @@ def evaluate_fewshot(
                     support_rollouts,
                     fixed_blocks,
                     fixed_audits,
-                    protocol=protocol,
                     total_size=total_size,
                     per_episode=per_episode,
-                    base_seed=base_seed,
-                    task_id=task.task_id,
-                    shot=shot,
                 )
                 with torch.no_grad():
                     mu, log_var = agent.infer_posterior([context])
@@ -526,6 +528,8 @@ def evaluate_fewshot(
         raise RuntimeError("few-shot evaluation changed PEARL parameters")
     return {
         "split": split,
+        "evaluation_regime": regime,
+        "query_execution_mode": query_execution_mode,
         "parameter_hash_before": before,
         "parameter_hash_after": after,
         "module_hashes_before": module_hashes_before,
@@ -567,7 +571,7 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
     total_size = int(config["pearl"]["context_sample_size_eval"])
     per_episode = int(config["pearl"]["context_transitions_per_episode"])
     capacity = total_size // per_episode
-    if protocol == "fixed_nested_v1" and max(requested) > capacity:
+    if protocol == "fixed_nested" and max(requested) > capacity:
         raise ValueError(f"K={max(requested)} exceeds fixed nested context capacity {capacity}")
     output_provenance = dict(provenance or {})
     before = agent.parameter_hash()
@@ -626,7 +630,7 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
                 rollouts.append(rollout)
                 episode_lengths.append(len(rollout.transitions))
                 support_records.append(dict(rollout.record))
-                if protocol == "fixed_nested_v1":
+                if protocol == "fixed_nested":
                     block, audit = _fixed_episode_context_block(
                         rollout,
                         per_episode,
@@ -639,12 +643,8 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
                     rollouts,
                     fixed_blocks,
                     fixed_audits,
-                    protocol=protocol,
                     total_size=total_size,
                     per_episode=per_episode,
-                    base_seed=base_seed,
-                    task_id=task.task_id,
-                    shot=shot,
                 )
                 with torch.no_grad():
                     mu, log_var = agent.infer_posterior([context])
@@ -692,7 +692,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
     total_size = int(config["pearl"]["context_sample_size_eval"])
     per_episode = int(config["pearl"]["context_transitions_per_episode"])
     capacity = total_size // per_episode
-    if protocol == "fixed_nested_v1" and max(requested) > capacity:
+    if protocol == "fixed_nested" and max(requested) > capacity:
         raise ValueError(f"K={max(requested)} exceeds fixed nested context capacity {capacity}")
     before = agent.parameter_hash(); all_results: dict[str, Any] = {}
     aggregate: dict[str, list[float]] = {
@@ -738,7 +738,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                 )
                 rollouts.append(rollout)
                 episode_lengths.append(len(rollout.transitions))
-                if protocol == "fixed_nested_v1":
+                if protocol == "fixed_nested":
                     block, audit = _fixed_episode_context_block(
                         rollout,
                         per_episode,
@@ -751,12 +751,8 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                     rollouts,
                     fixed_blocks,
                     fixed_audits,
-                    protocol=protocol,
                     total_size=total_size,
                     per_episode=per_episode,
-                    base_seed=base_seed,
-                    task_id=task.task_id,
-                    shot=shot - 1,
                 )
                 with torch.no_grad():
                     mu, log_var = agent.infer_posterior([context])
@@ -890,6 +886,8 @@ def compact_fewshot_result(result: Mapping[str, Any]) -> dict[str, Any]:
                     "router_audit",
                     "query_route_hashes",
                     "query_route_consistent",
+                    "query_execution_mode",
+                    "query_latent_hashes",
                     "expert_action_audit",
                 )
                 if key in value
@@ -907,6 +905,8 @@ def compact_fewshot_result(result: Mapping[str, Any]) -> dict[str, Any]:
             "no_gradient_adaptation",
             "no_topology_ablation",
             "adaptation_mode",
+            "evaluation_regime",
+            "query_execution_mode",
             "context_protocol",
             "mechanism_intervention",
             "provenance",

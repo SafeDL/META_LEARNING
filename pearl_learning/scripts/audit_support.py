@@ -70,6 +70,12 @@ def _checkpoint_hash(checkpoint_path: str) -> str:
 def _without_output_location(config: dict[str, Any]) -> dict[str, Any]:
     result = dict(config)
     result.pop("project", None)
+    # ``train_pearl`` adds this execution label after reading the YAML. It is
+    # provenance, not a model/representation hyperparameter, and the audit
+    # subcommand has no smoke/formal switch from which to reconstruct it.
+    experiment = dict(result.get("experiment", {}))
+    experiment.pop("run_kind", None)
+    result["experiment"] = experiment
     return result
 
 

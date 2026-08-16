@@ -8,7 +8,12 @@ import torch
 
 from pearl_learning.src.casebook import load_casebook
 from pearl_learning.src.checkpoint import load_checkpoint
-from pearl_learning.src.evaluator import compact_fewshot_result, evaluate_fewshot
+from pearl_learning.src.evaluator import (
+    QUERY_EXECUTION_MODES,
+    compact_fewshot_result,
+    evaluate_fewshot,
+    evaluation_regime,
+)
 from pearl_learning.src.io import content_hash, read_config, write_json
 from pearl_learning.src.pearl_agent import PEARLAgent
 from pearl_learning.src.taskbook import load_taskbook, taskbook_payload
@@ -24,7 +29,7 @@ def main() -> None:
     parser.add_argument("--casebook-root", required=True)
     parser.add_argument(
         "--split",
-        choices=["meta_test_template", "meta_test_logical", "meta_validation"],
+        choices=["meta_test_template", "meta_test_logical", "meta_test_all", "meta_validation"],
         required=True,
     )
     parser.add_argument("--run-name", required=True)
@@ -59,6 +64,12 @@ def main() -> None:
     )
     parser.add_argument("--knockout-expert", type=int)
     parser.add_argument("--mechanism-audit", action="store_true")
+    parser.add_argument(
+        "--query-execution-mode",
+        action="append",
+        choices=sorted(QUERY_EXECUTION_MODES),
+        help="repeat to select modes; defaults to both configured deterministic-mean and sampled-posterior modes",
+    )
     parser.add_argument("--validation-freeze-manifest", help="require this validation freeze before a holdout split")
     args = parser.parse_args()
     cfg = read_config(args.config)
@@ -77,15 +88,16 @@ def main() -> None:
     device = torch.device("cuda" if torch.cuda.is_available() and cfg["experiment"].get("device") != "cpu" else "cpu")
     agent = PEARLAgent(int(cfg["environment"]["observation_dim"]), int(cfg["environment"]["action_dim"]), cfg, device)
     checkpoint = load_checkpoint(args.checkpoint, agent, device)
-    # Support policies sample posterior latents.  Restore the checkpoint RNG
-    # before evaluation so a frozen checkpoint/taskbook/casebook triple has a
-    # reproducible few-shot trajectory and cannot vary across CLI invocations.
     rng_state = checkpoint["rng_state"]
-    torch.set_rng_state(torch.as_tensor(rng_state["torch"], dtype=torch.uint8, device="cpu").clone())
-    if torch.cuda.is_available() and rng_state.get("cuda") is not None:
-        torch.cuda.set_rng_state_all(
-            [torch.as_tensor(state, dtype=torch.uint8, device="cpu").clone() for state in rng_state["cuda"]]
-        )
+
+    def restore_evaluation_rng() -> None:
+        # Every split/mode starts from the same checkpoint RNG. Support
+        # trajectories are therefore paired across query execution modes.
+        torch.set_rng_state(torch.as_tensor(rng_state["torch"], dtype=torch.uint8, device="cpu").clone())
+        if torch.cuda.is_available() and rng_state.get("cuda") is not None:
+            torch.cuda.set_rng_state_all(
+                [torch.as_tensor(state, dtype=torch.uint8, device="cpu").clone() for state in rng_state["cuda"]]
+            )
     if bool(checkpoint.get("no_topology_ablation", False)) != bool(args.no_topology):
         raise ValueError("checkpoint topology-ablation mode does not match evaluation mode")
     if bool(checkpoint.get("no_context_training", False)) != bool(
@@ -96,16 +108,8 @@ def main() -> None:
     expected_hash = content_hash(taskbook_payload(taskbook))
     if checkpoint["taskbook_hash"] != expected_hash:
         raise ValueError("checkpoint was trained with a different frozen taskbook")
-    tasks = taskbook[args.split][:1] if args.smoke else taskbook[args.split]
-    casebooks = {task.task_id: load_casebook(task, args.casebook_root) for task in tasks}
     manifest_path = Path(args.checkpoint).with_suffix(".manifest.json")
     checkpoint_hash = json.loads(manifest_path.read_text(encoding="utf-8"))["checkpoint_hash"]
-    if args.validation_freeze_manifest and args.split != "meta_validation":
-        verify_validation_freeze(
-            json.loads(Path(args.validation_freeze_manifest).read_text(encoding="utf-8")),
-            taskbook_hash=expected_hash,
-            checkpoint_hash=checkpoint_hash,
-        )
     root = Path(cfg["project"]["output_root"]) / ("smoke" if args.smoke else "evaluations") / args.split / args.run_name
     provenance = {
         "git_commit": checkpoint["git_commit"],
@@ -117,23 +121,55 @@ def main() -> None:
         "no_context_training": bool(checkpoint.get("no_context_training", False)),
         "evaluation_rng": "checkpoint_rng_state",
     }
-    result = evaluate_fewshot(
-        agent,
-        cfg,
-        tasks,
-        casebooks,
-        args.split,
-        args.query_cases,
-        provenance,
-        args.support_selection,
-        args.adaptation_mode,
-        args.query_latent_mode,
-        args.query_route_mode,
-        args.knockout_expert,
-        args.mechanism_audit,
+    splits = (
+        list(cfg["evaluation"]["report_splits"])
+        if args.split == "meta_test_all"
+        else [args.split]
     )
-    write_json(root / "metrics.json", compact_fewshot_result(result))
-    print(f"no-gradient few-shot result: {root / 'metrics.json'}")
+    modes = args.query_execution_mode or list(cfg["evaluation"]["query_execution_modes"])
+    if len(set(modes)) != len(modes) or not modes:
+        raise ValueError("query execution modes must be non-empty and unique")
+    suite: dict[str, object] = {
+        "schema": "pearl_fewshot_evaluation_suite",
+        "split": args.split,
+        "checkpoint_schema": checkpoint["schema"],
+        "taskbook_hash": expected_hash,
+        "query_execution_modes": list(modes),
+        "evaluation_regimes": {},
+    }
+    regimes = suite["evaluation_regimes"]
+    for split in splits:
+        if args.validation_freeze_manifest and split != "meta_validation":
+            verify_validation_freeze(
+                json.loads(Path(args.validation_freeze_manifest).read_text(encoding="utf-8")),
+                taskbook_hash=expected_hash,
+                checkpoint_hash=checkpoint_hash,
+            )
+        tasks = taskbook[split][:1] if args.smoke else taskbook[split]
+        casebooks = {task.task_id: load_casebook(task, args.casebook_root) for task in tasks}
+        regime = evaluation_regime(split)
+        regimes[regime] = {"split": split, "query_modes": {}}
+        for mode in modes:
+            restore_evaluation_rng()
+            result = evaluate_fewshot(
+                agent,
+                cfg,
+                tasks,
+                casebooks,
+                split,
+                args.query_cases,
+                {**provenance, "query_execution_mode": mode, "evaluation_regime": regime},
+                args.support_selection,
+                args.adaptation_mode,
+                args.query_latent_mode,
+                args.query_route_mode,
+                args.knockout_expert,
+                args.mechanism_audit,
+                mode,
+            )
+            regimes[regime]["query_modes"][mode] = compact_fewshot_result(result)
+    write_json(root / "metrics.json", suite)
+    print(f"paired ID/OOD few-shot result: {root / 'metrics.json'}")
 
 
 if __name__ == "__main__":

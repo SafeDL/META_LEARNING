@@ -21,14 +21,20 @@ from pearl_learning.src.evaluator import (
     _posterior_action_disagreement,
     _posterior_context,
     compact_fewshot_result,
+    evaluation_regime,
     infer_support_posteriors,
 )
 from pearl_learning.src.io import read_config
 from pearl_learning.src.io import content_hash, write_json
-from pearl_learning.src.metrics import summarize
+from pearl_learning.src.metrics import EpisodeMetrics, summarize
 from pearl_learning.src.pearl_agent import PEARLAgent
-from pearl_learning.src.replay import TaskReplayBuffer, Transition
-from pearl_learning.src.reward import compute_reward
+from pearl_learning.src.pearl_trainer import _sample_tasks_without_replacement
+from pearl_learning.src.replay import TaskReplayBuffer, TaskReplayBuffers, Transition
+from pearl_learning.src.reward import (
+    compute_reward,
+    required_invalid_event_penalty,
+    validate_reward_contract,
+)
 from pearl_learning.src.observation import OBS_FIELDS, build_observation
 from pearl_learning.src.routes import RoutePolyline, wrap_to_pi
 from pearl_learning.src.task_spec import LogicalScenarioTaskSpec
@@ -38,7 +44,7 @@ from pearl_learning.src.task_representation import (
     configure_disentangled_representation,
     representation_target,
 )
-from pearl_learning.src.task_env import target_contact_matches_rule
+from pearl_learning.src.task_env import compose_route_tracking_action, target_contact_matches_rule
 from pearl_learning.src.taskbook import build_taskbook, taskbook_payload
 from pearl_learning.src.casebook import (
     build_casebook,
@@ -54,7 +60,14 @@ from pearl_learning.scripts.run_equal_budget_analysis import _case_groups, _sele
 from pearl_learning.scripts.build_transferability_taskbook import extend_validation_catalog
 from pearl_learning.scripts.run_formal_baseline_suite import baseline_commands
 from pearl_learning.scripts.audit_task_heterogeneity import heterogeneity_report
-from pearl_learning.scripts.run_baselines import _latest_sac_checkpoint
+from pearl_learning.scripts.run_baselines import (
+    _bind_training_protocol,
+    _latest_sac_checkpoint,
+    _partial_payload,
+    _partial_protocol_matches,
+)
+from pearl_learning.scripts.select_per_task_sac_checkpoints import selection_key
+from pearl_learning.scripts.select_pooled_sac_checkpoint import aggregate_key
 
 
 def transition(episode: str, terminated: bool = False, truncated: bool = False) -> Transition:
@@ -107,11 +120,90 @@ class ContractTests(unittest.TestCase):
         self.assertAlmostEqual(projection.heading_error, -0.2, places=5)
         self.assertAlmostEqual(wrap_to_pi(3 * np.pi), -np.pi, places=5)
 
+    def test_route_builder_smooths_required_lane_change_instead_of_lateral_teleport(self):
+        class Lane:
+            length = 20.0
+            def __init__(self, x, y): self.x, self.y = x, y
+            def position(self, s, lateral): return np.asarray([self.x + s, self.y + lateral], dtype=float)
+        lanes = {
+            ("a", "b", 0): Lane(0.0, 0.0),
+            ("b", "c", 0): Lane(20.0, 3.5),
+        }
+        graph = type("Road", (), {"get_lane": lambda self, index: lanes[index]})()
+        env = type("Env", (), {"current_map": type("Map", (), {"road_network": graph})()})()
+        route = RoutePolyline.from_env(env, {
+            "route_id": "lane_change",
+            "lane_sequence": [["a", "b", 0], ["b", "c", 0]],
+        })
+        segments = np.diff(route.points, axis=0)
+        headings = np.unwrap(np.arctan2(segments[:, 1], segments[:, 0]))
+        self.assertLess(float(np.max(np.linalg.norm(segments, axis=1))), 1.0)
+        self.assertLess(float(np.max(np.abs(np.diff(headings)))), 0.5)
+        self.assertTrue(np.allclose(route.points[0], [0.0, 0.0]))
+        self.assertTrue(np.allclose(route.points[-1], [40.0, 3.5]))
+        self.assertEqual(len(route.lane_change_intervals_m), 1)
+        self.assertTrue(route.in_lane_change(sum(route.lane_change_intervals_m[0]) / 2.0))
+
     def test_marking_violation_is_separate_from_wrong_route_penalty(self):
         events = {"lane_marking_violation": True, "wrong_route": False}
         reward = compute_reward(5.0, 50.0, np.zeros(2), np.zeros(2), events, self.config["reward"])
         self.assertEqual(reward.wrong_route, 0.0)
         self.assertEqual(reward.lane_marking_violation, 0.0)
+
+    def test_dense_rule_and_route_shaping_is_bounded_and_rule_sensitive(self):
+        reward = compute_reward(
+            5.0, 50.0, np.zeros(2), np.zeros(2), {}, self.config["reward"],
+            {"route_progress": 3.0, "priority_alignment": -2.0, "route_deviation": 1.5},
+        )
+        self.assertAlmostEqual(reward.route_progress, self.config["reward"]["route_progress_weight"])
+        self.assertAlmostEqual(reward.priority_alignment, -self.config["reward"]["priority_alignment_weight"])
+        self.assertAlmostEqual(reward.route_deviation, -1.5 * self.config["reward"]["route_deviation_weight"])
+        required = required_invalid_event_penalty(self.config["reward"], self.config["environment"]["horizon"])
+        self.assertLess(required, self.config["reward"]["non_target_collision_penalty"])
+
+    def test_route_status_accepts_aligned_successor_only_at_route_completion(self):
+        adapter = DummyAdapter()
+        route = RoutePolyline(
+            (("a", "b", 0),),
+            np.asarray([[0.0, 0.0], [10.0, 0.0]], dtype=float),
+            np.asarray([0.0, 10.0], dtype=float),
+            (10.0,),
+        )
+        adapter._routes = {"sut": route}
+        graph = {"a": {"b": []}, "b": {"c": []}, "x": {"y": []}}
+        env = type("Env", (), {"current_map": type("Map", (), {"road_network": type("Road", (), {"graph": graph})()})()})()
+        lane = type("Lane", (), {"width": 3.8})()
+        completed = type("Vehicle", (), {
+            "position": np.asarray([10.1, 0.0]), "heading_theta": 0.0,
+            "lane_index": ("b", "c", 0), "lane": lane, "LENGTH": 5.0,
+        })()
+        progress, wrong, route_complete = adapter.route_status(env, completed, "sut", 9.0)
+        self.assertAlmostEqual(progress, 10.0)
+        self.assertFalse(wrong)
+        self.assertTrue(route_complete)
+
+        final_planned_lane = type("Vehicle", (), {
+            "position": np.asarray([9.0, 0.0]), "heading_theta": 0.0,
+            "lane_index": ("a", "b", 0), "lane": lane, "LENGTH": 5.0,
+        })()
+        _, wrong, route_complete = adapter.route_status(env, final_planned_lane, "sut", 8.0)
+        self.assertFalse(wrong)
+        self.assertTrue(route_complete)
+
+        mid_route_branch = type("Vehicle", (), {
+            "position": np.asarray([5.0, 0.0]), "heading_theta": 0.0,
+            "lane_index": ("x", "y", 0), "lane": lane, "LENGTH": 5.0,
+        })()
+        _, wrong, route_complete = adapter.route_status(env, mid_route_branch, "sut", 4.0)
+        self.assertTrue(wrong)
+        self.assertFalse(route_complete)
+
+        adapter._routes["sut"] = RoutePolyline(
+            route.lane_indices, route.points, route.arc_lengths_m, route.lane_end_s_m, ((4.0, 8.0),),
+        )
+        _, wrong, route_complete = adapter.route_status(env, mid_route_branch, "sut", 4.0)
+        self.assertFalse(wrong)
+        self.assertFalse(route_complete)
 
     def test_observation_priority_features_are_complementary(self):
         route = RoutePolyline((("a", "b", 0),), np.asarray([[0.0, 0.0], [20.0, 0.0]]), np.asarray([0.0, 20.0]), (20.0,))
@@ -150,6 +242,53 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(target_contact_matches_rule(entry_rule, 0.0, 0.0, "adversary"))
         self.assertFalse(target_contact_matches_rule(entry_rule, 0.0, 0.0, "sut"))
 
+    def test_low_ttc_is_strict_success_only_when_hidden_rule_is_satisfied(self):
+        events = {
+            "target_collision": False,
+            "physical_critical_proximity": True,
+            "rule_satisfied_critical_proximity": False,
+            "non_target_collision": False,
+            "adversary_out_of_road": False,
+            "sut_out_of_road": False,
+            "wrong_route": False,
+            "lane_marking_violation": False,
+        }
+        metrics = EpisodeMetrics("task", "case")
+        metrics.update(0.0, 1.0, 3.0, events, "no_pairwise_contact")
+        wrong_rule = metrics.record(1.5)
+        self.assertTrue(wrong_rule["physical_critical"])
+        self.assertFalse(wrong_rule["critical"])
+        self.assertFalse(wrong_rule["valid_critical_strict"])
+
+        events["rule_satisfied_critical_proximity"] = True
+        metrics.update(0.0, 1.0, 3.0, events, "no_pairwise_contact")
+        matched_rule = metrics.record(1.5)
+        self.assertTrue(matched_rule["critical"])
+        self.assertTrue(matched_rule["valid_critical_strict"])
+
+    def test_rule_satisfied_near_miss_receives_the_success_bonus(self):
+        cfg = self.config["reward"]
+        events = {"rule_satisfied_critical_proximity": True}
+        reward = compute_reward(
+            1.0, 3.0, np.zeros(2), np.zeros(2), events, cfg,
+        )
+        self.assertEqual(reward.target_collision, float(cfg["target_collision_bonus"]))
+
+    def test_route_tracker_preserves_throttle_and_bounds_steering_residual(self):
+        config = {"control": {"route_tracking": {
+            "enabled": True, "heading_gain": 1.5,
+            "lateral_gain": 0.12, "residual_scale": 0.25,
+        }}}
+        applied = compose_route_tracking_action(
+            np.asarray([0.4, -0.3], dtype=np.float32), 0.2, 0.5, config,
+        )
+        self.assertAlmostEqual(float(applied[0]), 1.5 * 0.2 - 0.12 * 0.5 + 0.25 * 0.4)
+        self.assertAlmostEqual(float(applied[1]), -0.3)
+        saturated = compose_route_tracking_action(
+            np.asarray([1.0, 0.2], dtype=np.float32), 2.0, -5.0, config,
+        )
+        self.assertEqual(float(saturated[0]), 1.0)
+
     def test_episode_balanced_context_preserves_episode_provenance(self):
         buffer = TaskReplayBuffer()
         first = [transition("episode-a") for _ in range(2)]; first[-1] = transition("episode-a", terminated=True)
@@ -165,12 +304,79 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(episodes["episode-b"].truncated)
         self.assertEqual(episodes["episode-b"].termination_reason, "horizon")
 
-    def test_context_encoder_pools_episode_before_gaussian_product(self):
-        encoder = ContextEncoder(4, 2, [8])
-        mu, log_var = encoder(torch.zeros((2, 3, 4, 4)))
-        self.assertEqual(tuple(mu.shape), (2, 2)); self.assertEqual(tuple(log_var.shape), (2, 2))
+    def test_transition_product_is_invariant_to_episode_regrouping(self):
+        torch.manual_seed(11)
+        encoder = ContextEncoder(4, 2, [8], aggregation="transition_product")
+        rows = torch.randn((2, 1, 12, 4))
+        first_mu, first_log_var = encoder(rows)
+        second_mu, second_log_var = encoder(rows.reshape(2, 3, 4, 4))
+        self.assertTrue(torch.allclose(first_mu, second_mu))
+        self.assertTrue(torch.allclose(first_log_var, second_log_var))
+        self.assertEqual(tuple(first_mu.shape), (2, 2))
         with self.assertRaises(ValueError):
             encoder(torch.zeros((2, 3, 4)))
+
+    def test_episode_product_is_an_explicit_non_default_ablation(self):
+        encoder = ContextEncoder(4, 2, [8], aggregation="episode_product")
+        self.assertEqual(encoder.aggregation, "episode_product")
+        with self.assertRaises(ValueError):
+            ContextEncoder(4, 2, [8], aggregation="implicit_pooling")
+
+    def test_recent_context_buffer_is_bounded_and_rl_batch_is_disjoint(self):
+        buffers = TaskReplayBuffers(["task"], recent_context_episodes=2)
+        for index in range(3):
+            rows = [transition(f"episode-{index}"), transition(f"episode-{index}", truncated=True)]
+            buffers.add_episode("task", rows)
+        self.assertEqual(len(buffers.buffers["task"].episodes), 3)
+        self.assertEqual(
+            [episode.episode_id for episode in buffers.recent_context_buffers["task"].episodes],
+            ["episode-1", "episode-2"],
+        )
+        contexts = buffers.context_per_task(["task"], 4, 2, np.random.default_rng(2))
+        context_ids = {group[0].episode_id for group in contexts[0]}
+        self.assertEqual(context_ids, {"episode-1", "episode-2"})
+        rl_batch = buffers.sample_per_task_excluding_context(
+            ["task"], contexts, 16, np.random.default_rng(3),
+        )[0]
+        self.assertTrue(all(row.episode_id == "episode-0" for row in rl_batch))
+        buffers.clear_recent_context()
+        self.assertFalse(buffers.recent_context_buffers["task"].episodes)
+
+    def test_invalid_event_penalties_dominate_maximum_positive_episode_return(self):
+        reward_cfg = self.config["reward"]
+        horizon = int(self.config["environment"]["horizon"])
+        required = required_invalid_event_penalty(reward_cfg, horizon)
+        expected = reward_cfg["target_collision_bonus"] + horizon * sum(
+            reward_cfg[key] for key in (
+                "ttc_weight", "proximity_weight", "route_progress_weight", "priority_alignment_weight",
+            )
+        ) + reward_cfg["invalid_penalty_margin"]
+        self.assertAlmostEqual(required, expected)
+        self.assertEqual(validate_reward_contract(reward_cfg, horizon), required)
+        weak = copy.deepcopy(reward_cfg)
+        weak["wrong_route_penalty"] = required - 0.01
+        with self.assertRaises(ValueError):
+            validate_reward_contract(weak, horizon)
+        no_margin = copy.deepcopy(reward_cfg)
+        no_margin["invalid_penalty_margin"] = 0.0
+        with self.assertRaises(ValueError):
+            validate_reward_contract(no_margin, horizon)
+
+    def test_meta_batch_sampling_has_no_duplicate_tasks(self):
+        tasks = list(range(10))
+        sampled = _sample_tasks_without_replacement(tasks, 6, np.random.default_rng(8))
+        self.assertEqual(len(sampled), 6)
+        self.assertEqual(len(set(sampled)), 6)
+        saturated = _sample_tasks_without_replacement(tasks, 20, np.random.default_rng(9))
+        self.assertEqual(set(saturated), set(tasks))
+        with self.assertRaises(ValueError):
+            _sample_tasks_without_replacement(tasks, 0, np.random.default_rng(10))
+
+    def test_evaluation_regimes_separate_id_and_ood_logical_types(self):
+        self.assertEqual(evaluation_regime("meta_test_template"), "id_known_logical_type")
+        self.assertEqual(evaluation_regime("meta_test_logical"), "ood_unseen_logical_type")
+        with self.assertRaises(ValueError):
+            evaluation_regime("meta_test")
 
     def test_empty_context_prior_is_exact_unit_normal(self):
         agent = PEARLAgent(37, 2, self.config, torch.device("cpu"))
@@ -209,23 +415,15 @@ class ContractTests(unittest.TestCase):
             [first],
             [first_block],
             [first_audit],
-            protocol="fixed_nested_v1",
             total_size=64,
             per_episode=32,
-            base_seed=17,
-            task_id="task",
-            shot=0,
         )
         context_two, audit_two = _posterior_context(
             [first, second],
             [first_block, second_block],
             [first_audit, second_audit],
-            protocol="fixed_nested_v1",
             total_size=64,
             per_episode=32,
-            base_seed=17,
-            task_id="task",
-            shot=1,
         )
         self.assertEqual(len(context_one), 1)
         self.assertEqual(len(context_two), 2)
@@ -368,9 +566,11 @@ class ContractTests(unittest.TestCase):
         cross = " ".join(commands["cross_task_policy_matrix"]).replace("\\", "/")
         finetune = " ".join(commands["pooled_finetune_sac"]).replace("\\", "/")
         pooled = " ".join(commands["topology_conditioned_pooled_sac"])
+        oracle = " ".join(commands["oracle_task_conditioned_sac"])
         self.assertIn("baselines/per_task_sac/policies", cross)
         self.assertIn("baselines/topology_conditioned_pooled_sac/model.zip", finetune)
         self.assertIn("--pooled-steps-per-task 5000", pooled)
+        self.assertIn("--pooled-steps-per-task 5000", oracle)
         self.assertIn("--checkpoint-interval-steps 1000", " ".join(commands["per_task_sac"]))
 
     def test_heterogeneity_audit_aggregates_distinct_seed_roots_without_records(self):
@@ -434,6 +634,49 @@ class ContractTests(unittest.TestCase):
                 open(os.path.join(root, f"task_{step}_steps.zip"), "wb").close()
             latest = _latest_sac_checkpoint(Path(root), "task")
         self.assertEqual(latest.name, "task_15000_steps.zip")
+
+    def test_partial_baseline_metrics_are_invalidated_when_budget_changes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "partial.json"
+            write_json(path, {
+                "protocol": {"environment_steps": 5000, "seed": 11},
+                "tasks": {"task": {"summary": {"valid_critical_strict_rate": 0.5}}},
+            })
+            old = {"environment_steps": 5000, "seed": 11}
+            new = {"environment_steps": 20000, "seed": 11}
+            self.assertIn("task", _partial_payload(path, old, True, "tasks"))
+            self.assertTrue(_partial_protocol_matches(path, old, True))
+            self.assertEqual(_partial_payload(path, new, True, "tasks"), {})
+            self.assertFalse(_partial_protocol_matches(path, new, True))
+
+    def test_baseline_resume_rejects_unbound_or_incompatible_code_semantics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "model.zip").write_bytes(b"checkpoint")
+            with self.assertRaises(SystemExit):
+                _bind_training_protocol(root, {"implementation_hash": "current"}, True)
+            _bind_training_protocol(root, {"implementation_hash": "old"}, False)
+            with self.assertRaises(SystemExit):
+                _bind_training_protocol(root, {"implementation_hash": "current"}, True)
+            _bind_training_protocol(root, {"implementation_hash": "old"}, True)
+
+    def test_per_task_checkpoint_selection_uses_validation_primary_metric(self):
+        weak = {"valid_critical_strict_rate": 0.2, "invalid_rate": 0.0, "mean_episode_return": 10.0}
+        strong = {"valid_critical_strict_rate": 0.3, "invalid_rate": 0.2, "mean_episode_return": -10.0}
+        self.assertGreater(selection_key(strong, 10000), selection_key(weak, 5000))
+        valid = {"valid_critical_strict_rate": 0.3, "invalid_rate": 0.0, "mean_episode_return": 0.0}
+        self.assertGreater(selection_key(valid, 10000), selection_key(strong, 5000))
+        self.assertGreater(selection_key(valid, 5000), selection_key(valid, 10000))
+
+    def test_pooled_checkpoint_selection_aggregates_validation_tasks(self):
+        metrics = {
+            "a": {"summary": {"valid_critical_strict_rate": 0.2, "invalid_rate": 0.1, "mean_episode_return": 1.0}},
+            "b": {"summary": {"valid_critical_strict_rate": 0.4, "invalid_rate": 0.3, "mean_episode_return": 3.0}},
+        }
+        actual = aggregate_key(metrics, 5000)
+        self.assertAlmostEqual(actual[0], 0.3)
+        self.assertAlmostEqual(actual[1], -0.2)
+        self.assertEqual(actual[2:], (2.0, -5000))
 
     def test_compact_fewshot_result_removes_episode_records(self):
         result = {"split": "meta_test_logical", "parameter_hash_before": "same", "parameter_hash_after": "same", "no_gradient_adaptation": True, "no_topology_ablation": False, "context_protocol": {}, "provenance": {}, "tasks": {"task": {"5": {"summary": {"valid_critical_strict_rate": 0.6}, "records": [{"case_id": "query"}], "support_environment_steps": 57}}}}
@@ -648,6 +891,28 @@ class ContractTests(unittest.TestCase):
         evaluations["random"]["provenance"]["checkpoint_hash"] = "other"
         with self.assertRaises(ValueError):
             freeze_validation_protocol(taskbook_hash="frozen", evaluations=evaluations, required_policies=policies)
+
+    def test_validation_freeze_selects_deterministic_mean_from_current_suite(self):
+        selected = {
+            "split": "meta_validation", "support_selection": "fixed",
+            "no_gradient_adaptation": True,
+            "parameter_hash_before": "same", "parameter_hash_after": "same",
+            "provenance": {"taskbook_hash": "frozen", "checkpoint_hash": "checkpoint"},
+        }
+        suite = {
+            "schema": "pearl_fewshot_evaluation_suite",
+            "evaluation_regimes": {
+                "validation_known_logical_type": {
+                    "split": "meta_validation",
+                    "query_modes": {"posterior_mean_deterministic": selected},
+                },
+            },
+        }
+        frozen = freeze_validation_protocol(
+            taskbook_hash="frozen", evaluations={"fixed": suite},
+            required_policies=["fixed"],
+        )
+        self.assertEqual(frozen["checkpoint_hash"], "checkpoint")
 
     def test_transferability_candidate_catalog_has_eight_disjoint_validation_tasks(self):
         expanded = extend_validation_catalog(self.config, [36.0, 44.0, 52.0])

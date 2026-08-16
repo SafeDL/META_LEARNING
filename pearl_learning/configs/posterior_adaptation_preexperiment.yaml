@@ -1,0 +1,12 @@
+extends: posterior_adaptation_single_seed.yaml
+
+# Validation-only diagnostic schedule. It is intentionally not resumable into
+# the formal run because the resolved configuration hash is different.
+meta_training:
+  validation_interval_steps: 25000
+
+# Environment returns remain unscaled for reporting. This diagnostic asks
+# whether Bellman-target normalization cures the first pilot's critic-scale
+# instability; it is not part of the formal configuration unless validated.
+pearl:
+  critic_reward_scale: 0.005

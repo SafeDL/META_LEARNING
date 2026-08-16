@@ -60,8 +60,8 @@ def validate_evaluation_artifact(
     if payload.get("support_selection") != "fixed":
         problems.append("support_selection_is_not_fixed")
     context = payload.get("context_protocol", {})
-    if not isinstance(context, Mapping) or context.get("name") != "fixed_nested_v1":
-        problems.append("context_protocol_is_not_fixed_nested_v1")
+    if not isinstance(context, Mapping) or context.get("name") != "fixed_nested":
+        problems.append("context_protocol_is_not_fixed_nested")
     if payload.get("parameter_hash_before") != payload.get("parameter_hash_after"):
         problems.append("parameter_hash_changed")
     if payload.get("module_hashes_before") != payload.get("module_hashes_after"):

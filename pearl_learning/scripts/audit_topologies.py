@@ -47,6 +47,28 @@ def audit_task(task: Any, cfg: dict[str, Any], case: dict[str, Any]) -> dict[str
         stable_ids = all(tuple(row["ids"]) == tuple(first["role_ids"]) for row in trace)
         natural_wrong = any(row["wrong_route"] for row in trace)
         replayable = len(trace) == len(replay) and all(abs(a["adv_s"] - b["adv_s"]) <= 1e-5 and abs(a["sut_s"] - b["sut_s"]) <= 1e-5 for a, b in zip(trace, replay))
+        route_geometry = []
+        for role in ("adversary", "sut"):
+            # Reconstruct once from the trusted replay environment so a frozen
+            # lane-centre discontinuity cannot hide beyond the short trace.
+            wrapped = LogicalMergeEnv(task, cfg, [case])
+            try:
+                wrapped.reset(options={"case": case})
+                route = wrapped._frame[f"{role}_route"]
+                segments = np.diff(route.points, axis=0)
+                lengths = np.linalg.norm(segments, axis=1)
+                headings = np.unwrap(np.arctan2(segments[:, 1], segments[:, 0]))
+                route_geometry.append({
+                    "role": role,
+                    "max_segment_m": float(lengths.max()),
+                    "max_heading_jump_rad": float(np.max(np.abs(np.diff(headings)))) if len(headings) > 1 else 0.0,
+                })
+            finally:
+                wrapped.close()
+        smooth_route_geometry = all(
+            row["max_segment_m"] <= 3.0 and row["max_heading_jump_rad"] <= 0.5
+            for row in route_geometry
+        )
         checks = {
             "map_hash_matches_taskbook": first["map_hash"] == task.map_hash,
             "conflict_route_constructed": bool(first["conflict_frame"]),
@@ -56,8 +78,9 @@ def audit_task(task: Any, cfg: dict[str, Any], case: dict[str, Any]) -> dict[str
             "role_ids_stable": stable_ids,
             "case_trace_replayable": replayable,
             "observation_contract": first["observation_shape"] == [37] and first["observation_finite"],
+            "smooth_route_geometry": smooth_route_geometry,
         }
-        return {**first, "checks": checks, "status": "pass" if all(checks.values()) else "fail"}
+        return {**first, "route_geometry": route_geometry, "checks": checks, "status": "pass" if all(checks.values()) else "fail"}
     except Exception as exc:
         return {"task_id": task.task_id, "geometry_id": task.geometry_id, "status": "fail", "error": f"{type(exc).__name__}: {exc}"}
 

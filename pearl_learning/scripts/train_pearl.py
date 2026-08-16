@@ -24,11 +24,6 @@ def main() -> None:
         action="store_true",
         help="explicitly authorize a non-smoke training run after a separate resource plan has been approved",
     )
-    run_mode.add_argument(
-        "--diagnostic-run",
-        action="store_true",
-        help="run the complete meta-train split for a declared non-formal diagnostic; never unlocks formal adaptation validation",
-    )
     parser.add_argument("--formal-validation")
     parser.add_argument("--output-root")
     parser.add_argument("--resume-checkpoint")
@@ -43,8 +38,8 @@ def main() -> None:
     parser.add_argument("--rule-aux-weight", type=float, default=0.1)
     args = parser.parse_args()
     cfg = read_config(args.config)
-    if args.diagnostic_run:
-        cfg["experiment"] = {**cfg["experiment"], "run_kind": "medium_diagnostic"}
+    run_kind = "smoke" if args.smoke else "formal"
+    cfg["experiment"] = {**cfg["experiment"], "run_kind": run_kind}
     if args.output_root:
         cfg["project"] = {**cfg["project"], "output_root": args.output_root}
     if args.no_topology:
@@ -83,7 +78,6 @@ def main() -> None:
         args.seed,
         args.run_name,
         args.smoke,
-        args.diagnostic_run,
         args.formal_validation,
         args.resume_checkpoint,
         args.checkpoint_interval_steps,

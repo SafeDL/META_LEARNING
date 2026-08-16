@@ -9,6 +9,13 @@ environment:
 sut:
   enable_lane_change: false
   target_speed_mps: 12.0
+control:
+  route_tracking:
+    enabled: true
+    lookahead_m: 10.0
+    heading_gain: 1.5
+    lateral_gain: 0.12
+    residual_scale: 0.25
 cases:
   per_task:
     train_pool: 32
@@ -29,15 +36,25 @@ reward:
   ttc_dense_threshold: 3.0
   ttc_weight: 1.0
   proximity_weight: 0.1
+  route_progress_weight: 0.5
+  route_progress_clip_m: 1.0
+  priority_alignment_weight: 2.0
+  priority_alignment_time_scale_s: 2.0
+  priority_alignment_distance_scale_m: 20.0
+  route_deviation_weight: 0.2
   target_collision_bonus: 200.0
-  non_target_collision_penalty: 3.0
-  out_of_road_penalty: 5.0
-  wrong_route_penalty: 5.0
+  # 1000 > 200 + 180 * (1.0 + 0.1 + 0.5 + 2.0): every strict-invalid event
+  # dominates the maximum possible positive episode reward.
+  invalid_penalty_margin: 1.0
+  non_target_collision_penalty: 1000.0
+  out_of_road_penalty: 1000.0
+  wrong_route_penalty: 1000.0
   lane_marking_penalty: 0.0
   action_l2_weight: 0.01
   action_smoothness_weight: 0.02
 pearl:
   latent_dim: 5
+  context_aggregation: transition_product
   context_reward_scale: 200.0
   context_batch_size: 256
   context_transitions_per_episode: 32
@@ -66,19 +83,33 @@ sac:
   batch_size: 256
 meta_training:
   meta_batch_size: 6
+  replay_capacity_transitions: 200000
+  recent_context_episodes_per_task: 16
+  context_refresh_interval_updates: 1000
   bootstrap_episodes_per_task: 5
   gradient_updates_per_iteration: 100
   total_environment_steps: 1500000
   validation_interval_steps: 100000
 evaluation:
+  critical_ttc_threshold: 1.5
+  conflict_arrival_gap_threshold_s: 1.5
+  conflict_lookahead_horizon_s: 3.0
   shots:
   - 0
   - 1
   - 2
-  - 5
-  - 10
+  - 4
+  - 8
   query_cases_per_task: 20
   context_sampling_seed: 20260721
+  context_protocol: fixed_nested
+  query_execution_modes:
+  - posterior_mean_deterministic
+  - posterior_sampled
+  selection_query_execution_mode: posterior_mean_deterministic
+  report_splits:
+  - meta_test_template
+  - meta_test_logical
 experiment:
   taskbook_seed: 7301
   device: auto

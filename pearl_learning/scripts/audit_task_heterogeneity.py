@@ -121,7 +121,7 @@ def heterogeneity_report(taskbook: Mapping[str, list[Any]], baseline_roots: list
         })
     mean_gap = float(np.mean([row["gap_mean"] for row in rows]))
     result = {
-        "schema": "logical_merge_task_heterogeneity_audit_v2",
+        "schema": "logical_merge_task_heterogeneity_audit",
         "taskbook_hash": taskbook_hash,
         "metric": "valid_critical_strict_rate",
         "minimum_gap": float(minimum_gap),

@@ -14,6 +14,9 @@ class EpisodeMetrics:
     episode_return: float = 0.0
     episode_length: int = 0
     target_collision: bool = False
+    physical_critical_proximity: bool = False
+    route_conflict_proximity: bool = False
+    rule_satisfied_critical_proximity: bool = False
     non_target_collision: bool = False
     adversary_out_of_road: bool = False
     sut_out_of_road: bool = False
@@ -42,10 +45,18 @@ class EpisodeMetrics:
             self.target_contact_method = contact_method
 
     def record(self, threshold: float) -> dict[str, object]:
-        critical = self.target_collision or self.min_ttc <= threshold
+        physical_critical = (
+            self.target_collision or self.physical_critical_proximity
+        )
+        # A low-TTC encounter is a task success only when it realizes the
+        # hidden interaction rule.  Otherwise one policy can score on both
+        # members of an opposite-rule pair without identifying the task.
+        critical = self.target_collision or self.rule_satisfied_critical_proximity
         data = asdict(self)
         invalid = self.non_target_collision or self.adversary_out_of_road or self.sut_out_of_road or self.wrong_route
         data["critical"] = critical
+        data["physical_critical"] = physical_critical
+        data["critical_rule_satisfied"] = critical
         data["valid"] = not invalid
         data["invalid"] = invalid
         data["valid_critical_strict"] = critical and bool(data["valid"])
@@ -54,6 +65,9 @@ class EpisodeMetrics:
 
 EVENT_FIELDS = (
     "target_collision",
+    "physical_critical_proximity",
+    "route_conflict_proximity",
+    "rule_satisfied_critical_proximity",
     "non_target_collision",
     "adversary_out_of_road",
     "sut_out_of_road",

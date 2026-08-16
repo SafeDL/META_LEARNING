@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -71,6 +72,36 @@ def _save_metrics(output: Path, payload: Mapping[str, Any]) -> Path:
     return output
 
 
+def _implementation_hash() -> str:
+    """Fingerprint executable baseline/environment code, including dirty edits."""
+    package = Path(__file__).resolve().parents[1]
+    paths = sorted((package / "src").rglob("*.py")) + [Path(__file__).resolve()]
+    digest = hashlib.sha256()
+    for path in paths:
+        digest.update(path.relative_to(package).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _bind_training_protocol(root: Path, protocol: Mapping[str, Any], resume: bool) -> Path:
+    """Refuse to resume models trained under different code/data semantics."""
+    path = root / "training_protocol.json"
+    reusable_artifacts = root.exists() and any(
+        item.suffix == ".zip" or "partial" in item.name for item in root.rglob("*") if item.is_file()
+    )
+    if resume and reusable_artifacts:
+        if not path.exists():
+            raise SystemExit(f"refusing legacy resume without a bound training protocol: {root}")
+        existing = json.loads(path.read_text(encoding="utf-8"))
+        if existing != dict(protocol):
+            raise SystemExit(f"refusing incompatible baseline resume: {root}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(path, dict(protocol))
+    return path
+
+
 def _new_sac(env: Any, seed: int) -> Any:
     from stable_baselines3 import SAC
     return SAC("MlpPolicy", env, seed=seed, verbose=0)
@@ -84,6 +115,36 @@ def _latest_sac_checkpoint(root: Path, prefix: str) -> Path | None:
         suffix = path.stem.removeprefix(f"{prefix}_").removesuffix("_steps")
         return int(suffix)
     return max(candidates, key=steps)
+
+
+def _partial_payload(path: Path, protocol: Mapping[str, Any], resume: bool, field: str) -> dict[str, Any]:
+    """Load resumable metrics only when their complete protocol still matches.
+
+    A model can be continued to a larger step budget, but metrics collected
+    from the earlier model must never be relabelled as results from the larger
+    budget.  Legacy partial files have no protocol and are intentionally
+    invalidated here.
+    """
+    if not resume or not path.exists():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("protocol") != dict(protocol):
+        return {}
+    value = payload.get(field, {})
+    if not isinstance(value, dict):
+        raise ValueError(f"partial baseline field {field!r} must be a mapping")
+    return value
+
+
+def _partial_protocol_matches(path: Path, protocol: Mapping[str, Any], resume: bool) -> bool:
+    if not resume or not path.exists():
+        return False
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload.get("protocol") == dict(protocol)
+
+
+def _write_partial(path: Path, protocol: Mapping[str, Any], **payload: Any) -> Path:
+    return _save_metrics(path, {"protocol": dict(protocol), **payload})
 
 
 def _learn_sac(model: Any, total_steps: int, checkpoint_root: Path | None, checkpoint_prefix: str, checkpoint_interval_steps: int = 0) -> None:
@@ -132,6 +193,22 @@ def main() -> None:
     root = Path(args.output) / args.baseline
     artifacts: dict[str, str] = {}
     checkpoint_hash: str | None = None
+    partial_protocol = {
+        "taskbook_hash": taskbook_hash,
+        "config_hash": content_hash(cfg),
+        "casebook_hashes": case_hashes,
+        "seed": int(args.seed),
+        "environment_steps": int(args.env_steps),
+        "smoke": bool(args.smoke),
+        "implementation_hash": _implementation_hash(),
+    }
+    training_protocol = {
+        key: value for key, value in partial_protocol.items()
+        if key not in {"environment_steps"}
+    }
+    training_protocol["baseline"] = args.baseline
+    training_protocol_path = _bind_training_protocol(root, training_protocol, args.resume)
+    artifacts["training_protocol"] = str(training_protocol_path)
     training_budget: dict[str, int | str] = {"scope": "single_policy", "total_environment_steps": int(args.env_steps)}
 
     if args.baseline == "pearl_no_context":
@@ -164,7 +241,10 @@ def main() -> None:
             }
             policies: dict[str, Any] = {}
             partial_path = root / "per_task_partial_metrics.json"
-            partial_metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.baseline == "per_task_sac" and args.resume and partial_path.exists() else {}
+            partial_metrics = (
+                _partial_payload(partial_path, partial_protocol, args.resume, "tasks")
+                if args.baseline == "per_task_sac" else {}
+            )
             for index, task in enumerate(train_tasks):
                 env = LogicalMergeEnv(task, cfg, train_books[task.task_id]["train_pool"])
                 try:
@@ -179,7 +259,7 @@ def main() -> None:
                         checkpoint_root = root / "checkpoints" / task.task_id if args.baseline == "per_task_sac" and args.checkpoint_interval_steps else None
                         partial_checkpoint = _latest_sac_checkpoint(checkpoint_root, task.task_id) if args.baseline == "per_task_sac" and args.resume and checkpoint_root is not None else None
                         if args.baseline == "per_task_sac" and args.resume and target.exists():
-                            model = SAC.load(target, device="auto")
+                            model = SAC.load(target, env=env, device="auto")
                         elif args.baseline == "per_task_sac" and partial_checkpoint is not None:
                             model = SAC.load(partial_checkpoint, env=env, device="auto")
                         else:
@@ -198,7 +278,7 @@ def main() -> None:
                     env.close()
                 if args.baseline == "per_task_sac" and task.task_id not in partial_metrics:
                     partial_metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
-                    _save_metrics(partial_path, {"tasks": partial_metrics})
+                    _write_partial(partial_path, partial_protocol, tasks=partial_metrics)
                 if args.baseline == "per_task_sac":
                     del model
                     if torch.cuda.is_available():
@@ -207,13 +287,18 @@ def main() -> None:
                 artifacts["metrics"] = str(_save_metrics(root / "per_task_metrics.json", {"tasks": partial_metrics}))
             else:
                 partial_path = root / "cross_task_partial_matrix.json"
-                matrix = json.loads(partial_path.read_text(encoding="utf-8")).get("matrix", {}) if args.resume and partial_path.exists() else {}
+                matrix = _partial_payload(partial_path, partial_protocol, args.resume, "matrix")
                 for policy_id, model in policies.items():
                     rows = matrix.setdefault(policy_id, {})
                     for task in evaluation_tasks:
                         if task.task_id not in rows:
                             rows[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
-                            _save_metrics(partial_path, {"policy_tasks": list(policies), "evaluation_tasks": [item.task_id for item in evaluation_tasks], "matrix": matrix})
+                            _write_partial(
+                                partial_path, partial_protocol,
+                                policy_tasks=list(policies),
+                                evaluation_tasks=[item.task_id for item in evaluation_tasks],
+                                matrix=matrix,
+                            )
                 artifacts["matrix"] = str(_save_metrics(root / "cross_task_matrix.json", {"policy_tasks": list(policies), "evaluation_tasks": [task.task_id for task in evaluation_tasks], "matrix": matrix}))
 
         elif args.baseline in {"topology_conditioned_pooled_sac", "oracle_task_conditioned_sac"}:
@@ -229,10 +314,22 @@ def main() -> None:
             env = OracleTaskObservation(pooled, geometry_ids) if args.baseline == "oracle_task_conditioned_sac" else pooled
             try:
                 target = root / "model.zip"; target.parent.mkdir(parents=True, exist_ok=True)
+                checkpoint_root = root / "checkpoints" if args.checkpoint_interval_steps else None
+                partial_checkpoint = (
+                    _latest_sac_checkpoint(checkpoint_root, args.baseline)
+                    if args.resume and checkpoint_root is not None else None
+                )
                 if args.resume and target.exists():
                     model = SAC.load(target, env=env, device="auto")
+                elif partial_checkpoint is not None:
+                    model = SAC.load(partial_checkpoint, env=env, device="auto")
                 else:
-                    model = _new_sac(env, args.seed); model.learn(total_timesteps=pooled_total_steps); model.save(target)
+                    model = _new_sac(env, args.seed)
+                _learn_sac(
+                    model, pooled_total_steps, checkpoint_root, args.baseline,
+                    args.checkpoint_interval_steps,
+                )
+                model.save(target)
                 artifacts["model"] = str(target)
             finally:
                 env.close()
@@ -246,64 +343,104 @@ def main() -> None:
             # present in the same artifact.
             report_tasks = list(train_tasks) + evaluation_tasks if args.baseline == "topology_conditioned_pooled_sac" else evaluation_tasks
             partial_path = root / "pooled_partial_metrics.json"
-            metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.resume and partial_path.exists() else {}
+            pooled_protocol = {**partial_protocol, "pooled_total_environment_steps": pooled_total_steps}
+            metrics = _partial_payload(partial_path, pooled_protocol, args.resume, "tasks")
             for task in report_tasks:
                 if task.task_id not in metrics:
                     metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task), transform)
-                    _save_metrics(partial_path, {"tasks": metrics})
+                    _write_partial(partial_path, pooled_protocol, tasks=metrics)
             artifacts["metrics"] = str(_save_metrics(root / "pooled_metrics.json", {"tasks": metrics}))
 
         elif args.baseline == "scratch_sac":
+            training_budget = {
+                "scope": "heldout_task_independent",
+                "per_task_environment_steps": int(args.env_steps),
+                "task_count": len(evaluation_tasks),
+                "total_environment_steps": int(args.env_steps) * len(evaluation_tasks),
+            }
             partial_path = root / "scratch_partial_metrics.json"
-            metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.resume and partial_path.exists() else {}
+            metrics = _partial_payload(partial_path, partial_protocol, args.resume, "tasks")
             for index, task in enumerate(evaluation_tasks):
                 env = LogicalMergeEnv(task, cfg, casebooks[task.task_id]["test_support"])
                 target = root / "policies" / f"{task.task_id}.zip"
                 try:
                     if args.resume and target.exists():
-                        model = SAC.load(target, device="auto")
+                        model = SAC.load(target, env=env, device="auto")
                     else:
-                        model = _new_sac(env, args.seed + index); model.learn(total_timesteps=args.env_steps)
-                        target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
+                        model = _new_sac(env, args.seed + index)
+                    checkpoint_root = root / "checkpoints" / task.task_id if args.checkpoint_interval_steps else None
+                    _learn_sac(
+                        model, args.env_steps, checkpoint_root, task.task_id,
+                        args.checkpoint_interval_steps,
+                    )
+                    target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
                     artifacts[f"policy:{task.task_id}"] = str(target)
                 finally:
                     env.close()
                 if task.task_id not in metrics:
                     metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
-                    _save_metrics(partial_path, {"support_steps": args.env_steps, "tasks": metrics})
+                    _write_partial(partial_path, partial_protocol, support_steps=args.env_steps, tasks=metrics)
             artifacts["metrics"] = str(_save_metrics(root / "scratch_metrics.json", {"support_steps": args.env_steps, "tasks": metrics}))
 
         elif args.baseline == "pooled_finetune_sac":
-            pretrain_steps = int(args.pretrain_steps or args.env_steps)
             if args.pooled_pretrain_model:
                 base_path = Path(args.pooled_pretrain_model)
                 if not base_path.exists():
                     raise SystemExit(f"missing frozen pooled SAC checkpoint: {base_path}")
+                pretrain_steps = int(SAC.load(base_path, device="auto").num_timesteps)
                 artifacts["pooled_pretrain"] = str(base_path)
             else:
+                pretrain_steps = int(args.pretrain_steps or args.env_steps)
                 pooled = PooledLogicalMergeEnv(train_tasks, cfg, train_books, args.seed)
                 try:
                     base = _new_sac(pooled, args.seed); base.learn(total_timesteps=pretrain_steps)
                     base_path = root / "pooled_pretrain.zip"; base_path.parent.mkdir(parents=True, exist_ok=True); base.save(base_path); artifacts["pooled_pretrain"] = str(base_path)
                 finally:
                     pooled.close()
+            training_budget = {
+                "scope": "pooled_pretrain_plus_heldout_task_finetune",
+                "pooled_pretrain_environment_steps": pretrain_steps,
+                "per_task_finetune_environment_steps": int(args.env_steps),
+                "finetune_task_count": len(evaluation_tasks),
+                "total_finetune_environment_steps": int(args.env_steps) * len(evaluation_tasks),
+            }
             partial_path = root / "pooled_finetune_partial_metrics.json"
-            metrics = json.loads(partial_path.read_text(encoding="utf-8")).get("tasks", {}) if args.resume and partial_path.exists() else {}
+            finetune_protocol = {**partial_protocol, "pretrain_steps": pretrain_steps, "pooled_pretrain": str(base_path)}
+            metrics = _partial_payload(partial_path, finetune_protocol, args.resume, "tasks")
+            resume_finetuned = _partial_protocol_matches(
+                partial_path, finetune_protocol, args.resume,
+            )
             for index, task in enumerate(evaluation_tasks):
                 env = LogicalMergeEnv(task, cfg, casebooks[task.task_id]["test_support"])
                 target = root / "finetuned" / f"{task.task_id}.zip"
+                checkpoint_root = root / "checkpoints" / task.task_id if args.checkpoint_interval_steps else None
+                partial_checkpoint = (
+                    _latest_sac_checkpoint(checkpoint_root, task.task_id)
+                    if args.resume and checkpoint_root is not None else None
+                )
                 try:
-                    if args.resume and target.exists():
-                        model = SAC.load(target, device="auto")
+                    if resume_finetuned and target.exists():
+                        model = SAC.load(target, env=env, device="auto")
+                    elif partial_checkpoint is not None:
+                        model = SAC.load(partial_checkpoint, env=env, device="auto")
                     else:
-                        model = SAC.load(base_path, env=env, device="auto"); model.set_random_seed(args.seed + index); model.learn(total_timesteps=args.env_steps, reset_num_timesteps=False)
-                        target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
+                        model = SAC.load(base_path, env=env, device="auto")
+                        model.set_random_seed(args.seed + index)
+                    _learn_sac(
+                        model, pretrain_steps + int(args.env_steps),
+                        checkpoint_root,
+                        task.task_id, args.checkpoint_interval_steps,
+                    )
+                    target.parent.mkdir(parents=True, exist_ok=True); model.save(target)
                     artifacts[f"finetuned:{task.task_id}"] = str(target)
                 finally:
                     env.close()
                 if task.task_id not in metrics:
                     metrics[task.task_id] = _evaluate_sac(model, task, cfg, query_cases(task))
-                    _save_metrics(partial_path, {"pretrain_steps": pretrain_steps, "support_steps": args.env_steps, "tasks": metrics})
+                    _write_partial(
+                        partial_path, finetune_protocol,
+                        pretrain_steps=pretrain_steps, support_steps=args.env_steps, tasks=metrics,
+                    )
             artifacts["metrics"] = str(_save_metrics(root / "pooled_finetune_metrics.json", {"pretrain_steps": pretrain_steps, "support_steps": args.env_steps, "tasks": metrics}))
 
         else:
@@ -313,6 +450,7 @@ def main() -> None:
         args.output, name=args.baseline, taskbook_hash=taskbook_hash, seed=args.seed, env_steps=args.env_steps,
         smoke=args.smoke, artifacts=artifacts, config_hash=content_hash(cfg), casebook_hashes=case_hashes,
         checkpoint_hash=checkpoint_hash, training_budget=training_budget,
+        implementation_hash=str(partial_protocol["implementation_hash"]),
     )
 
 

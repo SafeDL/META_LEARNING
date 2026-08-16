@@ -29,12 +29,33 @@ def _training_context_episode_count(
     """Choose one shape-safe episode count shared by a meta-batch."""
     if not task_ids:
         raise ValueError("a training context batch requires at least one task")
-    available = min(len(buffers.buffers[task_id].episodes) for task_id in task_ids)
+    # Keep at least one full-replay episode outside the context so the SAC
+    # batch is strictly disjoint from the encoder evidence.
+    available = min(
+        min(
+            len(buffers.recent_context_buffers[task_id].episodes),
+            len(buffers.buffers[task_id].episodes) - 1,
+        )
+        for task_id in task_ids
+    )
     if available < 1:
         raise RuntimeError("all sampled tasks need at least one complete replay episode")
     upper = min(int(maximum), available)
     lower = min(int(minimum), upper)
     return int(rng.integers(lower, upper + 1))
+
+
+def _sample_tasks_without_replacement(
+    tasks: list[Any],
+    count: int,
+    rng: np.random.Generator,
+) -> list[Any]:
+    if not tasks:
+        raise ValueError("meta-training requires at least one task")
+    if int(count) < 1:
+        raise ValueError("meta-batch size must be positive")
+    size = min(len(tasks), int(count))
+    return list(rng.choice(tasks, size=size, replace=False))
 
 
 def train(
@@ -47,12 +68,11 @@ def train(
     seed: int,
     run_name: str,
     smoke: bool = False,
-    diagnostic_run: bool = False,
     formal_validation: str | None = None,
     resume_checkpoint: str | None = None,
     checkpoint_interval_steps: int | None = None,
 ) -> Path:
-    if not smoke and not diagnostic_run:
+    if not smoke:
         verify_formal_validation(formal_validation, taskbook_hash)
     rng = np.random.default_rng(seed)
     torch.manual_seed(seed)
@@ -91,7 +111,15 @@ def train(
     best_score = None
     validation_interval = int(config["meta_training"]["validation_interval_steps"])
     next_validation = validation_interval
-    buffers = TaskReplayBuffers([task.task_id for task in tasks])
+    buffers = TaskReplayBuffers(
+        [task.task_id for task in tasks],
+        capacity=int(config["meta_training"].get("replay_capacity_transitions", 200_000)),
+        recent_context_episodes=int(config["meta_training"]["recent_context_episodes_per_task"]),
+    )
+    context_refresh_interval = int(config["meta_training"]["context_refresh_interval_updates"])
+    if context_refresh_interval < 1:
+        raise ValueError("context_refresh_interval_updates must be positive")
+    next_context_refresh = context_refresh_interval
     if resume_checkpoint:
         checkpoint = load_checkpoint(resume_checkpoint, agent, device)
         if checkpoint["taskbook_hash"] != taskbook_hash or checkpoint["config_hash"] != content_hash(config):
@@ -107,6 +135,7 @@ def train(
         episode_counter = int(state["episode_counter"])
         best_score = state.get("best_score")
         next_validation = int(state["next_validation"])
+        next_context_refresh = int(state["next_context_refresh"])
         rng.bit_generator.state = checkpoint["rng_state"]["numpy_generator"]
         cpu_rng = torch.as_tensor(checkpoint["rng_state"]["torch"], dtype=torch.uint8, device="cpu").clone()
         torch.set_rng_state(cpu_rng)
@@ -135,6 +164,7 @@ def train(
             "episode_counter": episode_counter,
             "best_score": best_score,
             "next_validation": next_validation,
+            "next_context_refresh": next_context_refresh,
         }
 
     def save(path: Path) -> None:
@@ -255,23 +285,31 @@ def train(
     )
     updates_per_iteration = 1 if smoke else int(config["meta_training"]["gradient_updates_per_iteration"])
     while steps < max_env_steps:
-        sampled = [
-            tasks[int(rng.integers(len(tasks)))]
-            for _ in range(min(int(config["meta_training"]["meta_batch_size"]), len(tasks)))
-        ]
-        sampled = list({task.task_id: task for task in sampled}.values())
+        if gradient_updates >= next_context_refresh:
+            buffers.clear_recent_context()
+            while gradient_updates >= next_context_refresh:
+                next_context_refresh += context_refresh_interval
+        sampled = _sample_tasks_without_replacement(
+            tasks,
+            int(config["meta_training"]["meta_batch_size"]),
+            rng,
+        )
         for task in sampled:
             steps += collect_prior_posterior_pair(task)
             if steps >= max_env_steps:
                 break
-        ready = [task for task in tasks if len(buffers.buffers[task.task_id]) >= max(batch_size, 2)]
+        ready = [
+            task
+            for task in tasks
+            if len(buffers.buffers[task.task_id]) >= max(batch_size, 2)
+            and len(buffers.buffers[task.task_id].episodes) >= 2
+            and len(buffers.recent_context_buffers[task.task_id].episodes) >= 1
+        ]
         for _ in range(updates_per_iteration if ready else 0):
-            selected = list(
-                rng.choice(
-                    ready,
-                    size=min(len(ready), int(config["meta_training"]["meta_batch_size"])),
-                    replace=False,
-                )
+            selected = _sample_tasks_without_replacement(
+                ready,
+                int(config["meta_training"]["meta_batch_size"]),
+                rng,
             )
             # Few-shot evaluation starts at one support episode and grows to
             # the configured context capacity.  Training only at the maximum
@@ -290,7 +328,12 @@ def train(
                 transitions_per_episode,
                 rng,
             )
-            rl = buffers.sample_per_task([task.task_id for task in selected], batch_size, rng)
+            rl = buffers.sample_per_task_excluding_context(
+                [task.task_id for task in selected],
+                context,
+                batch_size,
+                rng,
+            )
             task_targets = None if semantic_targets is None else [
                 semantic_targets[task.task_id] for task in selected
             ]
@@ -324,7 +367,16 @@ def train(
                     handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
             gradient_updates += 1
         if validation_tasks and steps >= next_validation:
-            validation = evaluate_fewshot(agent, config, validation_tasks, casebooks, "meta_validation")
+            validation = evaluate_fewshot(
+                agent,
+                config,
+                validation_tasks,
+                casebooks,
+                "meta_validation",
+                query_execution_mode=str(
+                    config["evaluation"]["selection_query_execution_mode"]
+                ),
+            )
             score = validation_score(
                 validation,
                 shot=int(config["evaluation"].get("selection_shot", 5)),

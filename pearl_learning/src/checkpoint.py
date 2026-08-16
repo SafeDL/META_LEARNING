@@ -11,7 +11,10 @@ import torch
 from .io import content_hash, write_json
 
 
+# One maintained checkpoint format.  The method contract, rather than a
+# numeric suffix, distinguishes it from retired context/replay artifacts.
 CHECKPOINT_SCHEMA = "pearl_checkpoint"
+METHOD_CONTRACT = "transition_product_recent_context"
 
 
 def git_commit() -> str:
@@ -34,7 +37,8 @@ def save_checkpoint(path: str | Path, agent: Any, config: Mapping[str, Any], tas
                     trainer_state: Mapping[str, Any] | None = None) -> dict[str, Any]:
     target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
     metadata = {
-        "schema": CHECKPOINT_SCHEMA, "git_commit": git_commit(), "config_hash": content_hash(config), "taskbook_hash": taskbook_hash,
+        "schema": CHECKPOINT_SCHEMA, "method_contract": METHOD_CONTRACT,
+        "git_commit": git_commit(), "config_hash": content_hash(config), "taskbook_hash": taskbook_hash,
         "casebook_hashes": dict(casebook_hashes), "training_seed": int(training_seed), "step": int(step),
         "observation_schema": config["environment"]["observation_schema"], "observation_dim": int(config["environment"]["observation_dim"]), "action_dim": int(config["environment"]["action_dim"]),
         "no_topology_ablation": bool(config.get("ablation", {}).get("no_topology", False)),
@@ -59,8 +63,12 @@ def save_checkpoint(path: str | Path, agent: Any, config: Mapping[str, Any], tas
 
 def load_checkpoint(path: str | Path, agent: Any, device: torch.device) -> dict[str, Any]:
     payload = torch.load(path, map_location=device, weights_only=False)
-    if payload.get("schema") != CHECKPOINT_SCHEMA:
-        raise ValueError("unsupported checkpoint schema")
+    if payload.get("schema") != CHECKPOINT_SCHEMA or payload.get("method_contract") != METHOD_CONTRACT:
+        raise ValueError(
+            f"unsupported checkpoint contract "
+            f"{(payload.get('schema'), payload.get('method_contract'))!r}; only "
+            f"{(CHECKPOINT_SCHEMA, METHOD_CONTRACT)!r} is accepted and incompatible checkpoints must be retrained"
+        )
     saved_dim = payload.get("observation_dim")
     if saved_dim != agent.observation_dim:
         raise ValueError(f"checkpoint observation_dim={saved_dim!r} is incompatible with current observation_dim={agent.observation_dim}; retrain it")

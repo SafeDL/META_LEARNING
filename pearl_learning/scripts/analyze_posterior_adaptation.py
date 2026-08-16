@@ -32,7 +32,6 @@ def main() -> None:
     parser.add_argument("--protocol", required=True)
     parser.add_argument("--validation", nargs="+", required=True, help="repeated method=metrics.json")
     parser.add_argument("--output-root", required=True)
-    parser.add_argument("--run-kind", choices=["pilot", "formal"], default="formal")
     parser.add_argument("--training-environment-steps", type=int, required=True)
     parser.add_argument("--conda-environment", default="metadrive")
     parser.add_argument("--test-count", type=int, default=0)
@@ -44,7 +43,7 @@ def main() -> None:
     args = parser.parse_args()
 
     protocol = json.loads(Path(args.protocol).read_text(encoding="utf-8"))
-    if protocol.get("schema") != "posterior_adaptation_frozen_protocol_v1":
+    if protocol.get("schema") != "posterior_adaptation_frozen_protocol":
         raise ValueError("unsupported posterior-adaptation protocol")
     taskbook = load_taskbook(args.taskbook)
     taskbook_hash = content_hash(taskbook_payload(taskbook))
@@ -67,7 +66,7 @@ def main() -> None:
         and support_only_audit.get("no_gradient_adaptation") is True
         and support_only_audit.get("parameter_hash_before") == support_only_audit.get("parameter_hash_after")
         and support_only_audit.get("module_hashes_before") == support_only_audit.get("module_hashes_after")
-        and support_only_audit.get("context_protocol", {}).get("name") == "fixed_nested_v1"
+        and support_only_audit.get("context_protocol", {}).get("name") == "fixed_nested"
     )
     paths = _method_paths(args.validation)
     evaluations = {
@@ -190,9 +189,9 @@ def main() -> None:
             for method, artifacts in evaluations.items()
         },
         "formal_training_seeds": seeds_by_method,
-        "run_kind": args.run_kind,
+        "run_kind": "formal",
         "requested_max_environment_steps_per_seed": int(args.training_environment_steps),
-        "training_task_scope": "--smoke: first two meta-train tasks and first meta-validation task",
+        "training_task_scope": "complete frozen meta-train task set",
         "configured_formal_environment_steps": 1500000,
         "conda_environment": args.conda_environment,
         "automated_tests_passed": int(args.test_count),
@@ -213,16 +212,12 @@ def main() -> None:
             "artifact_hash": content_hash(support_only_audit),
         },
         "query_invariance_audit": args.query_invariance_audit,
-        "pilot_training_summaries": training_summaries,
+        "training_summaries": training_summaries,
         "missing_methods": missing_methods,
         "protocol_problems": problems,
         "holdout_evaluated": False,
         "allows_routed_moe_engineering": False,
-        "reason": (
-            "pilot checkpoints and reduced query count are protocol diagnostics, not formal adaptation evidence"
-            if args.run_kind == "pilot"
-            else "posterior adaptation cannot pass before all methods, seeds, and frozen holdout evaluation are complete"
-        ),
+        "reason": "posterior adaptation cannot pass before all methods, seeds, and frozen holdout evaluation are complete",
         "required_next_work": [
             "complete the pre-training formal validation for the new taskbook",
             "train all five methods for the frozen formal budget on seeds 11, 22, and 33",
