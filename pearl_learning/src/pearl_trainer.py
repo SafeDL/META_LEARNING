@@ -103,6 +103,7 @@ def train(
             )
             for task in tasks
         }
+    scenario_tasks = {task.task_id: task for task in tasks}
     casebook_hashes = {task_id: content_hash(book) for task_id, book in casebooks.items()}
     write_json(root / "config_resolved.json", dict(config))
     steps = 0
@@ -232,7 +233,7 @@ def train(
         """Clear per-adaptation context, then collect one prior and posterior rollout."""
         book = casebooks[task.task_id]["train_pool"]
         prior_case = book[int(rng.integers(len(book)))]
-        prior_mu, prior_log_var = agent.prior()
+        prior_mu, prior_log_var = agent.prior(tasks=[scenario_tasks[task.task_id]])
         prior_route = agent.compute_route(
             task_descriptors[task.task_id], prior_mu, prior_log_var, 0
         ) if task_descriptors else None
@@ -249,7 +250,7 @@ def train(
         if agent.no_context_training:
             posterior_mu, posterior_log_var = prior_mu, prior_log_var
         else:
-            posterior_mu, posterior_log_var = agent.infer_posterior([[prior.transitions]])
+            posterior_mu, posterior_log_var = agent.infer_posterior([[prior.transitions]], [scenario_tasks[task.task_id]])
         posterior_route = agent.compute_route(
             task_descriptors[task.task_id], posterior_mu, posterior_log_var, 1
         ) if task_descriptors else None
@@ -343,6 +344,7 @@ def train(
                 task_targets,
                 None if not task_descriptors else [task_descriptors[task.task_id] for task in selected],
                 [context_episodes] * len(selected),
+                [scenario_tasks[task.task_id] for task in selected],
             )
             with training_update_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps({

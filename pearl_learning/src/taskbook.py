@@ -28,8 +28,9 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     rules = data.get("target_contact_rules")
     if not isinstance(rules, Mapping) or set(rules) != set(ids):
         raise ValueError("geometry catalog must define exactly one target_contact_rules entry per geometry")
-    train_variants = data.get("meta_train_target_contact_rule_variants", {})
-    evaluation_variants = data.get("evaluation_target_contact_rule_variants", {})
+    allow_hidden_rules = bool(config.get("task_definition", {}).get("allow_hidden_reward_rule_variants", True))
+    train_variants = data.get("meta_train_target_contact_rule_variants", {}) if allow_hidden_rules else {}
+    evaluation_variants = data.get("evaluation_target_contact_rule_variants", {}) if allow_hidden_rules else {}
     if not isinstance(train_variants, Mapping) or not set(train_variants) <= set(ids):
         raise ValueError("meta_train_target_contact_rule_variants must map known geometry ids to rule lists")
     if not isinstance(evaluation_variants, Mapping) or not set(evaluation_variants) <= set(ids):
@@ -59,9 +60,14 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
                 raise ValueError(f"target-contact rule for {source_id} must be a mapping")
             geometry = dict(source)
             priority = dict(geometry.get("priority_spec", {}))
-            priority["target_contact_entry_order"] = str(entry_orders[source_id])
-            priority["target_contact_entry_order_semantics"] = str(entry_semantics)
-            priority.update(dict(rule))
+            if allow_hidden_rules:
+                priority["target_contact_entry_order"] = str(entry_orders[source_id])
+                priority["target_contact_entry_order_semantics"] = str(entry_semantics)
+                priority.update(dict(rule))
+            else:
+                priority["target_contact_entry_order"] = "any"
+                priority["target_contact_speed_relation"] = "any"
+                priority["target_contact_speed_margin_mps"] = 0.0
             relation = str(priority.get("target_contact_entry_order", "any"))
             if relation == "any":
                 relation = str(priority.get("target_contact_speed_relation", "any"))

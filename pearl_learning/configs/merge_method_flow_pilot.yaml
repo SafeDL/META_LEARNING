@@ -1,0 +1,80 @@
+# Minimal, reproducible Method-Flow pilot.  Historical configurations remain
+# untouched; this file fixes one IDM protocol and disables reward-rule tasks.
+extends: dense_pearl_baseline.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_pilot
+
+sut:
+  enable_lane_change: false
+  target_speed_mps: 12.0
+
+case_sampling:
+  background_density: 0.0
+  sut_initial_speed_mps: [10.0, 14.0]
+  adversary_initial_speed_mps: [10.0, 17.0]
+  max_initial_arrival_gap_s: 4.0
+
+cases:
+  per_task:
+    train_pool: 12
+    validation_support: 4
+    validation_query: 6
+    test_support: 4
+    test_query: 8
+
+task_definition:
+  allow_hidden_reward_rule_variants: false
+
+method_flow_pilot:
+  task_ids:
+    meta_train: [lane_drop_24, lane_drop_32, bottleneck_24, bottleneck_32]
+    meta_validation: [lane_drop_40, bottleneck_40]
+    meta_test_template: [lane_drop_48, bottleneck_48]
+
+scenario_representation:
+  enabled: true
+  encoder_type: mlp
+  embedding_dim: 8
+  hidden_sizes: [32, 16]
+
+scenario_prior:
+  mode: task_conditioned
+  hidden_sizes: [32]
+
+networks:
+  actor_architecture: dense
+  context_hidden_sizes: [64, 64]
+  actor_hidden_sizes: [64, 64]
+  critic_hidden_sizes: [64, 64]
+
+pearl:
+  latent_dim: 5
+  context_aggregation: transition_product
+  context_batch_size: 32
+  context_transitions_per_episode: 8
+  context_sample_size_eval: 32
+  context_min_episodes: 1
+  kl_beta: 0.1
+
+meta_training:
+  meta_batch_size: 4
+  replay_capacity_transitions: 50000
+  recent_context_episodes_per_task: 8
+  bootstrap_episodes_per_task: 2
+  gradient_updates_per_iteration: 20
+  total_environment_steps: 200000
+  validation_interval_steps: 25000
+  context_refresh_interval_updates: 1000
+
+evaluation:
+  shots: [0, 1, 2, 4]
+  query_cases_per_task: 8
+  selection_shot: 4
+
+posterior_routed_moe:
+  enabled: false
+
+experiment:
+  training_seeds: [0]
+  device: auto

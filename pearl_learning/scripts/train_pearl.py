@@ -9,6 +9,17 @@ from pearl_learning.src.taskbook import load_taskbook, taskbook_payload
 from pearl_learning.src.task_representation import configure_disentangled_representation
 
 
+def _pilot_tasks(cfg, taskbook, split):
+    requested = cfg.get("method_flow_pilot", {}).get("task_ids", {}).get(split)
+    if requested is None:
+        return list(taskbook[split])
+    wanted = set(map(str, requested))
+    selected = [task for task in taskbook[split] if task.geometry_id in wanted]
+    if {task.geometry_id for task in selected} != wanted:
+        raise ValueError(f"method-flow pilot {split} task ids do not match frozen taskbook")
+    return selected
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -63,8 +74,11 @@ def main() -> None:
         rule_weight=args.rule_aux_weight,
     )
     taskbook = load_taskbook(args.taskbook)
-    tasks = taskbook["meta_train"][: min(2, len(taskbook["meta_train"]))] if args.smoke else taskbook["meta_train"]
-    validation = taskbook["meta_validation"][:1] if args.smoke else taskbook["meta_validation"]
+    tasks = _pilot_tasks(cfg, taskbook, "meta_train")
+    validation = _pilot_tasks(cfg, taskbook, "meta_validation")
+    if args.smoke and "method_flow_pilot" not in cfg:
+        tasks = tasks[: min(2, len(tasks))]
+        validation = validation[:1]
     selected = tasks + validation
     casebooks = {task.task_id: load_casebook(task, args.casebook_root) for task in selected}
     max_steps = args.max_env_steps or int(cfg["meta_training"]["total_environment_steps"])

@@ -117,12 +117,15 @@ class MetaDriveAdapterBase(ABC):
         if tuple(adversary.lane_index) != expected_adv:
             raise RuntimeError(f"adversary spawned on {adversary.lane_index!r}, expected explicit route lane {expected_adv!r}")
         sut_spawn = self._case_spawn(case, "sut", task.spawn_regions["sut"])
-        sut = self._spawn_idm(env, expected_sut, sut_spawn, float(config["sut"]["target_speed_mps"]), int(case["case_seed"]) + 1)
-        adversary.set_velocity(np.asarray(adversary.heading, dtype=float) * float(case["adversary_speed_mps"]))
-        sut.set_velocity(np.asarray(sut.heading, dtype=float) * float(config["sut"]["target_speed_mps"]))
+        target_speed = float(config["sut"]["target_speed_mps"])
+        sut = self._spawn_idm(env, expected_sut, sut_spawn, target_speed, int(case["case_seed"]) + 1)
+        adversary_speed = float(case.get("adversary_initial_speed_mps", case["adversary_speed_mps"]))
+        sut_initial_speed = float(case.get("sut_initial_speed_mps", target_speed))
+        adversary.set_velocity(np.asarray(adversary.heading, dtype=float) * adversary_speed)
+        sut.set_velocity(np.asarray(sut.heading, dtype=float) * sut_initial_speed)
         policy = env.engine.get_policy(sut.id)
         if hasattr(policy, "target_speed"):
-            policy.target_speed = float(config["sut"]["target_speed_mps"]) * 3.6
+            policy.target_speed = target_speed * 3.6
         if hasattr(policy, "enable_lane_change"):
             policy.enable_lane_change = bool(config["sut"]["enable_lane_change"])
         self._routes = {

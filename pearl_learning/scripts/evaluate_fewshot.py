@@ -21,6 +21,17 @@ from pearl_learning.src.task_representation import configure_disentangled_repres
 from pearl_learning.src.validation_freeze import verify_validation_freeze
 
 
+def _pilot_tasks(cfg, taskbook, split):
+    requested = cfg.get("method_flow_pilot", {}).get("task_ids", {}).get(split)
+    if requested is None:
+        return list(taskbook[split])
+    wanted = set(map(str, requested))
+    selected = [task for task in taskbook[split] if task.geometry_id in wanted]
+    if {task.geometry_id for task in selected} != wanted:
+        raise ValueError(f"method-flow pilot {split} task ids do not match frozen taskbook")
+    return selected
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -145,7 +156,9 @@ def main() -> None:
                 taskbook_hash=expected_hash,
                 checkpoint_hash=checkpoint_hash,
             )
-        tasks = taskbook[split][:1] if args.smoke else taskbook[split]
+        tasks = _pilot_tasks(cfg, taskbook, split)
+        if args.smoke and "method_flow_pilot" not in cfg:
+            tasks = tasks[:1]
         casebooks = {task.task_id: load_casebook(task, args.casebook_root) for task in tasks}
         regime = evaluation_regime(split)
         regimes[regime] = {"split": split, "query_modes": {}}

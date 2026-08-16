@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from .context_encoder import ContextEncoder
+from .context_encoder import ContextEncoder, kl_diag_normal
 from .moe import (
     DESCRIPTOR_FIELDS,
     DESCRIPTOR_SCHEMA,
@@ -26,6 +26,13 @@ from .moe import (
 from .networks import Critic, GaussianActor
 from .replay import Transition
 from .task_representation import INTERACTION_OBSERVATION_INDEXES
+from .scenario_encoder import (
+    DESCRIPTOR_FIELDS as SCENARIO_DESCRIPTOR_FIELDS,
+    DESCRIPTOR_SCHEMA as SCENARIO_DESCRIPTOR_SCHEMA,
+    ScenarioConditionedPrior,
+    ScenarioEncoder,
+    build_task_descriptor,
+)
 
 
 class PEARLAgent:
@@ -47,6 +54,26 @@ class PEARLAgent:
         self.tau = float(sac["tau"])
         self.kl_beta = float(pearl["kl_beta"])
         self.no_context_training = bool(config.get("ablation", {}).get("no_context_training", False))
+        representation_cfg = dict(config.get("scenario_representation", {}))
+        prior_cfg = dict(config.get("scenario_prior", {}))
+        self.scenario_representation_enabled = bool(representation_cfg.get("enabled", False))
+        self.scenario_prior_mode = str(prior_cfg.get("mode", "unit_normal"))
+        if self.scenario_prior_mode not in {"unit_normal", "task_conditioned"}:
+            raise ValueError("scenario_prior.mode must be unit_normal or task_conditioned")
+        if self.scenario_prior_mode == "task_conditioned" and not self.scenario_representation_enabled:
+            raise ValueError("task_conditioned scenario prior requires scenario_representation.enabled")
+        self.scenario_encoder: ScenarioEncoder | None = None
+        self.scenario_prior: ScenarioConditionedPrior | None = None
+        self.scenario_embedding_dim: int | None = None
+        if self.scenario_representation_enabled:
+            self.scenario_embedding_dim = int(representation_cfg.get("embedding_dim", 8))
+            self.scenario_encoder = ScenarioEncoder(
+                self.scenario_embedding_dim, [int(v) for v in representation_cfg.get("hidden_sizes", [32, 16])]
+            ).to(device)
+            if self.scenario_prior_mode == "task_conditioned":
+                self.scenario_prior = ScenarioConditionedPrior(
+                    self.scenario_embedding_dim, self.latent_dim, [int(v) for v in prior_cfg.get("hidden_sizes", [32])]
+                ).to(device)
 
         context_dim = observation_dim + action_dim + 1 + observation_dim + 2
         self.context_encoder = ContextEncoder(
@@ -164,6 +191,10 @@ class PEARLAgent:
         critic_parameters = list(self.q1.parameters()) + list(self.q2.parameters())
         self.q_opt = torch.optim.Adam(critic_parameters, lr=float(sac["critic_lr"]))
         context_parameters = list(self.context_encoder.parameters())
+        if self.scenario_encoder is not None:
+            context_parameters += list(self.scenario_encoder.parameters())
+        if self.scenario_prior is not None:
+            context_parameters += list(self.scenario_prior.parameters())
         if self.disentangled:
             context_parameters += list(self.geometry_decoder.parameters())
             context_parameters += list(self.interaction_decoder.parameters())
@@ -264,8 +295,18 @@ class PEARLAgent:
             raise ValueError("expert action audit requires a MoE actor")
         return self.actor.expert_action_means(observation, latent)
 
-    def prior(self, count: int = 1) -> tuple[torch.Tensor, torch.Tensor]:
-        return self.context_encoder.prior(count, self.device)
+    def _scenario_prior(self, tasks: list[Any] | None, count: int) -> tuple[torch.Tensor, torch.Tensor]:
+        if self.scenario_prior_mode == "unit_normal":
+            return self.context_encoder.prior(count, self.device)
+        if tasks is None or len(tasks) != count:
+            raise ValueError("task-conditioned prior requires one task per posterior row")
+        descriptors = torch.as_tensor(
+            np.stack([build_task_descriptor(task) for task in tasks]), dtype=torch.float32, device=self.device
+        )
+        return self.scenario_prior(self.scenario_encoder(descriptors))
+
+    def prior(self, count: int = 1, tasks: list[Any] | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+        return self._scenario_prior(tasks, count)
 
     def context_tensor(self, context_by_task: list[list[list[Transition]]]) -> torch.Tensor:
         rows: list[np.ndarray] = []
@@ -288,8 +329,11 @@ class PEARLAgent:
             rows.append(np.asarray(task_context, dtype=np.float32))
         return torch.as_tensor(np.stack(rows), device=self.device)
 
-    def infer_posterior(self, context_by_task: list[list[list[Transition]]]) -> tuple[torch.Tensor, torch.Tensor]:
-        return self.context_encoder(self.context_tensor(context_by_task))
+    def infer_posterior(self, context_by_task: list[list[list[Transition]]], tasks: list[Any] | None = None) -> tuple[torch.Tensor, torch.Tensor]:
+        prior = self._scenario_prior(tasks, len(context_by_task))
+        if self.scenario_prior_mode == "unit_normal":
+            return self.context_encoder(self.context_tensor(context_by_task))
+        return self.context_encoder(self.context_tensor(context_by_task), prior)
 
     def sample_latent(self, mu: torch.Tensor, log_var: torch.Tensor, deterministic: bool = False) -> torch.Tensor:
         if deterministic:
@@ -379,14 +423,16 @@ class PEARLAgent:
         task_targets: list[Mapping[str, Any]] | None = None,
         task_descriptors: list[PhysicalTaskDescriptor] | None = None,
         posterior_versions: list[int] | None = None,
+        scenario_tasks: list[Any] | None = None,
     ) -> dict[str, float]:
         context = None
         if self.no_context_training:
-            mu, log_var = self.prior(len(context_by_task))
+            mu, log_var = self.prior(len(context_by_task), scenario_tasks)
             z = mu
         else:
             context = self.context_tensor(context_by_task)
-            mu, log_var = self.context_encoder(context)
+            prior_mu, prior_log_var = self._scenario_prior(scenario_tasks, len(context_by_task))
+            mu, log_var = self.context_encoder(context, (prior_mu, prior_log_var) if self.scenario_prior_mode == "task_conditioned" else None)
             z = self.sample_latent(mu, log_var)
         batch_size = len(rl_by_task[0])
         transitions = [transition for task_rows in rl_by_task for transition in task_rows]
@@ -456,7 +502,10 @@ class PEARLAgent:
             nn.functional.mse_loss(self.q1(obs, actions, expanded_z), target)
             + nn.functional.mse_loss(self.q2(obs, actions, expanded_z), target)
         )
-        kl = self.context_encoder.kl_to_unit_normal(mu, log_var)
+        if self.scenario_prior_mode == "task_conditioned":
+            kl = kl_diag_normal(mu, log_var, prior_mu, prior_log_var)
+        else:
+            kl = self.context_encoder.kl_to_unit_normal(mu, log_var)
         zero = torch.zeros((), device=self.device)
         if self.no_context_training:
             auxiliary = zero
@@ -630,6 +679,10 @@ class PEARLAgent:
             "target_q1": self.target_q1,
             "target_q2": self.target_q2,
         }
+        if self.scenario_encoder is not None:
+            modules["scenario_encoder"] = self.scenario_encoder
+        if self.scenario_prior is not None:
+            modules["scenario_prior"] = self.scenario_prior
         if self.disentangled:
             modules.update({
                 "geometry_decoder": self.geometry_decoder,
@@ -660,6 +713,13 @@ class PEARLAgent:
             "actor_hidden_sizes": self.actor_hidden_sizes,
             "critic_hidden_sizes": self.critic_hidden_sizes,
             "context_hidden_sizes": self.context_hidden_sizes,
+            "scenario_representation": {
+                "enabled": self.scenario_representation_enabled,
+                "descriptor_schema": SCENARIO_DESCRIPTOR_SCHEMA if self.scenario_representation_enabled else None,
+                "descriptor_fields": list(SCENARIO_DESCRIPTOR_FIELDS) if self.scenario_representation_enabled else [],
+                "embedding_dim": self.scenario_embedding_dim,
+                "prior_mode": self.scenario_prior_mode,
+            },
         }
         if self.actor_architecture == "posterior_routed_moe":
             metadata["moe"] = {
@@ -695,6 +755,10 @@ class PEARLAgent:
         }
         if self.router is not None:
             result["router"] = self.router.state_dict()
+        if self.scenario_encoder is not None:
+            result["scenario_encoder"] = self.scenario_encoder.state_dict()
+        if self.scenario_prior is not None:
+            result["scenario_prior"] = self.scenario_prior.state_dict()
         if self.disentangled:
             result["task_representation"] = {
                 "geometry_decoder": self.geometry_decoder.state_dict(),
@@ -714,6 +778,18 @@ class PEARLAgent:
             self.router.load_state_dict(state["router"])
         elif "router" in state:
             raise ValueError("dense agent cannot load MoE router state")
+        if self.scenario_encoder is not None:
+            if "scenario_encoder" not in state:
+                raise ValueError("checkpoint lacks scenario encoder state")
+            self.scenario_encoder.load_state_dict(state["scenario_encoder"])
+        elif "scenario_encoder" in state:
+            raise ValueError("checkpoint uses a scenario encoder; enable it in the configuration")
+        if self.scenario_prior is not None:
+            if "scenario_prior" not in state:
+                raise ValueError("checkpoint lacks scenario prior state")
+            self.scenario_prior.load_state_dict(state["scenario_prior"])
+        elif "scenario_prior" in state:
+            raise ValueError("checkpoint uses a task-conditioned scenario prior; enable it in the configuration")
         representation_state = state.get("task_representation")
         if self.disentangled:
             if not isinstance(representation_state, Mapping):

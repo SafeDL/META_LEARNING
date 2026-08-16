@@ -338,7 +338,7 @@ def evaluate_fewshot(
             "context_episode_samples": [],
         }
         try:
-            prior_mu, prior_log_var = agent.prior()
+            prior_mu, prior_log_var = agent.prior(tasks=[task])
             mu, log_var = prior_mu, prior_log_var
             prior_route = agent.compute_route(
                 descriptor, prior_mu, prior_log_var, 0
@@ -510,7 +510,7 @@ def evaluate_fewshot(
                     per_episode=per_episode,
                 )
                 with torch.no_grad():
-                    mu, log_var = agent.infer_posterior([context])
+                    mu, log_var = agent.infer_posterior([context], [task])
         finally:
             env.close()
         # MetaDrive owns a single global engine, so post-hoc audit environments
@@ -599,7 +599,7 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
         }
         task_results: dict[str, Any] = {}
         try:
-            mu, log_var = agent.prior()
+            mu, log_var = agent.prior(tasks=[task])
             for shot in range(max(requested) + 1):
                 route = agent.compute_route(
                     descriptor, mu, log_var, shot
@@ -647,7 +647,7 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
                     per_episode=per_episode,
                 )
                 with torch.no_grad():
-                    mu, log_var = agent.infer_posterior([context])
+                    mu, log_var = agent.infer_posterior([context], [task])
         finally:
             env.close()
         _add_posterior_deltas(task_results)
@@ -722,7 +722,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
         fixed_audits: list[dict[str, Any]] = []
         task_results: dict[str, Any] = {}
         try:
-            mu, log_var = agent.prior()
+            mu, log_var = agent.prior(tasks=[task])
             context: list[list[Any]] | None = None
             for shot in range(1, max(requested) + 1):
                 case = book[support_key][shot - 1]
@@ -755,7 +755,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                     per_episode=per_episode,
                 )
                 with torch.no_grad():
-                    mu, log_var = agent.infer_posterior([context])
+                    mu, log_var = agent.infer_posterior([context], [task])
                 if shot not in requested:
                     continue
                 with torch.no_grad():
@@ -772,7 +772,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                     rule_probability = float(decoded["entry_order_probability"].item())
                     interventions: dict[str, Any] = {}
                     for name, (indexes, target_block) in _INTERVENTION_MASKS.items():
-                        masked_mu, _ = agent.infer_posterior([_mask_context_fields(context, indexes)])
+                        masked_mu, _ = agent.infer_posterior([_mask_context_fields(context, indexes)], [task])
                         shifts = _posterior_block_l2_shift(agent, mu, masked_mu)
                         for block, value in shifts.items():
                             intervention_aggregate[str(shot)][name][block].append(value)

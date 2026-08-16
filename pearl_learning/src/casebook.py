@@ -29,6 +29,9 @@ def build_casebook(task: LogicalScenarioTaskSpec, config: Mapping[str, Any]) -> 
         })[:16], 16)
         value_rng = np.random.default_rng(value_seed)
     result: dict[str, list[dict[str, Any]]] = {}
+    sampling = dict(config.get("case_sampling", {}))
+    sut_range = sampling.get("sut_initial_speed_mps", (10.0, 14.0))
+    adv_range = sampling.get("adversary_initial_speed_mps", (10.0, 17.0))
     used: set[int] = set()
     for group in CASE_SPLITS:
         entries = []
@@ -38,9 +41,13 @@ def build_casebook(task: LogicalScenarioTaskSpec, config: Mapping[str, Any]) -> 
                 seed = int(rng.integers(1, 2**31 - 1))
             used.add(seed)
             sample_rng = value_rng or rng
+            adversary_speed = float(sample_rng.uniform(*adv_range))
             entries.append({
                 "case_id": f"{task.task_id}_{group}_{index:03d}", "case_seed": seed,
-                "adversary_speed_mps": float(sample_rng.uniform(10.0, 17.0)),
+                "sut_initial_speed_mps": float(sample_rng.uniform(*sut_range)),
+                "adversary_initial_speed_mps": adversary_speed,
+                # Read compatibility for historical casebooks/scripts.
+                "adversary_speed_mps": adversary_speed,
                 "adversary_spawn_m": float(sample_rng.uniform(*task.spawn_regions["adversary"])),
                 "sut_spawn_m": float(sample_rng.uniform(*task.spawn_regions["sut"])),
             })
@@ -58,9 +65,11 @@ def validate_casebook(task: LogicalScenarioTaskSpec, book: Mapping[str, list[Map
                 raise ValueError(f"case has incorrect task/split namespace: {case_id}")
             if case_id in seen:
                 raise ValueError(f"support/query leakage: duplicate case {case_id}")
-            for key in ("case_seed", "adversary_speed_mps", "adversary_spawn_m", "sut_spawn_m"):
+            for key in ("case_seed", "adversary_spawn_m", "sut_spawn_m"):
                 if key not in case:
                     raise ValueError(f"case {case_id} is missing {key}")
+            if "adversary_initial_speed_mps" not in case and "adversary_speed_mps" not in case:
+                raise ValueError(f"case {case_id} is missing adversary initial speed")
             seen.add(case_id)
 
 
