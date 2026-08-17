@@ -1,4 +1,4 @@
-"""The route-correct, label-free 37 dimensional logical_merge_obs contract."""
+"""Versioned route-correct observation contracts for logical merge tasks."""
 from __future__ import annotations
 
 from typing import Any, Mapping
@@ -16,6 +16,30 @@ OBS_FIELDS = (
 )
 OBSERVATION_DIM = 37
 assert len(OBS_FIELDS) == OBSERVATION_DIM
+
+DYNAMIC_OBSERVATION_SCHEMA = "logical_merge_dynamic_obs_v1"
+DYNAMIC_OBS_FIELDS = OBS_FIELDS[:22] + (
+    "adversary_route_remaining",
+    "sut_route_remaining",
+)
+DYNAMIC_OBSERVATION_DIM = 24
+assert len(DYNAMIC_OBS_FIELDS) == DYNAMIC_OBSERVATION_DIM
+
+OBSERVATION_SCHEMAS = {
+    OBSERVATION_SCHEMA: OBS_FIELDS,
+    DYNAMIC_OBSERVATION_SCHEMA: DYNAMIC_OBS_FIELDS,
+}
+
+
+def observation_fields(schema: str) -> tuple[str, ...]:
+    try:
+        return OBSERVATION_SCHEMAS[str(schema)]
+    except KeyError as error:
+        raise ValueError(f"unsupported observation schema: {schema!r}") from error
+
+
+def observation_dim(schema: str) -> int:
+    return len(observation_fields(schema))
 
 
 def _clip(value: float, scale: float) -> float:
@@ -76,7 +100,14 @@ def build_observation(adversary: Any, sut: Any, frame: Mapping[str, Any], topolo
     ]
     if bool(config.get("ablation", {}).get("no_topology", False)):
         descriptor = [0.0] * len(descriptor)
-    observation = np.asarray(adv_terms + sut_terms + interaction + descriptor, dtype=np.float32)
-    if observation.shape != (OBSERVATION_DIM,) or not np.all(np.isfinite(observation)):
-        raise ValueError(f"{OBSERVATION_SCHEMA} contract violated: {observation.shape}")
+    full = np.asarray(adv_terms + sut_terms + interaction + descriptor, dtype=np.float32)
+    schema = str(config["environment"]["observation_schema"])
+    fields = observation_fields(schema)
+    if schema == OBSERVATION_SCHEMA:
+        observation = full
+    else:
+        indexes = [OBS_FIELDS.index(name) for name in fields]
+        observation = full[indexes]
+    if observation.shape != (len(fields),) or not np.all(np.isfinite(observation)):
+        raise ValueError(f"{schema} contract violated: {observation.shape}")
     return np.clip(observation, -1.0, 1.0)

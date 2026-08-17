@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import json
+from pathlib import Path
 
-from pearl_learning.src.casebook import load_casebook
+from pearl_learning.src.benchmark_calibration import apply_calibration_manifest
+from pearl_learning.src.casebook import CASEBOOK_SCHEMA, load_casebook
 from pearl_learning.src.io import content_hash, read_config
 from pearl_learning.src.pearl_trainer import train
 from pearl_learning.src.taskbook import load_taskbook, taskbook_payload
@@ -25,11 +28,17 @@ def main() -> None:
     parser.add_argument("--config", required=True)
     parser.add_argument("--taskbook", required=True)
     parser.add_argument("--casebook-root", required=True)
+    parser.add_argument("--critical-thresholds")
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--max-env-steps", type=int)
     parser.add_argument("--run-name", required=True)
     run_mode = parser.add_mutually_exclusive_group(required=True)
     run_mode.add_argument("--smoke", action="store_true")
+    run_mode.add_argument(
+        "--mechanism-gate",
+        action="store_true",
+        help="run the non-paper 20k mechanism gate with full training settings",
+    )
     run_mode.add_argument(
         "--formal-run",
         action="store_true",
@@ -49,7 +58,12 @@ def main() -> None:
     parser.add_argument("--rule-aux-weight", type=float, default=0.1)
     args = parser.parse_args()
     cfg = read_config(args.config)
-    run_kind = "smoke" if args.smoke else "formal"
+    if str(cfg.get("critical_metric", {}).get("schema")) == "spatiotemporal_near_miss_v2":
+        if not args.critical_thresholds:
+            raise ValueError("v2 training requires --critical-thresholds from validation calibration")
+        manifest = json.loads(Path(args.critical_thresholds).read_text(encoding="utf-8"))
+        cfg = apply_calibration_manifest(cfg, manifest)
+    run_kind = "smoke" if args.smoke else ("mechanism_gate" if args.mechanism_gate else "formal")
     cfg["experiment"] = {**cfg["experiment"], "run_kind": run_kind}
     if args.output_root:
         cfg["project"] = {**cfg["project"], "output_root": args.output_root}
@@ -80,8 +94,18 @@ def main() -> None:
         tasks = tasks[: min(2, len(tasks))]
         validation = validation[:1]
     selected = tasks + validation
-    casebooks = {task.task_id: load_casebook(task, args.casebook_root) for task in selected}
+    required_casebook_schema = (
+        CASEBOOK_SCHEMA
+        if str(cfg.get("critical_metric", {}).get("schema")) == "spatiotemporal_near_miss_v2"
+        else None
+    )
+    casebooks = {
+        task.task_id: load_casebook(task, args.casebook_root, required_schema=required_casebook_schema)
+        for task in selected
+    }
     max_steps = args.max_env_steps or int(cfg["meta_training"]["total_environment_steps"])
+    if args.mechanism_gate and (args.max_env_steps is None or not 0 < max_steps <= 20_000):
+        raise ValueError("--mechanism-gate requires --max-env-steps in [1, 20000]")
     result = train(
         cfg,
         tasks,
@@ -95,6 +119,7 @@ def main() -> None:
         args.formal_validation,
         args.resume_checkpoint,
         args.checkpoint_interval_steps,
+        mechanism_gate=args.mechanism_gate,
     )
     print(f"PEARL training completed: {result}")
 

@@ -47,6 +47,30 @@ def _obb_intersects(first: Any, second: Any) -> bool:
     return True
 
 
+def _route_obb_intersects(
+    first_center: np.ndarray,
+    first_forward: np.ndarray,
+    first_length: float,
+    first_width: float,
+    second_center: np.ndarray,
+    second_forward: np.ndarray,
+    second_length: float,
+    second_width: float,
+) -> bool:
+    """SAT overlap for virtual vehicles placed on two route centrelines."""
+    first_forward = first_forward / max(float(np.linalg.norm(first_forward)), 1e-12)
+    second_forward = second_forward / max(float(np.linalg.norm(second_forward)), 1e-12)
+    first_lateral = np.asarray([-first_forward[1], first_forward[0]])
+    second_lateral = np.asarray([-second_forward[1], second_forward[0]])
+    delta = np.asarray(second_center, dtype=float) - np.asarray(first_center, dtype=float)
+    for axis in (first_forward, first_lateral, second_forward, second_lateral):
+        first_radius = 0.5 * first_length * abs(float(np.dot(axis, first_forward))) + 0.5 * first_width * abs(float(np.dot(axis, first_lateral)))
+        second_radius = 0.5 * second_length * abs(float(np.dot(axis, second_forward))) + 0.5 * second_width * abs(float(np.dot(axis, second_lateral)))
+        if abs(float(np.dot(delta, axis))) > first_radius + second_radius:
+            return False
+    return True
+
+
 class MetaDriveAdapterBase(ABC):
     """Version-sensitive MetaDrive handling shared by explicit route adapters."""
 
@@ -137,22 +161,76 @@ class MetaDriveAdapterBase(ABC):
 
     def conflict_frame(self, env: Any, task: LogicalScenarioTaskSpec, adversary: Any, sut: Any) -> dict[str, Any]:
         adv, target = self._routes["adversary"], self._routes["sut"]
-        shared = [index for index in adv.lane_indices if index in set(target.lane_indices)]
-        if shared:
-            lane = env.current_map.road_network.get_lane(shared[0])
-            origin = np.asarray(lane.position(0.0, 0.0), dtype=float)
-        else:
-            delta = adv.points[:, None, :] - target.points[None, :, :]
-            distances = np.linalg.norm(delta, axis=-1)
+        delta = adv.points[:, None, :] - target.points[None, :, :]
+        distances = np.linalg.norm(delta, axis=-1)
+        # A conservative centreline envelope uses half the sum of vehicle
+        # lengths. On shallow-angle merges, longitudinal extent—not width—is
+        # what makes physical contact possible before lane centres coincide.
+        adv_length = float(getattr(adversary, "LENGTH", 5.0))
+        sut_length = float(getattr(sut, "LENGTH", 5.0))
+        # Conflict-zone geometry follows the route corridor, not an idealized
+        # perfectly centred chassis. Pair distance remains a separate strict
+        # condition, so this does not turn corridor proximity into near-miss.
+        adv_width = max(
+            float(getattr(adversary, "WIDTH", 2.0)),
+            float(getattr(getattr(adversary, "lane", None), "width", 3.5)),
+        )
+        sut_width = max(
+            float(getattr(sut, "WIDTH", 2.0)),
+            float(getattr(getattr(sut, "lane", None), "width", 3.5)),
+        )
+        clearance = 0.5 * (adv_length + sut_length)
+        centre_candidates = np.argwhere(distances <= clearance)
+        obb_candidates: list[tuple[int, int]] = []
+        for row_value, col_value in centre_candidates:
+            row_index, col_index = int(row_value), int(col_value)
+            adv_tangent = adv.tangent_at_s(float(adv.arc_lengths_m[row_index]))
+            sut_tangent = target.tangent_at_s(float(target.arc_lengths_m[col_index]))
+            adv_lane_index = int(np.clip(
+                np.searchsorted(adv.lane_end_s_m, adv.arc_lengths_m[row_index], side="right"),
+                0, len(adv.lane_indices) - 1,
+            ))
+            sut_lane_index = int(np.clip(
+                np.searchsorted(target.lane_end_s_m, target.arc_lengths_m[col_index], side="right"),
+                0, len(target.lane_indices) - 1,
+            ))
+            distinct_parallel_lanes = bool(
+                adv.lane_indices[adv_lane_index] != target.lane_indices[sut_lane_index]
+                and abs(float(adv_tangent[0] * sut_tangent[1] - adv_tangent[1] * sut_tangent[0])) <= 1e-3
+                and float(np.dot(adv_tangent, sut_tangent)) > 0.0
+            )
+            if distinct_parallel_lanes:
+                continue
+            if _route_obb_intersects(
+                adv.points[row_index], adv_tangent,
+                adv_length, adv_width,
+                target.points[col_index], sut_tangent,
+                sut_length, sut_width,
+            ):
+                obb_candidates.append((row_index, col_index))
+        candidates = np.asarray(obb_candidates, dtype=int).reshape((-1, 2))
+        if len(candidates) == 0:
             row, col = np.unravel_index(int(np.argmin(distances)), distances.shape)
             distance = float(distances[row, col])
             if distance > float(task.conflict_spec["max_route_distance_m"]):
                 raise RuntimeError(
-                    f"task {task.task_id} has no shared downstream lane or true route encounter "
-                    f"within {task.conflict_spec['max_route_distance_m']} m (closest={distance:.3f} m)"
+                    f"task {task.task_id} has no true route encounter within "
+                    f"{task.conflict_spec['max_route_distance_m']} m (closest={distance:.3f} m)"
                 )
-            origin = (adv.points[row] + target.points[col]) / 2.0
-        adv_s, sut_s = adv.conflict_s(origin), target.conflict_s(origin)
+        else:
+            # First geometrically collision-capable cross-section, rather than
+            # the later fully-shared lane origin. This makes one conflict-point
+            # metric comparable for gradual bottlenecks and abrupt lane drops.
+            progress = np.maximum(
+                adv.arc_lengths_m[candidates[:, 0]] / max(adv.length_m, 1e-6),
+                target.arc_lengths_m[candidates[:, 1]] / max(target.length_m, 1e-6),
+            )
+            separation = distances[candidates[:, 0], candidates[:, 1]]
+            selected = int(np.lexsort((separation, progress))[0])
+            row, col = map(int, candidates[selected])
+        adv_s = float(adv.arc_lengths_m[row])
+        sut_s = float(target.arc_lengths_m[col])
+        origin = (adv.points[row] + target.points[col]) / 2.0
         adv_tangent, sut_tangent = adv.tangent_at_s(adv_s), target.tangent_at_s(sut_s)
         heading = float(math.atan2((adv_tangent + sut_tangent)[1], (adv_tangent + sut_tangent)[0]))
         frame = {
@@ -221,8 +299,13 @@ class MetaDriveAdapterBase(ABC):
         # A temporary connector is valid only when it leads into an explicitly
         # planned route segment.  This decision is made from road topology, not
         # from task metadata or a nearby-lane heuristic.
-        planned_nodes = {index[0] for index in route.lane_indices}
-        forward_connected = current[1] in planned_nodes
+        planned_nodes = {node for index in route.lane_indices for node in index[:2]}
+        # Bottleneck maps may choose either of two parallel merge connectors;
+        # both are legitimate when the connector's next graph edge enters the
+        # next frozen route node. The old direct-node-only test falsely marked
+        # this one-hop connector as a wrong route.
+        outgoing_from_destination = set(graph.get(current[1], {}))
+        forward_connected = current[1] in planned_nodes or bool(outgoing_from_destination & planned_nodes)
         backwards = abs(projection.heading_error) > math.pi / 2.0
         regressed = previous_s_m is not None and projection.s_m < previous_s_m - 1.0
         # A frozen route ends at the experiment's ODD boundary.  MetaDrive may

@@ -5,9 +5,27 @@ extends: dense_pearl_baseline.yaml
 project:
   output_root: results/pearl_learning/merge_method_flow_pilot
 
+environment:
+  observation_schema: logical_merge_dynamic_obs_v1
+  observation_dim: 24
+  # MetaDrive decisions advance five 0.02 s physics ticks. Calibration may
+  # not select a temporal threshold below this observable control resolution.
+  decision_step_s: 0.1
+
 sut:
   enable_lane_change: false
   target_speed_mps: 12.0
+
+critical_metric:
+  schema: spatiotemporal_near_miss_v2
+  # Provisional values used only to collect calibration traces. A frozen
+  # validation calibration manifest must replace them before training.
+  arrival_gap_threshold_s: 1.0
+  joint_conflict_distance_threshold_m: 10.0
+  pair_distance_threshold_m: 8.0
+
+reward:
+  valid_critical_bonus: 200.0
 
 case_sampling:
   background_density: 0.0
@@ -31,6 +49,7 @@ method_flow_pilot:
     meta_train: [lane_drop_24, lane_drop_32, bottleneck_24, bottleneck_32]
     meta_validation: [lane_drop_40, bottleneck_40]
     meta_test_template: [lane_drop_48, bottleneck_48]
+    meta_test_logical: [y_merge_32]
 
 scenario_representation:
   enabled: true

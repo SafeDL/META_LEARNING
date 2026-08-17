@@ -6,7 +6,8 @@ from pathlib import Path
 
 import torch
 
-from pearl_learning.src.casebook import load_casebook
+from pearl_learning.src.benchmark_calibration import apply_calibration_manifest
+from pearl_learning.src.casebook import CASEBOOK_SCHEMA, load_casebook
 from pearl_learning.src.checkpoint import load_checkpoint
 from pearl_learning.src.evaluator import (
     QUERY_EXECUTION_MODES,
@@ -38,6 +39,7 @@ def main() -> None:
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--taskbook", required=True)
     parser.add_argument("--casebook-root", required=True)
+    parser.add_argument("--critical-thresholds")
     parser.add_argument(
         "--split",
         choices=["meta_test_template", "meta_test_logical", "meta_test_all", "meta_validation"],
@@ -84,6 +86,13 @@ def main() -> None:
     parser.add_argument("--validation-freeze-manifest", help="require this validation freeze before a holdout split")
     args = parser.parse_args()
     cfg = read_config(args.config)
+    if str(cfg.get("critical_metric", {}).get("schema")) == "spatiotemporal_near_miss_v2":
+        if not args.critical_thresholds:
+            raise ValueError("v2 evaluation requires --critical-thresholds from validation calibration")
+        cfg = apply_calibration_manifest(
+            cfg,
+            json.loads(Path(args.critical_thresholds).read_text(encoding="utf-8")),
+        )
     if args.output_root:
         cfg["project"] = {**cfg["project"], "output_root": args.output_root}
     if args.no_topology:
@@ -159,7 +168,18 @@ def main() -> None:
         tasks = _pilot_tasks(cfg, taskbook, split)
         if args.smoke and "method_flow_pilot" not in cfg:
             tasks = tasks[:1]
-        casebooks = {task.task_id: load_casebook(task, args.casebook_root) for task in tasks}
+        casebooks = {
+            task.task_id: load_casebook(
+                task,
+                args.casebook_root,
+                required_schema=(
+                    CASEBOOK_SCHEMA
+                    if str(cfg.get("critical_metric", {}).get("schema")) == "spatiotemporal_near_miss_v2"
+                    else None
+                ),
+            )
+            for task in tasks
+        }
         regime = evaluation_regime(split)
         regimes[regime] = {"split": split, "query_modes": {}}
         for mode in modes:

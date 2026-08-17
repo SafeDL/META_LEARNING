@@ -9,7 +9,9 @@ from .task_spec import LogicalScenarioTaskSpec
 
 
 CASE_SPLITS = ("train_pool", "validation_support", "validation_query", "test_support", "test_query")
-CASEBOOK_SCHEMA = "logical_merge_casebook"
+LEGACY_CASEBOOK_SCHEMA = "logical_merge_casebook"
+CASEBOOK_SCHEMA = "logical_merge_casebook_v2"
+SUPPORTED_CASEBOOK_SCHEMAS = frozenset({LEGACY_CASEBOOK_SCHEMA, CASEBOOK_SCHEMA})
 
 
 def physical_geometry_id(geometry_id: str) -> str:
@@ -56,7 +58,12 @@ def build_casebook(task: LogicalScenarioTaskSpec, config: Mapping[str, Any]) -> 
     return result
 
 
-def validate_casebook(task: LogicalScenarioTaskSpec, book: Mapping[str, list[Mapping[str, Any]]]) -> None:
+def validate_casebook(
+    task: LogicalScenarioTaskSpec,
+    book: Mapping[str, list[Mapping[str, Any]]],
+    *,
+    schema: str = LEGACY_CASEBOOK_SCHEMA,
+) -> None:
     seen: set[str] = set()
     for group in CASE_SPLITS:
         for case in book.get(group, []):
@@ -70,27 +77,65 @@ def validate_casebook(task: LogicalScenarioTaskSpec, book: Mapping[str, list[Map
                     raise ValueError(f"case {case_id} is missing {key}")
             if "adversary_initial_speed_mps" not in case and "adversary_speed_mps" not in case:
                 raise ValueError(f"case {case_id} is missing adversary initial speed")
+            if schema == CASEBOOK_SCHEMA:
+                required = {
+                    "sut_initial_speed_mps", "target_initial_arrival_gap_s",
+                    "actual_initial_arrival_gap_s", "initial_relative_speed_mps",
+                    "adversary_initial_conflict_distance_m", "sut_initial_conflict_distance_m",
+                    "difficulty_class", "calibration_hash",
+                }
+                missing = required - set(case)
+                if missing:
+                    raise ValueError(f"v2 case {case_id} misses provenance {sorted(missing)}")
+                target = float(case["target_initial_arrival_gap_s"])
+                actual = float(case["actual_initial_arrival_gap_s"])
+                if not np.isfinite([target, actual]).all() or abs(target - actual) > 0.25:
+                    raise ValueError(f"v2 case {case_id} does not realize its target arrival gap")
+                if str(case["difficulty_class"]) not in {"heuristic_reachable", "harder"}:
+                    raise ValueError(f"v2 case {case_id} has an unsupported difficulty class")
             seen.add(case_id)
 
 
-def save_casebook(task: LogicalScenarioTaskSpec, book: Mapping[str, list[dict[str, Any]]], output_root: str) -> str:
-    validate_casebook(task, book)
+def save_casebook(
+    task: LogicalScenarioTaskSpec,
+    book: Mapping[str, list[dict[str, Any]]],
+    output_root: str,
+    *,
+    schema: str = LEGACY_CASEBOOK_SCHEMA,
+    provenance: Mapping[str, Any] | None = None,
+) -> str:
+    if schema not in SUPPORTED_CASEBOOK_SCHEMAS:
+        raise ValueError(f"unsupported casebook schema: {schema!r}")
+    validate_casebook(task, book, schema=schema)
     digest = content_hash(book)
-    write_json(f"{output_root}/casebooks/{task.task_id}.json", {"schema": CASEBOOK_SCHEMA, "task_id": task.task_id, "task_schema": task.schema, "sha256": digest, "cases": book})
+    write_json(f"{output_root}/casebooks/{task.task_id}.json", {
+        "schema": schema, "task_id": task.task_id, "task_schema": task.schema,
+        "sha256": digest, "provenance": dict(provenance or {}), "cases": book,
+    })
     return digest
 
 
-def load_casebook(task: LogicalScenarioTaskSpec, root: str) -> dict[str, list[dict[str, Any]]]:
+def load_casebook(
+    task: LogicalScenarioTaskSpec,
+    root: str,
+    *,
+    required_schema: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
     from pathlib import Path
     import json
     payload = json.loads((Path(root) / "casebooks" / f"{task.task_id}.json").read_text(encoding="utf-8"))
-    if payload.get("schema") != CASEBOOK_SCHEMA or payload.get("task_schema") != task.schema or payload.get("task_id") != task.task_id:
+    schema = str(payload.get("schema", ""))
+    if schema not in SUPPORTED_CASEBOOK_SCHEMAS or payload.get("task_schema") != task.schema or payload.get("task_id") != task.task_id:
         raise ValueError(f"casebook for {task.task_id} is incompatible with the current task")
+    if required_schema is not None and schema != required_schema:
+        raise ValueError(
+            f"casebook for {task.task_id} uses {schema!r}; this run requires {required_schema!r}"
+        )
     cases = payload.get("cases")
     if not isinstance(cases, Mapping):
         raise ValueError(f"casebook for {task.task_id} is malformed")
     book = {key: [dict(row) for row in value] for key, value in cases.items()}
-    validate_casebook(task, book)
+    validate_casebook(task, book, schema=schema)
     if content_hash(book) != payload.get("sha256"):
         raise ValueError(f"casebook hash mismatch for {task.task_id}")
     return book

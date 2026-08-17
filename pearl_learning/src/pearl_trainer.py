@@ -71,8 +71,9 @@ def train(
     formal_validation: str | None = None,
     resume_checkpoint: str | None = None,
     checkpoint_interval_steps: int | None = None,
+    mechanism_gate: bool = False,
 ) -> Path:
-    if not smoke:
+    if not smoke and not mechanism_gate:
         verify_formal_validation(formal_validation, taskbook_hash)
     rng = np.random.default_rng(seed)
     torch.manual_seed(seed)
@@ -85,7 +86,8 @@ def train(
     semantic_targets = None
     if bool(config.get("task_representation", {}).get("enabled", False)):
         semantic_targets = {task.task_id: representation_target(task) for task in tasks}
-    root = Path(config["project"]["output_root"]) / ("smoke" if smoke else "models") / run_name
+    run_directory = "smoke" if smoke else ("mechanism_gate" if mechanism_gate else "models")
+    root = Path(config["project"]["output_root"]) / run_directory / run_name
     root.mkdir(parents=True, exist_ok=True)
     router_audit_path = root / "router_audit.jsonl"
     training_update_path = root / "training_updates.jsonl"

@@ -23,7 +23,10 @@ def required_invalid_event_penalty(cfg: Mapping[str, float], horizon: int) -> fl
         "ttc_weight", "proximity_weight", "route_progress_weight", "priority_alignment_weight",
     ))
     return (
-        max(0.0, float(cfg["target_collision_bonus"]))
+        max(
+            max(0.0, float(cfg["target_collision_bonus"])),
+            max(0.0, float(cfg.get("valid_critical_bonus", 0.0))),
+        )
         + int(horizon) * per_step_positive
         + margin
     )
@@ -52,6 +55,7 @@ class RewardBreakdown:
     priority_alignment: float
     route_deviation: float
     target_collision: float
+    valid_critical: float
     non_target_collision: float
     out_of_road: float
     wrong_route: float
@@ -77,9 +81,13 @@ def compute_reward(
     route_progress = float(cfg.get("route_progress_weight", 0.0)) * float(np.clip(shaping.get("route_progress", 0.0), -1.0, 1.0))
     priority_alignment = float(cfg.get("priority_alignment_weight", 0.0)) * float(np.clip(shaping.get("priority_alignment", 0.0), -1.0, 1.0))
     route_deviation = -float(cfg.get("route_deviation_weight", 0.0)) * float(max(0.0, shaping.get("route_deviation", 0.0)))
-    target = float(cfg["target_collision_bonus"]) if (
-        events.get("target_collision") or events.get("rule_satisfied_critical_proximity")
-    ) else 0.0
+    legacy_near_miss = "valid_critical_near_miss" not in events and events.get("rule_satisfied_critical_proximity")
+    target = float(cfg["target_collision_bonus"]) if (events.get("target_collision") or legacy_near_miss) else 0.0
+    if "valid_critical_near_miss" in events:
+        valid_critical = float(cfg.get("valid_critical_bonus", 0.0)) if events.get("valid_critical_near_miss") else 0.0
+    else:
+        # Historical metric/reward contract retained for non-v2 configs.
+        valid_critical = 0.0
     non_target = -float(cfg["non_target_collision_penalty"]) if events.get("non_target_collision") else 0.0
     out_of_road = -float(cfg["out_of_road_penalty"]) * sum(
         bool(events.get(key)) for key in ("adversary_out_of_road", "sut_out_of_road")
@@ -88,5 +96,5 @@ def compute_reward(
     lane_marking = -float(cfg.get("lane_marking_penalty", 0.0)) if events.get("lane_marking_violation") else 0.0
     a2 = -float(cfg["action_l2_weight"]) * float(np.dot(action, action))
     smooth = -float(cfg["action_smoothness_weight"]) * float(np.dot(action - previous_action, action - previous_action))
-    total = dense + proximity + route_progress + priority_alignment + route_deviation + target + non_target + out_of_road + wrong_route + lane_marking + a2 + smooth
-    return RewardBreakdown(dense, proximity, route_progress, priority_alignment, route_deviation, target, non_target, out_of_road, wrong_route, lane_marking, a2, smooth, total)
+    total = dense + proximity + route_progress + priority_alignment + route_deviation + target + valid_critical + non_target + out_of_road + wrong_route + lane_marking + a2 + smooth
+    return RewardBreakdown(dense, proximity, route_progress, priority_alignment, route_deviation, target, valid_critical, non_target, out_of_road, wrong_route, lane_marking, a2, smooth, total)

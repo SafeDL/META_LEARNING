@@ -11,12 +11,14 @@ import numpy as np
 class EpisodeMetrics:
     task_id: str
     case_id: str
+    metric_schema: str = "legacy_logical_merge_critical"
     episode_return: float = 0.0
     episode_length: int = 0
     target_collision: bool = False
     physical_critical_proximity: bool = False
     route_conflict_proximity: bool = False
     rule_satisfied_critical_proximity: bool = False
+    valid_critical_near_miss: bool = False
     non_target_collision: bool = False
     adversary_out_of_road: bool = False
     sut_out_of_road: bool = False
@@ -24,6 +26,9 @@ class EpisodeMetrics:
     lane_marking_violation: bool = False
     min_ttc: float = float("inf")
     min_distance: float = float("inf")
+    min_arrival_gap_abs_s: float = float("inf")
+    min_joint_conflict_distance_m: float = float("inf")
+    max_critical_margin: float = float("-inf")
     termination_reason: str = "running"
     target_contact_method: str = "no_pairwise_contact"
 
@@ -34,11 +39,22 @@ class EpisodeMetrics:
         distance: float,
         events: Mapping[str, bool],
         contact_method: str,
+        measurements: Mapping[str, float | bool] | None = None,
     ) -> None:
+        if (
+            self.metric_schema == "spatiotemporal_near_miss_v2"
+            and events.get("target_collision")
+            and events.get("valid_critical_near_miss")
+        ):
+            raise ValueError("v2 target collision and valid near miss are mutually exclusive")
         self.episode_return += float(reward)
         self.episode_length += 1
         self.min_ttc = min(self.min_ttc, float(ttc))
         self.min_distance = min(self.min_distance, float(distance))
+        if measurements:
+            self.min_arrival_gap_abs_s = min(self.min_arrival_gap_abs_s, float(measurements["arrival_gap_abs_s"]))
+            self.min_joint_conflict_distance_m = min(self.min_joint_conflict_distance_m, float(measurements["joint_conflict_distance_m"]))
+            self.max_critical_margin = max(self.max_critical_margin, float(measurements["critical_margin"]))
         for key in EVENT_FIELDS:
             setattr(self, key, bool(getattr(self, key) or events.get(key, False)))
         if events.get("target_collision"):
@@ -51,7 +67,10 @@ class EpisodeMetrics:
         # A low-TTC encounter is a task success only when it realizes the
         # hidden interaction rule.  Otherwise one policy can score on both
         # members of an opposite-rule pair without identifying the task.
-        critical = self.target_collision or self.rule_satisfied_critical_proximity
+        if self.metric_schema == "spatiotemporal_near_miss_v2":
+            critical = self.valid_critical_near_miss
+        else:
+            critical = self.target_collision or self.rule_satisfied_critical_proximity
         data = asdict(self)
         invalid = self.non_target_collision or self.adversary_out_of_road or self.sut_out_of_road or self.wrong_route
         data["critical"] = critical
@@ -68,13 +87,19 @@ EVENT_FIELDS = (
     "physical_critical_proximity",
     "route_conflict_proximity",
     "rule_satisfied_critical_proximity",
+    "valid_critical_near_miss",
     "non_target_collision",
     "adversary_out_of_road",
     "sut_out_of_road",
     "wrong_route",
     "lane_marking_violation",
 )
-_DIVERSITY_FIELDS = ("adversary_speed_mps", "adversary_spawn_m", "sut_spawn_m")
+_DIVERSITY_FIELD_GROUPS = (
+    ("adversary_initial_speed_mps", "adversary_speed_mps"),
+    ("sut_initial_speed_mps",),
+    ("adversary_spawn_m",),
+    ("sut_spawn_m",),
+)
 
 
 def _valid_critical_initial_condition_diversity(
@@ -91,7 +116,12 @@ def _valid_critical_initial_condition_diversity(
     selected_rows: list[list[float]] = []
     for case_id, case in case_metadata.items():
         try:
-            values = [float(case[field]) for field in _DIVERSITY_FIELDS]
+            groups = _DIVERSITY_FIELD_GROUPS
+            # Historical casebooks did not store SUT speed. Preserve their
+            # three-dimensional diagnostic while v2 uses all four controls.
+            if not any(field in case for field in _DIVERSITY_FIELD_GROUPS[1]):
+                groups = (_DIVERSITY_FIELD_GROUPS[0],) + _DIVERSITY_FIELD_GROUPS[2:]
+            values = [float(next(case[field] for field in aliases if field in case)) for aliases in groups]
         except (KeyError, TypeError, ValueError):
             continue
         if not np.isfinite(values).all():
@@ -114,7 +144,7 @@ def summarize(
     records: list[Mapping[str, object]],
     *,
     case_metadata: Mapping[str, Mapping[str, Any]] | None = None,
-) -> dict[str, float | int | None]:
+) -> dict[str, float | int | str | None]:
     if not records:
         return {"episodes": 0}
 
@@ -124,7 +154,11 @@ def summarize(
     episode_lengths = values("episode_length").astype(int)
     steps_to_first = None if first is None else int(episode_lengths[:first].sum())
     count, diversity, coverage = _valid_critical_initial_condition_diversity(records, case_metadata)
-    return {
+    schemas = {str(row.get("metric_schema", "legacy_logical_merge_critical")) for row in records}
+    if len(schemas) != 1:
+        raise ValueError(f"cannot summarize mixed critical metric schemas: {sorted(schemas)}")
+    result: dict[str, float | int | str | None] = {
+        "critical_metric_schema": next(iter(schemas)),
         "episodes": len(records),
         "mean_episode_return": float(np.mean(values("episode_return"))),
         "mean_episode_length": float(np.mean(episode_lengths)),
@@ -141,3 +175,10 @@ def summarize(
         "valid_critical_initial_condition_diversity": diversity,
         "valid_critical_case_metadata_coverage": coverage,
     }
+    if result["critical_metric_schema"] == "spatiotemporal_near_miss_v2":
+        result.update({
+            "median_min_arrival_gap_abs_s": float(np.median(values("min_arrival_gap_abs_s"))),
+            "median_min_joint_conflict_distance_m": float(np.median(values("min_joint_conflict_distance_m"))),
+            "median_max_critical_margin": float(np.median(values("max_critical_margin"))),
+        })
+    return result

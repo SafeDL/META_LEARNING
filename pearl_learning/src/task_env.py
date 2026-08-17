@@ -8,9 +8,11 @@ from gymnasium import spaces
 import numpy as np
 
 from .adapters import adapter_for
+from .critical import CRITICAL_METRIC_SCHEMA, critical_measurements
+from .benchmark_calibration import thresholds_for_task
 from .metrics import EpisodeMetrics
 from .moe import PhysicalTaskDescriptor, physical_task_descriptor
-from .observation import OBSERVATION_DIM, OBSERVATION_SCHEMA, build_observation
+from .observation import build_observation, observation_dim, observation_fields
 from .reward import compute_reward, validate_reward_contract
 from .task_spec import LogicalScenarioTaskSpec
 
@@ -40,12 +42,12 @@ def compose_route_tracking_action(
     return np.asarray([np.clip(steering, -1.0, 1.0), action[1]], dtype=np.float32)
 
 
-def _ttc(a: Any, b: Any, cap: float) -> tuple[float, float]:
+def _ttc(a: Any, b: Any, cap: float) -> tuple[float, float, float]:
     position = np.asarray(b.position, dtype=float) - np.asarray(a.position, dtype=float)
     velocity = np.asarray(b.velocity, dtype=float) - np.asarray(a.velocity, dtype=float)
     distance = float(np.linalg.norm(position))
     closing = float(np.dot(position, velocity) / max(distance, 1e-6))
-    return (min(cap, distance / -closing) if closing < 0.0 else cap), distance
+    return (min(cap, distance / -closing) if closing < 0.0 else cap), distance, max(0.0, -closing)
 
 
 def target_contact_matches_rule(priority_spec: Mapping[str, Any], adversary_speed_mps: float, sut_speed_mps: float,
@@ -78,15 +80,15 @@ class LogicalMergeEnv(gym.Env):
         task.validate()
         if not cases:
             raise ValueError("a task environment needs at least one frozen case")
-        if config["environment"]["observation_schema"] != OBSERVATION_SCHEMA:
-            raise ValueError("environment configuration and observation implementation use different schemas")
-        if int(config["environment"]["observation_dim"]) != OBSERVATION_DIM:
+        schema = str(config["environment"]["observation_schema"])
+        expected_dim = observation_dim(schema)
+        if int(config["environment"]["observation_dim"]) != expected_dim:
             raise ValueError("environment configuration and observation implementation use different dimensions")
         validate_reward_contract(config["reward"], int(config["environment"]["horizon"]))
         self.task, self.config, self.cases = task, dict(config), [dict(x) for x in cases]
         self.verify_geometry_hash = bool(verify_geometry_hash)
         self.adapter = adapter_for(task.logical_type)
-        self.observation_space = spaces.Box(-1.0, 1.0, (OBSERVATION_DIM,), np.float32)
+        self.observation_space = spaces.Box(-1.0, 1.0, (expected_dim,), np.float32)
         self.action_space = spaces.Box(-1.0, 1.0, (2,), np.float32)
         self._rng = np.random.default_rng(task.case_seed)
         self._env: Any | None = None; self._case: dict[str, Any] | None = None
@@ -139,7 +141,8 @@ class LogicalMergeEnv(gym.Env):
         # episodes across the case pool.
         dropout_seed = (int(self.task.case_seed) * 1_000_003 + int(case["case_seed"])) & 0xFFFFFFFF
         self._mask_topology_for_episode = bool(np.random.default_rng(dropout_seed).random() < dropout)
-        self._metrics = EpisodeMetrics(self.task.task_id, str(case["case_id"]))
+        metric_schema = str(self.config.get("critical_metric", {}).get("schema", "legacy_logical_merge_critical"))
+        self._metrics = EpisodeMetrics(self.task.task_id, str(case["case_id"]), metric_schema=metric_schema)
         return self._observation(), self._info("reset")
 
     def geometry_provenance(self) -> dict[str, str]:
@@ -205,12 +208,39 @@ class LogicalMergeEnv(gym.Env):
             signed_distance = conflict_s - projection.s_m
             distance = max(0.0, signed_distance)
             arrival_time = distance / max(speed, 0.1)
+            signed_arrival_time = signed_distance / max(speed, 0.1)
             result[f"{role}_time_s"] = arrival_time
+            result[f"{role}_signed_time_s"] = signed_arrival_time
             result[f"{role}_distance_m"] = distance
             result[f"{role}_signed_distance_m"] = signed_distance
             arrivals.append((arrival_time, role))
         result["order"] = min(arrivals)[1]
         return result
+
+    def initial_case_measurements(self) -> dict[str, float | str | bool]:
+        """Expose geometry-derived initial-condition facts for case building.
+
+        These values are provenance only. They are never appended to the
+        policy observation or the frozen static task descriptor.
+        """
+        if self._env is None or self._frame is None:
+            raise RuntimeError("reset before requesting initial case measurements")
+        arrival = self._arrival_state()
+        pair_distance = float(np.linalg.norm(
+            np.asarray(self.adversary.position, dtype=float) - np.asarray(self.sut.position, dtype=float)
+        ))
+        initial_target_overlap, _ = self.adapter.target_contact(
+            self._env, self.adversary, self.sut,
+        )
+        return {
+            **arrival,
+            "initial_pair_distance_m": pair_distance,
+            "initial_target_overlap": bool(initial_target_overlap),
+            "adversary_initial_speed_mps": float(np.linalg.norm(self.adversary.velocity)),
+            "sut_initial_speed_mps": float(np.linalg.norm(self.sut.velocity)),
+            "initial_relative_speed_mps": float(np.linalg.norm(self.adversary.velocity) - np.linalg.norm(self.sut.velocity)),
+            "conflict_radius_m": float(self._frame["radius_m"]),
+        }
 
     def _reward_shaping(
         self,
@@ -244,7 +274,11 @@ class LogicalMergeEnv(gym.Env):
         else:
             farthest_conflict_distance = max(adversary_signed_distance, sut_signed_distance)
             conflict_gate = float(np.exp(-farthest_conflict_distance / distance_scale))
-        priority_alignment = conflict_gate * float(np.tanh(desired_sign * time_difference / time_scale))
+        priority_alignment = (
+            0.0
+            if desired == "any"
+            else conflict_gate * float(np.tanh(desired_sign * time_difference / time_scale))
+        )
 
         route = self._frame["adversary_route"]
         lane_width = float(getattr(getattr(self.adversary, "lane", None), "width", 3.8))
@@ -262,7 +296,7 @@ class LogicalMergeEnv(gym.Env):
         }
 
     def _info(self, reason: str, **extra: Any) -> dict[str, Any]:
-        return {"task_id": self.task.task_id, "geometry_id": self.task.geometry_id, "logical_type": self.task.logical_type, "case_id": self._case["case_id"], "observation_schema": OBSERVATION_SCHEMA, "sut_controller": "IDMPolicy fixed_parameters", "sut_target_speed_mps": float(self.config["sut"]["target_speed_mps"]), "termination_reason": reason, "map_hash": self._runtime_map_hash, **extra}
+        return {"task_id": self.task.task_id, "geometry_id": self.task.geometry_id, "logical_type": self.task.logical_type, "case_id": self._case["case_id"], "observation_schema": str(self.config["environment"]["observation_schema"]), "sut_controller": "IDMPolicy fixed_parameters", "sut_target_speed_mps": float(self.config["sut"]["target_speed_mps"]), "termination_reason": reason, "map_hash": self._runtime_map_hash, **extra}
 
     def step(self, action: np.ndarray):
         if self._env is None:
@@ -306,7 +340,7 @@ class LogicalMergeEnv(gym.Env):
         )
         self._route_progress.update({"adversary": adv_progress, "sut": sut_progress})
         post_step_arrival = self._arrival_state()
-        ttc, distance = _ttc(self.adversary, self.sut, float(self.config["reward"]["ttc_cap"]))
+        ttc, distance, closing_speed = _ttc(self.adversary, self.sut, float(self.config["reward"]["ttc_cap"]))
         evaluation = self.config.get("evaluation", {})
         critical_threshold = float(evaluation.get("critical_ttc_threshold", 1.5))
         conflict_gap_threshold = float(evaluation.get("conflict_arrival_gap_threshold_s", 1.5))
@@ -334,6 +368,32 @@ class LogicalMergeEnv(gym.Env):
             and (ttc <= critical_threshold or route_conflict_proximity)
         )
         any_crash = bool(getattr(self.adversary, "crash_vehicle", False) or getattr(self.sut, "crash_vehicle", False))
+        invalid_flags = {
+            "adversary_out_of_road": self._out_of_road(self.adversary) and not adv_complete,
+            "sut_out_of_road": self._out_of_road(self.sut) and not sut_complete,
+            "wrong_route": bool(adv_wrong or sut_wrong),
+        }
+        metric_cfg = dict(self.config.get("critical_metric", {}))
+        measurements: dict[str, float | bool] | None = None
+        valid_near_miss = False
+        if str(metric_cfg.get("schema", "")) == CRITICAL_METRIC_SCHEMA:
+            effective_metric_cfg = thresholds_for_task(self.config, self.task)
+            measurements = critical_measurements(
+                post_step_arrival,
+                pair_distance_m=distance,
+                ttc_s=ttc,
+                closing_speed_mps=closing_speed,
+                thresholds=effective_metric_cfg,
+            )
+            valid_near_miss = bool(
+                measurements["spatiotemporal_near_miss_candidate"]
+                and not physical_target_contact
+                and not any_crash
+                and not any(invalid_flags.values())
+            )
+            if bool(metric_cfg.get("calibration_trace_mode", False)):
+                valid_near_miss = False
+        v2_metric = str(metric_cfg.get("schema", "")) == CRITICAL_METRIC_SCHEMA
         events = {
             "target_collision": target,
             "physical_critical_proximity": physical_critical_proximity,
@@ -342,29 +402,33 @@ class LogicalMergeEnv(gym.Env):
                 physical_critical_proximity
                 and proximity_rule_satisfied
             ),
+            "valid_critical_near_miss": valid_near_miss,
             "non_target_collision": (any_crash or physical_target_contact) and not target,
-            "adversary_out_of_road": self._out_of_road(self.adversary) and not adv_complete,
-            "sut_out_of_road": self._out_of_road(self.sut) and not sut_complete,
+            "adversary_out_of_road": invalid_flags["adversary_out_of_road"],
+            "sut_out_of_road": invalid_flags["sut_out_of_road"],
             "lane_marking_violation": bool(getattr(self.adversary, "on_yellow_continuous_line", False)),
-            "wrong_route": bool(adv_wrong or sut_wrong),
+            "wrong_route": invalid_flags["wrong_route"],
             "adversary_route_complete": bool(adv_complete),
             "sut_route_complete": bool(sut_complete),
         }
+        if not v2_metric:
+            events.pop("valid_critical_near_miss")
         shaping = self._reward_shaping(previous_adversary_progress, adv_progress, post_step_arrival)
         reward = compute_reward(
             ttc, distance, action, self._previous_action, events, self.config["reward"], shaping,
         )
-        self._metrics.update(reward.total, ttc, distance, events, method)
+        self._metrics.update(reward.total, ttc, distance, events, method, measurements)
         self._previous_action = action.copy()
+        critical_terminal = "valid_critical_near_miss" if v2_metric else "physical_critical_proximity"
         terminal_events = (
-            "target_collision", "physical_critical_proximity", "non_target_collision", "adversary_out_of_road",
+            "target_collision", critical_terminal, "non_target_collision", "adversary_out_of_road",
             "sut_out_of_road", "wrong_route", "adversary_route_complete", "sut_route_complete",
         )
         terminated = bool(any(events[key] for key in terminal_events))
         truncated = bool(self._metrics.episode_length >= int(self.config["environment"]["horizon"])) and not terminated
         reason = "target_collision" if target else (
-            "rule_satisfied_critical_proximity"
-            if events["rule_satisfied_critical_proximity"]
+            critical_terminal
+            if events[critical_terminal]
             else next(
             (key for key in terminal_events[1:] if events[key]),
             "horizon" if truncated else "running",
@@ -372,7 +436,7 @@ class LogicalMergeEnv(gym.Env):
         )
         if terminated or truncated:
             self._metrics.termination_reason = reason
-        info = self._info(reason, ttc=ttc, distance=distance, min_ttc=self._metrics.min_ttc, min_distance=self._metrics.min_distance, target_contact_method=method, physical_target_contact=bool(physical_target_contact), target_contact_rule_satisfied=target_contact_rule_satisfied, pre_step_arrival_order=pre_step_arrival_order, conflict_arrival_gap_s=abs(float(post_step_arrival["adversary_time_s"]) - float(post_step_arrival["sut_time_s"])), first_conflict_entry_role=self._first_conflict_entry_role, policy_action=action.tolist(), applied_action=applied_action.tolist(), reward_components=reward.as_dict(), reward_shaping=shaping, adversary_route_progress_m=adv_progress, sut_route_progress_m=sut_progress, **events)
+        info = self._info(reason, critical_metric_schema=str(metric_cfg.get("schema", "legacy_logical_merge_critical")), ttc=ttc, distance=distance, min_ttc=self._metrics.min_ttc, min_distance=self._metrics.min_distance, target_contact_method=method, physical_target_contact=bool(physical_target_contact), target_contact_rule_satisfied=target_contact_rule_satisfied, pre_step_arrival_order=pre_step_arrival_order, conflict_arrival_gap_s=abs(float(post_step_arrival["adversary_time_s"]) - float(post_step_arrival["sut_time_s"])), first_conflict_entry_role=self._first_conflict_entry_role, policy_action=action.tolist(), applied_action=applied_action.tolist(), reward_components=reward.as_dict(), reward_shaping=shaping, adversary_route_progress_m=adv_progress, sut_route_progress_m=sut_progress, adversary_lane_index=list(getattr(self.adversary, "lane_index", ())), sut_lane_index=list(getattr(self.sut, "lane_index", ())), **(measurements or {}), **events)
         info.update(dict(upstream_info or {}))
         return self._observation(), float(reward.total), terminated, truncated, info
 

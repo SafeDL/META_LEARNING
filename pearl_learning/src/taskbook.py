@@ -44,6 +44,10 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     if entry_semantics != "pre_step_arrival_time":
         raise ValueError("geometry catalog must freeze pre_step_arrival_time entry-order semantics")
     resolved: list[dict[str, Any]] = []
+    spawn_override = config.get("case_sampling", {}).get("spawn_regions_override")
+    if spawn_override is not None:
+        if not isinstance(spawn_override, Mapping) or set(spawn_override) != {"adversary", "sut"}:
+            raise ValueError("case_sampling.spawn_regions_override must define adversary and sut")
     for item in geometries:
         source = dict(item); source_id = str(source["geometry_id"])
         split = source.get("split")
@@ -59,6 +63,11 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
             if not isinstance(rule, Mapping):
                 raise ValueError(f"target-contact rule for {source_id} must be a mapping")
             geometry = dict(source)
+            if spawn_override is not None:
+                geometry["spawn_regions"] = {
+                    role: [float(value) for value in spawn_override[role]]
+                    for role in ("adversary", "sut")
+                }
             priority = dict(geometry.get("priority_spec", {}))
             if allow_hidden_rules:
                 priority["target_contact_entry_order"] = str(entry_orders[source_id])

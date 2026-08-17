@@ -60,6 +60,7 @@ from pearl_learning.scripts.run_equal_budget_analysis import _case_groups, _sele
 from pearl_learning.scripts.build_transferability_taskbook import extend_validation_catalog
 from pearl_learning.scripts.run_formal_baseline_suite import baseline_commands
 from pearl_learning.scripts.audit_task_heterogeneity import heterogeneity_report
+from pearl_learning.scripts.audit_integrity import _audit_taskbook
 from pearl_learning.scripts.run_baselines import (
     _bind_training_protocol,
     _latest_sac_checkpoint,
@@ -111,6 +112,19 @@ class ContractTests(unittest.TestCase):
             recipe = json.dumps(task.map_config, sort_keys=True)
             by_map.setdefault(recipe, set()).add(task.priority_spec["target_contact_entry_order"])
         self.assertTrue(all(values == {"adversary_first", "sut_first"} for values in by_map.values()))
+
+    def test_method_flow_pilot_keeps_only_the_planned_logical_ood_task(self):
+        config = read_config("pearl_learning/configs/merge_method_flow_pilot.yaml")
+        self.assertEqual(
+            config["method_flow_pilot"]["task_ids"]["meta_test_logical"],
+            ["y_merge_32"],
+        )
+        selected = _audit_taskbook(config, build_taskbook(config))
+        self.assertEqual(sum(map(len, selected.values())), 9)
+        self.assertEqual(
+            [task.geometry_id for task in selected["meta_test_logical"]],
+            ["y_merge_32"],
+        )
 
     def test_route_projection_wraps_heading_and_uses_arc_length(self):
         route = RoutePolyline((("a", "b", 0),), np.asarray([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]]), np.asarray([0.0, 10.0, 20.0]), (20.0,))
@@ -204,6 +218,46 @@ class ContractTests(unittest.TestCase):
         _, wrong, route_complete = adapter.route_status(env, mid_route_branch, "sut", 4.0)
         self.assertFalse(wrong)
         self.assertFalse(route_complete)
+
+    def test_route_status_accepts_parallel_merge_connector_that_rejoins_frozen_route(self):
+        adapter = DummyAdapter()
+        route = RoutePolyline(
+            ((">>>", "planned_connector", 0), ("planned_connector", "shared", 0)),
+            np.asarray([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]], dtype=float),
+            np.asarray([0.0, 10.0, 20.0], dtype=float),
+            (10.0, 20.0),
+        )
+        adapter._routes = {"adversary": route}
+        graph = {
+            ">>>": {"parallel_connector": []},
+            "parallel_connector": {"shared": []},
+            "planned_connector": {"shared": []},
+        }
+        env = type("Env", (), {"current_map": type("Map", (), {"road_network": type("Road", (), {"graph": graph})()})()})()
+        lane = type("Lane", (), {"width": 3.8})()
+        vehicle = type("Vehicle", (), {
+            "position": np.asarray([8.0, 0.0]), "heading_theta": 0.0,
+            "lane_index": (">>>", "parallel_connector", 0), "lane": lane, "LENGTH": 5.0,
+        })()
+        _, wrong, completed = adapter.route_status(env, vehicle, "adversary", 7.5)
+        self.assertFalse(wrong)
+        self.assertFalse(completed)
+
+    def test_conflict_frame_ignores_close_parallel_approach_before_shared_lane(self):
+        adapter = DummyAdapter()
+        adv_points = np.asarray([[0.0, 0.0], [10.0, 0.0], [20.0, 6.0], [30.0, 0.0], [40.0, 0.0]])
+        sut_points = np.asarray([[0.0, 3.5], [10.0, 3.5], [20.0, -6.0], [30.0, 0.0], [40.0, 0.0]])
+        adv_arc = np.concatenate(([0.0], np.cumsum(np.linalg.norm(np.diff(adv_points, axis=0), axis=1))))
+        sut_arc = np.concatenate(([0.0], np.cumsum(np.linalg.norm(np.diff(sut_points, axis=0), axis=1))))
+        adapter._routes = {
+            "adversary": RoutePolyline((("a", "b", 0), ("b", "c", 0), ("shared", "out", 0)), adv_points, adv_arc, (10.0, 30.0, float(adv_arc[-1]))),
+            "sut": RoutePolyline((("d", "e", 0), ("e", "c", 0), ("shared", "out", 0)), sut_points, sut_arc, (10.0, 30.0, float(sut_arc[-1]))),
+        }
+        task = type("Task", (), {"task_id": "parallel_then_merge", "conflict_spec": {"max_route_distance_m": 1.0, "conflict_radius_m": 4.0}})()
+        vehicle = type("Vehicle", (), {"LENGTH": 5.0})()
+        frame = adapter.conflict_frame(object(), task, vehicle, vehicle)
+        self.assertGreater(frame["adversary_conflict_s_m"], 0.0)
+        self.assertGreater(frame["sut_conflict_s_m"], 0.0)
 
     def test_observation_priority_features_are_complementary(self):
         route = RoutePolyline((("a", "b", 0),), np.asarray([[0.0, 0.0], [20.0, 0.0]]), np.asarray([0.0, 20.0]), (20.0,))
