@@ -1,0 +1,25 @@
+# Mechanism-only hierarchical action: policy selects target signed ETA gap.
+extends: merge_method_flow_logical_order_boundary_mechanism.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_logical_order_arrival_controller
+
+control:
+  mechanism_action_mode: target_arrival_gap
+  arrival_gap_controller:
+    # P7's validated non-collision target is 0.75 * 0.08 = 0.06 s.
+    # Bound the learned high-level target to that executable envelope rather
+    # than allowing a saturated 0.08 s target to produce target collision.
+    target_scale_s: 0.06
+    gain: 2.0
+
+reward:
+  # The first arrival-controller SAC fit learned the strict geometry but
+  # selected a target collision for adversary-first.  Make that terminal
+  # shortcut strictly worse than any accumulated dense potential.
+  target_collision_penalty: 1000.0
+  # VCSR requires close approach but not physical contact.  Penalize only the
+  # inner 15% of the frozen calibrated pair-distance band; this does not
+  # alter the VCSR predicate or expose the hidden order rule.
+  collision_risk_barrier_safe_pair_ratio: 0.85
+  collision_risk_barrier_weight: 40.0

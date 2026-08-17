@@ -6,6 +6,8 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from .critical import is_strict_near_miss_schema
+
 
 @dataclass
 class EpisodeMetrics:
@@ -42,7 +44,7 @@ class EpisodeMetrics:
         measurements: Mapping[str, float | bool] | None = None,
     ) -> None:
         if (
-            self.metric_schema == "spatiotemporal_near_miss_v2"
+            is_strict_near_miss_schema(self.metric_schema)
             and events.get("target_collision")
             and events.get("valid_critical_near_miss")
         ):
@@ -67,7 +69,7 @@ class EpisodeMetrics:
         # A low-TTC encounter is a task success only when it realizes the
         # hidden interaction rule.  Otherwise one policy can score on both
         # members of an opposite-rule pair without identifying the task.
-        if self.metric_schema == "spatiotemporal_near_miss_v2":
+        if is_strict_near_miss_schema(self.metric_schema):
             critical = self.valid_critical_near_miss
         else:
             critical = self.target_collision or self.rule_satisfied_critical_proximity
@@ -175,7 +177,7 @@ def summarize(
         "valid_critical_initial_condition_diversity": diversity,
         "valid_critical_case_metadata_coverage": coverage,
     }
-    if result["critical_metric_schema"] == "spatiotemporal_near_miss_v2":
+    if is_strict_near_miss_schema(str(result["critical_metric_schema"])):
         result.update({
             "median_min_arrival_gap_abs_s": float(np.median(values("min_arrival_gap_abs_s"))),
             "median_min_joint_conflict_distance_m": float(np.median(values("min_joint_conflict_distance_m"))),

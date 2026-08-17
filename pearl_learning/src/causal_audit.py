@@ -74,9 +74,18 @@ def _bootstrap(values: np.ndarray, seed: int, samples: int = 2000) -> dict[str, 
 
 
 def _pair_action_stats(left: np.ndarray, right: np.ndarray, seed: int) -> dict[str, Any]:
+    def _longitudinal_component(values: np.ndarray) -> np.ndarray:
+        values = np.asarray(values)
+        if values.ndim == 1:
+            return np.abs(values)
+        if values.shape[-1] >= 2:
+            return np.abs(values[:, 1])
+        if values.shape[-1] == 1:
+            return np.abs(values[:, 0])
+        raise ValueError("action tensor must be at least one-dimensional")
     return {
         "action_l2": _bootstrap(np.linalg.norm(left - right, axis=-1), seed),
-        "longitudinal_absolute_change": _bootstrap(np.abs(left[:, 1] - right[:, 1]), seed + 1),
+        "longitudinal_absolute_change": _bootstrap(_longitudinal_component(left - right), seed + 1),
     }
 
 
@@ -100,10 +109,18 @@ def _trajectory_delta(left: Rollout, right: Rollout) -> dict[str, float]:
     right_actions = np.stack([row.action for row in right.transitions[:count]])
     left_states = np.stack([row.obs for row in left.transitions[:count]])
     right_states = np.stack([row.obs for row in right.transitions[:count]])
+    def _longitudinal_component(values: np.ndarray) -> np.ndarray:
+        if values.ndim == 1:
+            return np.abs(values)
+        if values.shape[-1] >= 2:
+            return np.abs(values[:, 1])
+        if values.shape[-1] == 1:
+            return np.abs(values[:, 0])
+        raise ValueError("action tensor must be at least one-dimensional")
     return {
         "aligned_steps": count,
         "action_trajectory_l2": float(np.linalg.norm(left_actions - right_actions)),
-        "mean_longitudinal_action_difference": float(np.mean(np.abs(left_actions[:, 1] - right_actions[:, 1]))),
+        "mean_longitudinal_action_difference": float(np.mean(_longitudinal_component(left_actions - right_actions))),
         "state_trajectory_l2": float(np.linalg.norm(left_states - right_states)),
     }
 

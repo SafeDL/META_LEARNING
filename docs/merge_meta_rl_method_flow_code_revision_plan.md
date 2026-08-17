@@ -1597,7 +1597,7 @@ checkpoint
 ## 此时还不能说
 
 ```text
-× 方法已经达到 SOTA
+× 方法已经达到 SOTA222
 × GNN 比 MLP 更好
 × Transformer 必要
 × MoE 必然有益

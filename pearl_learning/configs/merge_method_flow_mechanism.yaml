@@ -1,0 +1,24 @@
+# Mechanism-only configuration.  It is not a benchmark or formal PEARL run.
+extends: merge_method_flow_vanilla_pilot.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_mechanism
+
+environment:
+  action_dim: 1
+
+control:
+  mechanism_longitudinal_only: true
+
+experiment:
+  method_variant: mechanism
+
+method_flow:
+  mode: mechanism
+
+mechanism:
+  task_ids: [lane_drop_24, bottleneck_32]
+  matched_case_count: 8
+  task_specific_risk_normalization: false
+  sut_initial_speed_mps: 12.0
+  probing_policy: arrival_gap_heuristic

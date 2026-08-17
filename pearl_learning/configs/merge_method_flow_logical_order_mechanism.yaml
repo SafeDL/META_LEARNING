@@ -1,0 +1,30 @@
+# Gate-1 task redefinition after pure-structure tasks proved policy-invariant.
+extends: merge_method_flow_mechanism.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_logical_order_mechanism
+
+critical_metric:
+  # V3 = v2's collision-free spatiotemporal condition plus the frozen
+  # pre-step conflict-entry order.  The order is not an observation field.
+  schema: logical_order_spatiotemporal_near_miss_v3
+
+reward:
+  # V3's sole success objective is collision-free strict near-miss.  A target
+  # collision is reported separately and must not be an equally rewarded
+  # shortcut for the optimizer.
+  target_collision_bonus: 0.0
+  target_collision_penalty: 200.0
+  # Requires all three V3 continuous factors and the prospective target order,
+  # but cannot classify or terminate an episode as a strict near-miss.
+  strict_near_miss_potential_weight: 5.0
+  non_target_collision_penalty: 2000.0
+  out_of_road_penalty: 2000.0
+  wrong_route_penalty: 2000.0
+
+mechanism:
+  task_ids:
+    - lane_drop_24__logical_order_adversary_first
+    - lane_drop_24__logical_order_sut_first
+  matched_case_count: 8
+  task_specific_risk_normalization: false

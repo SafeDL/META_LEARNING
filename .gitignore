@@ -8,22 +8,15 @@ __pycache__/
 .venv/
 venv/
 
-# Keep large artifacts and model binaries out by default; track other experiment
-# outputs unless explicitly ignored.
+# Archive checkpoints (SAC policy zips etc.) — large and regenerable by
+# re-running the baselines.
 *.zip
-*.tar
-*.tar.gz
-*.tgz
-*.7z
-*.rar
-*.pt
-*.pth
-*.ckpt
-*.safetensors
-*.h5
-*.hdf5
-*.onnx
-*.bin
-*.npz
-*.npy
-*.parquet
+
+# Everything else is deliberately tracked — experiment reports, JSON/CSV
+# metrics, configurations, logs, figures, model checkpoints, pickles,
+# and other binary assets — so results remain reproducible in Git.
+#
+# Git has no size-based ignore rules. GitHub rejects files >= 100 MB on
+# push, so if an artifact ever grows past that limit, move it to Git LFS
+# or re-add a pattern for it here:
+#   git lfs track "results/path/to/large_file.pt"

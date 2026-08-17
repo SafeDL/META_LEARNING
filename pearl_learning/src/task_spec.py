@@ -112,8 +112,10 @@ class LogicalScenarioTaskSpec:
         entry_order = str(priority.get("target_contact_entry_order", "any"))
         if entry_order not in {"any", "adversary_first", "sut_first"}:
             raise ValueError("priority_spec.target_contact_entry_order must be any, adversary_first, or sut_first")
-        if entry_order != "any" and priority.get("target_contact_entry_order_semantics") != "pre_step_arrival_time":
-            raise ValueError("arrival-order tasks must freeze pre_step_arrival_time semantics")
+        if entry_order != "any" and priority.get("target_contact_entry_order_semantics") not in {
+            "pre_step_arrival_time", "continuous_route_entry_interpolation",
+        }:
+            raise ValueError("arrival-order tasks must declare a supported frozen entry-order semantic")
         conflict = _mapping(self.conflict_spec, "conflict_spec")
         if float(conflict.get("conflict_radius_m", 0.0)) <= 0.0:
             raise ValueError("conflict_spec.conflict_radius_m must be positive")

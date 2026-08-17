@@ -5,7 +5,10 @@ from typing import Any, Callable, Mapping
 import itertools
 import numpy as np
 
-from .critical import CRITICAL_METRIC_SCHEMA
+from .critical import (
+    CRITICAL_METRIC_SCHEMA,
+    LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
+)
 from .io import content_hash
 
 
@@ -333,12 +336,17 @@ def apply_calibration_manifest(config: Mapping[str, Any], manifest: Mapping[str,
     if manifest.get("calibration_hash") != expected_hash:
         raise ValueError("calibration manifest hash mismatch")
     result = dict(config)
+    requested_schema = str(config.get("critical_metric", {}).get("schema", CRITICAL_METRIC_SCHEMA))
+    if requested_schema not in {CRITICAL_METRIC_SCHEMA, LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA}:
+        raise ValueError("configuration requests an unsupported calibrated critical metric schema")
     result["critical_metric"] = {
         **dict(config.get("critical_metric", {})),
         **dict(manifest["thresholds"]),
-        "schema": CRITICAL_METRIC_SCHEMA,
+        "schema": requested_schema,
         "calibration_hash": expected_hash,
     }
+    if requested_schema != CRITICAL_METRIC_SCHEMA:
+        result["critical_metric"]["threshold_source_metric_schema"] = CRITICAL_METRIC_SCHEMA
     if "threshold_profiles" in manifest:
         result["critical_metric"]["threshold_profiles"] = {
             str(key): dict(value) for key, value in manifest["threshold_profiles"].items()

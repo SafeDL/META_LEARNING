@@ -1,0 +1,20 @@
+# Mechanism-only, fixed-policy feasibility-screened Casebook.  This is a new
+# construction dataset; it must not be confused with the benchmark Casebook.
+extends: merge_method_flow_logical_order_arrival_controller.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_logical_order_screened_arrival_controller
+
+mechanism:
+  case_profile: order_boundary_screened_v1
+  matched_case_count: 6
+  case_selection:
+    schema: logical_merge_mechanism_case_selection_v1
+    purpose: remove_no_shared_collision_free_control_window
+    source_gate: gate_1_policy_conflict_interpolated_order
+    source_rollouts: 144
+    selection_rule: >-
+      retain only matched conditions where P2_strong_accelerate on
+      adversary_first and P0_coast on sut_first each terminate as a
+      collision-free strict near-miss; exclude the two failed conditions.
+    uses_test_or_ood: false

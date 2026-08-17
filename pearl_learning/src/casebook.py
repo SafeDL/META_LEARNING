@@ -11,7 +11,10 @@ from .task_spec import LogicalScenarioTaskSpec
 CASE_SPLITS = ("train_pool", "validation_support", "validation_query", "test_support", "test_query")
 LEGACY_CASEBOOK_SCHEMA = "logical_merge_casebook"
 CASEBOOK_SCHEMA = "logical_merge_casebook_v2"
-SUPPORTED_CASEBOOK_SCHEMAS = frozenset({LEGACY_CASEBOOK_SCHEMA, CASEBOOK_SCHEMA})
+MECHANISM_CASEBOOK_SCHEMA = "logical_merge_mechanism_casebook_v3"
+SUPPORTED_CASEBOOK_SCHEMAS = frozenset({
+    LEGACY_CASEBOOK_SCHEMA, CASEBOOK_SCHEMA, MECHANISM_CASEBOOK_SCHEMA,
+})
 
 
 def physical_geometry_id(geometry_id: str) -> str:
@@ -93,6 +96,23 @@ def validate_casebook(
                     raise ValueError(f"v2 case {case_id} does not realize its target arrival gap")
                 if str(case["difficulty_class"]) not in {"heuristic_reachable", "harder"}:
                     raise ValueError(f"v2 case {case_id} has an unsupported difficulty class")
+            if schema == MECHANISM_CASEBOOK_SCHEMA:
+                required = {
+                    "sut_initial_speed_mps", "adversary_initial_speed_mps",
+                    "target_initial_arrival_gap_s", "actual_initial_arrival_gap_s",
+                    "initial_relative_speed_mps", "adversary_initial_conflict_distance_m",
+                    "sut_initial_conflict_distance_m", "matched_condition_id",
+                    "mechanism_casebook_purpose",
+                }
+                missing = required - set(case)
+                if missing:
+                    raise ValueError(f"mechanism case {case_id} misses provenance {sorted(missing)}")
+                if case["mechanism_casebook_purpose"] != "mechanism_identifiability":
+                    raise ValueError(f"mechanism case {case_id} has an invalid purpose")
+                target = float(case["target_initial_arrival_gap_s"])
+                actual = float(case["actual_initial_arrival_gap_s"])
+                if not np.isfinite([target, actual]).all() or abs(target - actual) > 0.25:
+                    raise ValueError(f"mechanism case {case_id} does not realize its target arrival gap")
             seen.add(case_id)
 
 

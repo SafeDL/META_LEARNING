@@ -6,7 +6,14 @@ from pathlib import Path
 
 from pearl_learning.src.benchmark_calibration import apply_calibration_manifest
 from pearl_learning.src.casebook import CASEBOOK_SCHEMA, load_casebook
-from pearl_learning.src.io import content_hash, read_config
+from pearl_learning.src.io import (
+    assert_method_variant_contract,
+    content_hash,
+    file_sha256,
+    git_commit_sha,
+    prepare_run_manifest,
+    read_config,
+)
 from pearl_learning.src.pearl_trainer import train
 from pearl_learning.src.taskbook import load_taskbook, taskbook_payload
 from pearl_learning.src.task_representation import configure_disentangled_representation
@@ -87,6 +94,7 @@ def main() -> None:
         interaction_weight=args.interaction_aux_weight,
         rule_weight=args.rule_aux_weight,
     )
+    method_variant = assert_method_variant_contract(cfg, args.run_name, run_kind)
     taskbook = load_taskbook(args.taskbook)
     tasks = _pilot_tasks(cfg, taskbook, "meta_train")
     validation = _pilot_tasks(cfg, taskbook, "meta_validation")
@@ -106,6 +114,24 @@ def main() -> None:
     max_steps = args.max_env_steps or int(cfg["meta_training"]["total_environment_steps"])
     if args.mechanism_gate and (args.max_env_steps is None or not 0 < max_steps <= 20_000):
         raise ValueError("--mechanism-gate requires --max-env-steps in [1, 20000]")
+    run_directory = "smoke" if args.smoke else ("mechanism_gate" if args.mechanism_gate else "models")
+    output_dir = Path(cfg["project"]["output_root"]) / run_directory / args.run_name
+    calibration_hash = cfg.get("critical_metric", {}).get("calibration_hash")
+    run_manifest = {
+        "schema": "pearl_run_manifest_v1",
+        "requested_config_path": str(Path(args.config).resolve()),
+        "source_config_sha256": file_sha256(args.config),
+        "resolved_config_sha256": content_hash(cfg),
+        "git_commit_sha": git_commit_sha(),
+        "taskbook_hash": content_hash(taskbook_payload(taskbook)),
+        "casebook_hashes": {task_id: content_hash(book) for task_id, book in casebooks.items()},
+        "critical_threshold_hash": calibration_hash,
+        "run_name": args.run_name,
+        "run_kind": run_kind,
+        "method_variant": method_variant,
+        "training_seed": int(args.seed),
+    }
+    prepare_run_manifest(output_dir, run_manifest, resume=bool(args.resume_checkpoint))
     result = train(
         cfg,
         tasks,

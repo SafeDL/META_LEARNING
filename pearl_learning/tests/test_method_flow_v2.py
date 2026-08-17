@@ -1,17 +1,41 @@
 from __future__ import annotations
 
 import copy
+import tempfile
 import unittest
 from unittest.mock import patch
 
 import numpy as np
 import torch
 
-from pearl_learning.src.benchmark_calibration import calibrate_thresholds, longitudinal_policy
+from pearl_learning.src.benchmark_calibration import apply_calibration_manifest, calibrate_thresholds, longitudinal_policy
 from pearl_learning.src.casebook_v2 import solve_adversary_spawn
 from pearl_learning.src.causal_audit import _actor_means
-from pearl_learning.src.critical import CRITICAL_METRIC_SCHEMA, critical_measurements
-from pearl_learning.src.io import read_config
+from pearl_learning.src.critical import (
+    CRITICAL_METRIC_SCHEMA,
+    LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
+    collision_risk_barrier,
+    conflict_entry_order_satisfied,
+    critical_measurements,
+    strict_near_miss_potential,
+)
+from pearl_learning.src.io import (
+    assert_method_variant_contract,
+    prepare_run_manifest,
+    read_config,
+)
+from pearl_learning.src.mechanism_audit import (
+    SCRIPTED_POLICIES,
+    policy_conflict_report,
+    single_task_sac_transfer_report,
+    scripted_longitudinal_action,
+)
+from pearl_learning.src.mechanism_casebook import (
+    MATCHED_PHYSICAL_FIELDS,
+    matched_case_seed,
+    matched_conditions,
+    validate_matched_mechanism_cases,
+)
 from pearl_learning.src.metrics import EpisodeMetrics
 from pearl_learning.src.observation import (
     DYNAMIC_OBSERVATION_DIM,
@@ -21,7 +45,9 @@ from pearl_learning.src.observation import (
 from pearl_learning.src.pearl_agent import PEARLAgent
 from pearl_learning.src.replay import Transition
 from pearl_learning.src.reward import compute_reward
+from pearl_learning.src.task_env import interpolated_conflict_entry_role
 from pearl_learning.src.taskbook import build_taskbook
+from pearl_learning.scripts.build_logical_order_mechanism_taskbook import derive_logical_order_taskbook
 
 
 class MethodFlowV2Tests(unittest.TestCase):
@@ -114,6 +140,53 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertEqual(collision.target_collision, cfg["target_collision_bonus"])
         self.assertEqual(collision.valid_critical, 0.0)
 
+    def test_collision_free_metric_can_penalize_target_collision_without_changing_legacy_reward(self) -> None:
+        cfg = {**self.cfg["reward"], "target_collision_penalty": 200.0}
+        reward = compute_reward(
+            10.0, 100.0, np.zeros(2), np.zeros(2),
+            {"target_collision": True, "target_collision_disqualifying": True}, cfg,
+        )
+        self.assertEqual(reward.target_collision, -200.0)
+
+    def test_strict_near_miss_potential_requires_order_and_all_three_components(self) -> None:
+        thresholds = {
+            "arrival_gap_threshold_s": 1.0,
+            "joint_conflict_distance_threshold_m": 2.0,
+            "pair_distance_threshold_m": 3.0,
+        }
+        close = {"arrival_gap_abs_s": 0.1, "joint_conflict_distance_m": 0.2, "pair_distance_m": 0.3}
+        far = {"arrival_gap_abs_s": 0.1, "joint_conflict_distance_m": 20.0, "pair_distance_m": 0.3}
+        self.assertGreater(strict_near_miss_potential(close, thresholds, prospective_order_satisfied=True), 0.5)
+        self.assertLess(strict_near_miss_potential(far, thresholds, prospective_order_satisfied=True), 0.5)
+        self.assertEqual(strict_near_miss_potential(close, thresholds, prospective_order_satisfied=False), 0.0)
+
+    def test_strict_near_miss_potential_is_shaping_not_a_terminal_bonus(self) -> None:
+        cfg = {**self.cfg["reward"], "strict_near_miss_potential_weight": 5.0}
+        reward = compute_reward(
+            10.0, 100.0, np.zeros(2), np.zeros(2),
+            {"valid_critical_near_miss": False}, cfg,
+            {"strict_near_miss_potential": 0.5},
+        )
+        self.assertEqual(reward.strict_near_miss_potential, 2.5)
+        self.assertEqual(reward.valid_critical, 0.0)
+
+    def test_collision_risk_barrier_penalizes_only_inner_calibrated_band(self) -> None:
+        thresholds = {"pair_distance_threshold_m": 10.0}
+        outer = collision_risk_barrier(
+            {"pair_distance_m": 9.0}, thresholds, safe_pair_distance_ratio=0.85,
+        )
+        inner = collision_risk_barrier(
+            {"pair_distance_m": 4.25}, thresholds, safe_pair_distance_ratio=0.85,
+        )
+        self.assertEqual(outer, 0.0)
+        self.assertAlmostEqual(inner, 0.5)
+        cfg = {**self.cfg["reward"], "collision_risk_barrier_weight": 40.0}
+        reward = compute_reward(
+            10.0, 100.0, np.zeros(2), np.zeros(2), {}, cfg,
+            {"collision_risk_barrier": inner},
+        )
+        self.assertEqual(reward.collision_risk_barrier, -20.0)
+
     def test_v2_metrics_reject_collision_near_miss_overlap(self) -> None:
         metrics = EpisodeMetrics("task", "case", metric_schema=CRITICAL_METRIC_SCHEMA)
         with self.assertRaises(ValueError):
@@ -123,6 +196,56 @@ class MethodFlowV2Tests(unittest.TestCase):
         diagnostic = EpisodeMetrics("task", "case", metric_schema=CRITICAL_METRIC_SCHEMA)
         diagnostic.update(0.0, 1.0, 1.0, {"route_conflict_proximity": True}, "none")
         self.assertFalse(diagnostic.record(1.5)["valid_critical_strict"])
+
+    def test_v3_entry_order_is_a_required_semantic_condition(self) -> None:
+        self.assertTrue(conflict_entry_order_satisfied("any", None))
+        self.assertTrue(conflict_entry_order_satisfied("adversary_first", "adversary"))
+        self.assertFalse(conflict_entry_order_satisfied("adversary_first", "sut"))
+        self.assertFalse(conflict_entry_order_satisfied("sut_first", None))
+        with self.assertRaises(ValueError):
+            conflict_entry_order_satisfied("ambiguous", "adversary")
+
+    def test_v3_entry_order_interpolates_within_a_simulator_step(self) -> None:
+        # Adversary is farther downstream after this step, but the SUT crossed
+        # its entrance earlier; using post-step distance alone would be wrong.
+        self.assertEqual(
+            interpolated_conflict_entry_role(
+                {"adversary": -0.9, "sut": -0.1}, {"adversary": 0.9, "sut": 0.2},
+            ),
+            "sut",
+        )
+        self.assertIsNone(interpolated_conflict_entry_role(
+            {"adversary": -0.5, "sut": -0.5}, {"adversary": 0.5, "sut": 0.5},
+        ))
+
+    def test_v3_reuses_only_v2_validation_thresholds_with_explicit_provenance(self) -> None:
+        manifest = calibrate_thresholds([
+            {"policy": policy, "collision": False, "invalid": False, "trace": [{
+                "arrival_gap_abs_s": gap, "joint_conflict_distance_m": gap,
+                "pair_distance_m": gap, "physical_target_contact": False,
+            }]}
+            for policy, gaps in (("zero", [9.0] * 10), ("random", [8.0] * 10),
+                                 ("heuristic", [0.2, 0.3, 0.4, 0.5] + [5.0] * 6))
+            for gap in gaps
+        ])
+        resolved = apply_calibration_manifest({"critical_metric": {
+            "schema": LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
+        }}, manifest)
+        self.assertEqual(resolved["critical_metric"]["schema"], LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA)
+        self.assertEqual(resolved["critical_metric"]["threshold_source_metric_schema"], CRITICAL_METRIC_SCHEMA)
+
+    def test_logical_order_pair_is_physically_identical_but_rule_distinct(self) -> None:
+        parent = build_taskbook(self.cfg)
+        parent_task = next(task for task in parent["meta_train"] if task.geometry_id == "lane_drop_24")
+        derived, variants = derive_logical_order_taskbook(parent, "lane_drop_24")
+        self.assertEqual(len(variants), 2)
+        self.assertEqual(len(derived["meta_train"]), len(parent["meta_train"]) + 1)
+        self.assertEqual({task.priority_spec["target_contact_entry_order"] for task in variants}, {"adversary_first", "sut_first"})
+        for task in variants:
+            self.assertEqual(task.map_hash, parent_task.map_hash)
+            self.assertEqual(task.adversary_route_hash, parent_task.adversary_route_hash)
+            self.assertEqual(task.sut_route_hash, parent_task.sut_route_hash)
+            self.assertEqual(task.conflict_hash, parent_task.conflict_hash)
 
     def test_calibration_is_deterministic_and_declares_validation_only(self) -> None:
         def row(policy: str, gap: float, collision: bool = False):
@@ -186,6 +309,121 @@ class MethodFlowV2Tests(unittest.TestCase):
         actions = _actor_means(agent, np.zeros((3, 24), np.float32), torch.zeros((1, agent.latent_dim)))
         self.assertEqual(actions.shape, (3, 2))
         self.assertEqual(before, agent.parameter_hash())
+
+    def test_mechanism_case_conditions_are_absolute_and_do_not_use_calibration(self) -> None:
+        conditions = matched_conditions(8)
+        self.assertEqual(len(conditions), 8)
+        self.assertEqual({row["target_initial_arrival_gap_s"] for row in conditions}, {-0.8, -0.4, 0.0, 0.4, 0.8})
+        self.assertTrue(all("calibration" not in key for row in conditions for key in row))
+        self.assertTrue(all("matched_condition_id" in row for row in conditions))
+
+    def test_order_boundary_profile_is_near_simultaneous_without_calibration(self) -> None:
+        conditions = matched_conditions(8, profile="order_boundary")
+        self.assertEqual(len(conditions), 8)
+        self.assertTrue(all(abs(float(row["target_initial_arrival_gap_s"])) <= 0.10 for row in conditions))
+        self.assertTrue(all(float(row["target_initial_relative_speed_mps"]) == 0.0 for row in conditions))
+        self.assertTrue(all(row["mechanism_case_profile"] == "order_boundary" for row in conditions))
+
+    def test_screened_order_boundary_profile_preserves_source_condition_provenance(self) -> None:
+        conditions = matched_conditions(6, profile="order_boundary_screened_v1")
+        self.assertEqual(
+            [row["matched_condition_id"] for row in conditions],
+            [f"mechanism_grid_{index:02d}" for index in range(2, 8)],
+        )
+        self.assertTrue(all(row["mechanism_case_profile"] == "order_boundary_screened_v1" for row in conditions))
+
+    def test_mechanism_matched_cases_reuse_exogenous_seed_and_require_equal_physics(self) -> None:
+        condition = "mechanism_grid_00"
+        row = {
+            "matched_condition_id": condition,
+            "case_seed": matched_case_seed(condition),
+            "sut_spawn_m": 2.0,
+            "adversary_spawn_m": 3.0,
+            "sut_initial_speed_mps": 12.0,
+            "adversary_initial_speed_mps": 14.0,
+            "actual_initial_arrival_gap_s": -0.8,
+            "initial_relative_speed_mps": 2.0,
+            "adversary_initial_conflict_distance_m": 50.0,
+            "sut_initial_conflict_distance_m": 48.0,
+        }
+        self.assertEqual(set(MATCHED_PHYSICAL_FIELDS), set(row) - {"matched_condition_id"})
+        validate_matched_mechanism_cases({"logical_a": [row], "logical_b": [dict(row)]})
+        mismatched = dict(row); mismatched["case_seed"] += 1
+        with self.assertRaisesRegex(ValueError, "case_seed"):
+            validate_matched_mechanism_cases({"logical_a": [row], "logical_b": [mismatched]})
+
+    def test_policy_conflict_requires_observed_strict_objective(self) -> None:
+        task_ids = ["task_a", "task_b"]
+        rows = []
+        for task_id in task_ids:
+            for policy in SCRIPTED_POLICIES:
+                rows.append({
+                    "task_id": task_id, "policy": policy, "matched_condition_id": "c0",
+                    "mean_longitudinal_action": 0.5 if policy == "P1_moderate_accelerate" else 0.0,
+                    "record": {
+                        "valid_critical_strict": False, "target_collision": False, "invalid": False,
+                        "episode_return": 1.0 if (task_id == "task_a" and policy == "P0_coast") or (task_id == "task_b" and policy == "P1_moderate_accelerate") else 0.0,
+                        "min_ttc": 1.0,
+                    },
+                })
+        _, _, gate = policy_conflict_report(rows, task_ids)
+        self.assertFalse(gate["objective_evidence"]["strict_objective_observed"])
+        self.assertEqual(gate["status"], "fail")
+
+    def test_order_feedback_probes_take_opposite_actions_at_the_same_dynamic_state(self) -> None:
+        observation = np.zeros(DYNAMIC_OBSERVATION_DIM, dtype=np.float32)
+        self.assertGreater(
+            float(scripted_longitudinal_action("P7_adversary_first_feedback", 0, observation, 180)[0]),
+            0.0,
+        )
+        self.assertLess(
+            float(scripted_longitudinal_action("P8_sut_first_feedback", 0, observation, 180)[0]),
+            0.0,
+        )
+        self.assertLess(
+            float(scripted_longitudinal_action("P7_adversary_first_feedback", 0, observation, 180, action_mode="target_arrival_gap")[0]),
+            0.0,
+        )
+        self.assertGreater(
+            float(scripted_longitudinal_action("P8_sut_first_feedback", 0, observation, 180, action_mode="target_arrival_gap")[0]),
+            0.0,
+        )
+
+    def test_single_task_sac_gate_requires_a_diagonal_advantage_for_both_tasks(self) -> None:
+        matrix = {
+            "a": {
+                "a": {"episodes": 8, "valid_critical_strict_rate": 0.50},
+                "b": {"episodes": 8, "valid_critical_strict_rate": 0.00},
+            },
+            "b": {
+                "a": {"episodes": 8, "valid_critical_strict_rate": 0.00},
+                "b": {"episodes": 8, "valid_critical_strict_rate": 0.25},
+            },
+        }
+        self.assertEqual(single_task_sac_transfer_report(matrix, ["a", "b"])["status"], "pass")
+        matrix["b"]["b"]["valid_critical_strict_rate"] = 0.0
+        self.assertEqual(single_task_sac_transfer_report(matrix, ["a", "b"])["status"], "fail")
+
+    def test_variant_assertions_and_manifest_resume_guard(self) -> None:
+        vanilla = read_config("pearl_learning/configs/merge_method_flow_vanilla_pilot.yaml")
+        structure = read_config("pearl_learning/configs/merge_method_flow_pilot.yaml")
+        self.assertEqual(assert_method_variant_contract(vanilla, "vanilla", "smoke"), "vanilla")
+        self.assertEqual(assert_method_variant_contract(structure, "structure", "smoke"), "structure_aware")
+        broken = copy.deepcopy(vanilla); broken["scenario_prior"]["mode"] = "task_conditioned"
+        with self.assertRaises(ValueError):
+            assert_method_variant_contract(broken, "vanilla", "smoke")
+        manifest = {
+            "resolved_config_sha256": "cfg", "taskbook_hash": "tasks",
+            "casebook_hashes": {"task": "cases"}, "critical_threshold_hash": "threshold",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            prepare_run_manifest(temp, manifest, resume=False)
+            with self.assertRaises(FileExistsError):
+                prepare_run_manifest(temp, manifest, resume=False)
+            prepare_run_manifest(temp, manifest, resume=True)
+            changed = {**manifest, "taskbook_hash": "other"}
+            with self.assertRaises(ValueError):
+                prepare_run_manifest(temp, changed, resume=True)
 
 
 if __name__ == "__main__":
