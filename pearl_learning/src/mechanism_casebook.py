@@ -61,19 +61,44 @@ MECHANISM_CASE_PROFILES = {
     "order_boundary_screened_v1": ORDER_BOUNDARY_SCREENED_V1_CONDITIONS,
 }
 
+# A three-way few-shot split profile for Gate 3.  The train group is exactly
+# the Gate-1-feasibility-screened subset; support and query extend the same
+# near-simultaneous order-boundary family with previously unseen signed gaps,
+# so every split exposes matched physics while condition ids remain disjoint
+# across splits.  The two conditions excluded by the v1 screening are not
+# reintroduced anywhere.
+ORDER_BOUNDARY_FEWSHOT_V1_CONDITIONS = {
+    "train_pool": (
+        (-0.05, 0.0, 0.30, 12.0, "mechanism_grid_02"),
+        (-0.05, 0.0, 0.70, 12.0, "mechanism_grid_03"),
+        (0.00, 0.0, 0.20, 12.0, "mechanism_grid_04"),
+        (0.00, 0.0, 0.80, 12.0, "mechanism_grid_05"),
+        (0.05, 0.0, 0.25, 13.0, "mechanism_grid_06"),
+        (0.10, 0.0, 0.75, 13.0, "mechanism_grid_07"),
+    ),
+    "validation_support": (
+        (-0.04, 0.0, 0.35, 12.5, "mechanism_grid_support_00"),
+        (0.04, 0.0, 0.65, 12.5, "mechanism_grid_support_01"),
+        (-0.02, 0.0, 0.45, 12.5, "mechanism_grid_support_02"),
+        (0.02, 0.0, 0.55, 12.5, "mechanism_grid_support_03"),
+    ),
+    "validation_query": (
+        (-0.06, 0.0, 0.40, 12.5, "mechanism_grid_query_00"),
+        (0.06, 0.0, 0.60, 12.5, "mechanism_grid_query_01"),
+        (-0.08, 0.0, 0.50, 12.5, "mechanism_grid_query_02"),
+        (0.08, 0.0, 0.70, 12.5, "mechanism_grid_query_03"),
+    ),
+}
+FEWSHOT_MECHANISM_PROFILES = {
+    "order_boundary_fewshot_v1": ORDER_BOUNDARY_FEWSHOT_V1_CONDITIONS,
+}
+
 MeasureCase = Callable[[dict[str, Any]], Mapping[str, Any]]
 
 
-def matched_conditions(count: int, *, profile: str = "absolute_grid") -> list[dict[str, float | str]]:
-    """Return a deterministic prefix of a named absolute mechanism profile."""
-    try:
-        conditions = MECHANISM_CASE_PROFILES[str(profile)]
-    except KeyError as error:
-        raise ValueError(f"unsupported mechanism case profile: {profile!r}") from error
-    if not 1 <= int(count) <= len(conditions):
-        raise ValueError(f"matched case count must lie in [1, {len(conditions)}]")
+def _condition_rows(profile: str, rows: Sequence[tuple]) -> list[dict[str, float | str]]:
     result = []
-    for index, row in enumerate(conditions[:count]):
+    for index, row in enumerate(rows):
         gap, relative_speed, sut_spawn_fraction = row[:3]
         sut_speed = row[3] if len(row) >= 4 else 12.0
         source_condition_id = str(row[4]) if len(row) >= 5 else f"mechanism_grid_{index:02d}"
@@ -85,6 +110,33 @@ def matched_conditions(count: int, *, profile: str = "absolute_grid") -> list[di
             "target_sut_spawn_fraction": float(sut_spawn_fraction),
             "target_sut_initial_speed_mps": float(sut_speed),
         })
+    return result
+
+
+def matched_conditions(count: int, *, profile: str = "absolute_grid") -> list[dict[str, float | str]]:
+    """Return a deterministic prefix of a named absolute mechanism profile."""
+    try:
+        conditions = MECHANISM_CASE_PROFILES[str(profile)]
+    except KeyError as error:
+        raise ValueError(f"unsupported mechanism case profile: {profile!r}") from error
+    if not 1 <= int(count) <= len(conditions):
+        raise ValueError(f"matched case count must lie in [1, {len(conditions)}]")
+    return _condition_rows(str(profile), conditions[:count])
+
+
+def matched_split_conditions(profile: str) -> dict[str, list[dict[str, float | str]]]:
+    """Return per-split condition rows for a few-shot mechanism profile."""
+    try:
+        split_rows = FEWSHOT_MECHANISM_PROFILES[str(profile)]
+    except KeyError as error:
+        raise ValueError(f"unsupported few-shot mechanism case profile: {profile!r}") from error
+    result = {}
+    for split, rows in split_rows.items():
+        result[split] = _condition_rows(str(profile), rows)
+    # Construction-level guard: one condition must never appear in two splits.
+    ids = [row["matched_condition_id"] for rows in result.values() for row in rows]
+    if len(set(ids)) != len(ids):
+        raise ValueError(f"few-shot profile {profile} reuses a condition across splits")
     return result
 
 
@@ -141,6 +193,42 @@ def validate_matched_mechanism_cases(cases_by_task: Mapping[str, Sequence[Mappin
                 raise ValueError(
                     f"mechanism condition {condition_id} differs in physical field {field}"
                 )
+
+
+def validate_mechanism_split_disjointness(
+    cases_by_task: Mapping[str, Mapping[str, Sequence[Mapping[str, Any]]]],
+) -> None:
+    """Require matched physics across tasks and disjoint conditions across splits.
+
+    The generic validator forbids any case-seed reuse across tasks, but matched
+    mechanism tasks must deliberately share the exogenous physical seed for the
+    same condition.  This validator therefore only forbids condition reuse
+    *across splits*; within one split the two tasks must expose exactly the
+    same conditions with identical physical fields.
+    """
+    if len(cases_by_task) != 2:
+        raise ValueError("the mechanism split validator requires exactly two task case sets")
+    split_sets = {frozenset(book) for book in cases_by_task.values()}
+    if len(split_sets) != 1:
+        raise ValueError("mechanism tasks must expose the same casebook splits")
+    seen: dict[str, set[str]] = {}
+    for split in sorted(next(iter(split_sets))):
+        per_task: dict[str, Sequence[Mapping[str, Any]]] = {}
+        condition_ids: set[str] = set()
+        for task_id, book in cases_by_task.items():
+            rows = list(book.get(split, []))
+            ids = [str(row["matched_condition_id"]) for row in rows]
+            if len(set(ids)) != len(rows):
+                raise ValueError(f"duplicate matched_condition_id in {task_id}/{split}")
+            for condition_id in ids:
+                if any(condition_id in previous for previous in seen.values()):
+                    raise ValueError(
+                        f"mechanism split leakage: condition {condition_id} reused across splits"
+                    )
+            condition_ids.update(ids)
+            per_task[task_id] = rows
+        seen[split] = condition_ids
+        validate_matched_mechanism_cases(per_task)
 
 
 def generate_mechanism_cases(

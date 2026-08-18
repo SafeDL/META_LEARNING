@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
-from pearl_learning.src.benchmark_calibration import apply_calibration_manifest
+from pearl_learning.src.benchmark_calibration import resolve_calibration
 from pearl_learning.src.casebook import CASEBOOK_SCHEMA, load_casebook
 from pearl_learning.src.io import (
     assert_method_variant_contract,
@@ -64,12 +63,7 @@ def main() -> None:
     parser.add_argument("--interaction-aux-weight", type=float, default=0.1)
     parser.add_argument("--rule-aux-weight", type=float, default=0.1)
     args = parser.parse_args()
-    cfg = read_config(args.config)
-    if str(cfg.get("critical_metric", {}).get("schema")) == "spatiotemporal_near_miss_v2":
-        if not args.critical_thresholds:
-            raise ValueError("v2 training requires --critical-thresholds from validation calibration")
-        manifest = json.loads(Path(args.critical_thresholds).read_text(encoding="utf-8"))
-        cfg = apply_calibration_manifest(cfg, manifest)
+    cfg = resolve_calibration(read_config(args.config), args.critical_thresholds)
     run_kind = "smoke" if args.smoke else ("mechanism_gate" if args.mechanism_gate else "formal")
     cfg["experiment"] = {**cfg["experiment"], "run_kind": run_kind}
     if args.output_root:
@@ -102,6 +96,8 @@ def main() -> None:
         tasks = tasks[: min(2, len(tasks))]
         validation = validation[:1]
     selected = tasks + validation
+    # Only the benchmark v2 casebook is pinned by name here; mechanism
+    # casebooks are validated under their own schema inside load_casebook.
     required_casebook_schema = (
         CASEBOOK_SCHEMA
         if str(cfg.get("critical_metric", {}).get("schema")) == "spatiotemporal_near_miss_v2"

@@ -520,6 +520,37 @@ class PEARLAgent:
             encoder_loss = q_loss + self.kl_beta * kl + auxiliary
         self.q_opt.zero_grad()
         self.context_opt.zero_grad()
+        if self.no_context_training:
+            encoder_critic_gradient_norm = 0.0
+            posterior_prior_mean_l2 = 0.0
+            evidence_to_prior_precision_ratio = 0.0
+        else:
+            # Log-only diagnostics for the Gate 3 causal chain.  The
+            # actor-side encoder gradient is ~0 by design (actor_z.detach()),
+            # so the critic gradient is the only signal that the encoder is
+            # actually optimized through the Bellman objective.  retain_graph
+            # keeps the subsequent update backward byte-identical.
+            encoder_critic_grads = torch.autograd.grad(
+                q_loss,
+                list(self.context_encoder.parameters()),
+                retain_graph=True,
+                allow_unused=True,
+            )
+            encoder_gradient_squares = [
+                grad.detach().square().sum() for grad in encoder_critic_grads if grad is not None
+            ]
+            encoder_critic_gradient_norm = (
+                0.0
+                if not encoder_gradient_squares
+                else float(torch.sqrt(torch.stack(encoder_gradient_squares).sum()).detach())
+            )
+            posterior_prior_mean_l2 = float((mu - prior_mu).norm(dim=-1).mean().detach())
+            posterior_precision = torch.exp(-log_var)
+            prior_precision = torch.exp(-prior_log_var)
+            evidence_to_prior_precision_ratio = float(
+                ((posterior_precision - prior_precision).mean()
+                 / (prior_precision.mean() + 1e-8)).detach()
+            )
         encoder_loss.backward()
         self.q_opt.step()
         if not self.no_context_training:
@@ -626,6 +657,9 @@ class PEARLAgent:
             "posterior_variance": float(torch.exp(log_var).mean().detach()),
             "critic_reward_scale": self.critic_reward_scale,
             "auxiliary_loss": float(auxiliary.detach()),
+            "context_encoder_critic_gradient_norm": encoder_critic_gradient_norm,
+            "posterior_prior_mean_l2": posterior_prior_mean_l2,
+            "evidence_to_prior_precision_ratio": evidence_to_prior_precision_ratio,
             **actor_gradients,
             **self._routing_metrics(training_route),
             **{name: float(value.detach()) for name, value in auxiliary_metrics.items()},

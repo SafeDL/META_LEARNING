@@ -1,0 +1,62 @@
+{
+  "gate_name": "gate3_vanilla_pearl_causal_chain",
+  "inputs": {
+    "casebook_hashes": {
+      "meta_train_lane_drop_24__logical_order_adversary_first": "d83096e55ef8216970c4978b21ed472943c37af58d4f28f5c9dde81878ccb55d",
+      "meta_train_lane_drop_24__logical_order_sut_first": "d6cb11978cacefe9ce9d4589eae090f3147c2cec4d144f5d0c62dd11d8248757"
+    },
+    "checkpoint_hash": "524d41df4e46359ef02b5a45acc16a5d90a02ceda0233b32cf71f789024993fb",
+    "checkpoint_training_seed": 1,
+    "config_hash": "5e56f6aa322c807d9f2760c64470ada116b1a4d2e386a4a58ba5144438a345e7",
+    "critical_threshold_hash": "8efed1246441c49b2c347fe23c6e7c5ebc1085b2c9410b10251e8b10426c4482",
+    "not_a_benchmark_or_holdout_result": true,
+    "taskbook_hash": "a2b4dbf32ec3eebbd8bc1b02ae8b09b37b05126dbd16d32c2ec22696be7226f7"
+  },
+  "next_allowed_stage": null,
+  "passed_stages": [
+    "stage_a"
+  ],
+  "schema": "gate3_vanilla_pearl_causal_chain_gate_v1",
+  "stage_values": {
+    "meta_train_lane_drop_24__logical_order_adversary_first": {
+      "correct_vcsr_by_shot": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_correct_wrong_action_l2": 0.03314092755317688,
+      "max_correct_wrong_latent_l2": 7.753990173339844,
+      "max_correct_wrong_return_advantage": 0.4386804975724772,
+      "max_correct_wrong_vcsr_advantage": 0.0
+    },
+    "meta_train_lane_drop_24__logical_order_sut_first": {
+      "correct_vcsr_by_shot": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max_correct_wrong_action_l2": 0.033167093992233276,
+      "max_correct_wrong_latent_l2": 7.732282638549805,
+      "max_correct_wrong_return_advantage": -1.8495043440084658,
+      "max_correct_wrong_vcsr_advantage": 0.0
+    }
+  },
+  "stages": {
+    "stage_a_context_to_posterior": {
+      "criterion": "correct/wrong posterior mean L2 >= 0.5 for both tasks",
+      "minimum_latent_l2": 0.5,
+      "status": "pass"
+    },
+    "stage_b_posterior_to_action": {
+      "criterion": "correct/wrong deterministic action L2 >= 0.1 for both tasks",
+      "minimum_action_l2": 0.1,
+      "status": "fail"
+    },
+    "stage_c_action_to_outcome": {
+      "criterion": "correct context strictly improves VCSR over wrong on at least one task",
+      "requires_strict_advantage": true,
+      "status": "fail"
+    }
+  },
+  "status": "fail"
+}

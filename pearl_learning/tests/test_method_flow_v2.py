@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import copy
+import json
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import torch
 
-from pearl_learning.src.benchmark_calibration import apply_calibration_manifest, calibrate_thresholds, longitudinal_policy
+from pearl_learning.src.benchmark_calibration import (
+    apply_calibration_manifest,
+    calibrate_thresholds,
+    longitudinal_policy,
+    resolve_calibration,
+)
 from pearl_learning.src.casebook_v2 import solve_adversary_spawn
 from pearl_learning.src.causal_audit import _actor_means
 from pearl_learning.src.critical import (
@@ -34,7 +41,9 @@ from pearl_learning.src.mechanism_casebook import (
     MATCHED_PHYSICAL_FIELDS,
     matched_case_seed,
     matched_conditions,
+    matched_split_conditions,
     validate_matched_mechanism_cases,
+    validate_mechanism_split_disjointness,
 )
 from pearl_learning.src.metrics import EpisodeMetrics
 from pearl_learning.src.observation import (
@@ -234,6 +243,62 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertEqual(resolved["critical_metric"]["schema"], LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA)
         self.assertEqual(resolved["critical_metric"]["threshold_source_metric_schema"], CRITICAL_METRIC_SCHEMA)
 
+    @staticmethod
+    def _valid_manifest() -> dict:
+        return calibrate_thresholds([
+            {"policy": policy, "collision": False, "invalid": False, "trace": [{
+                "arrival_gap_abs_s": gap, "joint_conflict_distance_m": gap,
+                "pair_distance_m": gap, "physical_target_contact": False,
+            }]}
+            for policy, gaps in (("zero", [9.0] * 10), ("random", [8.0] * 10),
+                                 ("heuristic", [0.2, 0.3, 0.4, 0.5] + [5.0] * 6))
+            for gap in gaps
+        ])
+
+    def test_strict_calibration_entry_requires_manifest_for_v2_and_v3(self) -> None:
+        for schema in (CRITICAL_METRIC_SCHEMA, LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA):
+            cfg = {"critical_metric": {"schema": schema}}
+            with self.assertRaisesRegex(ValueError, "requires --critical-thresholds"):
+                resolve_calibration(cfg, None)
+        # A legacy or absent schema keeps the previous manifest-free behavior.
+        legacy = resolve_calibration({"critical_metric": {"schema": "legacy_logical_merge_critical"}}, None)
+        self.assertEqual(legacy["critical_metric"]["schema"], "legacy_logical_merge_critical")
+        absent = resolve_calibration({}, None)
+        self.assertEqual(absent, {})
+
+    def test_strict_calibration_entry_applies_the_same_manifest_to_v2_and_v3(self) -> None:
+        manifest = self._valid_manifest()
+        with tempfile.TemporaryDirectory() as temp:
+            manifest_path = Path(temp) / "critical_thresholds.json"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            for schema in (CRITICAL_METRIC_SCHEMA, LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA):
+                resolved = resolve_calibration({"critical_metric": {"schema": schema}}, manifest_path)
+                self.assertEqual(resolved["critical_metric"]["schema"], schema)
+                self.assertEqual(resolved["critical_metric"]["calibration_hash"], manifest["calibration_hash"])
+                self.assertEqual(
+                    resolved["critical_metric"]["arrival_gap_threshold_s"],
+                    manifest["thresholds"]["arrival_gap_threshold_s"],
+                )
+            self.assertEqual(
+                resolve_calibration({"critical_metric": {"schema": LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA}}, manifest_path)
+                ["critical_metric"]["threshold_source_metric_schema"],
+                CRITICAL_METRIC_SCHEMA,
+            )
+
+    def test_strict_calibration_entry_rejects_a_tampered_manifest(self) -> None:
+        manifest = self._valid_manifest()
+        tampered = copy.deepcopy(manifest)
+        tampered["thresholds"]["arrival_gap_threshold_s"] += 0.5
+        with tempfile.TemporaryDirectory() as temp:
+            manifest_path = Path(temp) / "critical_thresholds.json"
+            manifest_path.write_text(json.dumps(tampered), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "hash mismatch"):
+                resolve_calibration({"critical_metric": {"schema": CRITICAL_METRIC_SCHEMA}}, manifest_path)
+            # A failed or schema-mismatched manifest is rejected too.
+            manifest_path.write_text(json.dumps({"schema": "merge_benchmark_calibration_v1", "status": "fail"}), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                resolve_calibration({"critical_metric": {"schema": LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA}}, manifest_path)
+
     def test_logical_order_pair_is_physically_identical_but_rule_distinct(self) -> None:
         parent = build_taskbook(self.cfg)
         parent_task = next(task for task in parent["meta_train"] if task.geometry_id == "lane_drop_24")
@@ -310,6 +375,32 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertEqual(actions.shape, (3, 2))
         self.assertEqual(before, agent.parameter_hash())
 
+    def test_update_logs_gate3_causal_chain_diagnostics_without_changing_losses(self) -> None:
+        cfg = self.cfg
+        torch.manual_seed(0)
+        agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
+        task = build_taskbook(cfg)["meta_train"][0]
+        transition = Transition(
+            np.zeros(24, np.float32), np.zeros(2, np.float32), 0.0, np.zeros(24, np.float32),
+            False, True, "horizon", task.task_id, "episode", "case", "prior_support", 0,
+        )
+        batch = [transition] * 8
+        context = [[transition] * 4]
+        hashes_before = agent.module_hashes()
+        metrics = agent.update([context], [batch], None, None, [0], [task])
+        hashes_after = agent.module_hashes()
+        for key in (
+            "context_encoder_critic_gradient_norm",
+            "posterior_prior_mean_l2",
+            "evidence_to_prior_precision_ratio",
+        ):
+            self.assertIn(key, metrics)
+            self.assertTrue(np.isfinite(float(metrics[key])))
+        # A fresh encoder receives a non-zero critic gradient, and the update
+        # itself changed only the modules the prescribed boundaries allow.
+        self.assertGreater(float(metrics["context_encoder_critic_gradient_norm"]), 0.0)
+        self.assertNotEqual(hashes_before["context_encoder"], hashes_after["context_encoder"])
+
     def test_mechanism_case_conditions_are_absolute_and_do_not_use_calibration(self) -> None:
         conditions = matched_conditions(8)
         self.assertEqual(len(conditions), 8)
@@ -351,6 +442,61 @@ class MethodFlowV2Tests(unittest.TestCase):
         mismatched = dict(row); mismatched["case_seed"] += 1
         with self.assertRaisesRegex(ValueError, "case_seed"):
             validate_matched_mechanism_cases({"logical_a": [row], "logical_b": [mismatched]})
+
+    def test_fewshot_mechanism_profile_declares_disjoint_train_support_query(self) -> None:
+        plan = matched_split_conditions("order_boundary_fewshot_v1")
+        self.assertEqual({split: len(rows) for split, rows in plan.items()},
+                         {"train_pool": 6, "validation_support": 4, "validation_query": 4})
+        ids = [row["matched_condition_id"] for rows in plan.values() for row in rows]
+        self.assertEqual(len(set(ids)), 14)
+        # The train split is exactly the Gate-1-screened feasible subset.
+        self.assertEqual(
+            [row["matched_condition_id"] for row in plan["train_pool"]],
+            [f"mechanism_grid_{index:02d}" for index in range(2, 8)],
+        )
+        self.assertTrue(all(row["mechanism_case_profile"] == "order_boundary_fewshot_v1"
+                            for rows in plan.values() for row in rows))
+        with self.assertRaises(ValueError):
+            matched_split_conditions("absolute_grid")
+
+    def test_mechanism_split_disjointness_accepts_matched_seeds_and_rejects_split_reuse(self) -> None:
+        def row(condition: str, gap: float = -0.05):
+            return {
+                "matched_condition_id": condition,
+                "case_seed": matched_case_seed(condition),
+                "sut_spawn_m": 2.0,
+                "adversary_spawn_m": 3.0,
+                "sut_initial_speed_mps": 12.0,
+                "adversary_initial_speed_mps": 12.0,
+                "actual_initial_arrival_gap_s": gap,
+                "initial_relative_speed_mps": 0.0,
+                "adversary_initial_conflict_distance_m": 50.0,
+                "sut_initial_conflict_distance_m": 48.0,
+            }
+        matched = {
+            "logical_a": {
+                "train_pool": [row("mechanism_grid_train_00")],
+                "validation_support": [row("mechanism_grid_support_00")],
+                "validation_query": [row("mechanism_grid_query_00")],
+            },
+            "logical_b": {
+                "train_pool": [row("mechanism_grid_train_00")],
+                "validation_support": [row("mechanism_grid_support_00")],
+                "validation_query": [row("mechanism_grid_query_00")],
+            },
+        }
+        validate_mechanism_split_disjointness(matched)
+        leaked = copy.deepcopy(matched)
+        for task_id in leaked:
+            leaked[task_id]["train_pool"].append(row("mechanism_grid_query_00"))
+        with self.assertRaisesRegex(ValueError, "reused across splits"):
+            validate_mechanism_split_disjointness(leaked)
+        mismatched = copy.deepcopy(matched)
+        mismatched["logical_b"]["validation_query"] = [row("mechanism_grid_query_00", gap=0.05)]
+        with self.assertRaisesRegex(ValueError, "actual_initial_arrival_gap_s"):
+            validate_mechanism_split_disjointness(mismatched)
+        with self.assertRaises(ValueError):
+            validate_mechanism_split_disjointness({"logical_a": matched["logical_a"]})
 
     def test_policy_conflict_requires_observed_strict_objective(self) -> None:
         task_ids = ["task_a", "task_b"]

@@ -1,0 +1,42 @@
+# Gate 3: Vanilla PEARL causal chain on the two matched logical-order tasks.
+# This is a non-paper 20k mechanism gate; it must not be used as a benchmark
+# or formal PEARL run.  All Gate 1B-frozen settings (fixed IDM, 1-D mechanism
+# action, target_arrival_gap controller, v3 metric, collision barrier, reward)
+# are inherited unchanged from the screened arrival-controller configuration.
+extends: merge_method_flow_logical_order_screened_arrival_controller.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_gate3_vanilla_pearl
+
+experiment:
+  method_variant: vanilla_gate3
+
+scenario_representation:
+  enabled: false
+
+scenario_prior:
+  mode: unit_normal
+
+networks:
+  actor_architecture: dense
+
+posterior_routed_moe:
+  enabled: false
+
+mechanism:
+  case_profile: order_boundary_fewshot_v1
+
+method_flow_pilot:
+  task_ids:
+    meta_train:
+      - lane_drop_24__logical_order_adversary_first
+      - lane_drop_24__logical_order_sut_first
+    meta_validation: []
+
+meta_training:
+  meta_batch_size: 2
+  total_environment_steps: 20000
+
+evaluation:
+  shots: [0, 1, 2, 4]
+  query_cases_per_task: 4

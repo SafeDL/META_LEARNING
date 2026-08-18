@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from typing import Any, Callable, Mapping
 import itertools
+import json
+from pathlib import Path
 import numpy as np
 
 from .critical import (
     CRITICAL_METRIC_SCHEMA,
     LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
+    is_strict_near_miss_schema,
 )
 from .io import content_hash
 
@@ -358,3 +361,23 @@ def thresholds_for_task(config: Mapping[str, Any], task: Any) -> dict[str, Any]:
     metric = dict(config["critical_metric"])
     profile = dict(metric.get("threshold_profiles", {}).get(str(task.logical_type), {}))
     return {**metric, **profile}
+
+
+def resolve_calibration(
+    config: Mapping[str, Any],
+    critical_thresholds: str | Path | None,
+) -> dict[str, Any]:
+    """Load and apply the required validation calibration manifest.
+
+    Both strict near-miss schemas -- v2 spatiotemporal and v3 logical-order --
+    run against the same frozen validation threshold contract, so every
+    training and evaluation entry point must require ``--critical-thresholds``
+    for either schema.  Legacy schemas are returned unchanged.
+    """
+    schema = str(config.get("critical_metric", {}).get("schema", ""))
+    if not is_strict_near_miss_schema(schema):
+        return dict(config)
+    if not critical_thresholds:
+        raise ValueError(f"{schema} requires --critical-thresholds from validation calibration")
+    manifest = json.loads(Path(critical_thresholds).read_text(encoding="utf-8"))
+    return apply_calibration_manifest(config, manifest)
