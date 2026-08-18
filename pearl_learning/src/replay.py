@@ -112,7 +112,13 @@ class TaskReplayBuffer:
         indices = rng.integers(len(rows), size=int(batch_size))
         return [rows[int(index)] for index in indices]
 
-    def sample_episode_balanced(self, total_size: int, per_episode: int, rng: np.random.Generator) -> list[list[Transition]]:
+    def sample_episode_balanced(
+        self,
+        total_size: int,
+        per_episode: int,
+        rng: np.random.Generator,
+        scheme: str = "random",
+    ) -> list[list[Transition]]:
         if not self._episodes:
             raise RuntimeError("cannot sample context from an empty task buffer")
         per_episode = max(1, int(per_episode))
@@ -121,9 +127,43 @@ class TaskReplayBuffer:
         groups: list[list[Transition]] = []
         for index in np.asarray(indices).reshape(-1):
             rows = list(self._episodes[int(index)].transitions)
-            chosen = rng.choice(len(rows), size=per_episode, replace=len(rows) < per_episode)
-            groups.append([rows[int(item)] for item in np.asarray(chosen).reshape(-1)])
+            groups.append(select_context_rows(rows, per_episode, scheme, rng))
         return groups
+
+
+CONTEXT_SAMPLING_SCHEMES = ("random", "terminal_stratified_v1")
+
+
+def select_context_rows(
+    rows: list[Transition],
+    per_episode: int,
+    scheme: str,
+    rng: np.random.Generator,
+) -> list[Transition]:
+    """Canonical within-episode context selection shared by training, few-shot
+    evaluation and the causal audit.
+
+    ``random`` is the historical sampler: per-episode rng.choice with
+    replacement when the episode is too short.  ``terminal_stratified_v1``
+    always includes the terminal transition (the last transition of a
+    completed episode) exactly once and fills the rest randomly; the Stage-A
+    diagnostics showed task-discriminative evidence concentrates at the
+    episode tail, which pure random sampling from ~60-step episodes dilutes.
+    """
+    if scheme not in CONTEXT_SAMPLING_SCHEMES:
+        raise ValueError(f"unsupported context sampling scheme: {scheme!r}")
+    size = max(1, int(per_episode))
+    count = len(rows)
+    if scheme == "random":
+        chosen = rng.choice(count, size=size, replace=count < size)
+        return [rows[int(item)] for item in np.asarray(chosen).reshape(-1)]
+    # terminal_stratified_v1
+    if count <= 1:
+        return [rows[0]] * size
+    rest = list(range(count - 1))
+    extra = size - 1
+    chosen = rng.choice(len(rest), size=extra, replace=len(rest) < extra)
+    return [rows[count - 1]] + [rows[rest[int(item)]] for item in np.asarray(chosen).reshape(-1)]
 
 
 class TaskReplayBuffers:
@@ -172,8 +212,17 @@ class TaskReplayBuffers:
             for task_id, groups in zip(task_ids, contexts)
         ]
 
-    def context_per_task(self, task_ids: list[str], total_size: int, per_episode: int, rng: np.random.Generator) -> list[list[list[Transition]]]:
+    def context_per_task(
+        self,
+        task_ids: list[str],
+        total_size: int,
+        per_episode: int,
+        rng: np.random.Generator,
+        scheme: str = "random",
+    ) -> list[list[list[Transition]]]:
         return [
-            self.recent_context_buffers[task_id].sample_episode_balanced(total_size, per_episode, rng)
+            self.recent_context_buffers[task_id].sample_episode_balanced(
+                total_size, per_episode, rng, scheme,
+            )
             for task_id in task_ids
         ]

@@ -13,7 +13,7 @@ from .evaluator import evaluate_fewshot, validation_score
 from .formal_validation import verify_formal_validation
 from .io import content_hash, write_json
 from .pearl_agent import PEARLAgent
-from .replay import TaskReplayBuffers
+from .replay import CONTEXT_SAMPLING_SCHEMES, TaskReplayBuffers
 from .task_env import LogicalMergeEnv
 from .task_env import freeze_physical_task_descriptor
 from .task_representation import representation_target
@@ -107,6 +107,16 @@ def train(
         }
     scenario_tasks = {task.task_id: task for task in tasks}
     casebook_hashes = {task_id: content_hash(book) for task_id, book in casebooks.items()}
+    # Split-level provenance: the audit may only ever see a revised
+    # validation_query group; train_pool and validation_support are frozen
+    # support evidence and must match the checkpoint bit-for-bit.
+    casebook_split_hashes = {
+        task_id: {split: content_hash(rows) for split, rows in book.items()}
+        for task_id, book in casebooks.items()
+    }
+    context_sampling_scheme = str(config["pearl"].get("context_transition_sampling", "random"))
+    if context_sampling_scheme not in CONTEXT_SAMPLING_SCHEMES:
+        raise ValueError(f"unsupported pearl.context_transition_sampling: {context_sampling_scheme!r}")
     write_json(root / "config_resolved.json", dict(config))
     steps = 0
     gradient_updates = 0
@@ -178,6 +188,7 @@ def train(
             taskbook_hash,
             steps,
             casebook_hashes=casebook_hashes,
+            casebook_split_hashes=casebook_split_hashes,
             training_seed=seed,
             rng_state=rng_state(),
             trainer_state=trainer_state(),
@@ -330,6 +341,7 @@ def train(
                 context_episodes * transitions_per_episode,
                 transitions_per_episode,
                 rng,
+                scheme=context_sampling_scheme,
             )
             rl = buffers.sample_per_task_excluding_context(
                 [task.task_id for task in selected],

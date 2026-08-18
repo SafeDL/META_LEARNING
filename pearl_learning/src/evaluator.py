@@ -10,6 +10,7 @@ from .collector import Rollout, collect_episode
 from .io import content_hash
 from .metrics import summarize
 from .observation import OBS_FIELDS
+from .replay import CONTEXT_SAMPLING_SCHEMES, select_context_rows
 from .task_env import LogicalMergeEnv, freeze_physical_task_descriptor
 from .task_representation import (
     INTERACTION_OBSERVATION_INDEXES,
@@ -67,6 +68,7 @@ def _fixed_episode_context_block(
     *,
     base_seed: int,
     task_id: str,
+    scheme: str,
 ) -> tuple[list[Any], dict[str, Any]]:
     if per_episode <= 0 or not rollout.transitions:
         raise ValueError("a fixed context block requires a positive size and a non-empty rollout")
@@ -78,20 +80,35 @@ def _fixed_episode_context_block(
         "purpose": "fixed_episode_context_block",
     })[:16], 16)
     rng = np.random.default_rng(sample_seed)
-    indexes = np.asarray(rng.choice(
-        len(rollout.transitions),
-        size=int(per_episode),
-        replace=len(rollout.transitions) < int(per_episode),
-    )).reshape(-1)
+    # Same canonical within-episode selector as training and the causal audit,
+    # so the few-shot protocol can never silently diverge from what the
+    # Context Encoder was trained on.
+    selected = select_context_rows(list(rollout.transitions), int(per_episode), scheme, rng)
+    rows = list(rollout.transitions)
+    indexes = _transition_indexes(rows, selected)
     audit = {
+        "context_sampling_scheme": scheme,
         "episode_id": rollout.episode_id,
         "case_id": str(rollout.record["case_id"]),
-        "episode_length": len(rollout.transitions),
+        "episode_length": len(rows),
         "sample_seed": sample_seed,
-        "transition_indexes": [int(index) for index in indexes],
+        "transition_indexes": indexes,
     }
     audit["sample_hash"] = content_hash(audit)
-    return [rollout.transitions[int(index)] for index in indexes], audit
+    return selected, audit
+
+
+def _transition_indexes(rows: list[Any], selected: list[Any]) -> list[int]:
+    """Identity-based index lookup that tolerates replacement duplicates."""
+    used = [False] * len(rows)
+    indexes: list[int] = []
+    for wanted in selected:
+        for index, row in enumerate(rows):
+            if not used[index] and row is wanted:
+                used[index] = True
+                indexes.append(index)
+                break
+    return indexes
 
 
 def _posterior_context(
@@ -267,6 +284,9 @@ def evaluate_fewshot(
     regime = evaluation_regime(split)
     if (query_route_mode != "adaptive" or knockout_expert is not None) and agent.actor_architecture != "posterior_routed_moe":
         raise ValueError("query route interventions require a MoE actor")
+    sampling_scheme = str(config["pearl"].get("context_transition_sampling", "random"))
+    if sampling_scheme not in CONTEXT_SAMPLING_SCHEMES:
+        raise ValueError(f"unsupported pearl.context_transition_sampling: {sampling_scheme!r}")
     device = agent.device
     shots = sorted(set(int(shot) for shot in config["evaluation"]["shots"]))
     if not shots or shots[0] != 0:
@@ -499,6 +519,7 @@ def evaluate_fewshot(
                         per_episode,
                         base_seed=base_seed,
                         task_id=task.task_id,
+                        scheme=sampling_scheme,
                     )
                     fixed_blocks.append(block)
                     fixed_audits.append(audit)
@@ -636,6 +657,7 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
                         per_episode,
                         base_seed=base_seed,
                         task_id=task.task_id,
+                        scheme=sampling_scheme,
                     )
                     fixed_blocks.append(block)
                     fixed_audits.append(audit)
@@ -744,6 +766,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
                         per_episode,
                         base_seed=base_seed,
                         task_id=task.task_id,
+                        scheme=sampling_scheme,
                     )
                     fixed_blocks.append(block)
                     fixed_audits.append(audit)

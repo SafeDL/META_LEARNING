@@ -1,0 +1,27 @@
+# Gate 3 Round 3: context-sampling fix only (branch A).
+#
+# The Stage-A localization audit (0 training steps) showed that the exact
+# PEARL context input under the historical random sampler carries almost no
+# task information: a held-out logistic probe scored 0.125-0.156 transition
+# accuracy (episode-majority 0.0) versus Gate 2's 1.0 on full trajectory
+# summaries, and re-cutting the same collected support episodes with a
+# terminal-inclusive scheme raised R_sep 2-4x (sut_first 0.006 -> 0.130) on
+# the frozen Round 1 encoder.  Round 3 is therefore the Round 1 Vanilla PEARL
+# run with exactly one change: the context transition sampler.  The Context
+# Encoder, Actor (dense), Critic (dense), KL, reward, prior, casebook and the
+# 20k x seed 1 budget are all unchanged so the causal interpretation stays
+# single-variable.
+extends: merge_method_flow_gate3_vanilla_pearl.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_gate3_context_sampling
+
+experiment:
+  method_variant: vanilla_gate3_context_sampling
+
+pearl:
+  # terminal_stratified_v1: every context episode contributes its terminal
+  # transition exactly once; the remaining context_transitions_per_episode - 1
+  # transitions are sampled randomly from the rest of the episode (with
+  # replacement only when the episode is too short).
+  context_transition_sampling: terminal_stratified_v1

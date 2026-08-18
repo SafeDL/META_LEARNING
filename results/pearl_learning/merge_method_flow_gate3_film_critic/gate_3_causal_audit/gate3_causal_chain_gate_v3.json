@@ -1,0 +1,75 @@
+{
+  "decision_shot": 4,
+  "gate_name": "gate3_vanilla_pearl_causal_chain",
+  "inputs": {
+    "casebook_hashes": {
+      "meta_train_lane_drop_24__logical_order_adversary_first": "f933b818c2c3ba4becbdf20cf3f17eeded209f1c0ccaef59b8b114b5aa124583",
+      "meta_train_lane_drop_24__logical_order_sut_first": "cf4f558af30561bb5ac0c53e6c462b3b4e3cbbe27e08cde2a0555ef093d716e2"
+    },
+    "checkpoint_hash": "d4f9ca7d999d1503df3ebf0253526990be4b238451d617ea71558fc00049fc97",
+    "checkpoint_training_seed": 1,
+    "config_hash": "fc2155f4cf9de41f356f27013294fa59aed4f9cfeea7e3090f9c0ddee9009df0",
+    "critical_threshold_hash": "8efed1246441c49b2c347fe23c6e7c5ebc1085b2c9410b10251e8b10426c4482",
+    "not_a_benchmark_or_holdout_result": true,
+    "taskbook_hash": "a2b4dbf32ec3eebbd8bc1b02ae8b09b37b05126dbd16d32c2ec22696be7226f7"
+  },
+  "next_allowed_stage": null,
+  "oracle_feasibility_status": "pass",
+  "passed_stages": [],
+  "policy_separation_ratio": {
+    "meta_train_lane_drop_24__logical_order_adversary_first": 0.010894640276983676,
+    "meta_train_lane_drop_24__logical_order_sut_first": 0.0033615527265642335
+  },
+  "recomputed_from": {
+    "audit_suite_hash": "bc308b5d853c31949264117c7c66f67fd20dff5dd91dba776676e40e482b8e70",
+    "audit_suite_path": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\results\\pearl_learning\\merge_method_flow_gate3_film_critic\\gate_3_causal_audit\\gate3_causal_audit.json",
+    "environment_steps": 0,
+    "oracle_audit_hash": "87b3e93ad44a0d85653bec8d84a0ede2cf84afcd9a2b32d350a63a1b7926e0b6",
+    "training_updates": 0
+  },
+  "schema": "gate3_vanilla_pearl_causal_chain_gate_v3",
+  "stage_values": {
+    "meta_train_lane_drop_24__logical_order_adversary_first": {
+      "actor_regret_mean_correct": 4.475252151489258,
+      "correct_vcsr": 1.0,
+      "correct_wrong_action_l2": 0.010735705494880676,
+      "correct_wrong_latent_l2": 7.1850266456604,
+      "correct_wrong_return_advantage": -0.5089550919290744,
+      "correct_wrong_vcsr_advantage": 0.0,
+      "critic_argmax_action_distance": 0.0,
+      "latent_cosine": 0.9997351765632629,
+      "latent_separation_ratio": 0.14116442617183145
+    },
+    "meta_train_lane_drop_24__logical_order_sut_first": {
+      "actor_regret_mean_correct": 4.167352676391602,
+      "correct_vcsr": 0.0,
+      "correct_wrong_action_l2": 0.00331251323223114,
+      "correct_wrong_latent_l2": 3.5533838272094727,
+      "correct_wrong_return_advantage": -0.5503877975265254,
+      "correct_wrong_vcsr_advantage": 0.0,
+      "critic_argmax_action_distance": 0.0,
+      "latent_cosine": 0.9999479055404663,
+      "latent_separation_ratio": 0.06755237801663203
+    }
+  },
+  "stages": {
+    "stage_a_context_to_posterior": {
+      "cosine_diagnostic_only": "correct/wrong cosine similarity is reported but never gates Stage A",
+      "criterion": "task-discriminative posterior for both tasks at K=4: correct/wrong posterior mean L2 >= 0.5 AND prior-relative separation ratio R_sep >= 0.25",
+      "decision_shot": 4,
+      "minimum_latent_l2": 0.5,
+      "minimum_prior_relative_separation_ratio": 0.25,
+      "separation_ratio_definition": "D_cw / (0.5 * (||mu_c - mu_prior||_2 + ||mu_w - mu_prior||_2) + eps) with mu_prior = 0 under the unit-normal prior; the Stage-B latent-geometry separation ratio equals R_sep exactly for Vanilla PEARL and the definition extends to a non-zero Structure-Aware prior",
+      "status": "fail"
+    },
+    "stage_b_posterior_to_action": {
+      "decision_shot": 4,
+      "status": "blocked_by_stage_a"
+    },
+    "stage_c_action_to_outcome": {
+      "decision_shot": 4,
+      "status": "blocked_by_stage_a"
+    }
+  },
+  "status": "fail"
+}

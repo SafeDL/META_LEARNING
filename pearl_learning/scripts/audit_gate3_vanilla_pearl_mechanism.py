@@ -42,6 +42,12 @@ def _select_pair(taskbook, requested: list[str]):
 # are diagnostics of the chain links, not benchmark performance criteria.
 GATE3_DECISION_SHOT = 4
 STAGE_A_MIN_CORRECT_WRONG_LATENT_L2 = 0.5
+# Stage A now requires the correct/wrong shift to be a substantial fraction of
+# the total posterior displacement away from the prior, not merely a large
+# absolute L2.  Round 2 showed L2 ~ 3.6-7.7 while the two posteriors stayed
+# nearly collinear (cos ~ 0.9997, R_sep 0.068-0.141): the shift was a shared
+# "has-context" direction, not a task-discriminative one.
+STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO = 0.25
 STAGE_B_MIN_CORRECT_WRONG_ACTION_L2 = 0.1
 
 
@@ -62,6 +68,10 @@ def _shot_values(suite: dict) -> dict[str, dict[str, float]]:
             ),
             "correct_vcsr": float(row["trajectory_summaries"]["correct"]["valid_critical_strict_rate"]),
             "correct_wrong_return_advantage": float(row["paired_gain_means"]["correct_minus_wrong_return"]),
+            # The Stage-B latent-geometry separation ratio is D_cw / (0.5 *
+            # (||mu_c|| + ||mu_w||) + eps); under the unit-normal prior
+            # (mu_prior = 0) this equals the prior-relative R_sep used by the
+            # v3 Stage-A criterion.  The cosine is recorded but never gates.
             "latent_separation_ratio": float(row["stage_b_diagnostics"]["latent_geometry"]["separation_ratio"]),
             "latent_cosine": float(row["stage_b_diagnostics"]["latent_geometry"]["correct_wrong_cosine"]),
             "critic_argmax_action_distance": float(
@@ -95,16 +105,43 @@ def gate3_causal_chain_verdict(suite: dict, oracle: Mapping[str, Any] | None = N
     cases are proven reachable by the oracle audit.  K=1/2 remain reported as
     an adaptation curve and never decide the gate, so there is no implicit
     best-K selection.
+
+    Stage A ("context -> task-discriminative posterior") requires, for both
+    tasks at the decision shot:
+
+    * D_cw  = ||mu_c - mu_w||_2 >= STAGE_A_MIN_CORRECT_WRONG_LATENT_L2, and
+    * R_sep = D_cw / (0.5 * (||mu_c - mu_p||_2 + ||mu_w - mu_p||_2) + eps)
+            >= STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO, with mu_p the
+            prior mean (0 under the unit-normal prior).
+
+    The absolute L2 alone was disproved by Round 2 (L2 3.6-7.7 but cos ~
+    0.9997): the posterior moved along a shared common-context direction, so
+    the correct/wrong shift was not task-discriminative.  The cosine stays a
+    reported diagnostic and never gates, because tasks may legitimately be
+    encoded by latent amplitude.
     """
     values = _shot_values(suite)
     stage_a_ok = all(
-        row["correct_wrong_latent_l2"] >= STAGE_A_MIN_CORRECT_WRONG_LATENT_L2 for row in values.values()
+        row["correct_wrong_latent_l2"] >= STAGE_A_MIN_CORRECT_WRONG_LATENT_L2
+        and row["latent_separation_ratio"] >= STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO
+        for row in values.values()
     )
     stage_a = {
         "status": "pass" if stage_a_ok else "fail",
         "decision_shot": GATE3_DECISION_SHOT,
-        "criterion": f"correct/wrong posterior mean L2 >= {STAGE_A_MIN_CORRECT_WRONG_LATENT_L2} for both tasks at K={GATE3_DECISION_SHOT}",
+        "criterion": (
+            f"task-discriminative posterior for both tasks at K={GATE3_DECISION_SHOT}: "
+            f"correct/wrong posterior mean L2 >= {STAGE_A_MIN_CORRECT_WRONG_LATENT_L2} AND "
+            f"prior-relative separation ratio R_sep >= {STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO}"
+        ),
         "minimum_latent_l2": STAGE_A_MIN_CORRECT_WRONG_LATENT_L2,
+        "minimum_prior_relative_separation_ratio": STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO,
+        "separation_ratio_definition": (
+            "D_cw / (0.5 * (||mu_c - mu_prior||_2 + ||mu_w - mu_prior||_2) + eps) with mu_prior = 0 "
+            "under the unit-normal prior; the Stage-B latent-geometry separation ratio equals R_sep "
+            "exactly for Vanilla PEARL and the definition extends to a non-zero Structure-Aware prior"
+        ),
+        "cosine_diagnostic_only": "correct/wrong cosine similarity is reported but never gates Stage A",
     }
     if stage_a_ok:
         stage_b_ok = all(
@@ -152,7 +189,11 @@ def gate3_causal_chain_verdict(suite: dict, oracle: Mapping[str, Any] | None = N
         if ok
     ]
     gate = {
-        "schema": "gate3_vanilla_pearl_causal_chain_gate_v2",
+        # v3 upgrades Stage A from the absolute L2 floor to the conjoint
+        # task-discriminative criterion (L2 + prior-relative R_sep).  Existing
+        # v2 gate files on disk are preserved; v3 verdicts are written to a
+        # new file so the historical judgement is never overwritten.
+        "schema": "gate3_vanilla_pearl_causal_chain_gate_v3",
         "gate_name": "gate3_vanilla_pearl_causal_chain",
         "status": "pass" if all_ok else "fail",
         "next_allowed_stage": "gate4_structure_aware_transfer" if all_ok else None,
@@ -171,6 +212,71 @@ def gate3_causal_chain_verdict(suite: dict, oracle: Mapping[str, Any] | None = N
     return gate
 
 
+def verify_casebook_split_provenance(
+    checkpoint: Mapping[str, Any],
+    books: Mapping[str, Mapping[str, list[dict[str, Any]]]],
+    screening_manifest: Mapping[str, Any] | None,
+    oracle: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Enforce split-level casebook provenance against the checkpoint.
+
+    The checkpoint records per-split casebook hashes.  train_pool and
+    validation_support are training-time support evidence and must be
+    bit-identical between checkpoint and audit; validation_query may differ
+    only when the revision is a legitimate oracle-screened query selection,
+    which must carry the screening manifest and a passing oracle feasibility
+    audit.  Checkpoints saved before split-level hashing fall back to the
+    whole-book comparison and are marked as such.
+    """
+    audit_split_hashes = {
+        task_id: {split: content_hash(rows) for split, rows in book.items()}
+        for task_id, book in books.items()
+    }
+    provenance: dict[str, Any] = {"casebook_split_hashes": audit_split_hashes}
+    saved = dict(checkpoint.get("casebook_split_hashes", {}))
+    if not saved:
+        provenance["casebook_split_provenance"] = "checkpoint predates split-level casebook hashing"
+        return provenance
+    provenance["checkpoint_casebook_split_hashes"] = saved
+    if set(saved) != set(audit_split_hashes):
+        raise ValueError("checkpoint casebook_split_hashes do not cover the audit tasks")
+    query_changed = False
+    for task_id, current in audit_split_hashes.items():
+        checkpoint_splits = saved[task_id]
+        for split in ("train_pool", "validation_support"):
+            if checkpoint_splits.get(split) != current.get(split):
+                raise ValueError(
+                    f"{task_id} {split} casebook changed since the checkpoint was trained; "
+                    "training support evidence is frozen provenance"
+                )
+        if checkpoint_splits.get("validation_query") != current.get("validation_query"):
+            query_changed = True
+    if not query_changed:
+        return provenance
+    if screening_manifest is None:
+        raise ValueError(
+            "validation_query casebook differs from the checkpoint; a revised query group "
+            "requires --query-screening-manifest provenance"
+        )
+    if str(screening_manifest.get("schema")) != "gate3_query_candidate_screening_v1":
+        raise ValueError("query screening manifest has an unexpected schema")
+    if str(screening_manifest.get("provenance", {}).get("uses_test_or_ood")).lower() != "false":
+        raise ValueError("query screening manifest must not use test or OOD data")
+    feasibility = None if oracle is None else str(oracle.get("feasibility", {}).get("status"))
+    if feasibility != "pass":
+        raise ValueError(
+            "a revised validation_query group requires oracle feasibility = pass; "
+            "rerun the single-task SAC query-oracle audit first"
+        )
+    provenance["query_screening_manifest_hash"] = content_hash(screening_manifest)
+    provenance["query_screening_manifest_schema"] = str(screening_manifest.get("schema"))
+    provenance["query_screening_uses_test_or_ood"] = str(
+        screening_manifest.get("provenance", {}).get("uses_test_or_ood")
+    )
+    provenance["query_revision_oracle_feasibility"] = feasibility
+    return provenance
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -184,6 +290,11 @@ def main() -> None:
     parser.add_argument(
         "--oracle-audit",
         help="single-task SAC query-oracle audit JSON used for R_policy and Stage-C feasibility gating",
+    )
+    parser.add_argument(
+        "--query-screening-manifest",
+        help="query candidate screening manifest required when the audit validation_query "
+        "differs from the checkpoint casebook",
     )
     args = parser.parse_args()
     cfg = resolve_calibration(read_config(args.config), args.critical_thresholds)
@@ -234,6 +345,14 @@ def main() -> None:
     shots = sorted(set(int(shot) for shot in args.shots))
     if not shots or min(shots) < 1:
         raise ValueError("Gate 3 causal shots must be positive support counts")
+    oracle = None
+    if args.oracle_audit:
+        oracle = json.loads(Path(args.oracle_audit).read_text(encoding="utf-8"))
+        if set(oracle.get("tasks", {})) != {task.task_id for task in tasks}:
+            raise ValueError("oracle audit tasks do not match the causal audit tasks")
+    screening_manifest = None
+    if args.query_screening_manifest:
+        screening_manifest = json.loads(Path(args.query_screening_manifest).read_text(encoding="utf-8"))
     provenance = {
         "taskbook_hash": content_hash(taskbook_payload(taskbook)),
         "casebook_hashes": {task_id: content_hash(book) for task_id, book in books.items()},
@@ -242,13 +361,17 @@ def main() -> None:
         "checkpoint_hash": checkpoint_hash,
         "checkpoint_training_seed": checkpoint["training_seed"],
         "not_a_benchmark_or_holdout_result": True,
+        # The support context is now cut by the same canonical selector the
+        # training sampler and few-shot evaluation use; historical suites on
+        # disk predate this and used linspace blocks.
+        "context_sampling_scheme": str(cfg["pearl"].get("context_transition_sampling", "random")),
     }
     checkpoint_casebooks = dict(checkpoint.get("casebook_hashes", {}))
     if checkpoint_casebooks and any(
         checkpoint_casebooks.get(task_id) != content_hash(book) for task_id, book in books.items()
     ):
         # Expected when the query group was revised by the oracle screening;
-        # support and train-pool conditions are unchanged.
+        # the split-level check below proves that only validation_query moved.
         provenance["casebook_differs_from_checkpoint"] = {
             task_id: {
                 "checkpoint_casebook_hash": checkpoint_casebooks.get(task_id),
@@ -257,6 +380,9 @@ def main() -> None:
             for task_id, book in books.items()
             if checkpoint_casebooks.get(task_id) != content_hash(book)
         }
+    provenance.update(
+        verify_casebook_split_provenance(checkpoint, books, screening_manifest, oracle)
+    )
     results = {}
     for target in tasks:
         wrong = next(task for task in tasks if task.task_id != target.task_id)
@@ -292,16 +418,13 @@ def main() -> None:
         },
     }
     write_json(root / "gate3_stage_b_diagnostics.json", diagnostics)
-    oracle = None
-    if args.oracle_audit:
-        oracle = json.loads(Path(args.oracle_audit).read_text(encoding="utf-8"))
-        if set(oracle.get("tasks", {})) != set(results):
-            raise ValueError("oracle audit tasks do not match the causal audit tasks")
     gate = gate3_causal_chain_verdict(suite, oracle)
     gate["inputs"] = provenance
-    write_json(root / "gate3_causal_chain_gate.json", gate)
+    # The v3 verdict lives in its own file: historical v2 gate files on disk
+    # are never overwritten by a re-judgement under the upgraded Stage-A rule.
+    write_json(root / "gate3_causal_chain_gate_v3.json", gate)
     print(f"Gate 3 causal audit: {gate['status']} "
-          f"(passed {gate['passed_stages'] or 'none'}) -> {root / 'gate3_causal_audit.json'}")
+          f"(passed {gate['passed_stages'] or 'none'}) -> {root / 'gate3_causal_chain_gate_v3.json'}")
 
 
 if __name__ == "__main__":

@@ -452,13 +452,13 @@ class ContractTests(unittest.TestCase):
             "episode-b",
         )
         first_block, first_audit = _fixed_episode_context_block(
-            first, 32, base_seed=17, task_id="task",
+            first, 32, base_seed=17, task_id="task", scheme="random",
         )
         again, again_audit = _fixed_episode_context_block(
-            first, 32, base_seed=17, task_id="task",
+            first, 32, base_seed=17, task_id="task", scheme="random",
         )
         second_block, second_audit = _fixed_episode_context_block(
-            second, 32, base_seed=17, task_id="task",
+            second, 32, base_seed=17, task_id="task", scheme="random",
         )
         self.assertEqual(first_audit, again_audit)
         self.assertEqual(

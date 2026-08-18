@@ -34,6 +34,7 @@ def _file_hash(path: Path) -> str:
 
 def save_checkpoint(path: str | Path, agent: Any, config: Mapping[str, Any], taskbook_hash: str, step: int, *,
                     casebook_hashes: Mapping[str, str], training_seed: int, rng_state: Mapping[str, Any],
+                    casebook_split_hashes: Mapping[str, Mapping[str, str]] | None = None,
                     trainer_state: Mapping[str, Any] | None = None) -> dict[str, Any]:
     target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
     metadata = {
@@ -46,6 +47,10 @@ def save_checkpoint(path: str | Path, agent: Any, config: Mapping[str, Any], tas
         "run_kind": str(config.get("experiment", {}).get("run_kind", "formal")),
         "architecture": agent.architecture_metadata(),
     }
+    if casebook_split_hashes is not None:
+        metadata["casebook_split_hashes"] = {
+            task_id: dict(splits) for task_id, splits in casebook_split_hashes.items()
+        }
     payload = {"agent": agent.state_dict(), "rng_state": dict(rng_state), **metadata}
     if trainer_state is not None:
         payload["trainer_state"] = dict(trainer_state)
@@ -78,7 +83,12 @@ def load_checkpoint(path: str | Path, agent: Any, device: torch.device) -> dict[
         raise ValueError(f"checkpoint action_dim={payload.get('action_dim')!r} is incompatible with current action_dim={agent.action_dim!r}; retrain it")
     if "rng_state" not in payload:
         raise ValueError("checkpoint lacks RNG state and is not resumable")
-    if payload.get("architecture") != agent.architecture_metadata():
+    stored_architecture = dict(payload.get("architecture") or {})
+    # Checkpoints saved before critic architectures existed always used the
+    # dense twin critic; default the missing key instead of breaking their
+    # load path (mirrors PEARLAgent.load_state_dict back-compat).
+    stored_architecture.setdefault("critic_architecture", "dense")
+    if stored_architecture != agent.architecture_metadata():
         raise ValueError("checkpoint architecture metadata is incompatible with the configured agent")
     agent.load_state_dict(payload["agent"])
     return payload

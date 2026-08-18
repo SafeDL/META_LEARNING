@@ -17,11 +17,21 @@ from pearl_learning.src.benchmark_calibration import (
     resolve_calibration,
 )
 from pearl_learning.src.casebook_v2 import solve_adversary_spawn
-from pearl_learning.src.causal_audit import _actor_means, stage_b_actor_critic_diagnostics
+from pearl_learning.src.causal_audit import (
+    _actor_means,
+    _transition_context_row,
+    context_rows,
+    logistic_probe_accuracy,
+    posterior_separation,
+    sample_context_scheme,
+    stage_b_actor_critic_diagnostics,
+)
+from pearl_learning.src.checkpoint import save_checkpoint
 from pearl_learning.scripts.audit_gate3_vanilla_pearl_mechanism import (
     GATE3_DECISION_SHOT,
     gate3_causal_chain_verdict,
     policy_separation_ratio,
+    verify_casebook_split_provenance,
 )
 from pearl_learning.src.critical import (
     CRITICAL_METRIC_SCHEMA,
@@ -33,6 +43,7 @@ from pearl_learning.src.critical import (
 )
 from pearl_learning.src.io import (
     assert_method_variant_contract,
+    content_hash,
     prepare_run_manifest,
     read_config,
 )
@@ -57,7 +68,7 @@ from pearl_learning.src.observation import (
     DYNAMIC_OBS_FIELDS,
 )
 from pearl_learning.src.pearl_agent import PEARLAgent
-from pearl_learning.src.replay import Transition
+from pearl_learning.src.replay import Transition, select_context_rows
 from pearl_learning.src.reward import compute_reward
 from pearl_learning.src.task_env import interpolated_conflict_entry_role
 from pearl_learning.src.taskbook import build_taskbook
@@ -408,7 +419,7 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertIn("correct", grid["actor_regret_mean"])
 
     @staticmethod
-    def _synthetic_suite(latent_l2: float, action_l2: float, vcsr: dict) -> dict:
+    def _synthetic_suite(latent_l2: float, action_l2: float, vcsr: dict, separation: float = 0.15) -> dict:
         def row(vcsr_correct: float, vcsr_wrong: float) -> dict:
             return {
                 "latent_l2": {"correct_wrong_l2": latent_l2},
@@ -419,7 +430,7 @@ class MethodFlowV2Tests(unittest.TestCase):
                 },
                 "paired_gain_means": {"correct_minus_wrong_return": vcsr_correct - vcsr_wrong},
                 "stage_b_diagnostics": {
-                    "latent_geometry": {"separation_ratio": 0.15, "correct_wrong_cosine": 0.997},
+                    "latent_geometry": {"separation_ratio": separation, "correct_wrong_cosine": 0.997},
                     "critic_q_grid": {
                         "argmax_action_distance_mean": 0.0, "actor_regret_mean": {"correct": 0.0},
                     },
@@ -442,25 +453,44 @@ class MethodFlowV2Tests(unittest.TestCase):
             "tasks": oracle_pass["tasks"],
             "feasibility": {"status": "fail"},
         }
-        # Stage A fails: B and C are blocked, never judged on their own values.
+        # Stage A fails on the absolute L2 floor: B and C are blocked.
         gate = gate3_causal_chain_verdict(self._synthetic_suite(0.1, 5.0, {"a": (1.0, 0.0), "b": (1.0, 0.0)}), oracle_pass)
         self.assertEqual(gate["status"], "fail")
         self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "blocked_by_stage_a")
         self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_stage_a")
-        # Stage A passes but B fails: C is blocked by B, not judged as failed.
+        # v3 re-interpretation of Round 1/2: L2 clears 0.5 but R_sep stays
+        # below 0.25, so the posterior is not task-discriminative and Stage A
+        # fails before any action-level judgement.
         gate = gate3_causal_chain_verdict(self._synthetic_suite(7.7, 0.03, {"a": (0.0, 0.0), "b": (0.0, 0.0)}), oracle_pass)
+        self.assertEqual(gate["schema"], "gate3_vanilla_pearl_causal_chain_gate_v3")
+        self.assertEqual(gate["stages"]["stage_a_context_to_posterior"]["status"], "fail")
+        self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "blocked_by_stage_a")
+        self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_stage_a")
+        # Stage A passes (L2 + R_sep) but B fails: C is blocked by B.
+        gate = gate3_causal_chain_verdict(
+            self._synthetic_suite(7.7, 0.03, {"a": (0.0, 0.0), "b": (0.0, 0.0)}, separation=0.4), oracle_pass
+        )
         self.assertEqual(gate["stages"]["stage_a_context_to_posterior"]["status"], "pass")
         self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "fail")
         self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_stage_b")
         # Stage B passes but query feasibility fails: C is blocked by the oracle.
-        gate = gate3_causal_chain_verdict(self._synthetic_suite(7.7, 0.3, {"a": (1.0, 0.0), "b": (1.0, 0.0)}), oracle_fail)
+        gate = gate3_causal_chain_verdict(
+            self._synthetic_suite(7.7, 0.3, {"a": (1.0, 0.0), "b": (1.0, 0.0)}, separation=0.4), oracle_fail
+        )
         self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "pass")
         self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_query_feasibility")
         # Full chain with feasible queries and a strict VCSR advantage passes.
-        gate = gate3_causal_chain_verdict(self._synthetic_suite(7.7, 0.3, {"a": (0.5, 0.0), "b": (0.0, 0.0)}), oracle_pass)
+        gate = gate3_causal_chain_verdict(
+            self._synthetic_suite(7.7, 0.3, {"a": (0.5, 0.0), "b": (0.0, 0.0)}, separation=0.4), oracle_pass
+        )
         self.assertEqual(gate["status"], "pass")
         self.assertEqual(gate["passed_stages"], ["stage_a", "stage_b", "stage_c"])
         self.assertIn("policy_separation_ratio", gate)
+        # Stage A requires BOTH tasks to clear the R_sep floor.
+        gate = gate3_causal_chain_verdict(
+            self._synthetic_suite(7.7, 0.3, {"a": (0.5, 0.0), "b": (0.0, 0.0)}), oracle_pass
+        )
+        self.assertEqual(gate["stages"]["stage_a_context_to_posterior"]["status"], "fail")
         # The decision shot must be present in the suite.
         missing = {"tasks": {"task_a": {"shots": {"1": {}}}}}
         with self.assertRaises(ValueError):
@@ -708,6 +738,180 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertEqual(single_task_sac_transfer_report(matrix, ["a", "b"])["status"], "pass")
         matrix["b"]["b"]["valid_critical_strict_rate"] = 0.0
         self.assertEqual(single_task_sac_transfer_report(matrix, ["a", "b"])["status"], "fail")
+
+    @staticmethod
+    def _transition(row_id: int, *, terminated: bool = False) -> Transition:
+        return Transition(
+            obs=np.full(DYNAMIC_OBSERVATION_DIM, float(row_id), dtype=np.float32),
+            action=np.zeros(1, dtype=np.float32),
+            reward=float(row_id),
+            next_obs=np.full(DYNAMIC_OBSERVATION_DIM, float(row_id), dtype=np.float32),
+            terminated=terminated,
+            truncated=False,
+            termination_reason="running",
+            task_id="task",
+            episode_id="episode",
+            case_id="case",
+            collection_mode="prior_support",
+            posterior_version=0,
+        )
+
+    def test_canonical_context_selector_matches_legacy_random_and_stratifies_terminal(self) -> None:
+        rows = [self._transition(index) for index in range(10)]
+        # The default scheme must reproduce the historical rng.choice sampler
+        # bit-for-bit under identical RNG states.
+        rng_legacy = np.random.default_rng(0)
+        chosen = rng_legacy.choice(len(rows), size=8, replace=False)
+        legacy = [rows[int(item)] for item in np.asarray(chosen).reshape(-1)]
+        canonical = select_context_rows(rows, 8, "random", np.random.default_rng(0))
+        self.assertEqual([row.reward for row in legacy], [row.reward for row in canonical])
+        # terminal_stratified_v1 always carries the terminal transition
+        # exactly once and keeps the requested block size; every returned
+        # element must be a transition, never an index.
+        stratified = select_context_rows(rows, 8, "terminal_stratified_v1", np.random.default_rng(1))
+        self.assertEqual(len(stratified), 8)
+        self.assertTrue(all(isinstance(row, Transition) for row in stratified))
+        self.assertEqual(sum(1 for row in stratified if row is rows[-1]), 1)
+        self.assertEqual(stratified[0], rows[-1])
+        self.assertTrue({row.reward for row in stratified} <= {row.reward for row in rows})
+        # A one-transition episode degrades to repetition, never drops rows.
+        tiny = select_context_rows(rows[:1], 8, "terminal_stratified_v1", np.random.default_rng(2))
+        self.assertEqual(len(tiny), 8)
+        self.assertTrue(all(row is rows[0] for row in tiny))
+        with self.assertRaises(ValueError):
+            select_context_rows(rows, 8, "unsupported", np.random.default_rng(3))
+
+    def test_sample_context_scheme_adds_conflict_window_and_delegates_canonical(self) -> None:
+        rows = [self._transition(index) for index in range(10)]
+        # Zero every conflict-proximity channel, then mark rows 2-4 as
+        # conflict-near via |arrival_time_difference| (index 16).
+        for row in rows:
+            row.obs[:] = 0.0
+        for index in range(10):
+            rows[index].obs[16] = 0.0 if index in (2, 3, 4) else 0.9
+        groups = sample_context_scheme([rows], 8, "conflict_window", np.random.default_rng(0))
+        selected = groups[0]
+        self.assertEqual(len(selected), 8)
+        self.assertTrue(any(row is rows[-1] for row in selected))
+        for index in (2, 3, 4):
+            self.assertTrue(any(row is rows[index] for row in selected))
+        delegated = sample_context_scheme([rows], 8, "terminal_stratified_v1", np.random.default_rng(0))
+        self.assertEqual(delegated[0][0], rows[-1])
+
+    def test_transition_context_row_matches_agent_context_tensor(self) -> None:
+        cfg = self.cfg
+        torch.manual_seed(0)
+        agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
+        rows = [self._transition(index) for index in range(4)]
+        context_by_task = [[rows[:2]], [rows[2:]]]
+        tensor_rows = agent.context_tensor(context_by_task).detach().cpu().numpy()
+        manual = context_rows([rows], float(agent.reward_scale))
+        flat = tensor_rows.reshape(-1, tensor_rows.shape[-1])
+        self.assertTrue(np.array_equal(flat, manual))
+        row = _transition_context_row(rows[0], float(agent.reward_scale))
+        self.assertEqual(row[24], rows[0].reward / float(agent.reward_scale))
+
+    def test_logistic_probe_recovers_separable_tasks_and_drops_noise(self) -> None:
+        rng = np.random.default_rng(0)
+        features = rng.standard_normal((40, 5)).astype(np.float32)
+        labels = np.repeat([0, 1], 20)
+        groups = np.repeat(np.arange(8), 5)
+        features[labels == 1, 0] += 4.0
+        separable = logistic_probe_accuracy(features, labels, groups, seed=0)
+        self.assertGreater(separable["transition_accuracy"], 0.8)
+        self.assertGreater(separable["episode_majority_accuracy"], 0.8)
+        noise = logistic_probe_accuracy(rng.standard_normal((40, 5)).astype(np.float32), labels, groups, seed=1)
+        self.assertTrue(0.2 < noise["transition_accuracy"] < 0.8)
+        with self.assertRaises(ValueError):
+            logistic_probe_accuracy(features[:3], labels[:3], groups[:3], seed=0)
+
+    def test_posterior_separation_uses_prior_relative_definition(self) -> None:
+        class StubAgent:
+            def prior(self, tasks=None):
+                return torch.zeros(1, 5), torch.zeros(1, 5)
+
+            def infer_posterior(self, context_by_task, tasks=None):
+                marker = context_by_task[0][0][0]
+                value = 2.0 if marker == "correct" else 0.5
+                return torch.ones(1, 5) * value, torch.zeros(1, 5)
+
+        separation = posterior_separation(StubAgent(), [["correct"]], [["wrong"]], task=None)
+        # D_cw = 1.5 * sqrt(5); c_prior = 2 * sqrt(5); w_prior = 0.5 * sqrt(5)
+        # R_sep = 1.5 / (0.5 * (2 + 0.5)) = 1.2
+        self.assertAlmostEqual(separation["correct_wrong_l2"], 1.5 * np.sqrt(5), places=4)
+        self.assertAlmostEqual(separation["prior_relative_separation_ratio"], 1.2, places=4)
+        self.assertAlmostEqual(separation["correct_wrong_cosine"], 1.0, places=5)
+
+    def test_split_casebook_provenance_enforcement(self) -> None:
+        def book(value: str) -> dict:
+            return {
+                "train_pool": [{"case_id": f"t_{value}"}],
+                "validation_support": [{"case_id": f"s_{value}"}],
+                "validation_query": [{"case_id": f"q_{value}"}],
+            }
+
+        books = {"task_a": book("a"), "task_b": book("b")}
+        matching = {"task_a": {k: content_hash(v) for k, v in books["task_a"].items()},
+                    "task_b": {k: content_hash(v) for k, v in books["task_b"].items()}}
+        provenance = verify_casebook_split_provenance(
+            {"casebook_split_hashes": matching}, books, None, None
+        )
+        self.assertIn("casebook_split_hashes", provenance)
+        self.assertNotIn("query_screening_manifest_hash", provenance)
+        # A revised query group demands the screening manifest and a passing oracle.
+        revised_query = {"task_a": {**matching["task_a"], "validation_query": "other"},
+                         "task_b": matching["task_b"]}
+        with self.assertRaisesRegex(ValueError, "query-screening-manifest"):
+            verify_casebook_split_provenance({"casebook_split_hashes": revised_query}, books, None, None)
+        manifest = {
+            "schema": "gate3_query_candidate_screening_v1",
+            "provenance": {"uses_test_or_ood": False},
+        }
+        with self.assertRaisesRegex(ValueError, "feasibility = pass"):
+            verify_casebook_split_provenance(
+                {"casebook_split_hashes": revised_query}, books, manifest, None
+            )
+        with self.assertRaisesRegex(ValueError, "feasibility = pass"):
+            verify_casebook_split_provenance(
+                {"casebook_split_hashes": revised_query}, books, manifest,
+                {"feasibility": {"status": "fail"}},
+            )
+        provenance = verify_casebook_split_provenance(
+            {"casebook_split_hashes": revised_query}, books, manifest,
+            {"feasibility": {"status": "pass"}},
+        )
+        self.assertIn("query_screening_manifest_hash", provenance)
+        self.assertEqual(provenance["query_revision_oracle_feasibility"], "pass")
+        # train_pool / validation_support are frozen support evidence.
+        changed_support = {"task_a": {**matching["task_a"], "validation_support": "other"},
+                           "task_b": matching["task_b"]}
+        with self.assertRaisesRegex(ValueError, "validation_support"):
+            verify_casebook_split_provenance(
+                {"casebook_split_hashes": changed_support}, books, manifest,
+                {"feasibility": {"status": "pass"}},
+            )
+        # Legacy checkpoints predating split-level hashing stay loadable.
+        legacy = verify_casebook_split_provenance({}, books, None, None)
+        self.assertEqual(legacy["casebook_split_provenance"], "checkpoint predates split-level casebook hashing")
+
+    def test_checkpoint_records_split_casebook_hashes(self) -> None:
+        cfg = self.cfg
+        torch.manual_seed(0)
+        agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
+        splits = {"task_a": {"train_pool": "t", "validation_support": "s", "validation_query": "q"}}
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "best_model.pt"
+            save_checkpoint(
+                path, agent, cfg, "taskbook", 0,
+                casebook_hashes={"task_a": "whole"},
+                casebook_split_hashes=splits,
+                training_seed=1,
+                rng_state={"torch": torch.get_rng_state(), "numpy_generator": None},
+                trainer_state=None,
+            )
+            manifest = json.loads(path.with_suffix(".manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["casebook_split_hashes"], splits)
+        self.assertEqual(manifest["casebook_hashes"], {"task_a": "whole"})
 
     def test_variant_assertions_and_manifest_resume_guard(self) -> None:
         vanilla = read_config("pearl_learning/configs/merge_method_flow_vanilla_pilot.yaml")
