@@ -1,0 +1,16 @@
+# Gate 3 Round 2 (branch B): Latent-FiLM Critic with the dense Actor unchanged.
+# The Stage-B diagnostics showed the concatenated Critic's Q is monotone along
+# the whole action grid under both correct and wrong latents (Q-grid argmax
+# distance 0.0), so the Critic never learned task-dependent value.  Only the
+# Critic conditioning structure changes here; Context Encoder, Actor, KL,
+# reward, casebook and training budget are identical to Round 1.
+extends: merge_method_flow_gate3_vanilla_pearl.yaml
+
+project:
+  output_root: results/pearl_learning/merge_method_flow_gate3_film_critic
+
+experiment:
+  method_variant: vanilla_gate3_film_critic
+
+networks:
+  critic_architecture: latent_film_dense

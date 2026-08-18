@@ -38,7 +38,7 @@ def main() -> None:
                         help="repeat a geometry id or frozen task id for each matched task")
     parser.add_argument("--count", type=int, default=12)
     parser.add_argument("--profile", choices=("absolute_grid", "order_boundary", "order_boundary_screened_v1",
-                                              "order_boundary_fewshot_v1"),
+                                              "order_boundary_fewshot_v1", "order_boundary_fewshot_screened_v1"),
                         help="mechanism-only absolute condition profile; defaults to config")
     parser.add_argument("--split", default="train_pool")
     parser.add_argument(

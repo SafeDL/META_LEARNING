@@ -89,9 +89,44 @@ ORDER_BOUNDARY_FEWSHOT_V1_CONDITIONS = {
         (0.08, 0.0, 0.70, 12.5, "mechanism_grid_query_03"),
     ),
 }
+# A separately versioned few-shot profile whose validation_query group was
+# screened with the two Gate 1B single-task SAC policies (Gate 3 query oracle
+# audit).  The unscreened query conditions of order_boundary_fewshot_v1 gave
+# the sut_first task no achievable strict VCSR and a negative diagonal
+# advantage, so Stage C could not be judged.  The frozen query group is the
+# deterministic greedy selection from ORDER_BOUNDARY_QUERY_CANDIDATES_V1;
+# provenance lives in the gate3 config's mechanism.query_case_selection and in
+# results/.../gate_3_query_screening/gate3_query_candidate_screening.json.
+ORDER_BOUNDARY_FEWSHOT_SCREENED_V1_CONDITIONS = {
+    "train_pool": ORDER_BOUNDARY_FEWSHOT_V1_CONDITIONS["train_pool"],
+    "validation_support": ORDER_BOUNDARY_FEWSHOT_V1_CONDITIONS["validation_support"],
+    "validation_query": (
+        (0.00, 0.0, 0.35, 12.0, "mechanism_grid_query_candidate_04"),
+        (0.00, 0.0, 0.65, 12.0, "mechanism_grid_query_candidate_05"),
+        (0.10, 0.0, 0.40, 13.0, "mechanism_grid_query_candidate_02"),
+        (-0.05, 0.0, 0.40, 12.0, "mechanism_grid_query_candidate_06"),
+    ),
+}
 FEWSHOT_MECHANISM_PROFILES = {
     "order_boundary_fewshot_v1": ORDER_BOUNDARY_FEWSHOT_V1_CONDITIONS,
+    "order_boundary_fewshot_screened_v1": ORDER_BOUNDARY_FEWSHOT_SCREENED_V1_CONDITIONS,
 }
+
+# Construction data for the Gate 3 query oracle screening: candidate query
+# conditions in the same near-boundary family as the screened train pool.
+# The two Gate 1B single-task SACs are used as the screening instrument; only
+# conditions where both tasks show own-policy strict VCSR and at least one
+# cross-policy failure are frozen back into the few-shot profile.
+ORDER_BOUNDARY_QUERY_CANDIDATES_V1 = (
+    (0.05, 0.0, 0.30, 12.0, "mechanism_grid_query_candidate_00"),
+    (0.05, 0.0, 0.55, 12.0, "mechanism_grid_query_candidate_01"),
+    (0.10, 0.0, 0.40, 13.0, "mechanism_grid_query_candidate_02"),
+    (0.10, 0.0, 0.60, 13.0, "mechanism_grid_query_candidate_03"),
+    (0.00, 0.0, 0.35, 12.0, "mechanism_grid_query_candidate_04"),
+    (0.00, 0.0, 0.65, 12.0, "mechanism_grid_query_candidate_05"),
+    (-0.05, 0.0, 0.40, 12.0, "mechanism_grid_query_candidate_06"),
+    (-0.05, 0.0, 0.60, 12.0, "mechanism_grid_query_candidate_07"),
+)
 
 MeasureCase = Callable[[dict[str, Any]], Mapping[str, Any]]
 

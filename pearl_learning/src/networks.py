@@ -47,3 +47,30 @@ class Critic(nn.Module):
 
     def forward(self, observation: torch.Tensor, action: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:
         return self.model(torch.cat([observation, action, latent], dim=-1))
+
+
+class LatentFiLMCritic(nn.Module):
+    """Critic where the latent explicitly modulates state-action features.
+
+    The concatenated Critic can treat the latent as one more input feature and
+    still learn a Q that is nearly constant along the task-discriminating
+    latent direction.  Here the latent produces a FiLM modulation of the
+    state-action trunk, so z is an explicit value-function conditioning
+    variable with a dedicated gradient path.  Capacity stays in the same
+    order as the dense twin critic; only the conditioning structure changes.
+    """
+
+    def __init__(self, observation_dim: int, action_dim: int, latent_dim: int, hidden_sizes: list[int]):
+        super().__init__()
+        if not hidden_sizes:
+            raise ValueError("FiLM critic needs a non-empty hidden size list")
+        self.feature_dim = int(hidden_sizes[-1])
+        self.trunk = mlp(observation_dim + action_dim, list(hidden_sizes), self.feature_dim)
+        self.modulator = mlp(latent_dim, [max(16, latent_dim * 4), 2 * self.feature_dim], 2 * self.feature_dim)
+        self.head = torch.nn.Linear(self.feature_dim, 1)
+
+    def forward(self, observation: torch.Tensor, action: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:
+        features = self.trunk(torch.cat([observation, action], dim=-1))
+        gamma, beta = self.modulator(latent).chunk(2, dim=-1)
+        modulated = (1.0 + gamma) * features + beta
+        return self.head(modulated)

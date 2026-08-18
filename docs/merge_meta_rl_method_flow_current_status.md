@@ -11,7 +11,7 @@ Gate 0   配置与工程链路                  pass
 Gate 1   Task-Policy Conflict          pass
 Gate 1B  Quick Single-Task SAC         pass
 Gate 2   Context Identifiability       pass
-Gate 3   Vanilla PEARL causal chain    fail (round 1, 20k seed 1)
+Gate 3   Vanilla PEARL causal chain    fail (round 1 & round 2, 20k seed 1)
 Gate 4   Structure-Aware / Transfer    blocked by Gate 3
 ```
 
@@ -64,7 +64,7 @@ PEARL/SAC 训练与评估链路、run manifest、checkpoint 合约、案例簿 s
   - stable energy distance：pass
 - 仅凭 transition 数据即可区分两个任务。`next_allowed_stage = gate_3_vanilla_pearl`。
 
-## Gate 3 — Vanilla PEARL causal chain：fail（round 1, 20k seed 1）
+## Gate 3 — Vanilla PEARL causal chain：fail（Round 1 & Round 2）
 
 目标因果链：
 
@@ -77,62 +77,105 @@ support evidence  ->  q(z|C_correct) != q(z|C_wrong)  ->  pi(a|s,z_correct) != p
 ```text
 Tasks: 2 (matched logical-order pair)
 Seed: 1
-Environment steps: 20k
-Actor: Dense
-Prior: Unit Normal
-Scenario Encoder: OFF
-MoE: OFF
+Environment steps: 20k per round（每轮只允许一个 20k 实验）
+Round 1: Dense Actor + Dense Critic（concat）
+Round 2: Dense Actor + Latent-FiLM Critic（分支 B，只改 Critic）
+Prior: Unit Normal；Scenario Encoder: OFF；MoE: OFF
 ```
 
-- 配置：`pearl_learning/configs/merge_method_flow_gate3_vanilla_pearl.yaml`
-- 案例簿：`results/pearl_learning/merge_method_flow_gate3_vanilla_pearl/mechanism_assets/casebooks/`
-  - profile `order_boundary_fewshot_v1`：`train_pool` 6（Gate 1 筛后可行子集）+ `validation_support` 4 + `validation_query` 4，跨 Task matched、跨 split disjoint。
-- 训练结果：`results/pearl_learning/merge_method_flow_gate3_vanilla_pearl/mechanism_gate/gate3_vanilla_pearl_20k_seed1/`
-- causal audit：`pearl_learning/scripts/audit_gate3_vanilla_pearl_mechanism.py`，对 `prior / correct / wrong / zero` 四种 latent 做 no-gradient intervention。
-- 判定文件：`results/pearl_learning/merge_method_flow_gate3_vanilla_pearl/gate_3_causal_audit/gate3_causal_chain_gate.json`
+- Round 1 配置：`pearl_learning/configs/merge_method_flow_gate3_vanilla_pearl.yaml`
+- Round 2 配置：`pearl_learning/configs/merge_method_flow_gate3_film_critic.yaml`
+- 案例簿（Round 2 起）：`results/pearl_learning/merge_method_flow_gate3_vanilla_pearl/mechanism_assets_screened/casebooks/`
+  - profile `order_boundary_fewshot_screened_v1`：train 6（Gate 1 筛后可行子集）+ support 4 + query 4（query 经 Gate 1B 单任务 SAC oracle 筛选，见下）。
+- causal audit：`pearl_learning/scripts/audit_gate3_vanilla_pearl_mechanism.py`（prior / correct / wrong / zero 四种 latent，no-gradient intervention + 四组 Stage-B 诊断）。
+- 判定：顺序门禁 A→B→C，决策 shot 固定 K=4（`gate3_causal_chain_verdict()`）。
 
-### Round 1 判定结果
+### 判定逻辑（Round 2 起）
+
+```text
+Stage A pass 才评价 Stage B；Stage B pass 且 oracle feasibility pass 才评价 Stage C。
+Stage C 在 Stage B 未通过时记 blocked_by_stage_b（不是 fail）。
+```
+
+### Query Oracle 与 Stage C casebook 修复
+
+Round 1 的 4 个 query conditions 未做可行性筛选。oracle 审计（Gate 1B 两个单任务 SAC 的 2x2 矩阵，0 训练步）显示：
+
+```text
+unscreened query: sut_first 对角优势 = -0.25（应为正），sut_first 可实现 VCSR 0/4 -> feasibility fail
+```
+
+用 8 个候选条件做 oracle 筛选（`screen_gate3_query_candidates.py`），冻结 4 个聚合门禁通过的 query 条件：
+
+```text
+screened query:   对角优势 adversary_first +0.5 / sut_first +0.75，可实现 2/4 与 3/4 -> feasibility pass
+```
+
+### Round 1（Dense Critic）判定结果
 
 ```text
 Stage A  context -> posterior     PASS
 Stage B  posterior -> action      FAIL
-Stage C  action -> outcome        FAIL
+Stage C  action -> outcome        blocked_by_stage_b
 Status                            fail；passed_stages = [stage_a]
 ```
 
-关键数值（K=1/2/4 全部稳定）：
+Stage-B 四组诊断（失败定位依据）：
 
 ```text
-Stage A  ||mu_correct - mu_wrong||_2   ≈ 7.7（两任务一致；vs prior ≈ 50-56）
-Stage B  mean ||a_correct - a_wrong||_2 ≈ 0.030
-         mean ||a_correct - a_prior||_2 ≈ 0.61（对照）
-Stage C  VCSR: correct = wrong = prior = 0.00（全部 query cases）
-         adversary_first query: 100% invalid
-         sut_first query:        100% target collision
+latent geometry  cos(z_c, z_w) = 0.9972，R_sep = 0.148（posterior 几乎共线，task 信息只是幅值差）
+actor pre-tanh   D_raw ≈ 0.09 -> D_tanh ≈ 0.03（tanh 压缩约 3 倍，非纯饱和）
+latent interp    action 沿 z_c->z_w 方向基本水平（max step ≈ 0.008，局部 null-space）
+critic Q-grid    argmax_c = argmax_w = +1.0 边界，D_Q = 0.0；Q 曲线沿动作网格 100% 单调递增
+                 -> 情况 2：Critic 本身对 correct/wrong latent 不敏感（不是 Actor 的问题）
 ```
 
-### 失败定位
-
-- **Stage A 通过**：context evidence 确实改变 posterior（μ_correct ≠ μ_wrong），问题不在 support evidence / Context Encoder 优化 / posterior collapse。
-- **Stage B 失败**：两个 posterior 相距 ≈7.7，但确定性动作只差 ≈0.03（约 correct-vs-prior 尺度的 1/20）。Actor 在 correct/wrong 区分方向上 latent-insensitive。
-- **Stage C 未达成**：当前 20k policy 在任何 context 下 query VCSR 均为 0（adversary_first 全部 invalid、sut_first 全部 target collision），outcome 环节尚不可评价。20k 预算按计划只用于机制验证，不追求最终性能。
-
-### 下一步（按计划第 9 节）
-
-Stage A 已通过，因此**不修改 Context Encoder**；失败位于 Stage B，当前才有资格研究：
+### Round 2（Latent-FiLM Critic，分支 B）判定结果
 
 ```text
-latent conditioning strength / Actor architecture / Critic latent dependence
+Stage A  context -> posterior     PASS
+Stage B  posterior -> action      FAIL（action L2 0.011 / 0.003，比 Round 1 更小）
+Stage C  action -> outcome        blocked_by_stage_b（oracle feasibility: pass）
+Status                            fail；passed_stages = [stage_a]
+R_policy（vs 单任务 SAC 策略差异） 0.011 / 0.003（约 1%）
 ```
 
-在 Stage B 修复并在 matched query cases 上重新跑出完整链条之前，不进入 Gate 4，不恢复真实物理 Merge Task，不扩大训练预算。
+Round 2 的关键变化与未变项：
+
+```text
+积极     policy 质量大幅提升：adversary_first correct context VCSR 4/4（Round 1 为 0）
+         q_loss 117k -> 2.6k；critic_latent_gradient_norm 2.6 -> 285（Q 对 z 的依赖确实建立）
+         sut_first 的 prior(z=0) VCSR 3/4 —— prior 与 correct-posterior 的行为已分化
+未变     Q-grid 仍 D_Q = 0.0：81 点网格上 argmax 仍全在 +1.0 边界，无内部峰
+         correct/wrong posterior 更共线（cos 0.9997-0.99995，R_sep 0.068-0.141）
+         correct vs wrong 动作几乎相同，插值曲线水平
+```
+
+### 失败定位（两轮汇总）
+
+- **Stage A 名义通过但分离质量差**：L2 ≈ 3.6-7.7（> 0.5 阈值）但 cos ≈ 0.997+，task 方向只占 posterior 位移的 7-15%。encoder 学到的是"有无 context"的公共方向，不是 task-discriminative 方向。
+- **Stage B 两轮均失败**：Round 1 证明 Critic 不敏感（D_Q=0，Q 单调）→ 分支 B 只改 Critic 后（20k）Q 仍未在 correct/wrong 方向分化。按分支 B 判据（Q audit 显示 a_c^Q* ≠ a_w^Q* 后 Actor 才可能自然分化），task-dependent Q 尚未形成。
+- **policy 学会的是"有 context vs 无 context"的行为切换，而不是"哪个 task 的 context"**：adversary_first 上 correct 4/4 而 prior 0/4；sut_first 上 prior 3/4 而 correct 0/4。
+
+### 下一步（待定，未实施）
+
+两个 20k 实验（concat 与 FiLM Critic）均未在 correct/wrong 方向建立 Q 分化。下一轮候选方向（需要先决定、只选一个）：
+
+```text
+1) 加强 posterior 的 task-discriminative 分离质量（R_sep 目前仅 0.07-0.14，两 posterior 共线）
+2) FiLM Critic 继续（更长预算/更强调 z 的调制路径），或 FiLM Actor + FiLM Critic 组合
+3) 重新审视 support evidence 构造（context 是否包含足够的 task 区分信息）
+```
+
+不进入 Gate 4、不恢复真实物理 Merge Task、不做多模型并行搜索。
 
 训练诊断日志（`training_updates.jsonl` 新增字段）：
 
 ```text
-context_encoder_critic_gradient_norm     3.3 -> 8586（encoder 确实被 Bellman 目标优化）
-posterior_prior_mean_l2                  0.2 -> 50.3（posterior 远离 unit-normal prior）
-evidence_to_prior_precision_ratio        25 -> 13596（evidence 精度主导 posterior）
+context_encoder_critic_gradient_norm     3.3 -> 8586（Round 1）/ 11.5 -> 382（Round 2）
+posterior_prior_mean_l2                  0.2 -> 50.3 / 0.2 -> 48.8
+evidence_to_prior_precision_ratio        25 -> 13596 / 25 -> 40056
+critic_latent_gradient_norm（Round 2）   2.6 -> 285（Q 对 z 的梯度依赖建立）
 ```
 
 ## Gate 4 — Structure-Aware Prior / Transferability / MoE：blocked by Gate 3

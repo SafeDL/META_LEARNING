@@ -125,6 +125,184 @@ def _trajectory_delta(left: Rollout, right: Rollout) -> dict[str, float]:
     }
 
 
+def _gaussian_symmetric_kl(
+    mean_left: torch.Tensor,
+    log_std_left: torch.Tensor,
+    mean_right: torch.Tensor,
+    log_std_right: torch.Tensor,
+) -> float:
+    """Mean symmetric KL between two diagonal pre-squash Gaussians."""
+    var_left = torch.exp(2.0 * log_std_left).clamp_min(1e-7)
+    var_right = torch.exp(2.0 * log_std_right).clamp_min(1e-7)
+    kl_left_right = 0.5 * (
+        var_left / var_right
+        + (mean_right - mean_left).square() / var_right
+        - 1.0
+        + torch.log(var_right / var_left)
+    )
+    kl_right_left = 0.5 * (
+        var_right / var_left
+        + (mean_left - mean_right).square() / var_left
+        - 1.0
+        + torch.log(var_left / var_right)
+    )
+    return float((kl_left_right + kl_right_left).sum(dim=-1).mean().detach())
+
+
+def stage_b_actor_critic_diagnostics(
+    agent: Any,
+    state_bank: np.ndarray,
+    z_correct: torch.Tensor,
+    z_wrong: torch.Tensor,
+    *,
+    action_grid_points: int = 41,
+) -> dict[str, Any]:
+    """No-gradient Actor/Critic diagnostics for one correct/wrong latent pair.
+
+    Separates the Stage-B failure into one of three mechanisms on the frozen
+    dynamic-state bank:
+
+    * latent geometry -- are the two posteriors nearly collinear?
+    * pre-tanh actor   -- does the task signal die inside the tanh squash?
+    * critic Q-grid    -- does the Critic itself demand different actions
+      under the two latents?
+
+    No environment step, replay write, or parameter change is involved.
+    """
+    if agent.actor_architecture != "dense":
+        raise ValueError("Stage-B diagnostics currently require the dense actor")
+    observations = torch.as_tensor(state_bank, dtype=torch.float32, device=agent.device)
+    state_count = len(state_bank)
+
+    def _latent_geometry() -> dict[str, float]:
+        left = z_correct.detach().float().reshape(-1)
+        right = z_wrong.detach().float().reshape(-1)
+        norm_left = float(torch.linalg.vector_norm(left))
+        norm_right = float(torch.linalg.vector_norm(right))
+        difference = float(torch.linalg.vector_norm(left - right))
+        cosine = float(
+            torch.nn.functional.cosine_similarity(left.unsqueeze(0), right.unsqueeze(0), dim=-1)[0]
+        )
+        separation_ratio = difference / (0.5 * (norm_left + norm_right) + 1e-8)
+        return {
+            "correct_norm_l2": norm_left,
+            "wrong_norm_l2": norm_right,
+            "correct_wrong_l2": difference,
+            "correct_wrong_cosine": cosine,
+            "separation_ratio": separation_ratio,
+        }
+
+    def _actor_pre_tanh() -> dict[str, Any]:
+        with torch.no_grad():
+            raw_correct, log_std_correct = agent.actor(observations, z_correct.detach().expand(state_count, -1))
+            raw_wrong, log_std_wrong = agent.actor(observations, z_wrong.detach().expand(state_count, -1))
+        tanh_correct = torch.tanh(raw_correct)
+        tanh_wrong = torch.tanh(raw_wrong)
+        saturation_correct = 1.0 - tanh_correct.square()
+        saturation_wrong = 1.0 - tanh_wrong.square()
+        return {
+            "raw_mean_correct": raw_correct.detach().cpu().tolist(),
+            "raw_mean_wrong": raw_wrong.detach().cpu().tolist(),
+            "log_std_correct": log_std_correct.detach().cpu().tolist(),
+            "log_std_wrong": log_std_wrong.detach().cpu().tolist(),
+            "tanh_action_correct": tanh_correct.detach().cpu().tolist(),
+            "tanh_action_wrong": tanh_wrong.detach().cpu().tolist(),
+            "raw_mean_l2": float((raw_correct - raw_wrong).norm(dim=-1).mean().detach()),
+            "tanh_action_l2": float((tanh_correct - tanh_wrong).norm(dim=-1).mean().detach()),
+            "saturation_complement_mean": {
+                "correct": float(saturation_correct.mean().detach()),
+                "wrong": float(saturation_wrong.mean().detach()),
+            },
+            "symmetric_kl_pre_squash": _gaussian_symmetric_kl(
+                raw_correct, log_std_correct, raw_wrong, log_std_wrong,
+            ),
+        }
+
+    def _latent_interpolation() -> dict[str, Any]:
+        alphas = (0.0, 0.25, 0.5, 0.75, 1.0)
+        direction = (z_correct.detach() - z_wrong.detach()).expand(state_count, -1)
+        base = z_wrong.detach().expand(state_count, -1)
+        actions = {}
+        with torch.no_grad():
+            for alpha in alphas:
+                action = agent.act(observations, base + alpha * direction, deterministic=True)
+                actions[f"alpha_{alpha:.2f}"] = action.detach().cpu().tolist()
+        means = np.asarray([np.mean(actions[f"alpha_{alpha:.2f}"], axis=0) for alpha in alphas], dtype=float)
+        return {
+            "alphas": list(alphas),
+            "per_state_actions": actions,
+            "mean_action_by_alpha": {
+                f"alpha_{alpha:.2f}": means[index].tolist() for index, alpha in enumerate(alphas)
+            },
+            "max_pairwise_action_l2": float(
+                np.max([np.linalg.norm(means[index] - means[index + 1]) for index in range(len(alphas) - 1)])
+            ),
+        }
+
+    def _critic_q_grid() -> dict[str, Any]:
+        grid = np.linspace(-1.0, 1.0, int(action_grid_points), dtype=np.float32)
+        # The grid sweeps the longitudinal component; the remaining action
+        # components (steering) are held at zero.  Mechanism runs use a 1-D
+        # action space, so the sweep covers the full action there.
+        grid_actions = np.zeros((len(grid), agent.action_dim), dtype=np.float32)
+        grid_actions[:, 0] = grid
+        action_tensor = torch.as_tensor(grid_actions, dtype=torch.float32, device=agent.device)
+        result: dict[str, Any] = {}
+        for name, z in (("correct", z_correct), ("wrong", z_wrong)):
+            latent = z.detach().expand(state_count, -1)
+            with torch.no_grad():
+                q_values = []
+                for observation in observations:
+                    expanded = observation.unsqueeze(0).expand(len(grid), -1)
+                    expanded_latent = latent[:1].expand(len(grid), -1)
+                    q1 = agent.q1(expanded, action_tensor, expanded_latent).squeeze(-1)
+                    q2 = agent.q2(expanded, action_tensor, expanded_latent).squeeze(-1)
+                    q_values.append(torch.minimum(q1, q2).detach().cpu().numpy())
+                actor_action = agent.act(observations, latent, deterministic=True)
+                actor_q = []
+                for index, observation in enumerate(observations):
+                    q1_actor = agent.q1(observation.unsqueeze(0), actor_action[index].unsqueeze(0), z.detach())
+                    q2_actor = agent.q2(observation.unsqueeze(0), actor_action[index].unsqueeze(0), z.detach())
+                    actor_q.append(float(torch.minimum(q1_actor, q2_actor).squeeze().detach()))
+            q_min = np.stack(q_values)  # [states, grid]
+            best_indexes = np.argmax(q_min, axis=1)
+            argmax_q = np.asarray([q_min[index, best_indexes[index]] for index in range(state_count)])
+            actor_q = np.asarray(actor_q)
+            result[name] = {
+                "argmax_action": [float(grid[int(best_indexes[index])]) for index in range(state_count)],
+                "actor_deterministic_action": actor_action.detach().cpu().tolist(),
+                "argmax_q_value": argmax_q.tolist(),
+                "actor_q_value": actor_q.tolist(),
+                "actor_regret": [float(argmax_q[index] - actor_q[index]) for index in range(state_count)],
+            }
+        argmax_correct = np.asarray(result["correct"]["argmax_action"])
+        argmax_wrong = np.asarray(result["wrong"]["argmax_action"])
+        return {
+            "action_grid_points": int(action_grid_points),
+            "action_grid": grid.tolist(),
+            "argmax_action_distance_mean": float(np.mean(np.abs(argmax_correct - argmax_wrong))),
+            "argmax_action_distance_max": float(np.max(np.abs(argmax_correct - argmax_wrong))),
+            "actor_regret_mean": {
+                "correct": float(np.mean(result["correct"]["actor_regret"])),
+                "wrong": float(np.mean(result["wrong"]["actor_regret"])),
+            },
+            **result,
+        }
+
+    before = agent.parameter_hash()
+    payload = {
+        "state_bank_size": int(state_count),
+        "latent_geometry": _latent_geometry(),
+        "actor_pre_tanh": _actor_pre_tanh(),
+        "latent_interpolation": _latent_interpolation(),
+        "critic_q_grid": _critic_q_grid(),
+    }
+    after = agent.parameter_hash()
+    if before != after:
+        raise RuntimeError("Stage-B diagnostics changed model parameters")
+    return payload
+
+
 def audit_task_context_interventions(
     agent: Any,
     config: Mapping[str, Any],
@@ -162,6 +340,9 @@ def audit_task_context_interventions(
             wrong_mu, wrong_log_var = agent.infer_posterior([wrong_context], [target_task])
         correct_actions = _actor_means(agent, state_bank, correct_mu)
         wrong_actions = _actor_means(agent, state_bank, wrong_mu)
+        stage_b_diagnostics = stage_b_actor_critic_diagnostics(
+            agent, state_bank, correct_mu, wrong_mu,
+        )
         seed = int(content_hash({"task": target_task.task_id, "k": k, "audit": "action_adaptation"})[:8], 16)
         trajectories = {
             "prior": _trajectory_rollouts(agent, target_task, config, query_cases, prior_mu, f"prior_k{k}"),
@@ -237,6 +418,7 @@ def audit_task_context_interventions(
                 "correct_wrong": _pair_action_stats(correct_actions, wrong_actions, seed + 4),
                 "zero_prior": _pair_action_stats(zero_actions, prior_actions, seed + 6),
             },
+            "stage_b_diagnostics": stage_b_diagnostics,
             "trajectory_summaries": summaries,
             "paired_query_gains": paired,
             "paired_gain_means": {

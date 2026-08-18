@@ -1,0 +1,79 @@
+{
+  "decision_shot": 4,
+  "gate_name": "gate3_vanilla_pearl_causal_chain",
+  "inputs": {
+    "casebook_differs_from_checkpoint": {
+      "meta_train_lane_drop_24__logical_order_adversary_first": {
+        "audit_casebook_hash": "f933b818c2c3ba4becbdf20cf3f17eeded209f1c0ccaef59b8b114b5aa124583",
+        "checkpoint_casebook_hash": "d83096e55ef8216970c4978b21ed472943c37af58d4f28f5c9dde81878ccb55d"
+      },
+      "meta_train_lane_drop_24__logical_order_sut_first": {
+        "audit_casebook_hash": "cf4f558af30561bb5ac0c53e6c462b3b4e3cbbe27e08cde2a0555ef093d716e2",
+        "checkpoint_casebook_hash": "d6cb11978cacefe9ce9d4589eae090f3147c2cec4d144f5d0c62dd11d8248757"
+      }
+    },
+    "casebook_hashes": {
+      "meta_train_lane_drop_24__logical_order_adversary_first": "f933b818c2c3ba4becbdf20cf3f17eeded209f1c0ccaef59b8b114b5aa124583",
+      "meta_train_lane_drop_24__logical_order_sut_first": "cf4f558af30561bb5ac0c53e6c462b3b4e3cbbe27e08cde2a0555ef093d716e2"
+    },
+    "checkpoint_hash": "524d41df4e46359ef02b5a45acc16a5d90a02ceda0233b32cf71f789024993fb",
+    "checkpoint_training_seed": 1,
+    "config_hash": "12297893992bb96da1c7464afd2c3901542cd877a56022f03039c539cb6229eb",
+    "critical_threshold_hash": "8efed1246441c49b2c347fe23c6e7c5ebc1085b2c9410b10251e8b10426c4482",
+    "not_a_benchmark_or_holdout_result": true,
+    "taskbook_hash": "a2b4dbf32ec3eebbd8bc1b02ae8b09b37b05126dbd16d32c2ec22696be7226f7"
+  },
+  "next_allowed_stage": null,
+  "oracle_feasibility_status": "pass",
+  "passed_stages": [
+    "stage_a"
+  ],
+  "policy_separation_ratio": {
+    "meta_train_lane_drop_24__logical_order_adversary_first": 0.03004382740282889,
+    "meta_train_lane_drop_24__logical_order_sut_first": 0.02871359618158902
+  },
+  "schema": "gate3_vanilla_pearl_causal_chain_gate_v2",
+  "stage_values": {
+    "meta_train_lane_drop_24__logical_order_adversary_first": {
+      "actor_regret_mean_correct": 0.40955543518066406,
+      "correct_vcsr": 0.0,
+      "correct_wrong_action_l2": 0.02960553765296936,
+      "correct_wrong_latent_l2": 6.763178825378418,
+      "correct_wrong_return_advantage": -3.0618534502928583,
+      "correct_wrong_vcsr_advantage": 0.0,
+      "critic_argmax_action_distance": 0.0,
+      "latent_cosine": 0.9977438449859619,
+      "latent_separation_ratio": 0.12786057484283758
+    },
+    "meta_train_lane_drop_24__logical_order_sut_first": {
+      "actor_regret_mean_correct": 0.4583587646484375,
+      "correct_vcsr": 0.5,
+      "correct_wrong_action_l2": 0.02829471230506897,
+      "correct_wrong_latent_l2": 6.9068922996521,
+      "correct_wrong_return_advantage": 322.6813657676964,
+      "correct_wrong_vcsr_advantage": 0.25,
+      "critic_argmax_action_distance": 0.0,
+      "latent_cosine": 0.9975501298904419,
+      "latent_separation_ratio": 0.1304558015430915
+    }
+  },
+  "stages": {
+    "stage_a_context_to_posterior": {
+      "criterion": "correct/wrong posterior mean L2 >= 0.5 for both tasks at K=4",
+      "decision_shot": 4,
+      "minimum_latent_l2": 0.5,
+      "status": "pass"
+    },
+    "stage_b_posterior_to_action": {
+      "criterion": "correct/wrong deterministic action L2 >= 0.1 for both tasks at K=4",
+      "decision_shot": 4,
+      "minimum_action_l2": 0.1,
+      "status": "fail"
+    },
+    "stage_c_action_to_outcome": {
+      "decision_shot": 4,
+      "status": "blocked_by_stage_b"
+    }
+  },
+  "status": "fail"
+}

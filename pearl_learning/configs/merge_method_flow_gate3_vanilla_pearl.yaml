@@ -10,6 +10,17 @@ project:
 
 experiment:
   method_variant: vanilla_gate3
+  training_seeds: [1]
+
+cases:
+  # Record the actual mechanism asset sizes so the resolved configuration
+  # never implies the inherited benchmark case counts.
+  per_task:
+    train_pool: 6
+    validation_support: 4
+    validation_query: 4
+    test_support: 0
+    test_query: 0
 
 scenario_representation:
   enabled: false
@@ -24,7 +35,23 @@ posterior_routed_moe:
   enabled: false
 
 mechanism:
-  case_profile: order_boundary_fewshot_v1
+  case_profile: order_boundary_fewshot_screened_v1
+  # The validation_query group is screened with the two Gate 1B single-task
+  # SACs: the unscreened query conditions gave the sut_first task no
+  # achievable strict VCSR, so Stage C could not be judged on them.
+  query_case_selection:
+    schema: logical_merge_mechanism_query_case_selection_v1
+    purpose: ensure_oracle_task_dependent_success
+    source_gate: gate_3_query_oracle
+    screening_instrument: gate_1b_single_task_sac_policies
+    source_rollouts: 32
+    selection_rule: >-
+      evaluate an 8-candidate near-boundary grid with both Gate 1B
+      single-task SACs; greedily keep cases feasible for both tasks first,
+      then fill the missing side; the four-case aggregate must show a
+      positive diagonal VCSR advantage in both directions with at least
+      two achievable query cases per task.
+    uses_test_or_ood: false
 
 method_flow_pilot:
   task_ids:

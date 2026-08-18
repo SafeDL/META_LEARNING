@@ -17,7 +17,12 @@ from pearl_learning.src.benchmark_calibration import (
     resolve_calibration,
 )
 from pearl_learning.src.casebook_v2 import solve_adversary_spawn
-from pearl_learning.src.causal_audit import _actor_means
+from pearl_learning.src.causal_audit import _actor_means, stage_b_actor_critic_diagnostics
+from pearl_learning.scripts.audit_gate3_vanilla_pearl_mechanism import (
+    GATE3_DECISION_SHOT,
+    gate3_causal_chain_verdict,
+    policy_separation_ratio,
+)
 from pearl_learning.src.critical import (
     CRITICAL_METRIC_SCHEMA,
     LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
@@ -375,6 +380,141 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertEqual(actions.shape, (3, 2))
         self.assertEqual(before, agent.parameter_hash())
 
+    def test_stage_b_diagnostics_report_raw_actions_and_q_grid_without_gradients(self) -> None:
+        cfg = self.cfg
+        torch.manual_seed(0)
+        agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
+        state_bank = np.zeros((2, 24), dtype=np.float32)
+        z_correct = torch.ones((1, agent.latent_dim))
+        z_wrong = torch.ones((1, agent.latent_dim)) * 0.5
+        before = agent.parameter_hash()
+        result = stage_b_actor_critic_diagnostics(agent, state_bank, z_correct, z_wrong)
+        self.assertEqual(before, agent.parameter_hash())
+        geometry = result["latent_geometry"]
+        self.assertAlmostEqual(geometry["correct_wrong_l2"], geometry["wrong_norm_l2"])
+        self.assertAlmostEqual(geometry["correct_wrong_cosine"], 1.0, places=5)
+        # Collinear vectors: separation ratio = 0.5 / 0.75 = 2/3.
+        self.assertAlmostEqual(geometry["separation_ratio"], 2.0 / 3.0, places=4)
+        pre_tanh = result["actor_pre_tanh"]
+        for key in ("raw_mean_l2", "tanh_action_l2", "symmetric_kl_pre_squash"):
+            self.assertTrue(np.isfinite(float(pre_tanh[key])))
+        self.assertEqual(len(pre_tanh["raw_mean_correct"]), 2)
+        interpolation = result["latent_interpolation"]
+        self.assertEqual(interpolation["alphas"], [0.0, 0.25, 0.5, 0.75, 1.0])
+        self.assertEqual(len(interpolation["per_state_actions"]["alpha_0.00"]), 2)
+        grid = result["critic_q_grid"]
+        self.assertEqual(grid["action_grid_points"], 41)
+        self.assertTrue(np.isfinite(grid["argmax_action_distance_mean"]))
+        self.assertIn("correct", grid["actor_regret_mean"])
+
+    @staticmethod
+    def _synthetic_suite(latent_l2: float, action_l2: float, vcsr: dict) -> dict:
+        def row(vcsr_correct: float, vcsr_wrong: float) -> dict:
+            return {
+                "latent_l2": {"correct_wrong_l2": latent_l2},
+                "action_adaptation": {"correct_wrong": {"action_l2": {"mean": action_l2}}},
+                "trajectory_summaries": {
+                    "correct": {"valid_critical_strict_rate": vcsr_correct},
+                    "wrong": {"valid_critical_strict_rate": vcsr_wrong},
+                },
+                "paired_gain_means": {"correct_minus_wrong_return": vcsr_correct - vcsr_wrong},
+                "stage_b_diagnostics": {
+                    "latent_geometry": {"separation_ratio": 0.15, "correct_wrong_cosine": 0.997},
+                    "critic_q_grid": {
+                        "argmax_action_distance_mean": 0.0, "actor_regret_mean": {"correct": 0.0},
+                    },
+                },
+            }
+        return {
+            "tasks": {
+                "task_a": {"shots": {str(GATE3_DECISION_SHOT): row(vcsr["a"][0], vcsr["a"][1])}},
+                "task_b": {"shots": {str(GATE3_DECISION_SHOT): row(vcsr["b"][0], vcsr["b"][1])}},
+            },
+        }
+
+    def test_gate3_verdict_gates_sequentially_at_the_decision_shot(self) -> None:
+        oracle_pass = {
+            "tasks": {"task_a": {"single_task_action_l2_mean": 0.5},
+                      "task_b": {"single_task_action_l2_mean": 0.5}},
+            "feasibility": {"status": "pass"},
+        }
+        oracle_fail = {
+            "tasks": oracle_pass["tasks"],
+            "feasibility": {"status": "fail"},
+        }
+        # Stage A fails: B and C are blocked, never judged on their own values.
+        gate = gate3_causal_chain_verdict(self._synthetic_suite(0.1, 5.0, {"a": (1.0, 0.0), "b": (1.0, 0.0)}), oracle_pass)
+        self.assertEqual(gate["status"], "fail")
+        self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "blocked_by_stage_a")
+        self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_stage_a")
+        # Stage A passes but B fails: C is blocked by B, not judged as failed.
+        gate = gate3_causal_chain_verdict(self._synthetic_suite(7.7, 0.03, {"a": (0.0, 0.0), "b": (0.0, 0.0)}), oracle_pass)
+        self.assertEqual(gate["stages"]["stage_a_context_to_posterior"]["status"], "pass")
+        self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "fail")
+        self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_stage_b")
+        # Stage B passes but query feasibility fails: C is blocked by the oracle.
+        gate = gate3_causal_chain_verdict(self._synthetic_suite(7.7, 0.3, {"a": (1.0, 0.0), "b": (1.0, 0.0)}), oracle_fail)
+        self.assertEqual(gate["stages"]["stage_b_posterior_to_action"]["status"], "pass")
+        self.assertEqual(gate["stages"]["stage_c_action_to_outcome"]["status"], "blocked_by_query_feasibility")
+        # Full chain with feasible queries and a strict VCSR advantage passes.
+        gate = gate3_causal_chain_verdict(self._synthetic_suite(7.7, 0.3, {"a": (0.5, 0.0), "b": (0.0, 0.0)}), oracle_pass)
+        self.assertEqual(gate["status"], "pass")
+        self.assertEqual(gate["passed_stages"], ["stage_a", "stage_b", "stage_c"])
+        self.assertIn("policy_separation_ratio", gate)
+        # The decision shot must be present in the suite.
+        missing = {"tasks": {"task_a": {"shots": {"1": {}}}}}
+        with self.assertRaises(ValueError):
+            gate3_causal_chain_verdict(missing)
+
+    def test_policy_separation_ratio_normalizes_by_single_task_sac_distance(self) -> None:
+        suite = self._synthetic_suite(7.7, 0.04, {"a": (0.0, 0.0), "b": (0.0, 0.0)})
+        oracle = {
+            "tasks": {"task_a": {"single_task_action_l2_mean": 0.8},
+                      "task_b": {"single_task_action_l2_mean": 0.2}},
+            "feasibility": {"status": "fail"},
+        }
+        ratio = policy_separation_ratio(suite, oracle)
+        self.assertAlmostEqual(ratio["task_a"], 0.04 / 0.8)
+        self.assertAlmostEqual(ratio["task_b"], 0.04 / 0.2)
+
+    def test_film_critic_conditions_on_latent_and_old_checkpoints_stay_loadable(self) -> None:
+        cfg = self.cfg
+        torch.manual_seed(0)
+        film_cfg = copy.deepcopy(cfg)
+        film_cfg["networks"] = {**film_cfg["networks"], "critic_architecture": "latent_film_dense"}
+        film_agent = PEARLAgent(24, 2, film_cfg, torch.device("cpu"))
+        self.assertEqual(film_agent.architecture_metadata()["critic_architecture"], "latent_film_dense")
+        observation = torch.zeros((3, 24))
+        action = torch.zeros((3, 2))
+        with torch.no_grad():
+            q_zero = film_agent.q1(observation, action, torch.zeros((3, film_agent.latent_dim)))
+            q_one = film_agent.q1(observation, action, torch.ones((3, film_agent.latent_dim)))
+        self.assertTrue(bool((q_zero != q_one).any()))
+        dense_agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
+        state = dense_agent.state_dict()
+        metadata = dict(state["architecture_metadata"])
+        metadata.pop("critic_architecture")
+        state["architecture_metadata"] = metadata
+        dense_agent.load_state_dict(state)  # pre-FiLM checkpoint metadata defaults to dense
+        with self.assertRaises(ValueError):
+            film_agent.load_state_dict(state)
+
+    def test_film_critic_update_logs_critic_latent_gradient_norm(self) -> None:
+        cfg = self.cfg
+        torch.manual_seed(0)
+        film_cfg = copy.deepcopy(cfg)
+        film_cfg["networks"] = {**film_cfg["networks"], "critic_architecture": "latent_film_dense"}
+        agent = PEARLAgent(24, 2, film_cfg, torch.device("cpu"))
+        task = build_taskbook(cfg)["meta_train"][0]
+        transition = Transition(
+            np.zeros(24, np.float32), np.zeros(2, np.float32), 0.0, np.zeros(24, np.float32),
+            False, True, "horizon", task.task_id, "episode", "case", "prior_support", 0,
+        )
+        metrics = agent.update([[[transition] * 4]], [[transition] * 8], None, None, [0], [task])
+        self.assertIn("critic_latent_gradient_norm", metrics)
+        self.assertTrue(np.isfinite(float(metrics["critic_latent_gradient_norm"])))
+        self.assertGreater(float(metrics["critic_latent_gradient_norm"]), 0.0)
+
     def test_update_logs_gate3_causal_chain_diagnostics_without_changing_losses(self) -> None:
         cfg = self.cfg
         torch.manual_seed(0)
@@ -458,6 +598,25 @@ class MethodFlowV2Tests(unittest.TestCase):
                             for rows in plan.values() for row in rows))
         with self.assertRaises(ValueError):
             matched_split_conditions("absolute_grid")
+
+    def test_screened_fewshot_profile_keeps_oracle_selected_query_conditions(self) -> None:
+        plan = matched_split_conditions("order_boundary_fewshot_screened_v1")
+        self.assertEqual(
+            [row["matched_condition_id"] for row in plan["validation_query"]],
+            [
+                "mechanism_grid_query_candidate_04",
+                "mechanism_grid_query_candidate_05",
+                "mechanism_grid_query_candidate_02",
+                "mechanism_grid_query_candidate_06",
+            ],
+        )
+        self.assertEqual(
+            [row["matched_condition_id"] for row in plan["train_pool"]],
+            [f"mechanism_grid_{index:02d}" for index in range(2, 8)],
+        )
+        self.assertEqual(len(plan["validation_support"]), 4)
+        ids = [row["matched_condition_id"] for rows in plan.values() for row in rows]
+        self.assertEqual(len(set(ids)), 14)
 
     def test_mechanism_split_disjointness_accepts_matched_seeds_and_rejects_split_reuse(self) -> None:
         def row(condition: str, gap: float = -0.05):

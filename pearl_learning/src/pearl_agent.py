@@ -23,7 +23,7 @@ from .moe import (
     intervene_route as build_intervened_route,
     route_context,
 )
-from .networks import Critic, GaussianActor
+from .networks import Critic, GaussianActor, LatentFiLMCritic
 from .replay import Transition
 from .task_representation import INTERACTION_OBSERVATION_INDEXES
 from .scenario_encoder import (
@@ -143,8 +143,12 @@ class PEARLAgent:
         else:
             raise ValueError(f"unsupported actor_architecture: {self.actor_architecture!r}")
         critic_sizes = list(networks["critic_hidden_sizes"])
-        self.q1 = Critic(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
-        self.q2 = Critic(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
+        self.critic_architecture = str(networks.get("critic_architecture", "dense"))
+        if self.critic_architecture not in {"dense", "latent_film_dense"}:
+            raise ValueError(f"unsupported critic_architecture: {self.critic_architecture!r}")
+        critic_class = LatentFiLMCritic if self.critic_architecture == "latent_film_dense" else Critic
+        self.q1 = critic_class(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
+        self.q2 = critic_class(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
         self.target_q1 = copy.deepcopy(self.q1).eval()
         self.target_q2 = copy.deepcopy(self.q2).eval()
 
@@ -520,6 +524,19 @@ class PEARLAgent:
             encoder_loss = q_loss + self.kl_beta * kl + auxiliary
         self.q_opt.zero_grad()
         self.context_opt.zero_grad()
+        # How strongly the Bellman loss responds to the latent itself.  A
+        # Critic that is conditioning-insensitive keeps this near zero even
+        # while the encoder posterior separates tasks; the FiLM-critic round
+        # uses it to confirm task-dependent Q formation during training.
+        if z.grad_fn is None:
+            critic_latent_gradient_norm = 0.0
+        else:
+            critic_latent_grads = torch.autograd.grad(q_loss, z, retain_graph=True, allow_unused=True)[0]
+            critic_latent_gradient_norm = (
+                0.0
+                if critic_latent_grads is None
+                else float(critic_latent_grads.detach().norm(dim=-1).mean())
+            )
         if self.no_context_training:
             encoder_critic_gradient_norm = 0.0
             posterior_prior_mean_l2 = 0.0
@@ -660,6 +677,7 @@ class PEARLAgent:
             "context_encoder_critic_gradient_norm": encoder_critic_gradient_norm,
             "posterior_prior_mean_l2": posterior_prior_mean_l2,
             "evidence_to_prior_precision_ratio": evidence_to_prior_precision_ratio,
+            "critic_latent_gradient_norm": critic_latent_gradient_norm,
             **actor_gradients,
             **self._routing_metrics(training_route),
             **{name: float(value.detach()) for name, value in auxiliary_metrics.items()},
@@ -746,6 +764,7 @@ class PEARLAgent:
             "context_aggregation": self.context_aggregation,
             "actor_hidden_sizes": self.actor_hidden_sizes,
             "critic_hidden_sizes": self.critic_hidden_sizes,
+            "critic_architecture": self.critic_architecture,
             "context_hidden_sizes": self.context_hidden_sizes,
             "scenario_representation": {
                 "enabled": self.scenario_representation_enabled,
@@ -802,7 +821,12 @@ class PEARLAgent:
         return result
 
     def load_state_dict(self, state: Mapping[str, object]) -> None:
-        if state.get("architecture_metadata") != self.architecture_metadata():
+        stored_metadata = dict(state.get("architecture_metadata") or {})
+        # Checkpoints saved before critic architectures existed always used
+        # the dense twin critic; default the missing key instead of breaking
+        # their load path.
+        stored_metadata.setdefault("critic_architecture", "dense")
+        if stored_metadata != self.architecture_metadata():
             raise ValueError("checkpoint agent state has incompatible architecture metadata")
         for name in ("context_encoder", "actor", "q1", "q2", "target_q1", "target_q2"):
             getattr(self, name).load_state_dict(state[name])
