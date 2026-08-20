@@ -30,9 +30,12 @@ from pearl_learning.src.checkpoint import save_checkpoint
 from pearl_learning.scripts.audit_gate3_vanilla_pearl_mechanism import (
     GATE3_DECISION_SHOT,
     gate3_causal_chain_verdict,
+    gate3_causal_chain_verdict_v4,
     policy_separation_ratio,
     verify_casebook_split_provenance,
 )
+from pearl_learning.scripts.audit_gate3_critic_replay_signal import transition_signal_summary
+from pearl_learning.scripts.recompute_gate3_verdict_v4 import recompute as recompute_gate3_v4
 from pearl_learning.src.critical import (
     CRITICAL_METRIC_SCHEMA,
     LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
@@ -419,7 +422,13 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertIn("correct", grid["actor_regret_mean"])
 
     @staticmethod
-    def _synthetic_suite(latent_l2: float, action_l2: float, vcsr: dict, separation: float = 0.15) -> dict:
+    def _synthetic_suite(
+        latent_l2: float,
+        action_l2: float,
+        vcsr: dict,
+        separation: float = 0.15,
+        critic_distance: float = 0.0,
+    ) -> dict:
         def row(vcsr_correct: float, vcsr_wrong: float) -> dict:
             return {
                 "latent_l2": {"correct_wrong_l2": latent_l2},
@@ -432,7 +441,7 @@ class MethodFlowV2Tests(unittest.TestCase):
                 "stage_b_diagnostics": {
                     "latent_geometry": {"separation_ratio": separation, "correct_wrong_cosine": 0.997},
                     "critic_q_grid": {
-                        "argmax_action_distance_mean": 0.0, "actor_regret_mean": {"correct": 0.0},
+                        "argmax_action_distance_mean": critic_distance, "actor_regret_mean": {"correct": 0.0},
                     },
                 },
             }
@@ -495,6 +504,102 @@ class MethodFlowV2Tests(unittest.TestCase):
         missing = {"tasks": {"task_a": {"shots": {"1": {}}}}}
         with self.assertRaises(ValueError):
             gate3_causal_chain_verdict(missing)
+
+    def test_gate3_v4_verdict_separates_critic_and_actor_sequentially(self) -> None:
+        oracle_pass = {
+            "tasks": {"task_a": {"single_task_action_l2_mean": 0.5},
+                      "task_b": {"single_task_action_l2_mean": 0.5}},
+            "feasibility": {"status": "pass"},
+        }
+        oracle_fail = {"tasks": oracle_pass["tasks"], "feasibility": {"status": "fail"}}
+
+        # A fail blocks every downstream link, regardless of Critic/Actor values.
+        gate = gate3_causal_chain_verdict_v4(
+            self._synthetic_suite(0.1, 0.5, {"a": (1.0, 0.0), "b": (1.0, 0.0)}, separation=0.4, critic_distance=0.5),
+            oracle_pass,
+        )
+        stages = gate["stages"]
+        self.assertEqual(stages["stage_b_q_posterior_to_critic_action_preference"]["status"], "blocked_by_stage_a")
+        self.assertEqual(stages["stage_b_pi_critic_to_actor_action"]["status"], "blocked_by_stage_a")
+        self.assertEqual(stages["stage_c_actor_to_outcome"]["status"], "blocked_by_stage_a")
+
+        # A pass but B_Q below 0.10 blocks Actor and outcome judgement.
+        gate = gate3_causal_chain_verdict_v4(
+            self._synthetic_suite(7.7, 0.5, {"a": (1.0, 0.0), "b": (1.0, 0.0)}, separation=0.4, critic_distance=0.05),
+            oracle_pass,
+        )
+        stages = gate["stages"]
+        self.assertEqual(stages["stage_a_context_to_posterior"]["status"], "pass")
+        self.assertEqual(stages["stage_b_q_posterior_to_critic_action_preference"]["status"], "fail")
+        self.assertEqual(stages["stage_b_pi_critic_to_actor_action"]["status"], "blocked_by_stage_b_q")
+        self.assertEqual(stages["stage_c_actor_to_outcome"]["status"], "blocked_by_stage_b_q")
+
+        # The B_Q floor is inclusive, but both tasks must independently clear it.
+        gate = gate3_causal_chain_verdict_v4(
+            self._synthetic_suite(7.7, 0.03, {"a": (1.0, 0.0), "b": (1.0, 0.0)}, separation=0.4, critic_distance=0.10),
+            oracle_pass,
+        )
+        stages = gate["stages"]
+        self.assertEqual(stages["stage_b_q_posterior_to_critic_action_preference"]["status"], "pass")
+        self.assertEqual(stages["stage_b_pi_critic_to_actor_action"]["status"], "fail")
+        self.assertEqual(stages["stage_c_actor_to_outcome"]["status"], "blocked_by_stage_b_pi")
+        suite = self._synthetic_suite(7.7, 0.5, {"a": (1.0, 0.0), "b": (1.0, 0.0)}, separation=0.4, critic_distance=0.10)
+        suite["tasks"]["task_b"]["shots"][str(GATE3_DECISION_SHOT)]["stage_b_diagnostics"]["critic_q_grid"]["argmax_action_distance_mean"] = 0.099
+        gate = gate3_causal_chain_verdict_v4(suite, oracle_pass)
+        self.assertEqual(gate["stages"]["stage_b_q_posterior_to_critic_action_preference"]["status"], "fail")
+
+        # B_Q/B_pi pass, but an infeasible query set remains an independent blocker.
+        gate = gate3_causal_chain_verdict_v4(
+            self._synthetic_suite(7.7, 0.10, {"a": (1.0, 0.0), "b": (1.0, 0.0)}, separation=0.4, critic_distance=0.10),
+            oracle_fail,
+        )
+        self.assertEqual(gate["stages"]["stage_c_actor_to_outcome"]["status"], "blocked_by_query_feasibility")
+
+        # The full v4 chain preserves the Stage-C strict VCSR requirement.
+        gate = gate3_causal_chain_verdict_v4(
+            self._synthetic_suite(7.7, 0.10, {"a": (0.5, 0.0), "b": (0.0, 0.0)}, separation=0.4, critic_distance=0.10),
+            oracle_pass,
+        )
+        self.assertEqual(gate["schema"], "gate3_vanilla_pearl_causal_chain_gate_v4")
+        self.assertEqual(gate["status"], "pass")
+        self.assertEqual(gate["passed_stages"], ["stage_a", "stage_b_q", "stage_b_pi", "stage_c"])
+
+    def test_gate3_context_sampling_film_critic_config_changes_only_critic(self) -> None:
+        round3 = read_config("pearl_learning/configs/merge_method_flow_gate3_context_sampling.yaml")
+        combined = read_config("pearl_learning/configs/merge_method_flow_gate3_context_sampling_film_critic.yaml")
+        self.assertEqual(combined["project"]["output_root"], "results/pearl_learning/merge_method_flow_gate3_context_sampling_film_critic")
+        self.assertEqual(combined["experiment"]["method_variant"], "vanilla_gate3_context_sampling_film_critic")
+        self.assertEqual(combined["networks"]["critic_architecture"], "latent_film_dense")
+        for section in (
+            "environment", "reward", "pearl", "scenario_prior", "scenario_representation",
+            "posterior_routed_moe", "sac", "meta_training", "method_flow_pilot", "cases",
+        ):
+            self.assertEqual(combined[section], round3[section])
+        combined_networks = dict(combined["networks"])
+        combined_networks.pop("critic_architecture")
+        self.assertEqual(combined_networks, round3["networks"])
+
+    def test_gate3_v4_recompute_writes_only_the_additive_verdict(self) -> None:
+        suite = self._synthetic_suite(
+            7.7, 0.10, {"a": (0.5, 0.0), "b": (0.0, 0.0)}, separation=0.4, critic_distance=0.10,
+        )
+        suite["schema"] = "gate3_vanilla_pearl_mechanism_causal_audit_suite_v1"
+        oracle = {
+            "tasks": {"task_a": {"single_task_action_l2_mean": 0.5},
+                      "task_b": {"single_task_action_l2_mean": 0.5}},
+            "feasibility": {"status": "pass"},
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "gate3_causal_audit.json"
+            source.write_text(json.dumps(suite), encoding="utf-8")
+            gate = recompute_gate3_v4(source, oracle, None)
+            output = root / "gate3_causal_chain_gate_v4.json"
+            self.assertTrue(output.exists())
+            self.assertEqual(gate["schema"], "gate3_vanilla_pearl_causal_chain_gate_v4")
+            self.assertEqual(json.loads(source.read_text(encoding="utf-8")), suite)
+            self.assertEqual(gate["recomputed_from"]["environment_steps"], 0)
+            self.assertEqual(gate["recomputed_from"]["training_updates"], 0)
 
     def test_policy_separation_ratio_normalizes_by_single_task_sac_distance(self) -> None:
         suite = self._synthetic_suite(7.7, 0.04, {"a": (0.0, 0.0), "b": (0.0, 0.0)})
@@ -755,6 +860,17 @@ class MethodFlowV2Tests(unittest.TestCase):
             collection_mode="prior_support",
             posterior_version=0,
         )
+
+    def test_critic_replay_signal_summary_reports_terminal_and_conflict_proxy(self) -> None:
+        rows = [self._transition(index, terminated=index == 2) for index in range(3)]
+        summary = transition_signal_summary(rows, {id(rows[1])})
+        self.assertEqual(summary["transition_count"], 3)
+        self.assertAlmostEqual(summary["terminal_transition_rate"], 1.0 / 3.0)
+        self.assertAlmostEqual(summary["conflict_near_transition_rate"], 1.0 / 3.0)
+        self.assertAlmostEqual(summary["task_sensitive_proxy_rate"], 2.0 / 3.0)
+        self.assertEqual(summary["signal_strata"]["terminal"]["transition_count"], 1)
+        self.assertEqual(summary["signal_strata"]["conflict_near"]["transition_count"], 1)
+        self.assertEqual(summary["signal_strata"]["common"]["transition_count"], 1)
 
     def test_canonical_context_selector_matches_legacy_random_and_stratifies_terminal(self) -> None:
         rows = [self._transition(index) for index in range(10)]

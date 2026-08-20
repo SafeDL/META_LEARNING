@@ -49,6 +49,11 @@ STAGE_A_MIN_CORRECT_WRONG_LATENT_L2 = 0.5
 # "has-context" direction, not a task-discriminative one.
 STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO = 0.25
 STAGE_B_MIN_CORRECT_WRONG_ACTION_L2 = 0.1
+# Gate v4 makes the Critic action preference an explicit causal link.  The
+# audit grid has 41 points on [-1, 1], so 0.10 corresponds to two grid steps
+# and cannot be satisfied by a single-bin boundary fluctuation.
+STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE = 0.1
+STAGE_B_PI_MIN_CORRECT_WRONG_ACTION_L2 = 0.1
 
 
 def _shot_values(suite: dict) -> dict[str, dict[str, float]]:
@@ -202,6 +207,143 @@ def gate3_causal_chain_verdict(suite: dict, oracle: Mapping[str, Any] | None = N
             "stage_a_context_to_posterior": stage_a,
             "stage_b_posterior_to_action": stage_b,
             "stage_c_action_to_outcome": stage_c,
+        },
+        "stage_values": values,
+        "passed_stages": passed,
+    }
+    if oracle is not None:
+        gate["policy_separation_ratio"] = policy_separation_ratio(suite, oracle)
+        gate["oracle_feasibility_status"] = str(oracle.get("feasibility", {}).get("status"))
+    return gate
+
+
+def gate3_causal_chain_verdict_v4(suite: dict, oracle: Mapping[str, Any] | None = None) -> dict:
+    """Judge the explicit Context -> Critic -> Actor Gate 3 causal chain.
+
+    This is intentionally separate from :func:`gate3_causal_chain_verdict`:
+    that function is the frozen v3 contract used by historical verdict files
+    and ``recompute_gate3_verdict_v3.py``.  v4 inserts a Critic-specific
+    action-preference gate between posterior separation and actor adaptation.
+    """
+    values = _shot_values(suite)
+    stage_a_ok = all(
+        row["correct_wrong_latent_l2"] >= STAGE_A_MIN_CORRECT_WRONG_LATENT_L2
+        and row["latent_separation_ratio"] >= STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO
+        for row in values.values()
+    )
+    stage_a = {
+        "status": "pass" if stage_a_ok else "fail",
+        "decision_shot": GATE3_DECISION_SHOT,
+        "criterion": (
+            f"task-discriminative posterior for both tasks at K={GATE3_DECISION_SHOT}: "
+            f"correct/wrong posterior mean L2 >= {STAGE_A_MIN_CORRECT_WRONG_LATENT_L2} AND "
+            f"prior-relative separation ratio R_sep >= {STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO}"
+        ),
+        "minimum_latent_l2": STAGE_A_MIN_CORRECT_WRONG_LATENT_L2,
+        "minimum_prior_relative_separation_ratio": STAGE_A_MIN_PRIOR_RELATIVE_SEPARATION_RATIO,
+        "separation_ratio_definition": (
+            "D_cw / (0.5 * (||mu_c - mu_prior||_2 + ||mu_w - mu_prior||_2) + eps) with mu_prior = 0 "
+            "under the unit-normal prior; the Stage-B latent-geometry separation ratio equals R_sep "
+            "exactly for Vanilla PEARL and the definition extends to a non-zero Structure-Aware prior"
+        ),
+        "cosine_diagnostic_only": "correct/wrong cosine similarity is reported but never gates Stage A",
+    }
+    if stage_a_ok:
+        stage_b_q_ok = all(
+            row["critic_argmax_action_distance"] >= STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE
+            for row in values.values()
+        )
+        stage_b_q = {
+            "status": "pass" if stage_b_q_ok else "fail",
+            "decision_shot": GATE3_DECISION_SHOT,
+            "criterion": (
+                "correct/wrong Critic argmax-action distance "
+                f">= {STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE} for both tasks at "
+                f"K={GATE3_DECISION_SHOT}"
+            ),
+            "minimum_critic_argmax_action_distance": STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE,
+            "metric_path": "stage_b_diagnostics.critic_q_grid.argmax_action_distance_mean",
+            "action_grid_contract": "fixed 41-point [-1, 1] grid and fixed audit state bank",
+        }
+    else:
+        stage_b_q_ok = False
+        stage_b_q = {"status": "blocked_by_stage_a", "decision_shot": GATE3_DECISION_SHOT}
+
+    if stage_b_q_ok:
+        stage_b_pi_ok = all(
+            row["correct_wrong_action_l2"] >= STAGE_B_PI_MIN_CORRECT_WRONG_ACTION_L2
+            for row in values.values()
+        )
+        stage_b_pi = {
+            "status": "pass" if stage_b_pi_ok else "fail",
+            "decision_shot": GATE3_DECISION_SHOT,
+            "criterion": (
+                "correct/wrong deterministic action L2 "
+                f">= {STAGE_B_PI_MIN_CORRECT_WRONG_ACTION_L2} for both tasks at "
+                f"K={GATE3_DECISION_SHOT}"
+            ),
+            "minimum_action_l2": STAGE_B_PI_MIN_CORRECT_WRONG_ACTION_L2,
+        }
+    else:
+        stage_b_pi_ok = False
+        stage_b_pi = {
+            "status": "blocked_by_stage_a" if not stage_a_ok else "blocked_by_stage_b_q",
+            "decision_shot": GATE3_DECISION_SHOT,
+        }
+
+    if stage_b_pi_ok:
+        if oracle is not None and str(oracle.get("feasibility", {}).get("status")) != "pass":
+            stage_c = {
+                "status": "blocked_by_query_feasibility",
+                "decision_shot": GATE3_DECISION_SHOT,
+                "criterion": "query cases must first pass the single-task SAC oracle feasibility audit",
+            }
+        else:
+            stage_c_ok = any(
+                row["correct_wrong_vcsr_advantage"] > 0.0 and row["correct_vcsr"] > 0.0
+                for row in values.values()
+            )
+            stage_c = {
+                "status": "pass" if stage_c_ok else "fail",
+                "decision_shot": GATE3_DECISION_SHOT,
+                "criterion": (
+                    "correct context strictly improves VCSR over wrong on at least one task at "
+                    f"K={GATE3_DECISION_SHOT}"
+                ),
+                "paired_return_diagnostic_only": True,
+            }
+    else:
+        stage_c = {
+            "status": (
+                "blocked_by_stage_a" if not stage_a_ok
+                else "blocked_by_stage_b_q" if not stage_b_q_ok
+                else "blocked_by_stage_b_pi"
+            ),
+            "decision_shot": GATE3_DECISION_SHOT,
+        }
+
+    all_ok = stage_a_ok and stage_b_q_ok and stage_b_pi_ok and stage_c["status"] == "pass"
+    passed = [
+        name
+        for name, ok in (
+            ("stage_a", stage_a_ok),
+            ("stage_b_q", stage_b_q_ok),
+            ("stage_b_pi", stage_b_pi_ok),
+            ("stage_c", stage_c["status"] == "pass"),
+        )
+        if ok
+    ]
+    gate = {
+        "schema": "gate3_vanilla_pearl_causal_chain_gate_v4",
+        "gate_name": "gate3_vanilla_pearl_causal_chain",
+        "status": "pass" if all_ok else "fail",
+        "next_allowed_stage": "gate4_structure_aware_transfer" if all_ok else None,
+        "decision_shot": GATE3_DECISION_SHOT,
+        "stages": {
+            "stage_a_context_to_posterior": stage_a,
+            "stage_b_q_posterior_to_critic_action_preference": stage_b_q,
+            "stage_b_pi_critic_to_actor_action": stage_b_pi,
+            "stage_c_actor_to_outcome": stage_c,
         },
         "stage_values": values,
         "passed_stages": passed,
@@ -418,13 +560,12 @@ def main() -> None:
         },
     }
     write_json(root / "gate3_stage_b_diagnostics.json", diagnostics)
-    gate = gate3_causal_chain_verdict(suite, oracle)
+    gate = gate3_causal_chain_verdict_v4(suite, oracle)
     gate["inputs"] = provenance
-    # The v3 verdict lives in its own file: historical v2 gate files on disk
-    # are never overwritten by a re-judgement under the upgraded Stage-A rule.
-    write_json(root / "gate3_causal_chain_gate_v3.json", gate)
+    # v4 is additive: the historical v2/v3 files remain immutable evidence.
+    write_json(root / "gate3_causal_chain_gate_v4.json", gate)
     print(f"Gate 3 causal audit: {gate['status']} "
-          f"(passed {gate['passed_stages'] or 'none'}) -> {root / 'gate3_causal_chain_gate_v3.json'}")
+          f"(passed {gate['passed_stages'] or 'none'}) -> {root / 'gate3_causal_chain_gate_v4.json'}")
 
 
 if __name__ == "__main__":
