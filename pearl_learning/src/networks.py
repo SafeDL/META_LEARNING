@@ -74,3 +74,37 @@ class LatentFiLMCritic(nn.Module):
         gamma, beta = self.modulator(latent).chunk(2, dim=-1)
         modulated = (1.0 + gamma) * features + beta
         return self.head(modulated)
+
+
+class LatentGammaOnlyFiLMCritic(nn.Module):
+    """FiLM Critic whose latent can only rescale state-action features.
+
+    This intentionally keeps the historical FiLM Critic untouched.  The
+    modulator has the same hidden depth and widths as ``LatentFiLMCritic``;
+    only its final output drops the latent-only beta path.  A zero-initialized
+    final layer starts the critic at the ordinary, latent-independent Q(s, a)
+    solution and lets the multiplicative path emerge during training.
+    """
+
+    def __init__(self, observation_dim: int, action_dim: int, latent_dim: int, hidden_sizes: list[int]):
+        super().__init__()
+        if not hidden_sizes:
+            raise ValueError("Gamma-only FiLM critic needs a non-empty hidden size list")
+        self.feature_dim = int(hidden_sizes[-1])
+        self.trunk = mlp(observation_dim + action_dim, list(hidden_sizes), self.feature_dim)
+        self.modulator = mlp(
+            latent_dim,
+            [max(16, latent_dim * 4), 2 * self.feature_dim],
+            self.feature_dim,
+        )
+        last_layer = self.modulator[-1]
+        if not isinstance(last_layer, nn.Linear):  # Defensive: mlp always terminates in Linear.
+            raise RuntimeError("Gamma-only FiLM modulator must end in a linear layer")
+        nn.init.zeros_(last_layer.weight)
+        nn.init.zeros_(last_layer.bias)
+        self.head = nn.Linear(self.feature_dim, 1)
+
+    def forward(self, observation: torch.Tensor, action: torch.Tensor, latent: torch.Tensor) -> torch.Tensor:
+        features = self.trunk(torch.cat([observation, action], dim=-1))
+        gamma = torch.tanh(self.modulator(latent))
+        return self.head((1.0 + gamma) * features)

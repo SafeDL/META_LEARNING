@@ -23,7 +23,7 @@ from .moe import (
     intervene_route as build_intervened_route,
     route_context,
 )
-from .networks import Critic, GaussianActor, LatentFiLMCritic
+from .networks import Critic, GaussianActor, LatentFiLMCritic, LatentGammaOnlyFiLMCritic
 from .replay import Transition
 from .task_representation import INTERACTION_OBSERVATION_INDEXES
 from .scenario_encoder import (
@@ -144,9 +144,14 @@ class PEARLAgent:
             raise ValueError(f"unsupported actor_architecture: {self.actor_architecture!r}")
         critic_sizes = list(networks["critic_hidden_sizes"])
         self.critic_architecture = str(networks.get("critic_architecture", "dense"))
-        if self.critic_architecture not in {"dense", "latent_film_dense"}:
+        critic_classes = {
+            "dense": Critic,
+            "latent_film_dense": LatentFiLMCritic,
+            "latent_film_gamma_only": LatentGammaOnlyFiLMCritic,
+        }
+        if self.critic_architecture not in critic_classes:
             raise ValueError(f"unsupported critic_architecture: {self.critic_architecture!r}")
-        critic_class = LatentFiLMCritic if self.critic_architecture == "latent_film_dense" else Critic
+        critic_class = critic_classes[self.critic_architecture]
         self.q1 = critic_class(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
         self.q2 = critic_class(observation_dim, action_dim, self.latent_dim, critic_sizes).to(device)
         self.target_q1 = copy.deepcopy(self.q1).eval()

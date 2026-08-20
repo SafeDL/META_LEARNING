@@ -70,6 +70,7 @@ from pearl_learning.src.observation import (
     DYNAMIC_OBSERVATION_SCHEMA,
     DYNAMIC_OBS_FIELDS,
 )
+from pearl_learning.src.networks import LatentFiLMCritic, LatentGammaOnlyFiLMCritic
 from pearl_learning.src.pearl_agent import PEARLAgent
 from pearl_learning.src.replay import Transition, select_context_rows
 from pearl_learning.src.reward import compute_reward
@@ -579,6 +580,31 @@ class MethodFlowV2Tests(unittest.TestCase):
         combined_networks.pop("critic_architecture")
         self.assertEqual(combined_networks, round3["networks"])
 
+    def test_gate3_gamma_only_config_changes_only_critic(self) -> None:
+        prior = read_config("pearl_learning/configs/merge_method_flow_gate3_context_sampling_film_critic.yaml")
+        combined = read_config(
+            "pearl_learning/configs/merge_method_flow_gate3_context_sampling_gamma_only_film_critic.yaml"
+        )
+        self.assertEqual(
+            combined["project"]["output_root"],
+            "results/pearl_learning/merge_method_flow_gate3_context_sampling_gamma_only_film_critic",
+        )
+        self.assertEqual(
+            combined["experiment"]["method_variant"],
+            "vanilla_gate3_context_sampling_gamma_only_film_critic",
+        )
+        self.assertEqual(combined["networks"]["critic_architecture"], "latent_film_gamma_only")
+        for section in (
+            "environment", "reward", "pearl", "scenario_prior", "scenario_representation",
+            "posterior_routed_moe", "sac", "meta_training", "method_flow_pilot", "cases",
+        ):
+            self.assertEqual(combined[section], prior[section])
+        combined_networks = dict(combined["networks"])
+        prior_networks = dict(prior["networks"])
+        combined_networks.pop("critic_architecture")
+        prior_networks.pop("critic_architecture")
+        self.assertEqual(combined_networks, prior_networks)
+
     def test_gate3_v4_recompute_writes_only_the_additive_verdict(self) -> None:
         suite = self._synthetic_suite(
             7.7, 0.10, {"a": (0.5, 0.0), "b": (0.0, 0.0)}, separation=0.4, critic_distance=0.10,
@@ -649,6 +675,100 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertIn("critic_latent_gradient_norm", metrics)
         self.assertTrue(np.isfinite(float(metrics["critic_latent_gradient_norm"])))
         self.assertGreater(float(metrics["critic_latent_gradient_norm"]), 0.0)
+
+    def test_gamma_only_film_critic_structure_zero_initialization_and_emergent_gradient(self) -> None:
+        torch.manual_seed(17)
+        observation_dim, action_dim, latent_dim, feature_dim = 4, 2, 3, 8
+        critic = LatentGammaOnlyFiLMCritic(
+            observation_dim, action_dim, latent_dim, [12, feature_dim]
+        )
+        historical = LatentFiLMCritic(
+            observation_dim, action_dim, latent_dim, [12, feature_dim]
+        )
+
+        new_linears = [module for module in critic.modulator if isinstance(module, torch.nn.Linear)]
+        old_linears = [module for module in historical.modulator if isinstance(module, torch.nn.Linear)]
+        self.assertEqual(len(new_linears), len(old_linears))
+        self.assertEqual(
+            [layer.out_features for layer in new_linears[:-1]],
+            [layer.out_features for layer in old_linears[:-1]],
+        )
+        self.assertEqual(new_linears[-1].in_features, old_linears[-1].in_features)
+        self.assertEqual(new_linears[-1].out_features, feature_dim)
+        self.assertEqual(old_linears[-1].out_features, 2 * feature_dim)
+        self.assertTrue(torch.equal(new_linears[-1].weight, torch.zeros_like(new_linears[-1].weight)))
+        self.assertTrue(torch.equal(new_linears[-1].bias, torch.zeros_like(new_linears[-1].bias)))
+        self.assertFalse(any("beta" in key for key in critic.state_dict()))
+
+        observation = torch.randn(16, observation_dim)
+        action = torch.randn(16, action_dim)
+        zero_latent = torch.zeros(16, latent_dim)
+        one_latent = torch.ones(16, latent_dim)
+        with torch.no_grad():
+            torch.testing.assert_close(
+                critic(observation, action, zero_latent),
+                critic(observation, action, one_latent),
+                rtol=0.0,
+                atol=0.0,
+            )
+            self.assertEqual(
+                int(torch.count_nonzero(torch.tanh(critic.modulator(one_latent)))),
+                0,
+            )
+
+        optimizer = torch.optim.Adam(critic.parameters(), lr=1e-2)
+        training_latent = torch.cat((zero_latent[:8], one_latent[:8]), dim=0)
+        target = torch.linspace(-1.0, 1.0, 16).unsqueeze(-1)
+        optimizer.zero_grad()
+        loss = torch.nn.functional.mse_loss(critic(observation, action, training_latent), target)
+        loss.backward()
+        final_gradient = new_linears[-1].weight.grad
+        self.assertIsNotNone(final_gradient)
+        self.assertTrue(torch.isfinite(final_gradient).all())
+        self.assertGreater(float(final_gradient.norm()), 0.0)
+        optimizer.step()
+        self.assertGreater(float(new_linears[-1].weight.detach().norm()), 0.0)
+        with torch.no_grad():
+            gamma_difference = torch.tanh(critic.modulator(one_latent)) - torch.tanh(critic.modulator(zero_latent))
+        self.assertGreater(float(gamma_difference.abs().max()), 0.0)
+        self.assertLessEqual(float(torch.tanh(critic.modulator(one_latent)).abs().max()), 1.0)
+
+    def test_gamma_only_film_critic_gradient_starts_after_zero_initialized_gate_opens(self) -> None:
+        cfg = copy.deepcopy(self.cfg)
+        cfg["networks"] = {**cfg["networks"], "critic_architecture": "latent_film_gamma_only"}
+        torch.manual_seed(19)
+        agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
+        task = build_taskbook(cfg)["meta_train"][0]
+        transition = Transition(
+            np.zeros(24, np.float32), np.zeros(2, np.float32), 0.0, np.zeros(24, np.float32),
+            False, True, "horizon", task.task_id, "episode", "case", "prior_support", 0,
+        )
+        first = agent.update([[[transition] * 4]], [[transition] * 8], None, None, [0], [task])
+        second = agent.update([[[transition] * 4]], [[transition] * 8], None, None, [0], [task])
+        self.assertEqual(float(first["critic_latent_gradient_norm"]), 0.0)
+        self.assertTrue(np.isfinite(float(second["critic_latent_gradient_norm"])))
+        self.assertGreater(float(second["critic_latent_gradient_norm"]), 0.0)
+
+    def test_gamma_only_film_critic_checkpoint_isolation(self) -> None:
+        cfg = copy.deepcopy(self.cfg)
+        old_cfg = copy.deepcopy(cfg)
+        old_cfg["networks"] = {**old_cfg["networks"], "critic_architecture": "latent_film_dense"}
+        gamma_cfg = copy.deepcopy(cfg)
+        gamma_cfg["networks"] = {**gamma_cfg["networks"], "critic_architecture": "latent_film_gamma_only"}
+        old_agent = PEARLAgent(24, 2, old_cfg, torch.device("cpu"))
+        gamma_agent = PEARLAgent(24, 2, gamma_cfg, torch.device("cpu"))
+
+        # The frozen historical implementation still has its gamma+beta state shape.
+        self.assertEqual(old_agent.q1.modulator[-1].out_features, 2 * old_agent.q1.feature_dim)
+        self.assertEqual(gamma_agent.q1.modulator[-1].out_features, gamma_agent.q1.feature_dim)
+        old_state = old_agent.state_dict()
+        gamma_state = gamma_agent.state_dict()
+        PEARLAgent(24, 2, old_cfg, torch.device("cpu")).load_state_dict(old_state)
+        PEARLAgent(24, 2, gamma_cfg, torch.device("cpu")).load_state_dict(gamma_state)
+        with self.assertRaisesRegex(ValueError, "architecture metadata"):
+            gamma_agent.load_state_dict(old_state)
+        with self.assertRaisesRegex(ValueError, "architecture metadata"):
+            old_agent.load_state_dict(gamma_state)
 
     def test_update_logs_gate3_causal_chain_diagnostics_without_changing_losses(self) -> None:
         cfg = self.cfg
