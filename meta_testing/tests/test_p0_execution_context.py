@@ -18,6 +18,7 @@ from meta_testing.scenario.option import AdversarialOption
 from meta_testing.scenario.parameter_space import NormalizedScenarioAction
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
 from meta_testing.training.runner import HierarchicalRunner
+from meta_testing.state import INNER_STATE_FIELDS
 
 
 ADAPTERS = {"merge": MergeScenarioAdapter(), "cutin": CutInScenarioAdapter(), "roundabout": RoundaboutScenarioAdapter()}
@@ -45,6 +46,7 @@ def test_executor_applies_outer_values_to_real_vehicles(family: str, space_id: s
         applied = episode.applied_scenario
         assert applied.selected_candidate == expected["route_or_conflict_candidate"]
         assert applied.selected_option == expected["option"]
+        assert applied.conflict_zone_id.startswith(f"{family}:")
         assert applied.adversary_spawn_m == expected["adversary_spawn_m"]
         assert applied.sut_spawn_m == expected["sut_spawn_m"]
         assert applied.adversary_speed_mps == expected["adversary_initial_speed_mps"]
@@ -75,11 +77,13 @@ def test_runner_collects_real_trajectory_features() -> None:
     task = _task_with_runtime_hash("merge", "merge_v1", ADAPTERS["merge"])
     episode = ScenarioExecutor(ADAPTERS, mvr_parameter_spaces()).reset(task, NormalizedScenarioAction(0, (-0.7,) * 4, AdversarialOption.GAP_CLOSE))
     try:
-        signature = FailureSignatureBuilder().from_outcome({}, "merge", None)
-        rollout = HierarchicalRunner(max_steps=2).rollout(episode, {}, "gap_close", lambda _: np.zeros(2, dtype=np.float32), lambda _: ({}, signature))
+        rollout = HierarchicalRunner(max_steps=2).rollout(episode, "merge", "gap_close", lambda _: np.zeros(2, dtype=np.float32))
         assert rollout.trajectory.shape == (2, 12)
         assert torch.isfinite(rollout.trajectory).all()
-        assert all(np.asarray(transition["state"]).shape == (5,) and np.asarray(transition["next_state"]).shape == (5,) for transition in rollout.transitions)
+        assert all(np.asarray(transition["state"]).shape == (10,) and np.asarray(transition["next_state"]).shape == (10,) for transition in rollout.transitions)
+        assert len(INNER_STATE_FIELDS) == 10
+        assert rollout.outcome["candidate_id"] == episode.applied_scenario.selected_candidate
+        assert rollout.outcome["conflict_zone_id"] == episode.applied_scenario.conflict_zone_id
         assert all("sut_evidence" in transition and "trajectory_features" in transition for transition in rollout.transitions)
     finally:
         episode.env.close()
@@ -93,7 +97,7 @@ def test_mixed_outcome_loss_and_leakage_guard() -> None:
     leaking = PosteriorTrainingBatch(batch.support_tokens, batch.support_mask, (("target",),), ("target",), batch.target_map, batch.target_config, batch.target_option, batch.target_outcome)
     with pytest.raises(ValueError, match="must not appear"):
         leaking.validate()
-    model = HierarchicalMetaTester({"merge_v1": mvr_parameter_spaces()["merge_v1"]}, state_dim=3, map_dim=16)
+    model = HierarchicalMetaTester({"merge_v1": mvr_parameter_spaces()["merge_v1"]}, state_dim=10, map_dim=16)
     loss = model.posterior_loss(batch)
     loss.backward()
     assert torch.isfinite(loss)
@@ -101,15 +105,15 @@ def test_mixed_outcome_loss_and_leakage_guard() -> None:
 
 def test_model_uses_posterior_in_outer_and_inner_paths() -> None:
     space = mvr_parameter_spaces()["merge_v1"]
-    model = HierarchicalMetaTester({"merge_v1": space}, state_dim=3, map_dim=16)
+    model = HierarchicalMetaTester({"merge_v1": space}, state_dim=10, map_dim=16)
     support = torch.randn(1, 2, 128)
     mean, _ = model.infer_posterior(support, torch.tensor([[True, True]]))
     prior, _ = model.posterior.prior(1)
     map_embedding = torch.randn(1, 16)
     scene_prior = model.select_scene("merge_v1", map_embedding, prior, deterministic=True)
     scene_posterior = model.select_scene("merge_v1", map_embedding, mean, deterministic=True)
-    features_prior = model.inner_features(torch.randn(1, 3), map_embedding, prior, torch.zeros(1, dtype=torch.long), torch.zeros(1, 4))
-    features_posterior = model.inner_features(torch.randn(1, 3), map_embedding, mean, torch.zeros(1, dtype=torch.long), torch.zeros(1, 4))
+    features_prior = model.inner_features(torch.randn(1, 10), map_embedding, prior, torch.zeros(1, dtype=torch.long), torch.zeros(1, 4))
+    features_posterior = model.inner_features(torch.randn(1, 10), map_embedding, mean, torch.zeros(1, dtype=torch.long), torch.zeros(1, 4))
     assert not torch.allclose(mean, prior)
     assert not torch.allclose(scene_prior.value, scene_posterior.value)
     assert not torch.allclose(features_prior, features_posterior)

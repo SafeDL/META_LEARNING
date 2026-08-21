@@ -2,11 +2,10 @@ schema: hierarchical_map_aware_mvr_v1
 seed: 11
 taskbook: meta_testing/configs/idm_taskbook.json
 model:
-  state_dim: 5
+  state_dim: 10
 training:
   device: cuda
   family_filter: all
-  episode_budget: 20
   step_budget: 240
   learning_rate: 0.0003
 evaluation:
@@ -15,6 +14,7 @@ evaluation:
   seeds: [11, 22, 33]
   confidence_level: 0.95
   bootstrap_samples: 10000
+  deterministic: false
 failure:
   severity_thresholds: {ttc_s: 5.0, distance_m: 10.0, closing_speed_mps: 20.0}
   severity_bins: 5
@@ -22,15 +22,27 @@ inner:
   algorithm: option_conditioned_sac
   action_dim: 2
   batch_size: 64
+  episode_budget: 20
+  updates_per_episode: 1
+  replay_capacity: 100000
+  learning_rate: 0.0003
+inner_calibration:
+  episode_budget: 8
+  support_episodes: 1
+  updates_per_episode: 2
+  replay_capacity: 100000
+  batch_size: 64
   learning_rate: 0.0003
 posterior:
-  support_episodes: 1
+  episode_budget: 20
+  support_episodes: [1, 2, 4]
   learning_rate: 0.0003
 outer:
   algorithm: hybrid_ppo
   information_gain_weight: 0.0
   ppo_epochs: 4
   batch_size: 64
+  episode_budget: 20
   learning_rate: 0.0003
 map:
   encoder: hptr_style_v1

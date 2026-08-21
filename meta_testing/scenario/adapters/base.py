@@ -130,6 +130,7 @@ class MetaDriveFamilyAdapter:
         sut_route, sut_destination = self._route_from(road_network, sut_index)
         return ScenarioLayout(
             candidate=candidate,
+            conflict_zone_id=f"{self.family}:{adversary_index!s}|{sut_index!s}",
             adversary_lane=adversary_index,
             sut_lane=sut_index,
             adversary_destination=adversary_destination,

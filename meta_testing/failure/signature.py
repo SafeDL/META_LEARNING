@@ -7,7 +7,7 @@ import math
 from ..provenance import content_hash
 
 
-FAILURE_SCHEMA = "failure_signature_v1"
+FAILURE_SCHEMA = "failure_signature_v2"
 
 
 @dataclass(frozen=True)
@@ -18,6 +18,7 @@ class FailureSignature:
     severity_vector: tuple[int, int, int]
     is_valid_episode: bool
     is_failure: bool
+    candidate_id: str | None = None
     schema: str = FAILURE_SCHEMA
 
     def __post_init__(self) -> None:
@@ -52,7 +53,7 @@ class FailureSignatureBuilder:
             normalized = 1.0 - normalized
         return min(self.bins - 1, int(normalized * self.bins))
 
-    def from_outcome(self, outcome: Mapping[str, Any], scenario_family: str, conflict_zone_id: str | None) -> FailureSignature:
+    def from_outcome(self, outcome: Mapping[str, Any], scenario_family: str, conflict_zone_id: str | None, candidate_id: str | None = None) -> FailureSignature:
         invalid = any(bool(outcome.get(key, False)) for key in ("non_target_collision", "adversary_out_of_road", "sut_out_of_road", "wrong_route"))
         is_valid_episode = bool(outcome.get("is_valid_episode", not invalid)) and not invalid
         collision = bool(outcome.get("target_collision", False))
@@ -64,4 +65,4 @@ class FailureSignatureBuilder:
             self._bin(float(outcome.get("min_distance", self.distance_threshold_m)), self.distance_threshold_m, inverse=True),
             self._bin(float(outcome.get("max_closing_speed", outcome.get("closing_speed_mps", 0.0))), self.closing_speed_threshold_mps, inverse=False),
         )
-        return FailureSignature(failure_type, str(scenario_family), conflict_zone_id, severity, is_valid_episode, is_failure)
+        return FailureSignature(failure_type, str(scenario_family), conflict_zone_id, severity, is_valid_episode, is_failure, candidate_id)

@@ -12,7 +12,6 @@ import torch
 import yaml
 
 from ..evaluation.budget_protocol import BudgetProtocol
-from ..failure.analyzer import analyze_rollout
 from ..failure.metrics import FixedBudgetMetrics
 from ..model import HierarchicalMetaTester
 from ..provenance import content_hash
@@ -112,7 +111,7 @@ def _tasks(config: dict[str, Any], taskbook: Path, split: str, profiles_key: str
 def _model(config: dict[str, Any], device: torch.device) -> HierarchicalMetaTester:
     model = HierarchicalMetaTester(
         mvr_parameter_spaces(),
-        state_dim=int(config.get("model", {}).get("state_dim", 5)),
+        state_dim=int(config.get("model", {}).get("state_dim", 10)),
         map_dim=int(config.get("map", {}).get("embedding_dim", 128)),
     )
     return model.to(device)
@@ -127,73 +126,112 @@ def _optimizer(model: HierarchicalMetaTester, components: Iterable[str], learnin
 
 def _online(model: HierarchicalMetaTester, task: MetaTestTaskSpec, max_steps: int) -> OnlineMetaTest:
     executor = ScenarioExecutor(ADAPTERS, mvr_parameter_spaces())
-    return OnlineMetaTest(model, executor, HierarchicalRunner(max_steps=max_steps), lambda transitions: analyze_rollout(transitions, task.scenario_family))
+    return OnlineMetaTest(model, executor, HierarchicalRunner(max_steps=max_steps))
 
 
 def _restore(model: HierarchicalMetaTester, optimizer: torch.optim.Optimizer, path: str | None, config_hash: str, device: torch.device, stage: TrainingStage) -> dict[str, Any]:
     if not path:
         return {}
     checkpoint = HierarchicalCheckpoint.load(path, expected_config_hash=config_hash)
+    if stage == TrainingStage.INNER_CALIBRATION and checkpoint.stage not in {TrainingStage.POSTERIOR.value, stage.value}:
+        raise ValueError("Inner calibration must resume a posterior or calibration checkpoint")
     model.load_state_dict(checkpoint.state["model"])
     if checkpoint.stage == stage.value and "optimizer" in checkpoint.state:
         optimizer.load_state_dict(checkpoint.state["optimizer"])
         _move_optimizer_state(optimizer, device)
     if "rng_state" in checkpoint.state:
         _restore_rng(dict(checkpoint.state["rng_state"]))
-    return dict(checkpoint.state.get("progress", {}))
+    return dict(checkpoint.state)
 
 
-def _save(path: Path, *, stage: str, config: dict[str, Any], model: HierarchicalMetaTester, optimizer: torch.optim.Optimizer | None, progress: dict[str, Any], metrics: dict[str, Any], device: torch.device) -> None:
+def _save(path: Path, *, stage: str, config: dict[str, Any], model: HierarchicalMetaTester, optimizer: torch.optim.Optimizer | None, progress: dict[str, Any], metrics: dict[str, Any], device: torch.device, inner_replay: InnerReplay | None = None) -> None:
     state: dict[str, Any] = {"model": model.state_dict(), "progress": progress, "rng_state": _rng_state()}
     if optimizer is not None:
         state["optimizer"] = optimizer.state_dict()
+    if inner_replay is not None:
+        state["inner_replay"] = list(inner_replay.rows)
     HierarchicalCheckpoint(HierarchicalCheckpoint.SCHEMA, stage, content_hash(config), state).save(path)
     path.with_suffix(".json").write_text(json.dumps({"stage": stage, "device": str(device), "seed": config["seed"], "metrics": metrics, "progress": progress}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def _train_inner(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0) -> tuple[dict[str, Any], dict[str, Any]]:
-    settings = config["training"]
-    budget, max_steps = int(settings["episode_budget"]), int(settings["step_budget"])
-    batch_size = int(config.get("inner", {}).get("batch_size", 64))
-    replay, losses = InnerReplay(), []
+def _inner_replay(settings: dict[str, Any], rows: list[Any] | None) -> InnerReplay:
+    return InnerReplay(capacity=int(settings.get("replay_capacity", 100_000)), rows=list(rows or ()))
+
+
+def _update_inner(model: HierarchicalMetaTester, replay: InnerReplay, optimizer: torch.optim.Optimizer, settings: dict[str, Any], losses: list[dict[str, float]]) -> None:
+    batch_size = int(settings.get("batch_size", 64))
+    for _ in range(int(settings.get("updates_per_episode", 1))):
+        if len(replay.rows) >= batch_size:
+            losses.append(update_inner_sac(model, replay, optimizer, batch_size=batch_size))
+
+
+def _train_inner(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0, replay_rows: list[Any] | None = None) -> tuple[dict[str, Any], dict[str, Any], InnerReplay]:
+    settings = dict(config["inner"])
+    budget, max_steps = int(settings["episode_budget"]), int(config["training"]["step_budget"])
+    replay, losses = _inner_replay(settings, replay_rows), []
     for index in range(start_episode, start_episode + budget):
         task = tasks[index % len(tasks)]
         result = _online(model, task, max_steps).run(task, 1)
         for row in result.inner_transitions:
             replay.add(row)
-        if len(replay.rows) >= batch_size:
-            losses.append(update_inner_sac(model, replay, optimizer, batch_size=batch_size))
-    return {"episodes": budget, "transitions": len(replay.rows), "updates": len(losses), "last_loss": losses[-1] if losses else {}}, {"episodes": start_episode + budget}
+        _update_inner(model, replay, optimizer, settings, losses)
+    return {"episodes": budget, "transitions": len(replay.rows), "updates": len(losses), "last_loss": losses[-1] if losses else {}}, {"episodes": start_episode + budget}, replay
 
 
-def _train_posterior(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0) -> tuple[dict[str, Any], dict[str, Any]]:
-    settings = config["training"]
-    support_count = int(config.get("posterior", {}).get("support_episodes", 1))
-    group_size, budget = support_count + 1, int(settings["episode_budget"])
-    if budget < group_size:
-        raise ValueError("posterior episode_budget must cover support plus one held-out target")
-    losses = []
-    for index in range(start_episode // group_size, start_episode // group_size + budget // group_size):
+def _train_inner_calibration(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0, replay_rows: list[Any] | None = None) -> tuple[dict[str, Any], dict[str, Any], InnerReplay]:
+    settings = dict(config["inner_calibration"])
+    support_count = int(settings["support_episodes"])
+    if support_count < 1:
+        raise ValueError("z-conditioned Inner calibration requires at least one support episode")
+    budget, max_steps = int(settings["episode_budget"]), int(config["training"]["step_budget"])
+    replay, losses, physical_episodes = _inner_replay(settings, replay_rows), [], 0
+    for index in range(start_episode, start_episode + budget):
         task = tasks[index % len(tasks)]
-        result = _online(model, task, int(settings["step_budget"])).run(task, group_size)
+        result = _online(model, task, max_steps).run(task, support_count + 1, posterior_support_limit=support_count)
+        physical_episodes += len(result.episodes)
+        for transition in result.inner_transitions:
+            if transition.episode_id.endswith(f":{support_count}"):
+                replay.add(transition)
+        _update_inner(model, replay, optimizer, settings, losses)
+    return {"episodes": physical_episodes, "calibration_episodes": budget, "transitions": len(replay.rows), "updates": len(losses), "last_loss": losses[-1] if losses else {}}, {"episodes": start_episode + budget}, replay
+
+
+def _train_posterior(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0) -> tuple[dict[str, Any], dict[str, Any], None]:
+    settings = dict(config["posterior"])
+    support_choices = tuple(sorted({int(value) for value in settings["support_episodes"]}))
+    if not support_choices or min(support_choices) < 1:
+        raise ValueError("posterior support_episodes must contain positive K values")
+    budget, remaining, index = int(settings["episode_budget"]), int(settings["episode_budget"]), start_episode
+    if budget < 2:
+        raise ValueError("posterior episode_budget must cover support plus one held-out target")
+    losses, counts = [], []
+    while remaining:
+        choices = [count for count in support_choices if count + 1 <= remaining and remaining - count - 1 != 1]
+        if not choices:
+            raise ValueError("posterior episode_budget cannot be partitioned into held-out K groups")
+        support_count = random.choice(choices)
+        task = tasks[index % len(tasks)]
+        result = _online(model, task, int(config["training"]["step_budget"])).run(task, support_count + 1)
         loss = model.posterior_loss(posterior_batch_from_episodes(model, result.episodes))
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
         losses.append(float(loss.detach().cpu()))
-    episodes = len(losses) * group_size
-    return {"episodes": episodes, "updates": len(losses), "posterior_loss": float(np.mean(losses)) if losses else None}, {"episodes": start_episode + episodes}
+        counts.append(support_count)
+        remaining -= support_count + 1
+        index += 1
+    return {"episodes": budget, "updates": len(losses), "support_counts": counts, "posterior_loss": float(np.mean(losses)) if losses else None}, {"episodes": start_episode + budget}, None
 
 
-def _train_outer(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0) -> tuple[dict[str, Any], dict[str, Any]]:
-    settings = config["training"]
-    budget, max_steps = int(settings["episode_budget"]), int(settings["step_budget"])
+def _train_outer(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec], config: dict[str, Any], optimizer: torch.optim.Optimizer, start_episode: int = 0) -> tuple[dict[str, Any], dict[str, Any], None]:
+    settings = config["outer"]
+    budget, max_steps = int(settings["episode_budget"]), int(config["training"]["step_budget"])
     losses, episodes = [], 0
     for task in tasks:
         result = _online(model, task, max_steps).run(task, budget)
         losses.append(update_outer_ppo(model.scene_policies[task.parameter_space_id], result.outer_rollout, optimizer, epochs=int(config.get("outer", {}).get("ppo_epochs", 4)), batch_size=int(config.get("outer", {}).get("batch_size", 64))))
         episodes += len(result.episodes)
-    return {"episodes": episodes, "updates": len(losses), "outer_ppo_loss": float(np.mean(losses)) if losses else None}, {"episodes": start_episode + episodes}
+    return {"episodes": episodes, "updates": len(losses), "outer_ppo_loss": float(np.mean(losses)) if losses else None}, {"episodes": start_episode + episodes}, None
 
 
 def run(stage: TrainingStage, argv: list[str] | None = None) -> None:
@@ -202,18 +240,22 @@ def run(stage: TrainingStage, argv: list[str] | None = None) -> None:
     model = _model(config, device)
     workflow = StagedWorkflow(model.training_components())
     active = workflow.activate(stage)
-    section = {TrainingStage.INNER_PRETRAIN: "inner", TrainingStage.POSTERIOR: "posterior", TrainingStage.OUTER: "outer", TrainingStage.LIGHT_JOINT: "light_joint"}[stage]
+    section = {TrainingStage.INNER_PRETRAIN: "inner", TrainingStage.INNER_CALIBRATION: "inner_calibration", TrainingStage.POSTERIOR: "posterior", TrainingStage.OUTER: "outer", TrainingStage.LIGHT_JOINT: "light_joint"}[stage]
     optimizer = _optimizer(model, active, float(config.get(section, {}).get("learning_rate", config.get("training", {}).get("learning_rate", 3e-4))))
     previous = _restore(model, optimizer, args.resume, content_hash(config), device, stage)
     workflow.activate(stage)
     tasks = _tasks(config, taskbook, "meta_train", "meta_train")
-    trainer = {TrainingStage.INNER_PRETRAIN: _train_inner, TrainingStage.POSTERIOR: _train_posterior, TrainingStage.OUTER: _train_outer}.get(stage)
+    trainer = {TrainingStage.INNER_PRETRAIN: _train_inner, TrainingStage.INNER_CALIBRATION: _train_inner_calibration, TrainingStage.POSTERIOR: _train_posterior, TrainingStage.OUTER: _train_outer}.get(stage)
     if trainer is None:
         raise ValueError("light joint calibration is deliberately not a default training entry point")
-    metrics, progress = trainer(model, tasks, config, optimizer, int(previous.get("episodes", 0)))
+    start_episode = int(previous.get("progress", {}).get("episodes", 0))
+    if stage in {TrainingStage.INNER_PRETRAIN, TrainingStage.INNER_CALIBRATION}:
+        metrics, progress, replay = trainer(model, tasks, config, optimizer, start_episode, previous.get("inner_replay"))
+    else:
+        metrics, progress, replay = trainer(model, tasks, config, optimizer, start_episode)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    _save(output, stage=stage.value, config=config, model=model, optimizer=optimizer, progress=progress, metrics=metrics, device=device)
+    _save(output, stage=stage.value, config=config, model=model, optimizer=optimizer, progress=progress, metrics=metrics, device=device, inner_replay=replay)
 
 
 def evaluate(argv: list[str] | None = None) -> None:
@@ -223,15 +265,22 @@ def evaluate(argv: list[str] | None = None) -> None:
     model = _model(config, device)
     model.load_state_dict(checkpoint.state["model"])
     model.eval()
-    budget = int(config.get("evaluation", {}).get("total_episode_budget", config["training"]["episode_budget"]))
+    settings = config["evaluation"]
+    budget = int(settings["total_episode_budget"])
+    protocol = BudgetProtocol(budget, tuple(int(value) for value in settings["support_shots"]))
+    protocol.validate()
     results: dict[str, Any] = {}
     for task in _tasks(config, taskbook, "meta_test", "meta_test"):
-        BudgetProtocol(budget, tuple(config.get("evaluation", {}).get("support_shots", (0,)))).validate()
-        online_result: OnlineMetaTestResult = _online(model, task, int(config["training"]["step_budget"])).run(task, budget, deterministic=True)
-        metrics = FixedBudgetMetrics(budget)
-        for episode in online_result.episodes:
-            metrics.add(episode.rollout.signature)
-        results[task.task_id] = metrics.summary()
+        by_shot: dict[str, list[dict[str, Any]]] = {str(shot): [] for shot in protocol.support_shots}
+        for seed in settings["seeds"]:
+            seed_everything(int(seed))
+            for shot in protocol.support_shots:
+                online_result: OnlineMetaTestResult = _online(model, task, int(config["training"]["step_budget"])).run(task, budget, deterministic=bool(settings.get("deterministic", False)), posterior_support_limit=shot)
+                metrics = FixedBudgetMetrics(budget)
+                for episode in online_result.episodes:
+                    metrics.add(episode.rollout.signature)
+                by_shot[str(shot)].append({"seed": int(seed), **metrics.summary()})
+        results[task.task_id] = {shot: {"runs": runs, "mean_failure_discovery_auc": float(np.mean([run["failure_discovery_auc"] for run in runs])), "mean_unique_failures": float(np.mean([run["cumulative_unique_failures"] for run in runs]))} for shot, runs in by_shot.items()}
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps({"checkpoint_stage": checkpoint.stage, "device": str(device), "tasks": results}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

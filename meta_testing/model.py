@@ -14,6 +14,7 @@ from .policy.adversarial_sac import OptionConditionedSAC
 from .policy.scene_policy import HybridScenePolicy, SceneAction
 from .policy.shared_features import SharedFeatureEncoder
 from .scenario.parameter_space import ParameterSpace
+from .state import PhysicalStateExtractor
 from .training.updates import posterior_elbo
 
 
@@ -39,8 +40,8 @@ class HierarchicalMetaTester(nn.Module):
 
         self.parameter_spaces = dict(parameter_spaces)
         self.state_dim = int(state_dim)
-        if self.state_dim < 1:
-            raise ValueError("state_dim must be positive")
+        if self.state_dim != PhysicalStateExtractor.dimension:
+            raise ValueError(f"state_dim must equal the {PhysicalStateExtractor.dimension}-D physical Inner state")
         self.map_encoder = map_encoder or HPTRMapEncoder(embedding_dim=map_dim)
         if self.map_encoder.embedding_dim != map_dim:
             raise ValueError("map encoder embedding dimension must equal map_dim")

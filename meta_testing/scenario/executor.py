@@ -73,7 +73,7 @@ class ScenarioExecutor:
         layout = self._resolve_layout(adapter, task, config, space.candidates)
         env = adapter.build_env(task, config, layout)
         try:
-            observation, info = adapter.reset(env, task, config, task.seed)
+            observation, _ = adapter.reset(env, task, config, task.seed)
             adapter.validate_runtime(env, task, config)
             map_tokens = tokenize_road_network(env.current_map.road_network)
             if map_tokens.map_hash != task.map_hash:
@@ -86,9 +86,9 @@ class ScenarioExecutor:
             sut = spawn_sut(env, lane_index=layout.sut_lane, longitudinal_m=float(config["sut_spawn_m"]), speed_mps=float(config["sut_initial_speed_mps"]), destination=layout.sut_destination, adapter=sut_adapter, profile=sut_profile, seed=task.seed)
             self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
             self._assert_vehicle_applied(sut, layout.sut_lane, float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
-            applied = AppliedScenario(str(adversary.id), str(sut.id), layout.adversary_lane, layout.sut_lane, float(config["adversary_spawn_m"]), float(config["sut_spawn_m"]), float(config["adversary_initial_speed_mps"]), float(config["sut_initial_speed_mps"]), layout.candidate, str(config["option"]), layout.adversary_route, layout.sut_route)
+            applied = AppliedScenario(str(adversary.id), str(sut.id), layout.adversary_lane, layout.sut_lane, float(config["adversary_spawn_m"]), float(config["sut_spawn_m"]), float(config["adversary_initial_speed_mps"]), float(config["sut_initial_speed_mps"]), layout.candidate, layout.conflict_zone_id, str(config["option"]), layout.adversary_route, layout.sut_route)
             setattr(env, "_meta_testing_episode", applied)
-            return ExecutableEpisode(env, observation, dict(info), adversary, sut, sut_adapter, sut_profile, applied, map_tokens, layout)
+            return ExecutableEpisode(env, observation, adversary, sut, sut_adapter, sut_profile, applied, map_tokens, layout)
         except Exception:
             env.close()
             raise

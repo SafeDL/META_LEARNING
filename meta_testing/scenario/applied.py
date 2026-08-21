@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from .layout import LaneIndex
 
@@ -18,6 +18,7 @@ class AppliedScenario:
     adversary_speed_mps: float
     sut_speed_mps: float
     selected_candidate: str
+    conflict_zone_id: str
     selected_option: str
     adversary_route: tuple[LaneIndex, ...]
     sut_route: tuple[LaneIndex, ...]
@@ -27,7 +28,6 @@ class AppliedScenario:
 class ExecutableEpisode:
     env: Any
     initial_observation: Any
-    initial_info: Mapping[str, Any]
     adversary: Any
     sut: Any
     sut_adapter: Any
@@ -35,4 +35,3 @@ class ExecutableEpisode:
     applied_scenario: AppliedScenario
     map_tokens: Any
     layout: Any
-

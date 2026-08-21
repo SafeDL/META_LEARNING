@@ -10,7 +10,6 @@ import numpy as np
 
 from ..audits import gate_failure_landscape
 from ..evaluation.baselines import sobol_like
-from ..failure.analyzer import analyze_rollout
 from ..scenario.adapters import CutInScenarioAdapter, MergeScenarioAdapter, RoundaboutScenarioAdapter
 from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.executor import ScenarioExecutor
@@ -49,7 +48,7 @@ def run(taskbook: str | Path, *, configurations: int = 16) -> dict[str, object]:
             for config_id, action in enumerate(_actions(space, configurations, template.seed)):
                 episode = executor.reset(task, action)
                 try:
-                    rollout = runner.rollout(episode, space.decode(action), action.option.value, lambda _: np.zeros(2, dtype=np.float32), lambda transitions: analyze_rollout(transitions, family))
+                    rollout = runner.rollout(episode, family, action.option.value, lambda _: np.zeros(2, dtype=np.float32))
                 finally:
                     episode.env.close()
                 signature = rollout.signature
