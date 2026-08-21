@@ -1,4 +1,6 @@
-# PEARL 逻辑场景元强化学习
+# PEARL 逻辑场景元强化学习（Legacy Baseline）
+
+> 此包已冻结为 merge-only legacy baseline。新的 active MVR 方法位于 [`meta_testing/`](../meta_testing/)；不要在此包追加新方法功能。
 
 本模块实现 PEARL-SAC 的逻辑汇入场景适应。当前代码已按原论文的概率上下文变量表述重新校验；历史 checkpoint 和历史性能结果已退役，必须使用当前 `pearl_checkpoint` 与 `transition_product_recent_context` 方法契约重新训练。
 
