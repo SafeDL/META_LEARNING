@@ -11,13 +11,13 @@ class ControllerProfile:
     adapter_name: str
     target_speed_mps: float
     enable_lane_change: bool
-    yield_gap_m: float
-    brake_gap_m: float
+    distance_wanted_m: float
+    time_headway_s: float
 
     def validate(self) -> None:
         if not self.profile_id or not self.adapter_name:
             raise ValueError("controller profile id and adapter name are required")
-        if self.target_speed_mps <= 0.0 or self.yield_gap_m <= 0.0 or self.brake_gap_m <= 0.0:
+        if self.target_speed_mps <= 0.0 or self.distance_wanted_m <= 0.0 or self.time_headway_s <= 0.0:
             raise ValueError("controller profile parameters must be positive")
 
 

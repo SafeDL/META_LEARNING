@@ -40,9 +40,9 @@ class RuleBasedSUTAdapter:
         policy = env.engine.get_policy(vehicle.id)
         policy.target_speed = float(profile.target_speed_mps) * 3.6
         policy.enable_lane_change = bool(profile.enable_lane_change)
-        policy.DISTANCE_WANTED = float(profile.yield_gap_m)
-        policy.TIME_WANTED = max(0.5, float(profile.brake_gap_m) / max(profile.target_speed_mps, 1e-6))
-        policy.DEACC_FACTOR = -max(2.0, float(profile.brake_gap_m) / 2.0)
+        policy.DISTANCE_WANTED = float(profile.distance_wanted_m)
+        policy.TIME_WANTED = float(profile.time_headway_s)
+        policy.DEACC_FACTOR = -max(2.0, float(profile.distance_wanted_m) / 2.0)
         return policy
 
     def observe(self, env: Any, vehicle: Any) -> Mapping[str, Any]:

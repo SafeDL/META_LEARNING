@@ -20,10 +20,10 @@ def test_generic_task_contract_and_strict_fields() -> None:
 
 
 def test_sut_registry_and_identity_non_leakage() -> None:
-    adapter, profile = default_registry().create("rule_yield")
+    adapter, profile = default_registry().create("idm_defensive")
     assert adapter.metadata(profile)["profile_is_model_input"] is False
     with pytest.raises(ValueError, match="SUT identity"):
-        SharedFeatureEncoder.validate_metadata({"sut_ref": "rule_yield"})
+        SharedFeatureEncoder.validate_metadata({"sut_ref": "idm_defensive"})
 
 
 def test_hybrid_action_round_trip_and_invalid_action() -> None:

@@ -82,3 +82,15 @@ class HierarchicalMetaTester(nn.Module):
 
     def act_inner(self, state: torch.Tensor, map_embedding: torch.Tensor, latent: torch.Tensor, option_index: torch.Tensor, config: torch.Tensor, *, deterministic: bool = False) -> torch.Tensor:
         return self.inner_sac.act(self.inner_features(state, map_embedding, latent, option_index, config), deterministic)
+
+    def training_components(self) -> dict[str, nn.Module]:
+        return {
+            "map_encoder": self.map_encoder,
+            "episode_token_builder": self.episode_token_builder,
+            "posterior": self.posterior,
+            "outcome_decoder": self.outcome_decoder,
+            "scene_policies": self.scene_policies,
+            "option_embedding": self.option_embedding,
+            "shared_feature_encoder": self.shared_feature_encoder,
+            "inner_sac": self.inner_sac,
+        }

@@ -9,4 +9,4 @@ conda run -n metadrive python -m pytest meta_testing/tests -q
 conda run -n metadrive python -m pytest pearl_learning/tests -q
 ```
 
-训练必须按 `inner_pretrain → posterior → outer → joint` 顺序推进。评估使用总预算 20 个 simulator episodes，K=0/1/2/4 的 probe 成本全部计入预算；未通过 G1–G8 前不得输出方法性能结论。
+训练必须按 `inner_pretrain → posterior → outer` 推进；`light_joint` 默认关闭，只用于证明需要校准时。评估使用总预算 20 个 simulator episodes，K=0/1/2/4 的 probe 成本全部计入预算；未通过相关 Gate 前不得输出方法性能结论。

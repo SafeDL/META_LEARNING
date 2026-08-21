@@ -22,8 +22,8 @@ class IDMSUTAdapter:
         policy.enable_lane_change = bool(profile.enable_lane_change)
         # IDM's gap parameters are in metres/seconds and are intentionally
         # profile-specific, but never exposed to learned modules as IDs.
-        policy.DISTANCE_WANTED = float(profile.yield_gap_m)
-        policy.TIME_WANTED = max(0.5, float(profile.brake_gap_m) / max(profile.target_speed_mps, 1e-6))
+        policy.DISTANCE_WANTED = float(profile.distance_wanted_m)
+        policy.TIME_WANTED = float(profile.time_headway_s)
         return policy
 
     def observe(self, env: Any, vehicle: Any) -> Mapping[str, Any]:

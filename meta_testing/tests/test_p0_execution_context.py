@@ -60,6 +60,17 @@ def test_executor_rejects_runtime_map_hash_mismatch() -> None:
         ScenarioExecutor(ADAPTERS, mvr_parameter_spaces()).reset(task, NormalizedScenarioAction(0, (-0.7,) * 4, AdversarialOption.GAP_CLOSE))
 
 
+def test_idm_profile_uses_distance_and_time_headway_directly() -> None:
+    task = _task_with_runtime_hash("merge", "merge_v1", ADAPTERS["merge"])
+    episode = ScenarioExecutor(ADAPTERS, mvr_parameter_spaces()).reset(task, NormalizedScenarioAction(0, (-0.7,) * 4, AdversarialOption.GAP_CLOSE))
+    try:
+        policy = episode.env.engine.get_policy(episode.sut.id)
+        assert policy.DISTANCE_WANTED == episode.sut_profile.distance_wanted_m
+        assert policy.TIME_WANTED == episode.sut_profile.time_headway_s
+    finally:
+        episode.env.close()
+
+
 def test_runner_collects_real_trajectory_features() -> None:
     task = _task_with_runtime_hash("merge", "merge_v1", ADAPTERS["merge"])
     episode = ScenarioExecutor(ADAPTERS, mvr_parameter_spaces()).reset(task, NormalizedScenarioAction(0, (-0.7,) * 4, AdversarialOption.GAP_CLOSE))

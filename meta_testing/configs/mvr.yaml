@@ -1,5 +1,12 @@
 schema: hierarchical_map_aware_mvr_v1
 seed: 11
+model:
+  state_dim: 5
+training:
+  device: cpu
+  family_filter: all
+  episode_budget: 20
+  step_budget: 240
 evaluation:
   total_episode_budget: 20
   support_shots: [0, 1, 2, 4]
@@ -21,6 +28,6 @@ map:
   embedding_dim: 128
   cache_embeddings_only_when_frozen: true
 sut_profiles:
-  meta_train: [idm_cautious, idm_assertive, rule_yield, rule_gap_accept]
-  validation: [rule_reactive_brake]
-  meta_test: [rule_priority]
+  meta_train: [idm_cautious, idm_defensive, idm_normal, idm_assertive]
+  validation: [idm_fast_small_gap]
+  meta_test: [idm_late_response]
