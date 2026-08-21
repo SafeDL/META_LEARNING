@@ -8,12 +8,18 @@ from .io import content_hash, write_json
 from .task_spec import LogicalScenarioTaskSpec
 
 
-CASE_SPLITS = ("train_pool", "validation_support", "validation_query", "test_support", "test_query")
+CASE_SPLITS = (
+    "construction_pool", "train_pool", "gate_eval_pool",
+    "validation_support", "validation_query", "test_support", "test_query",
+)
 LEGACY_CASEBOOK_SCHEMA = "logical_merge_casebook"
 CASEBOOK_SCHEMA = "logical_merge_casebook_v2"
 MECHANISM_CASEBOOK_SCHEMA = "logical_merge_mechanism_casebook_v3"
+CONSTRUCTION_CASEBOOK_SCHEMA = "physical_merge_construction_casebook_v1"
+PHYSICAL_GATE_CASEBOOK_SCHEMA = "physical_merge_gate_casebook_v1"
 SUPPORTED_CASEBOOK_SCHEMAS = frozenset({
     LEGACY_CASEBOOK_SCHEMA, CASEBOOK_SCHEMA, MECHANISM_CASEBOOK_SCHEMA,
+    CONSTRUCTION_CASEBOOK_SCHEMA, PHYSICAL_GATE_CASEBOOK_SCHEMA,
 })
 
 
@@ -40,7 +46,7 @@ def build_casebook(task: LogicalScenarioTaskSpec, config: Mapping[str, Any]) -> 
     used: set[int] = set()
     for group in CASE_SPLITS:
         entries = []
-        for index in range(int(counts[group])):
+        for index in range(int(counts.get(group, 0))):
             seed = int(rng.integers(1, 2**31 - 1))
             while seed in used:
                 seed = int(rng.integers(1, 2**31 - 1))
@@ -80,7 +86,7 @@ def validate_casebook(
                     raise ValueError(f"case {case_id} is missing {key}")
             if "adversary_initial_speed_mps" not in case and "adversary_speed_mps" not in case:
                 raise ValueError(f"case {case_id} is missing adversary initial speed")
-            if schema == CASEBOOK_SCHEMA:
+            if schema in {CASEBOOK_SCHEMA, CONSTRUCTION_CASEBOOK_SCHEMA, PHYSICAL_GATE_CASEBOOK_SCHEMA}:
                 required = {
                     "sut_initial_speed_mps", "target_initial_arrival_gap_s",
                     "actual_initial_arrival_gap_s", "initial_relative_speed_mps",
@@ -94,8 +100,22 @@ def validate_casebook(
                 actual = float(case["actual_initial_arrival_gap_s"])
                 if not np.isfinite([target, actual]).all() or abs(target - actual) > 0.25:
                     raise ValueError(f"v2 case {case_id} does not realize its target arrival gap")
-                if str(case["difficulty_class"]) not in {"heuristic_reachable", "harder"}:
+                if str(case["difficulty_class"]) not in {"heuristic_reachable", "harder", "interaction_boundary"}:
                     raise ValueError(f"v2 case {case_id} has an unsupported difficulty class")
+            if schema == CONSTRUCTION_CASEBOOK_SCHEMA:
+                if group != "construction_pool":
+                    raise ValueError("construction casebooks may contain only construction_pool")
+                required = {"pool_purpose", "construction_grid", "eta_solver"}
+                missing = required - set(case)
+                if missing or case["pool_purpose"] != "construction_screening":
+                    raise ValueError(f"construction case {case_id} has invalid provenance")
+            if schema == PHYSICAL_GATE_CASEBOOK_SCHEMA:
+                if group not in {"train_pool", "gate_eval_pool"}:
+                    raise ValueError("physical Gate casebooks may contain only train_pool and gate_eval_pool")
+                required = {"pool_purpose", "sampling_recipe_hash", "eta_solver"}
+                missing = required - set(case)
+                if missing or case["pool_purpose"] not in {"physical_gate_train", "physical_gate_eval"}:
+                    raise ValueError(f"physical Gate case {case_id} has invalid provenance")
             if schema == MECHANISM_CASEBOOK_SCHEMA:
                 required = {
                     "sut_initial_speed_mps", "adversary_initial_speed_mps",

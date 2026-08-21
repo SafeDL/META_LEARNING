@@ -13,6 +13,29 @@ from .task_spec import LogicalScenarioTaskSpec, TASK_SCHEMA
 
 TASKBOOK_SCHEMA = "logical_merge_taskbook"
 SPLITS = ("meta_train", "meta_validation", "meta_test_template", "meta_test_logical")
+_HIDDEN_TASK_ID_MARKERS = ("__rule_", "__logical_order_")
+
+
+def validate_physical_task_contract(
+    task: LogicalScenarioTaskSpec,
+    config: Mapping[str, Any],
+) -> None:
+    """Fail fast when a physical-geometry run contains a hidden reward task."""
+    mode = str(config.get("task_definition", {}).get("mode", "legacy"))
+    if mode != "physical_geometry":
+        return
+    if bool(config.get("task_definition", {}).get("allow_hidden_reward_rule_variants", True)):
+        raise ValueError("physical_geometry mode must disable hidden reward-rule variants")
+    identifiers = (str(task.task_id), str(task.geometry_id))
+    if any(marker in value for marker in _HIDDEN_TASK_ID_MARKERS for value in identifiers):
+        raise ValueError("physical_geometry mode rejects hidden-rule task identifiers")
+    priority = dict(task.priority_spec)
+    if str(priority.get("target_contact_entry_order", "any")) != "any":
+        raise ValueError("physical_geometry mode requires target_contact_entry_order=any")
+    if str(priority.get("target_contact_speed_relation", "any")) != "any":
+        raise ValueError("physical_geometry mode requires target_contact_speed_relation=any")
+    if float(priority.get("target_contact_speed_margin_mps", 0.0)) != 0.0:
+        raise ValueError("physical_geometry mode requires zero target-contact speed margin")
 
 
 def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -29,6 +52,13 @@ def load_geometry_catalog(config: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not isinstance(rules, Mapping) or set(rules) != set(ids):
         raise ValueError("geometry catalog must define exactly one target_contact_rules entry per geometry")
     allow_hidden_rules = bool(config.get("task_definition", {}).get("allow_hidden_reward_rule_variants", True))
+    physical_mode = str(config.get("task_definition", {}).get("mode", "legacy")) == "physical_geometry"
+    if physical_mode and allow_hidden_rules:
+        raise ValueError("physical_geometry mode must disable hidden reward-rule variants")
+    if physical_mode and any(
+        marker in geometry_id for marker in _HIDDEN_TASK_ID_MARKERS for geometry_id in ids
+    ):
+        raise ValueError("physical_geometry catalog contains a hidden-rule geometry id")
     train_variants = data.get("meta_train_target_contact_rule_variants", {}) if allow_hidden_rules else {}
     evaluation_variants = data.get("evaluation_target_contact_rule_variants", {}) if allow_hidden_rules else {}
     if not isinstance(train_variants, Mapping) or not set(train_variants) <= set(ids):
@@ -142,6 +172,7 @@ def build_taskbook(config: Mapping[str, Any]) -> dict[str, list[LogicalScenarioT
         task = _task_from_geometry(geometry, seed)
         if task.split not in result:
             raise ValueError(f"unknown task split {task.split!r}")
+        validate_physical_task_contract(task, config)
         result[task.split].append(task)
     validate_taskbook(result)
     return result

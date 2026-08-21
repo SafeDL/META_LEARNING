@@ -31,6 +31,7 @@ from pearl_learning.scripts.audit_gate3_vanilla_pearl_mechanism import (
     GATE3_DECISION_SHOT,
     gate3_causal_chain_verdict,
     gate3_causal_chain_verdict_v4,
+    gate3_causal_chain_verdict_v5,
     policy_separation_ratio,
     verify_casebook_split_provenance,
 )
@@ -565,6 +566,31 @@ class MethodFlowV2Tests(unittest.TestCase):
         self.assertEqual(gate["status"], "pass")
         self.assertEqual(gate["passed_stages"], ["stage_a", "stage_b_q", "stage_b_pi", "stage_c"])
 
+    def test_gate3_v5_keeps_failed_critic_as_nonblocking_diagnostic(self) -> None:
+        oracle = {
+            "tasks": {"task_a": {"single_task_action_l2_mean": 0.5},
+                      "task_b": {"single_task_action_l2_mean": 0.5}},
+            "feasibility": {"status": "pass"},
+        }
+        gate = gate3_causal_chain_verdict_v5(
+            self._synthetic_suite(
+                7.7, 0.5, {"a": (0.5, 0.0), "b": (0.0, 0.0)},
+                separation=0.4, critic_distance=0.0,
+            ),
+            oracle,
+        )
+        self.assertEqual(gate["schema"], "gate3_vanilla_pearl_causal_chain_gate_v5")
+        self.assertEqual(gate["status"], "pass")
+        self.assertEqual(gate["hard_gate_chain"], ["stage_a", "stage_b_pi", "stage_c"])
+        critic = gate["stages"]["stage_b_q_diagnostic_only"]
+        self.assertEqual(critic["status"], "diagnostic_only")
+        self.assertEqual(critic["observed_threshold_status"], "fail")
+        self.assertFalse(critic["blocks_actor_or_outcome"])
+        self.assertEqual(
+            gate["stages"]["stage_b_pi_posterior_to_actor_action"]["status"], "pass",
+        )
+        self.assertEqual(gate["stages"]["stage_c_actor_to_outcome"]["status"], "pass")
+
     def test_gate3_context_sampling_film_critic_config_changes_only_critic(self) -> None:
         round3 = read_config("pearl_learning/configs/merge_method_flow_gate3_context_sampling.yaml")
         combined = read_config("pearl_learning/configs/merge_method_flow_gate3_context_sampling_film_critic.yaml")
@@ -666,7 +692,7 @@ class MethodFlowV2Tests(unittest.TestCase):
         film_cfg = copy.deepcopy(cfg)
         film_cfg["networks"] = {**film_cfg["networks"], "critic_architecture": "latent_film_dense"}
         agent = PEARLAgent(24, 2, film_cfg, torch.device("cpu"))
-        task = build_taskbook(cfg)["meta_train"][0]
+        task = next(task for task in build_taskbook(cfg)["meta_train"] if task.geometry_id == "lane_drop_24")
         transition = Transition(
             np.zeros(24, np.float32), np.zeros(2, np.float32), 0.0, np.zeros(24, np.float32),
             False, True, "horizon", task.task_id, "episode", "case", "prior_support", 0,
@@ -738,7 +764,7 @@ class MethodFlowV2Tests(unittest.TestCase):
         cfg["networks"] = {**cfg["networks"], "critic_architecture": "latent_film_gamma_only"}
         torch.manual_seed(19)
         agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
-        task = build_taskbook(cfg)["meta_train"][0]
+        task = next(task for task in build_taskbook(cfg)["meta_train"] if task.geometry_id == "lane_drop_24")
         transition = Transition(
             np.zeros(24, np.float32), np.zeros(2, np.float32), 0.0, np.zeros(24, np.float32),
             False, True, "horizon", task.task_id, "episode", "case", "prior_support", 0,
@@ -774,7 +800,7 @@ class MethodFlowV2Tests(unittest.TestCase):
         cfg = self.cfg
         torch.manual_seed(0)
         agent = PEARLAgent(24, 2, cfg, torch.device("cpu"))
-        task = build_taskbook(cfg)["meta_train"][0]
+        task = next(task for task in build_taskbook(cfg)["meta_train"] if task.geometry_id == "lane_drop_24")
         transition = Transition(
             np.zeros(24, np.float32), np.zeros(2, np.float32), 0.0, np.zeros(24, np.float32),
             False, True, "horizon", task.task_id, "episode", "case", "prior_support", 0,

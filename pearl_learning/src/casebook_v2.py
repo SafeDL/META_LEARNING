@@ -10,6 +10,64 @@ from .io import content_hash
 MeasureCase = Callable[[dict[str, Any]], Mapping[str, Any]]
 
 
+def solve_interaction_boundary_case(
+    task: Any,
+    base_case: Mapping[str, Any],
+    target_gap_s: float,
+    measure_case: MeasureCase,
+    *,
+    tolerance_s: float = 0.20,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Solve both spawn positions from a target initial conflict ETA gap.
+
+    The solver deliberately uses the instantiated route measurements rather
+    than map recipe coordinates.  It chooses the midpoint of the feasible
+    common SUT-arrival interval, so a construction grid has no random
+    box-sampling component.
+    """
+    trial = dict(base_case)
+    for role in ("adversary", "sut"):
+        lo, hi = map(float, task.spawn_regions[role])
+        trial[f"{role}_spawn_m"] = (lo + hi) / 2.0
+    measured_reference = dict(measure_case(trial))
+    intervals: dict[str, tuple[float, float, float]] = {}
+    for role in ("adversary", "sut"):
+        lo, hi = map(float, task.spawn_regions[role])
+        speed = float(base_case[f"{role}_initial_speed_mps"])
+        if speed <= 0.0:
+            raise ValueError(f"{role} initial speed must be positive")
+        offset = float(trial[f"{role}_spawn_m"]) + float(measured_reference[f"{role}_distance_m"])
+        intervals[role] = ((offset - hi) / speed, (offset - lo) / speed, offset)
+    sut_lo, sut_hi, sut_offset = intervals["sut"]
+    adv_lo, adv_hi, adv_offset = intervals["adversary"]
+    common_lo = max(sut_lo, adv_lo - float(target_gap_s), 0.0)
+    common_hi = min(sut_hi, adv_hi - float(target_gap_s))
+    if common_lo > common_hi:
+        raise ValueError("target ETA gap is infeasible in the frozen spawn regions")
+    sut_time = (common_lo + common_hi) / 2.0
+    adv_time = sut_time + float(target_gap_s)
+    candidate = dict(trial)
+    for role, arrival_time, offset in (
+        ("sut", sut_time, sut_offset), ("adversary", adv_time, adv_offset),
+    ):
+        speed = float(base_case[f"{role}_initial_speed_mps"])
+        lo, hi = map(float, task.spawn_regions[role])
+        spawn = offset - speed * arrival_time
+        if not lo <= spawn <= hi:
+            raise ValueError(f"solved {role} spawn lies outside the frozen spawn region")
+        candidate[f"{role}_spawn_m"] = float(spawn)
+    candidate["adversary_speed_mps"] = float(candidate["adversary_initial_speed_mps"])
+    measured = dict(measure_case(candidate))
+    actual_gap = float(measured["adversary_time_s"]) - float(measured["sut_time_s"])
+    if abs(actual_gap - float(target_gap_s)) > tolerance_s:
+        raise ValueError("real geometry did not realize the requested interaction ETA gap")
+    if min(float(measured["adversary_signed_distance_m"]), float(measured["sut_signed_distance_m"])) <= 0.0:
+        raise ValueError("a vehicle already passed its conflict point")
+    if bool(measured.get("initial_target_overlap", False)):
+        raise ValueError("initial target vehicles physically overlap")
+    return candidate, measured
+
+
 def solve_adversary_spawn(
     task: Any,
     base_case: Mapping[str, Any],

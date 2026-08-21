@@ -130,6 +130,7 @@ def main() -> None:
         "taskbook_hash": expected_hash,
         "casebook_hashes": checkpoint["casebook_hashes"],
         "checkpoint_hash": checkpoint_hash,
+        "checkpoint_step": int(checkpoint["step"]),
         "training_seed": checkpoint["training_seed"],
         "no_context_training": bool(checkpoint.get("no_context_training", False)),
         "evaluation_rng": "checkpoint_rng_state",

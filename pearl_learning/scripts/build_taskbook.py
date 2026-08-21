@@ -13,9 +13,12 @@ from pearl_learning.src.taskbook import TASKBOOK_SCHEMA, build_taskbook, replace
 
 def _resolve_task(task, cfg):
     book = build_casebook(task, cfg)
-    env = LogicalMergeEnv(task, cfg, [book["test_support"][0]], verify_geometry_hash=False)
+    probe = next((rows[0] for rows in book.values() if rows), None)
+    if probe is None:
+        raise ValueError(f"task {task.task_id} has no case available for geometry resolution")
+    env = LogicalMergeEnv(task, cfg, [probe], verify_geometry_hash=False)
     try:
-        env.reset(options={"case": book["test_support"][0]})
+        env.reset(options={"case": probe})
         provenance = env.geometry_provenance()
     finally:
         env.close()

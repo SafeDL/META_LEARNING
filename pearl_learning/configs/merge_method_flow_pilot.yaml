@@ -3,7 +3,7 @@
 extends: dense_pearl_baseline.yaml
 
 project:
-  output_root: results/pearl_learning/merge_method_flow_pilot
+  output_root: results/pearl_learning/merge_physical_pilot
 
 environment:
   observation_schema: logical_merge_dynamic_obs_v1
@@ -35,24 +35,43 @@ case_sampling:
 
 cases:
   per_task:
-    train_pool: 12
+    train_pool: 8
     validation_support: 4
-    validation_query: 6
-    test_support: 4
-    test_query: 8
+    validation_query: 4
+    test_support: 0
+    test_query: 0
 
 task_definition:
+  mode: physical_geometry
   allow_hidden_reward_rule_variants: false
 
 method_flow_pilot:
   task_ids:
     meta_train: [lane_drop_24, lane_drop_32, bottleneck_24, bottleneck_32]
     meta_validation: [lane_drop_40, bottleneck_40]
-    meta_test_template: [lane_drop_48, bottleneck_48]
-    meta_test_logical: [y_merge_32]
+    meta_test_template: []
+    meta_test_logical: []
+
+physical_heterogeneity_gate:
+  task_ids: [lane_drop_24, bottleneck_32]
+  training_seed: 0
+  environment_steps_per_task: 10000
+  training_split: train_pool
+  evaluation_split: validation_query
+  minimum_diagonal_vcsr_advantage: 0.25
+
+vanilla_pilot_decision:
+  fixed_checkpoint_step: 200000
+  decision_shot: 4
+  baseline_shot: 0
+  minimum_aggregate_success_count_gain: 1
+  expected_validation_tasks: 2
+  query_cases_per_task: 4
+  primary_query_execution_mode: posterior_mean_deterministic
 
 scenario_representation:
   enabled: true
+  descriptor_schema: physical_merge_minimal_descriptor_v1
   encoder_type: mlp
   embedding_dim: 8
   hidden_sizes: [32, 16]

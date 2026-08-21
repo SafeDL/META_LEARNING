@@ -144,9 +144,13 @@ def _build_split(task: Any, cfg: dict[str, Any], split: str, calibration_hash: s
     return result
 
 
-def _active_case_splits(task: Any) -> set[str]:
+def _active_case_splits(task: Any, cfg: dict[str, Any]) -> set[str]:
     if task.split == "meta_train":
-        return {"train_pool"}
+        gate_ids = set(map(str, cfg.get("physical_heterogeneity_gate", {}).get("task_ids", [])))
+        return (
+            {"train_pool", "validation_query"}
+            if task.geometry_id in gate_ids else {"train_pool"}
+        )
     if task.split == "meta_validation":
         return {"validation_support", "validation_query"}
     if task.split in {"meta_test_template", "meta_test_logical"}:
@@ -161,7 +165,7 @@ def _reuse_casebook(
     if not path.exists():
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
-    active = _active_case_splits(task)
+    active = _active_case_splits(task, cfg)
     provenance = dict(payload.get("provenance", {}))
     if (
         payload.get("schema") != CASEBOOK_SCHEMA
@@ -201,6 +205,11 @@ def _casebook_provenance(
         "threshold_profile_key": profile_key,
         "query_screen_policies": ["zero", "random", "heuristic"],
         "active_case_splits": sorted(active),
+        "validation_query_purpose": (
+            "physical_task_heterogeneity_gate"
+            if task.split == "meta_train" and "validation_query" in active
+            else "fewshot_evaluation" if "validation_query" in active else None
+        ),
     }
 
 
@@ -226,7 +235,7 @@ def main() -> None:
     books: dict[str, dict[str, list[dict[str, Any]]]] = {}
     hashes: dict[str, str] = {}
     for task in tasks:
-        active = _active_case_splits(task)
+        active = _active_case_splits(task, cfg)
         reused = _reuse_casebook(task, cfg, args.output, str(manifest["calibration_hash"])) if args.reuse_existing else None
         if reused is not None:
             book, _ = reused

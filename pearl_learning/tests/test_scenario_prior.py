@@ -6,7 +6,7 @@ import torch
 
 from pearl_learning.src.context_encoder import kl_diag_normal, product_of_gaussians_with_prior
 from pearl_learning.src.io import read_config
-from pearl_learning.src.scenario_encoder import build_task_descriptor
+from pearl_learning.src.scenario_encoder import DESCRIPTOR_FIELDS, DESCRIPTOR_SCHEMA, build_task_descriptor
 from pearl_learning.src.taskbook import build_taskbook
 
 
@@ -37,10 +37,22 @@ class ScenarioPriorTests(unittest.TestCase):
         self.assertTrue(torch.allclose(first[1], second[1]))
 
     def test_static_descriptor_excludes_case_seed_and_hidden_rule(self) -> None:
-        task = build_taskbook(read_config("pearl_learning/configs/merge_method_flow_pilot.yaml"))["meta_train"][0]
+        tasks = build_taskbook(read_config("pearl_learning/configs/merge_method_flow_pilot.yaml"))["meta_train"]
+        task = next(item for item in tasks if item.geometry_id == "lane_drop_24")
         changed = replace(
             task,
             case_seed=task.case_seed + 123,
             priority_spec={**task.priority_spec, "target_contact_entry_order": "adversary_first"},
         )
         self.assertTrue(torch.equal(torch.from_numpy(build_task_descriptor(task)), torch.from_numpy(build_task_descriptor(changed))))
+
+    def test_minimal_physical_descriptor_contract(self) -> None:
+        tasks = build_taskbook(read_config("pearl_learning/configs/merge_method_flow_pilot.yaml"))["meta_train"]
+        lane = next(item for item in tasks if item.geometry_id == "lane_drop_24")
+        bottleneck = next(item for item in tasks if item.geometry_id == "bottleneck_32")
+        self.assertEqual(DESCRIPTOR_SCHEMA, "physical_merge_minimal_descriptor_v1")
+        self.assertEqual(DESCRIPTOR_FIELDS, (
+            "merge_subtype:lane_drop", "merge_subtype:bottleneck", "merge_length_m/100",
+        ))
+        self.assertTrue(torch.equal(torch.from_numpy(build_task_descriptor(lane)), torch.tensor([1.0, 0.0, 0.24])))
+        self.assertTrue(torch.equal(torch.from_numpy(build_task_descriptor(bottleneck)), torch.tensor([0.0, 1.0, 0.32])))

@@ -23,6 +23,7 @@ from .moe import PhysicalTaskDescriptor, physical_task_descriptor
 from .observation import build_observation, observation_dim, observation_fields
 from .reward import compute_reward, validate_reward_contract
 from .task_spec import LogicalScenarioTaskSpec
+from .taskbook import validate_physical_task_contract
 
 
 def compose_route_tracking_action(
@@ -112,6 +113,7 @@ class LogicalMergeEnv(gym.Env):
     def __init__(self, task: LogicalScenarioTaskSpec, config: Mapping[str, Any], cases: list[Mapping[str, Any]], *, verify_geometry_hash: bool = True):
         super().__init__()
         task.validate()
+        validate_physical_task_contract(task, config)
         if not cases:
             raise ValueError("a task environment needs at least one frozen case")
         schema = str(config["environment"]["observation_schema"])

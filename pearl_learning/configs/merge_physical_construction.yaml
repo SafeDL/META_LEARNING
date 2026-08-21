@@ -1,0 +1,32 @@
+# Zero-training physical task construction.  This run never starts PEARL.
+extends: merge_method_flow_pilot.yaml
+
+project:
+  output_root: results/pearl_learning/merge_physical_construction_v1
+
+case_sampling:
+  sut_initial_speed_mps: [11.0, 13.0]
+  adversary_initial_speed_mps: [11.0, 14.0]
+  max_initial_arrival_gap_s: 1.5
+
+cases:
+  per_task:
+    construction_pool: 63
+    train_pool: 8
+    gate_eval_pool: 4
+    validation_support: 0
+    validation_query: 0
+    test_support: 0
+    test_query: 0
+
+physical_construction:
+  candidate_geometry_ids:
+    [y_merge_24, y_merge_32, lane_drop_24, lane_drop_32, bottleneck_24, bottleneck_32, on_ramp_srs]
+  eta_gap_grid_s: [-1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
+  sut_speed_grid_mps: [11.0, 12.0, 13.0]
+  adversary_speed_grid_mps: [11.0, 12.5, 14.0]
+  minimum_probe_vcsr: 0.50
+  minimum_cross_probe_advantage: 0.25
+
+experiment:
+  method_variant: physical_construction

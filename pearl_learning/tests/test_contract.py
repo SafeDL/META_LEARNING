@@ -113,18 +113,14 @@ class ContractTests(unittest.TestCase):
             by_map.setdefault(recipe, set()).add(task.priority_spec["target_contact_entry_order"])
         self.assertTrue(all(values == {"adversary_first", "sut_first"} for values in by_map.values()))
 
-    def test_method_flow_pilot_keeps_only_the_planned_logical_ood_task(self):
+    def test_method_flow_pilot_activates_only_the_six_physical_tasks(self):
         config = read_config("pearl_learning/configs/merge_method_flow_pilot.yaml")
-        self.assertEqual(
-            config["method_flow_pilot"]["task_ids"]["meta_test_logical"],
-            ["y_merge_32"],
-        )
+        self.assertEqual(config["method_flow_pilot"]["task_ids"]["meta_test_template"], [])
+        self.assertEqual(config["method_flow_pilot"]["task_ids"]["meta_test_logical"], [])
         selected = _audit_taskbook(config, build_taskbook(config))
-        self.assertEqual(sum(map(len, selected.values())), 9)
-        self.assertEqual(
-            [task.geometry_id for task in selected["meta_test_logical"]],
-            ["y_merge_32"],
-        )
+        self.assertEqual(sum(map(len, selected.values())), 6)
+        self.assertEqual(len(selected["meta_train"]), 4)
+        self.assertEqual(len(selected["meta_validation"]), 2)
 
     def test_route_projection_wraps_heading_and_uses_arc_length(self):
         route = RoutePolyline((("a", "b", 0),), np.asarray([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]]), np.asarray([0.0, 10.0, 20.0]), (20.0,))

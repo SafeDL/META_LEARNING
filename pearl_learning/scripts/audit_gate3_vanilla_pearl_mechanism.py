@@ -217,6 +217,59 @@ def gate3_causal_chain_verdict(suite: dict, oracle: Mapping[str, Any] | None = N
     return gate
 
 
+def gate3_causal_chain_verdict_v5(suite: dict, oracle: Mapping[str, Any] | None = None) -> dict:
+    """Judge Context -> posterior -> Actor -> outcome; report Critic only.
+
+    SAC does not require its stochastic Actor to equal a hard Q-grid argmax.
+    The v4 Critic metric therefore remains visible, but cannot block B_pi or C.
+    """
+    causal = gate3_causal_chain_verdict(suite, oracle)
+    values = causal["stage_values"]
+    critic_threshold_ok = all(
+        row["critic_argmax_action_distance"]
+        >= STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE
+        for row in values.values()
+    )
+    critic_diagnostic = {
+        "status": "diagnostic_only",
+        "observed_threshold_status": "pass" if critic_threshold_ok else "fail",
+        "decision_shot": GATE3_DECISION_SHOT,
+        "criterion": (
+            "correct/wrong Critic argmax-action distance "
+            f">= {STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE} for both tasks at "
+            f"K={GATE3_DECISION_SHOT}"
+        ),
+        "minimum_critic_argmax_action_distance": STAGE_B_Q_MIN_CRITIC_ARGMAX_ACTION_DISTANCE,
+        "metric_path": "stage_b_diagnostics.critic_q_grid.argmax_action_distance_mean",
+        "action_grid_contract": "fixed 41-point [-1, 1] grid and fixed audit state bank",
+        "blocks_actor_or_outcome": False,
+    }
+    stages = causal["stages"]
+    passed = []
+    if stages["stage_a_context_to_posterior"]["status"] == "pass":
+        passed.append("stage_a")
+    if stages["stage_b_posterior_to_action"]["status"] == "pass":
+        passed.append("stage_b_pi")
+    if stages["stage_c_action_to_outcome"]["status"] == "pass":
+        passed.append("stage_c")
+    return {
+        **causal,
+        "schema": "gate3_vanilla_pearl_causal_chain_gate_v5",
+        "next_allowed_stage": (
+            "archive_mechanism_stress_test_and_run_physical_task_heterogeneity_gate"
+            if causal["status"] == "pass" else None
+        ),
+        "stages": {
+            "stage_a_context_to_posterior": stages["stage_a_context_to_posterior"],
+            "stage_b_q_diagnostic_only": critic_diagnostic,
+            "stage_b_pi_posterior_to_actor_action": stages["stage_b_posterior_to_action"],
+            "stage_c_actor_to_outcome": stages["stage_c_action_to_outcome"],
+        },
+        "passed_stages": passed,
+        "hard_gate_chain": ["stage_a", "stage_b_pi", "stage_c"],
+    }
+
+
 def gate3_causal_chain_verdict_v4(suite: dict, oracle: Mapping[str, Any] | None = None) -> dict:
     """Judge the explicit Context -> Critic -> Actor Gate 3 causal chain.
 
@@ -564,8 +617,11 @@ def main() -> None:
     gate["inputs"] = provenance
     # v4 is additive: the historical v2/v3 files remain immutable evidence.
     write_json(root / "gate3_causal_chain_gate_v4.json", gate)
-    print(f"Gate 3 causal audit: {gate['status']} "
-          f"(passed {gate['passed_stages'] or 'none'}) -> {root / 'gate3_causal_chain_gate_v4.json'}")
+    gate_v5 = gate3_causal_chain_verdict_v5(suite, oracle)
+    gate_v5["inputs"] = provenance
+    write_json(root / "gate3_causal_chain_gate_v5.json", gate_v5)
+    print(f"Gate 3 causal audit v5: {gate_v5['status']} "
+          f"(passed {gate_v5['passed_stages'] or 'none'}) -> {root / 'gate3_causal_chain_gate_v5.json'}")
 
 
 if __name__ == "__main__":

@@ -66,6 +66,13 @@ class PEARLAgent:
         self.scenario_prior: ScenarioConditionedPrior | None = None
         self.scenario_embedding_dim: int | None = None
         if self.scenario_representation_enabled:
+            configured_descriptor = str(
+                representation_cfg.get("descriptor_schema", SCENARIO_DESCRIPTOR_SCHEMA)
+            )
+            if configured_descriptor != SCENARIO_DESCRIPTOR_SCHEMA:
+                raise ValueError(
+                    f"unsupported scenario descriptor schema: {configured_descriptor!r}"
+                )
             self.scenario_embedding_dim = int(representation_cfg.get("embedding_dim", 8))
             self.scenario_encoder = ScenarioEncoder(
                 self.scenario_embedding_dim, [int(v) for v in representation_cfg.get("hidden_sizes", [32, 16])]
