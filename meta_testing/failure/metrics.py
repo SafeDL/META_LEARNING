@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable
 import numpy as np
 
 from .signature import FailureSignature
@@ -28,7 +27,6 @@ class FixedBudgetMetrics:
 
     def summary(self) -> dict[str, float | int | None]:
         curve = self.cumulative_unique
-        valid = [item for item in self.signatures if item.valid]
         first = next((index + 1 for index, item in enumerate(self.signatures) if item.valid), None)
         target = lambda count: next((index + 1 for index, value in enumerate(curve) if value >= count), None)
         return {

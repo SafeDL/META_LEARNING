@@ -5,8 +5,6 @@ import argparse
 import copy
 from pathlib import Path
 
-from stable_baselines3 import SAC
-
 from pearl_learning.scripts.run_baselines import _evaluate_sac, _implementation_hash, _new_sac
 from pearl_learning.src.casebook import load_casebook
 from pearl_learning.src.io import content_hash, read_config, write_json

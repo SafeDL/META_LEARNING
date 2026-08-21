@@ -1,9 +1,6 @@
 """Current MetaDrive map definitions for bottleneck, lane-drop, and Y merge."""
 from __future__ import annotations
 
-from typing import Any
-
-
 def bottleneck_env_class() -> type:
     """Return a MetaDriveEnv subclass backed by actual Merge/Split blocks."""
     from metadrive.component.map.pg_map import PGMap

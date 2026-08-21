@@ -1,7 +1,6 @@
 """Canonicalize a MetaDrive road network into fixed-length lane polylines."""
 from __future__ import annotations
 
-import math
 from typing import Any
 import numpy as np
 

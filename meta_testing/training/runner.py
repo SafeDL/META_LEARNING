@@ -7,6 +7,8 @@ from typing import Any, Callable, Mapping
 import numpy as np
 
 from ..failure.signature import FailureSignature
+from ..context.trajectory_features import TrajectoryFeatureExtractor
+from ..scenario.applied import ExecutableEpisode
 
 
 @dataclass
@@ -16,23 +18,27 @@ class Rollout:
     transitions: list[dict[str, Any]]
     outcome: Mapping[str, Any]
     signature: FailureSignature
+    trajectory: Any
 
 
 class HierarchicalRunner:
     def __init__(self, max_steps: int = 240) -> None:
         self.max_steps = int(max_steps)
 
-    def rollout(self, env: Any, scene_config: Mapping[str, Any], option: str, inner_action: Callable[[Any], np.ndarray], analyze: Callable[[list[dict[str, Any]]], tuple[Mapping[str, Any], FailureSignature]]) -> Rollout:
+    def rollout(self, episode: ExecutableEpisode, scene_config: Mapping[str, Any], option: str, inner_action: Callable[[Any], np.ndarray], analyze: Callable[[list[dict[str, Any]]], tuple[Mapping[str, Any], FailureSignature]], *, trajectory_extractor: TrajectoryFeatureExtractor | None = None) -> Rollout:
         transitions: list[dict[str, Any]] = []
-        observation = getattr(env, "_meta_testing_observation", None)
-        if observation is None:
-            raise RuntimeError("runner requires executor reset observation on the environment")
+        env, observation = episode.env, episode.initial_observation
+        extractor = trajectory_extractor or TrajectoryFeatureExtractor()
+        extractor.reset(env, episode.layout)
         for _ in range(self.max_steps):
             action = np.asarray(inner_action(observation), dtype=np.float32)
             next_observation, reward, terminated, truncated, info = env.step(action)
-            transitions.append({"state": observation, "action": action, "reward_inner": float(reward), "next_state": next_observation, "done": bool(terminated or truncated), "info": dict(info)})
+            sut_observation = episode.sut_adapter.observe(env, episode.sut)
+            sut_evidence = episode.sut_adapter.step(sut_observation)
+            trajectory_row = extractor.step(env, episode.adversary, episode.sut, info)
+            transitions.append({"state": observation, "action": action, "reward_inner": float(reward), "next_state": next_observation, "done": bool(terminated or truncated), "info": dict(info), "sut_observation": sut_observation, "sut_evidence": sut_evidence, "trajectory_features": trajectory_row})
             observation = next_observation
             if terminated or truncated:
                 break
         outcome, signature = analyze(transitions)
-        return Rollout(dict(scene_config), str(option), transitions, outcome, signature)
+        return Rollout(dict(scene_config), str(option), transitions, outcome, signature, extractor.finalize())

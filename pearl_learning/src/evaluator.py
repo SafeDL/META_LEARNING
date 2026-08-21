@@ -62,6 +62,13 @@ def _context_protocol(config: Mapping[str, Any]) -> str:
     return protocol
 
 
+def _context_sampling_scheme(config: Mapping[str, Any]) -> str:
+    scheme = str(config["pearl"].get("context_transition_sampling", "random"))
+    if scheme not in CONTEXT_SAMPLING_SCHEMES:
+        raise ValueError(f"unsupported pearl.context_transition_sampling: {scheme!r}")
+    return scheme
+
+
 def _fixed_episode_context_block(
     rollout: Rollout,
     per_episode: int,
@@ -284,9 +291,7 @@ def evaluate_fewshot(
     regime = evaluation_regime(split)
     if (query_route_mode != "adaptive" or knockout_expert is not None) and agent.actor_architecture != "posterior_routed_moe":
         raise ValueError("query route interventions require a MoE actor")
-    sampling_scheme = str(config["pearl"].get("context_transition_sampling", "random"))
-    if sampling_scheme not in CONTEXT_SAMPLING_SCHEMES:
-        raise ValueError(f"unsupported pearl.context_transition_sampling: {sampling_scheme!r}")
+    sampling_scheme = _context_sampling_scheme(config)
     device = agent.device
     shots = sorted(set(int(shot) for shot in config["evaluation"]["shots"]))
     if not shots or shots[0] != 0:
@@ -587,6 +592,7 @@ def infer_support_posteriors(agent: Any, config: Mapping[str, Any], tasks: list[
     if not requested or requested[0] < 0:
         raise ValueError("posterior diagnostic shots must be non-negative")
     support_key = "validation_support" if split == "meta_validation" else "test_support"
+    sampling_scheme = _context_sampling_scheme(config)
     base_seed = int(config["evaluation"]["context_sampling_seed"])
     protocol = _context_protocol(config)
     total_size = int(config["pearl"]["context_sample_size_eval"])
@@ -709,6 +715,7 @@ def audit_task_representation(agent: Any, config: Mapping[str, Any], tasks: list
     if not requested or requested[0] < 1:
         raise ValueError("task-representation audit requires positive support-episode counts")
     support_key = "validation_support" if split == "meta_validation" else "test_support"
+    sampling_scheme = _context_sampling_scheme(config)
     base_seed = int(config["evaluation"]["context_sampling_seed"])
     protocol = _context_protocol(config)
     total_size = int(config["pearl"]["context_sample_size_eval"])

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import torch
 from torch import nn
 
@@ -33,6 +35,30 @@ class SetPosterior(nn.Module):
     @staticmethod
     def kl_to_unit(mean: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         return 0.5 * (mean.square() + logvar.exp() - 1.0 - logvar).sum(dim=-1)
+
+
+@dataclass(frozen=True)
+class PosteriorTrainingBatch:
+    support_tokens: torch.Tensor
+    support_mask: torch.Tensor
+    support_episode_ids: tuple[tuple[str, ...], ...]
+    target_episode_id: tuple[str, ...]
+    target_map: torch.Tensor
+    target_config: torch.Tensor
+    target_option: torch.Tensor
+    target_outcome: torch.Tensor
+
+    def validate(self) -> None:
+        batch = self.support_tokens.shape[0]
+        if self.support_tokens.ndim != 3 or self.support_mask.shape != self.support_tokens.shape[:2]:
+            raise ValueError("support tokens and support mask do not match")
+        if len(self.support_episode_ids) != batch or len(self.target_episode_id) != batch:
+            raise ValueError("posterior episode IDs must match the batch dimension")
+        if self.target_map.shape[0] != batch or self.target_config.shape[0] != batch or self.target_option.shape[0] != batch or self.target_outcome.shape != (batch, 5):
+            raise ValueError("posterior target tensors do not match the batch dimension")
+        for support, target in zip(self.support_episode_ids, self.target_episode_id):
+            if target in support:
+                raise ValueError("target_episode_id must not appear in support_episode_ids")
 
 
 class VulnerabilityOutcomeDecoder(nn.Module):

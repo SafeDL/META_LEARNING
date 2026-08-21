@@ -7,7 +7,7 @@ from typing import Any, Mapping
 import numpy as np
 import gymnasium as gym
 
-from .io import content_hash, write_json
+from .io import write_json
 from .task_env import LogicalMergeEnv
 
 

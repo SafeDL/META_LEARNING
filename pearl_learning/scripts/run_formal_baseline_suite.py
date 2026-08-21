@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any
 
 from pearl_learning.src.baselines import PRETRAIN_BASELINE_NAMES
 from pearl_learning.src.io import content_hash, write_json

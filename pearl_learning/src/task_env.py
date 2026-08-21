@@ -9,7 +9,6 @@ import numpy as np
 
 from .adapters import adapter_for
 from .critical import (
-    CRITICAL_METRIC_SCHEMA,
     LOGICAL_ORDER_CRITICAL_METRIC_SCHEMA,
     collision_risk_barrier,
     conflict_entry_order_satisfied,
@@ -20,7 +19,7 @@ from .critical import (
 from .benchmark_calibration import thresholds_for_task
 from .metrics import EpisodeMetrics
 from .moe import PhysicalTaskDescriptor, physical_task_descriptor
-from .observation import build_observation, observation_dim, observation_fields
+from .observation import build_observation, observation_dim
 from .reward import compute_reward, validate_reward_contract
 from .task_spec import LogicalScenarioTaskSpec
 from .taskbook import validate_physical_task_contract

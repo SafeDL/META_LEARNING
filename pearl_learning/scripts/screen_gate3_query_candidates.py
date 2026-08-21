@@ -14,7 +14,6 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-from stable_baselines3 import SAC
 
 from pearl_learning.scripts.audit_gate3_query_oracle import _load_sac_model, _select_pair
 from pearl_learning.src.benchmark_calibration import resolve_calibration

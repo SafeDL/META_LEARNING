@@ -8,7 +8,7 @@ import torch
 from .collector import Rollout, collect_episode
 from .io import content_hash
 from .metrics import summarize
-from .replay import CONTEXT_SAMPLING_SCHEMES, Transition, select_context_rows
+from .replay import Transition, select_context_rows
 from .task_env import LogicalMergeEnv
 
 

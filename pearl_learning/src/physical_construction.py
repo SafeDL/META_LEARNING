@@ -4,8 +4,6 @@ from __future__ import annotations
 from itertools import combinations
 from typing import Any, Mapping
 
-import numpy as np
-
 from .io import content_hash
 
 

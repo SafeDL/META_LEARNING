@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-import numpy as np
 from stable_baselines3 import SAC
 
 from pearl_learning.scripts.audit_physical_task_policy_heterogeneity import GATE_SAC_HYPERPARAMETERS, _action_distance, _evaluate_sac, _implementation_hash, _new_sac

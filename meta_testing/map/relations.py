@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, Mapping
+from typing import Iterable
 
 
 RELATION_TYPES = ("successor", "predecessor", "left", "right", "merge", "split", "conflict", "crossing", "route_membership")

@@ -9,3 +9,6 @@ from .scenario.task_spec import MetaTestTaskSpec
 from .failure.signature import FailureSignature
 
 __all__ = ("FailureSignature", "MetaTestTaskSpec")
+from .model import HierarchicalMetaTester
+
+__all__ = ("HierarchicalMetaTester",)
