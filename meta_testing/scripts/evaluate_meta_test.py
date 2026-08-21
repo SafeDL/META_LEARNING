@@ -1,6 +1,5 @@
-from ..training.stages import TrainingStage
-from .training_cli import run
+from .training_cli import evaluate
 
 
 if __name__ == "__main__":
-    run(TrainingStage.OUTER)
+    evaluate()

@@ -17,11 +17,5 @@ def validate_taskbook(tasks: Iterable[MetaTestTaskSpec]) -> list[MetaTestTaskSpe
         task.validate()
     return rows
 
-
-def save_taskbook(tasks: Iterable[MetaTestTaskSpec], path: str | Path) -> None:
-    rows = validate_taskbook(tasks)
-    Path(path).write_text(json.dumps([task.to_dict() for task in rows], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-
 def load_taskbook(path: str | Path) -> list[MetaTestTaskSpec]:
     return validate_taskbook(MetaTestTaskSpec.from_dict(row) for row in json.loads(Path(path).read_text(encoding="utf-8")))

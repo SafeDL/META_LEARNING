@@ -79,6 +79,7 @@ def test_runner_collects_real_trajectory_features() -> None:
         rollout = HierarchicalRunner(max_steps=2).rollout(episode, {}, "gap_close", lambda _: np.zeros(2, dtype=np.float32), lambda _: ({}, signature))
         assert rollout.trajectory.shape == (2, 12)
         assert torch.isfinite(rollout.trajectory).all()
+        assert all(np.asarray(transition["state"]).shape == (5,) and np.asarray(transition["next_state"]).shape == (5,) for transition in rollout.transitions)
         assert all("sut_evidence" in transition and "trajectory_features" in transition for transition in rollout.transitions)
     finally:
         episode.env.close()

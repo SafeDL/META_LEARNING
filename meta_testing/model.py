@@ -38,6 +38,9 @@ class HierarchicalMetaTester(nn.Module):
         from .context.trajectory_encoder import TrajectoryEncoder
 
         self.parameter_spaces = dict(parameter_spaces)
+        self.state_dim = int(state_dim)
+        if self.state_dim < 1:
+            raise ValueError("state_dim must be positive")
         self.map_encoder = map_encoder or HPTRMapEncoder(embedding_dim=map_dim)
         if self.map_encoder.embedding_dim != map_dim:
             raise ValueError("map encoder embedding dimension must equal map_dim")
@@ -51,8 +54,12 @@ class HierarchicalMetaTester(nn.Module):
             for identifier, space in parameter_spaces.items()
         })
         self.option_embedding = nn.Embedding(len(next(iter(parameter_spaces.values())).options), 16)
-        self.shared_feature_encoder = SharedFeatureEncoder(state_dim, map_dim, latent_dim, 16, max(space.continuous_dim for space in parameter_spaces.values()))
+        self.shared_feature_encoder = SharedFeatureEncoder(self.state_dim, map_dim, latent_dim, 16, max(space.continuous_dim for space in parameter_spaces.values()))
         self.inner_sac = OptionConditionedSAC(256)
+
+    @property
+    def device(self) -> torch.device:
+        return next(self.parameters()).device
 
     def encode_map(self, tokens: MapTokens) -> tuple[torch.Tensor, torch.Tensor]:
         return self.map_encoder(tokens)

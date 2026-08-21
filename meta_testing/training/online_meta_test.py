@@ -15,6 +15,7 @@ from ..model import HierarchicalMetaTester
 from ..scenario.executor import ScenarioExecutor
 from ..scenario.parameter_space import NormalizedScenarioAction
 from ..scenario.task_spec import MetaTestTaskSpec
+from ..state import CanonicalStateExtractor
 from .replay import InnerTransition, OuterRolloutBuffer, OuterRolloutStep
 from .runner import HierarchicalRunner, Rollout
 
@@ -26,6 +27,10 @@ class OnlineEpisode:
     token: torch.Tensor
     latent_before: torch.Tensor
     latent_after: torch.Tensor
+    map_tokens: Any
+    config: torch.Tensor
+    option_index: torch.Tensor
+    outcome: Mapping[str, Any]
 
 
 @dataclass
@@ -70,7 +75,8 @@ class OnlineMetaTest:
                 setup.env.close()
             self._tokens_cache[task.map_hash] = tokens
         map_embedding = self._map_embedding(tokens)
-        latent, _ = self.model.posterior.prior()
+        device = self.model.device
+        latent, _ = self.model.posterior.prior(device=device)
         evidence_tokens: list[torch.Tensor] = []
         result = OnlineMetaTestResult([], [], OuterRolloutBuffer())
         novelty = NoveltyTracker()
@@ -81,37 +87,36 @@ class OnlineMetaTest:
             episode = self.executor.reset(task, action)
             config = space.decode(action)
             option_index = scene.option_index.detach()
+            state_extractor = CanonicalStateExtractor(self.model.state_dim)
 
-            def inner_action(observation: Any) -> np.ndarray:
-                state = torch.as_tensor(np.asarray(observation), dtype=torch.float32, device=map_embedding.device).reshape(1, -1)
-                if state.shape[1] != self.model.shared_feature_encoder.network[0].in_features - map_embedding.numel() - latent.numel() - 16 - space.continuous_dim:
-                    raise ValueError("simulator observation dimension does not match HierarchicalMetaTester")
+            def inner_action(observation: np.ndarray) -> np.ndarray:
+                state = torch.as_tensor(observation, dtype=torch.float32, device=device).reshape(1, -1)
                 with torch.no_grad():
                     value = self.model.act_inner(state, map_embedding.unsqueeze(0), latent, option_index, scene.continuous, deterministic=deterministic)
                 return value.squeeze(0).cpu().numpy()
 
             try:
-                rollout = self.runner.rollout(episode, config, action.option.value, inner_action, self.analyze)
+                rollout = self.runner.rollout(episode, config, action.option.value, inner_action, self.analyze, state_extractor=state_extractor)
             finally:
                 episode.env.close()
             signature = rollout.signature
             outcome = dict(rollout.outcome)
             outcome.update({"is_valid_episode": signature.is_valid_episode, "is_failure": signature.is_failure})
-            outcome_tensor = encode_outcome(outcome).unsqueeze(0)
-            trajectory = rollout.trajectory.unsqueeze(0)
-            mask = torch.ones(trajectory.shape[:2], dtype=torch.bool)
+            outcome_tensor = encode_outcome(outcome).to(device).unsqueeze(0)
+            trajectory = rollout.trajectory.to(device).unsqueeze(0)
+            mask = torch.ones(trajectory.shape[:2], dtype=torch.bool, device=device)
             with torch.no_grad():
                 token = self.model.episode_token_builder(map_embedding.unsqueeze(0), scene.continuous, option_index, trajectory, mask, outcome_tensor).squeeze(0)
             evidence_tokens.append(token)
             support = torch.stack(evidence_tokens).unsqueeze(0)
-            support_mask = torch.ones((1, len(evidence_tokens)), dtype=torch.bool)
+            support_mask = torch.ones((1, len(evidence_tokens)), dtype=torch.bool, device=device)
             with torch.no_grad():
                 latent_after, _ = self.model.infer_posterior(support, support_mask)
             reward = outer_reward(signature, novel=novelty.observe(signature))
             result.outer_rollout.add(OuterRolloutStep(map_embedding.cpu(), latent.squeeze(0).cpu(), torch.empty(0), scene.candidate_index.cpu(), scene.continuous.squeeze(0).cpu(), scene.option_index.cpu(), scene.log_prob.cpu(), scene.value.cpu(), reward, index + 1 == budget))
             episode_id = f"{task.task_id}:{index}"
-            result.inner_transitions.extend(InnerTransition(episode_id, row["state"], row["action"], row["reward_inner"], row["next_state"], row["done"]) for row in rollout.transitions)
-            result.episodes.append(OnlineEpisode(episode_id, rollout, token, latent.detach().clone(), latent_after.detach().clone()))
+            result.inner_transitions.extend(InnerTransition(episode_id, row["state"], row["action"], row["reward_inner"], row["next_state"], row["done"], tokens, latent.squeeze(0).detach().cpu(), option_index.squeeze(0).detach().cpu(), scene.continuous.squeeze(0).detach().cpu()) for row in rollout.transitions)
+            result.episodes.append(OnlineEpisode(episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(), latent_after.detach().cpu().clone(), tokens, scene.continuous.squeeze(0).detach().cpu(), option_index.squeeze(0).detach().cpu(), outcome))
             latent = latent_after
         result.outer_rollout.finish()
         return result

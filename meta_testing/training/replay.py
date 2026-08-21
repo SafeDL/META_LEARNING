@@ -16,6 +16,10 @@ class InnerTransition:
     reward: float
     next_state: Any
     done: bool
+    map_tokens: Any
+    latent: torch.Tensor
+    option_index: torch.Tensor
+    config: torch.Tensor
 
 
 @dataclass

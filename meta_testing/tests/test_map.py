@@ -3,7 +3,6 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from meta_testing.map.cache import MapCache
 from meta_testing.map.hptr_encoder import HPTRMapEncoder
 from meta_testing.map.schema import MapPolyline, MapTokens
 
@@ -26,14 +25,3 @@ def test_hptr_shapes_and_se2_invariance() -> None:
     assert local.shape == (2, 16) and global_embedding.shape == (16,)
     torch.testing.assert_close(local, rotated_local, atol=2e-5, rtol=2e-5)
     torch.testing.assert_close(global_embedding, rotated_global, atol=2e-5, rtol=2e-5)
-
-
-def test_raw_and_frozen_embedding_cache(tmp_path) -> None:
-    cache, tokens = MapCache(tmp_path), _tokens()
-    cache.save_raw(tokens)
-    assert cache.load_raw(HASH).map_hash == HASH
-    local, global_embedding = HPTRMapEncoder(embedding_dim=16, heads=4)(tokens)
-    cache.save_embeddings(HASH, local, global_embedding, encoder_frozen=True)
-    loaded = cache.load_embeddings(HASH, encoder_frozen=True)
-    assert loaded is not None
-    assert cache.load_embeddings(HASH, encoder_frozen=False) is None

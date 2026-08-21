@@ -6,10 +6,11 @@ import torch
 from meta_testing.audits import gate_failure_landscape
 from meta_testing.failure.inner_reward import InnerRiskReward
 from meta_testing.failure.signature import FailureSignatureBuilder
-from meta_testing.training.replay import OuterRolloutBuffer, OuterRolloutStep
-from meta_testing.training.updates import update_outer_ppo
+from meta_testing.training.replay import InnerReplay, InnerTransition, OuterRolloutBuffer, OuterRolloutStep
+from meta_testing.training.updates import update_inner_sac, update_outer_ppo
 from meta_testing.policy.scene_policy import HybridScenePolicy
 from meta_testing.training.online_meta_test import OnlineMetaTest
+from meta_testing.training.posterior_data import posterior_batch_from_episodes
 from meta_testing.training.runner import Rollout
 from meta_testing.model import HierarchicalMetaTester
 from meta_testing.map.schema import MapPolyline, MapTokens
@@ -17,6 +18,8 @@ from meta_testing.scenario.applied import ExecutableEpisode
 from meta_testing.scenario.catalog import mvr_parameter_spaces
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
 from meta_testing.failure.signature import FailureSignature
+from meta_testing.scripts.training_cli import resolve_device
+from meta_testing.state import CanonicalStateExtractor
 
 
 def test_safe_valid_episode_is_not_a_failure() -> None:
@@ -71,12 +74,36 @@ def test_online_loop_updates_posterior_and_respects_budget() -> None:
             return ExecutableEpisode(Env(), np.zeros(3), {}, None, None, None, None, None, tokens, None)
 
     class Runner:
-        def rollout(self, episode, config, option, inner_action, analyze):
+        def rollout(self, episode, config, option, inner_action, analyze, *, state_extractor):
             signature = FailureSignature("valid_critical_near_miss", "merge", None, (1, 1, 1), True, True)
             return Rollout(config, option, [], {"min_ttc": 2.0, "min_distance": 4.0, "max_closing_speed": 5.0}, signature, torch.zeros(2, 12))
 
     task = MetaTestTaskSpec("task", "meta_train", "idm_cautious", "merge", "map", "a" * 64, "template", "merge_v1", 1)
-    result = OnlineMetaTest(HierarchicalMetaTester({"merge_v1": mvr_parameter_spaces()["merge_v1"]}, state_dim=3, map_dim=16), Executor(), Runner(), lambda _: None).run(task, 2)
+    model = HierarchicalMetaTester({"merge_v1": mvr_parameter_spaces()["merge_v1"]}, state_dim=3, map_dim=16)
+    result = OnlineMetaTest(model, Executor(), Runner(), lambda _: None).run(task, 2)
     assert len(result.episodes) == len(result.inner_transitions) + 2
     assert len(result.outer_rollout.rows) == 2 and result.outer_rollout.rows[-1].done
     assert not torch.allclose(result.episodes[0].latent_before, result.episodes[0].latent_after)
+    batch = posterior_batch_from_episodes(model, result.episodes)
+    assert batch.support_episode_ids[0] == ("task:0",) and batch.target_episode_id == ("task:1",)
+
+
+def test_canonical_state_and_inner_replay_update_are_fixed_width() -> None:
+    state = CanonicalStateExtractor(3)({"b": [2.0], "a": [np.nan, -2.0]})
+    np.testing.assert_allclose(state, np.asarray((0.0, -1.0, 1.0), dtype=np.float32))
+    polyline = MapPolyline("lane", "lane", np.asarray(((0.0, 0.0), (10.0, 0.0))), np.zeros(2), np.zeros(2), 3.5, 10.0, {})
+    tokens = MapTokens("b" * 64, (polyline,), {})
+    model = HierarchicalMetaTester({"merge_v1": mvr_parameter_spaces()["merge_v1"]}, state_dim=3, map_dim=16)
+    replay = InnerReplay()
+    for index in range(2):
+        replay.add(InnerTransition(f"episode:{index}", np.zeros(3, dtype=np.float32), np.zeros(2, dtype=np.float32), 0.1, np.ones(3, dtype=np.float32), True, tokens, torch.zeros(16), torch.zeros((), dtype=torch.long), torch.zeros(4)))
+    parameters = [parameter for name in ("map_encoder", "shared_feature_encoder", "option_embedding", "inner_sac") for parameter in model.training_components()[name].parameters()]
+    map_before = next(model.map_encoder.parameters()).detach().clone()
+    losses = update_inner_sac(model, replay, torch.optim.Adam(parameters, lr=1e-3), batch_size=2)
+    assert all(np.isfinite(value) for value in losses.values())
+    assert not torch.allclose(map_before, next(model.map_encoder.parameters()))
+
+
+def test_cuda_default_falls_back_to_cpu_when_unavailable() -> None:
+    device = resolve_device("cuda")
+    assert device.type == ("cuda" if torch.cuda.is_available() else "cpu")

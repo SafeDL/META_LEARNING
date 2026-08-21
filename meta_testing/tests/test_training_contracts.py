@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+import torch
 from torch import nn
 
 from meta_testing.training.replay import InnerReplay, InnerTransition
@@ -10,8 +11,9 @@ from meta_testing.training.workflow import StagedWorkflow
 
 def test_inner_replay_excludes_context_episodes() -> None:
     replay = InnerReplay()
-    replay.add(InnerTransition("support", 1, 1, 1.0, 2, False))
-    replay.add(InnerTransition("query", 1, 1, 1.0, 2, False))
+    context = (None, torch.zeros(1), torch.zeros((), dtype=torch.long), torch.zeros(1))
+    replay.add(InnerTransition("support", 1, 1, 1.0, 2, False, *context))
+    replay.add(InnerTransition("query", 1, 1, 1.0, 2, False, *context))
     assert replay.sample(1, excluded_episode_ids={"support"})[0].episode_id == "query"
     with pytest.raises(ValueError):
         replay.sample(1, excluded_episode_ids={"support", "query"})

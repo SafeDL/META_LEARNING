@@ -1,12 +1,17 @@
 """Loss functions used by staged posterior, SAC, and PPO optimizers."""
 from __future__ import annotations
 
+import numpy as np
 import torch
 from torch.nn import functional as F
+from typing import TYPE_CHECKING
 from ..context.set_posterior import SetPosterior
 from ..context.outcome_schema import outcome_elbo
 from ..policy.scene_policy import HybridScenePolicy
-from .replay import OuterRolloutBuffer
+from .replay import InnerReplay, OuterRolloutBuffer
+
+if TYPE_CHECKING:
+    from ..model import HierarchicalMetaTester
 
 
 def posterior_elbo(logits: torch.Tensor, target: torch.Tensor, mean: torch.Tensor, logvar: torch.Tensor, *, kl_weight: float = 1e-3) -> torch.Tensor:
@@ -36,3 +41,27 @@ def update_outer_ppo(policy: HybridScenePolicy, rollout: OuterRolloutBuffer, opt
             optimizer.step()
             losses.append(float(loss.detach().cpu()))
     return sum(losses) / len(losses) if losses else 0.0
+
+
+def update_inner_sac(model: "HierarchicalMetaTester", replay: InnerReplay, optimizer: torch.optim.Optimizer, *, batch_size: int = 64) -> dict[str, float]:
+    """Update the Inner SAC from risk-reward replay with reconstructed features."""
+    rows = replay.sample(batch_size)
+    device = model.device
+    maps = torch.stack([model.encode_map(row.map_tokens)[1] for row in rows])
+    states = torch.as_tensor(np.stack([row.state for row in rows]), dtype=torch.float32, device=device)
+    next_states = torch.as_tensor(np.stack([row.next_state for row in rows]), dtype=torch.float32, device=device)
+    latent = torch.stack([row.latent for row in rows]).to(device)
+    option = torch.stack([row.option_index for row in rows]).to(device).long().reshape(-1)
+    config = torch.stack([row.config for row in rows]).to(device)
+    action = torch.as_tensor(np.stack([row.action for row in rows]), dtype=torch.float32, device=device)
+    reward = torch.as_tensor([row.reward for row in rows], dtype=torch.float32, device=device)
+    done = torch.as_tensor([row.done for row in rows], dtype=torch.bool, device=device)
+    features = model.inner_features(states, maps, latent, option, config)
+    next_features = model.inner_features(next_states, maps, latent, option, config)
+    losses = model.inner_sac.losses(features, action, reward, next_features, done)
+    total = losses.actor + losses.critic + losses.alpha
+    optimizer.zero_grad(set_to_none=True)
+    total.backward()
+    optimizer.step()
+    model.inner_sac.soft_update()
+    return {"inner_actor_loss": float(losses.actor.detach().cpu()), "inner_critic_loss": float(losses.critic.detach().cpu()), "inner_alpha_loss": float(losses.alpha.detach().cpu())}
