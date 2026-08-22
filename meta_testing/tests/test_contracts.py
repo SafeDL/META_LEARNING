@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from meta_testing.policy.shared_features import SharedFeatureEncoder
@@ -8,6 +10,7 @@ from meta_testing.scenario.parameter_space import NormalizedScenarioAction, Para
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
 from meta_testing.scenario.taskbook import load_taskbook
 from meta_testing.sut.registry import default_registry
+from meta_testing.scripts.training_cli import _tasks
 
 
 HASH = "a" * 64
@@ -43,3 +46,13 @@ def test_default_idm_taskbook_covers_profile_split() -> None:
     assert len(tasks) == 18
     assert {task.sut_ref for task in tasks if task.split == "meta_train"} == {"idm_cautious", "idm_defensive", "idm_normal", "idm_assertive"}
     assert {task.sut_ref for task in tasks if task.split == "meta_test"} == {"idm_late_response"}
+
+
+def test_evaluation_task_selection_respects_split_and_profile_key() -> None:
+    config = {
+        "training": {"family_filter": "all"},
+        "sut_profiles": {"validation": ["idm_fast_small_gap"]},
+    }
+    tasks = _tasks(config, Path("meta_testing/configs/idm_taskbook.json"), "meta_validation", "validation")
+    assert len(tasks) == 3
+    assert {task.sut_ref for task in tasks} == {"idm_fast_small_gap"}

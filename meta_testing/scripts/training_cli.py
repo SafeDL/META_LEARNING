@@ -80,6 +80,8 @@ def _parser(*, evaluation: bool) -> argparse.ArgumentParser:
     parser.add_argument("--output", required=True)
     if evaluation:
         parser.add_argument("--checkpoint", required=True)
+        parser.add_argument("--split", default="meta_test")
+        parser.add_argument("--profiles-key", default="meta_test")
     else:
         parser.add_argument("--resume")
     return parser
@@ -118,7 +120,7 @@ def _model(config: dict[str, Any], device: torch.device) -> HierarchicalMetaTest
 
 
 def _optimizer(model: HierarchicalMetaTester, components: Iterable[str], learning_rate: float) -> torch.optim.Optimizer:
-    parameters = [parameter for name in components for parameter in model.training_components()[name].parameters() if parameter.requires_grad]
+    parameters = [parameter for name in sorted(components) for parameter in model.training_components()[name].parameters() if parameter.requires_grad]
     if not parameters:
         raise ValueError("active stage has no trainable parameters")
     return torch.optim.Adam(parameters, lr=learning_rate)
@@ -270,7 +272,7 @@ def evaluate(argv: list[str] | None = None) -> None:
     protocol = BudgetProtocol(budget, tuple(int(value) for value in settings["support_shots"]))
     protocol.validate()
     results: dict[str, Any] = {}
-    for task in _tasks(config, taskbook, "meta_test", "meta_test"):
+    for task in _tasks(config, taskbook, args.split, args.profiles_key):
         by_shot: dict[str, list[dict[str, Any]]] = {str(shot): [] for shot in protocol.support_shots}
         for seed in settings["seeds"]:
             seed_everything(int(seed))
