@@ -18,10 +18,11 @@ class IDMSUTAdapter:
 
         env.engine.traffic_manager.add_policy(vehicle.id, IDMPolicy, vehicle, int(seed))
         policy = env.engine.get_policy(vehicle.id)
-        policy.target_speed = float(profile.target_speed_mps) * 3.6
+        target_speed_kmh = float(profile.target_speed_mps) * 3.6
+        # IDM restores target_speed from NORMAL_SPEED while lane following.
+        policy.NORMAL_SPEED = target_speed_kmh
+        policy.target_speed = target_speed_kmh
         policy.enable_lane_change = bool(profile.enable_lane_change)
-        # IDM's gap parameters are in metres/seconds and are intentionally
-        # profile-specific, but never exposed to learned modules as IDs.
         policy.DISTANCE_WANTED = float(profile.distance_wanted_m)
         policy.TIME_WANTED = float(profile.time_headway_s)
         policy.ACC_FACTOR = float(profile.acceleration_factor)

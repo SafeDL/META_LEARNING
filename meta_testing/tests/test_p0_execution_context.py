@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 import torch
@@ -64,13 +66,27 @@ def test_executor_rejects_runtime_map_hash_mismatch() -> None:
 
 def test_idm_profile_uses_all_longitudinal_parameters_directly() -> None:
     task = _task_with_runtime_hash("merge", "merge_v1", ADAPTERS["merge"])
-    episode = ScenarioExecutor(ADAPTERS, mvr_parameter_spaces()).reset(task, NormalizedScenarioAction(0, (-0.7,) * 4, AdversarialOption.GAP_CLOSE))
+    executor = ScenarioExecutor(ADAPTERS, mvr_parameter_spaces())
+    action = NormalizedScenarioAction(0, (-0.7,) * 4, AdversarialOption.GAP_CLOSE)
+    episode = executor.reset(task, action)
     try:
         policy = episode.env.engine.get_policy(episode.sut.id)
+        assert policy.NORMAL_SPEED == episode.sut_profile.target_speed_mps * 3.6
+        assert policy.target_speed == episode.sut_profile.target_speed_mps * 3.6
         assert policy.DISTANCE_WANTED == episode.sut_profile.distance_wanted_m
         assert policy.TIME_WANTED == episode.sut_profile.time_headway_s
         assert policy.ACC_FACTOR == episode.sut_profile.acceleration_factor
         assert policy.DEACC_FACTOR == episode.sut_profile.deceleration_factor
+        for _ in range(20):
+            episode.env.step(np.zeros(2, dtype=np.float32))
+        cautious_speed = episode.sut.speed_km_h
+    finally:
+        episode.env.close()
+    episode = executor.reset(replace(task, sut_ref="idm_assertive"), action)
+    try:
+        for _ in range(20):
+            episode.env.step(np.zeros(2, dtype=np.float32))
+        assert episode.sut.speed_km_h > cautious_speed + 5.0
     finally:
         episode.env.close()
 

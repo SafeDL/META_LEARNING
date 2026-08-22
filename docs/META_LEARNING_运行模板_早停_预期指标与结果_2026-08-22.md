@@ -224,10 +224,10 @@ conda run -n metadrive python -m pytest meta_testing/tests -q
 
 | Profile | target speed (m/s) | lane change | distance wanted (m) | time headway (s) | ACC factor | DEACC factor |
 |---|---:|---|---:|---:|---:|---:|
-| `idm_cautious` | 8 | False | 20 | 2.8 | 0.65 | -3.0 |
-| `idm_defensive` | 15 | False | 16 | 2.2 | 0.80 | -3.5 |
-| `idm_normal` | 11 | True | 8 | 1.2 | 1.00 | -5.0 |
-| `idm_assertive` | 17 | True | 4 | 0.60 | 1.50 | -7.0 |
+| `idm_cautious` | 7 | False | 24 | 3.0 | 1.20 | -2.0 |
+| `idm_defensive` | 10 | False | 16 | 2.2 | 1.10 | -3.0 |
+| `idm_normal` | 13 | True | 9 | 1.2 | 1.20 | -4.5 |
+| `idm_assertive` | 18 | True | 3 | 0.45 | 1.80 | -8.0 |
 
 Gate A 只对这 4 个 `meta_train` profiles 做硬判定；validation 的 `idm_fast_small_gap` 与 meta-test 的 `idm_late_response` 不参与 Gate A。
 

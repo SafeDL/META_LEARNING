@@ -39,12 +39,12 @@ def default_registry() -> SUTRegistry:
     registry.register_adapter(IDMSUTAdapter())
     registry.register_adapter(RuleBasedSUTAdapter())
     profiles = (
-        ControllerProfile("idm_cautious", "idm", 8.0, False, 20.0, 2.8, 0.65, -3.0),
-        ControllerProfile("idm_defensive", "idm", 15.0, False, 16.0, 2.2, 0.80, -3.5),
-        ControllerProfile("idm_normal", "idm", 11.0, True, 8.0, 1.2, 1.00, -5.0),
-        ControllerProfile("idm_assertive", "idm", 17.0, True, 4.0, 0.60, 1.50, -7.0),
-        ControllerProfile("idm_fast_small_gap", "idm", 18.0, True, 6.0, 0.80, 1.30, -6.0),
-        ControllerProfile("idm_late_response", "idm", 15.0, True, 7.0, 0.45, 0.90, -7.5),
+        ControllerProfile("idm_cautious", "idm", 7.0, False, 24.0, 3.0, 1.20, -2.0),
+        ControllerProfile("idm_defensive", "idm", 10.0, False, 16.0, 2.2, 1.10, -3.0),
+        ControllerProfile("idm_normal", "idm", 13.0, True, 9.0, 1.2, 1.20, -4.5),
+        ControllerProfile("idm_assertive", "idm", 18.0, True, 3.0, 0.45, 1.80, -8.0),
+        ControllerProfile("idm_fast_small_gap", "idm", 16.0, True, 5.0, 0.75, 1.50, -6.5),
+        ControllerProfile("idm_late_response", "idm", 14.0, True, 7.0, 0.35, 0.75, -8.5),
     )
     for profile in profiles:
         registry.register_profile(profile)

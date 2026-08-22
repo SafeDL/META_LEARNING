@@ -23,8 +23,9 @@ def test_generic_task_contract_and_strict_fields() -> None:
 def test_sut_registry_and_identity_non_leakage() -> None:
     adapter, profile = default_registry().create("idm_defensive")
     assert adapter.metadata(profile)["profile_is_model_input"] is False
-    assert profile.acceleration_factor == 0.80
-    assert profile.deceleration_factor == -3.5
+    assert profile.target_speed_mps == 10.0
+    assert profile.acceleration_factor == 1.10
+    assert profile.deceleration_factor == -3.0
     with pytest.raises(ValueError, match="SUT identity"):
         SharedFeatureEncoder.validate_metadata({"sut_ref": "idm_defensive"})
 
