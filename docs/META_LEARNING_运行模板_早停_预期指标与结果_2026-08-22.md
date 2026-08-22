@@ -1,8 +1,26 @@
 # META_LEARNING 最新运行模板：早停、预期指标与结果
-gpu在：
+
+**GPU 环境**：
+
+```powershell
 conda activate metadrive
+```
+
 **目标环境**：MetaDrive + PyTorch + 单张 RTX 4090  
+**代码审查基线**：`main @ c467ccfcac9e29a9a3da0510cbd98a6ed18dcbb0`  
 **原则**：核心算法冻结为 `HPTR + episode-level q(z|C) + Outer Hybrid PPO + Inner SAC`，后续重点是可靠训练和实验，不再频繁改框架。
+
+**当前阶段状态（2026-08-22）**：
+
+- Gate A 已按修正后的 aligned failure-disagreement 指标重新运行；
+- 物理 episode：192；
+- `mean_failure_disagreement = 0.0520833`；
+- `mean_severity_distance = 0.100455`；
+- `valid_rate = 1.0`；
+- `failure_rate = 0.192708`；
+- Gate A：**FAIL**；
+- 因此当前仍应停在 Gate A，不进入 Inner / Posterior / Calibration / Outer；
+- 由于 `valid_rate` 和 `failure_rate` 均处于健康区间，当前不应优先修改 scene parameter ranges；问题集中在 meta-train IDM profiles 的 failure boundary 仍不够分离。
 
 ---
 
@@ -58,7 +76,7 @@ PowerShell：
 ```powershell
 $CFG = "meta_testing/configs/mvr.yaml"
 $TASKBOOK = "meta_testing/configs/idm_taskbook.json"
-$RUN = "runs/mvr_1845d0b6_seed11"
+$RUN = "runs/mvr_c467ccfc_seed11"
 
 New-Item -ItemType Directory -Force `
   "$RUN/00_preflight", `
@@ -168,7 +186,7 @@ git rev-parse HEAD
 当前模板对应：
 
 ```text
-1845d0b6e029e9f33ded54ed95d40d31619b8891
+c467ccfcac9e29a9a3da0510cbd98a6ed18dcbb0
 ```
 
 ## 4.2 CUDA
@@ -202,6 +220,17 @@ conda run -n metadrive python -m pytest meta_testing/tests -q
 
 这是最重要的前置 Gate。
 
+### 当前 Gate A 使用的 4 个 meta-train IDM profiles
+
+| Profile | target speed (m/s) | lane change | distance wanted (m) | time headway (s) | ACC factor | DEACC factor |
+|---|---:|---|---:|---:|---:|---:|
+| `idm_cautious` | 8 | False | 20 | 2.8 | 0.65 | -3.0 |
+| `idm_defensive` | 15 | False | 16 | 2.2 | 0.80 | -3.5 |
+| `idm_normal` | 11 | True | 8 | 1.2 | 1.00 | -5.0 |
+| `idm_assertive` | 17 | True | 4 | 0.60 | 1.50 | -7.0 |
+
+Gate A 只对这 4 个 `meta_train` profiles 做硬判定；validation 的 `idm_fast_small_gap` 与 meta-test 的 `idm_late_response` 不参与 Gate A。
+
 运行：
 
 ```powershell
@@ -229,18 +258,26 @@ conda run -n metadrive python -m meta_testing.scripts.audit_failure_landscape_he
 }
 ```
 
-### 当前代码最低通过条件
+### 当前代码硬通过条件
+
+当前实现的 Gate A 为：
 
 \[
 \operatorname{mean}_{i<j}\frac{1}{N}
 \sum_{n=1}^{N}\mathbf{1}[F_i(x_n)\ne F_j(x_n)]\ge0.10
 \]
 
-且：
+并且：
 
 \[
-valid\_rate>0,\qquad 0<failure\_rate<1
+valid\_rate\ge0.80
 \]
+
+\[
+0.02\le failure\_rate\le0.80
+\]
+
+`mean_severity_distance` 和 `dangerous_region_overlap` 当前作为诊断量，不参与代码硬 Gate。
 
 ### 建议研究级目标
 
@@ -250,6 +287,51 @@ valid\_rate>0,\qquad 0<failure\_rate<1
 | failure_rate | 0.02–0.80 | 0.05–0.60 |
 | failure disagreement | ≥ 0.10 | ≥ 0.15 |
 | dangerous overlap | 不应全部≈1 | 至少若干 pair < 0.7 |
+
+### 最新 Gate A 实际结果
+
+当前最新结果：
+
+```text
+episodes                    = 192
+mean_failure_disagreement   = 0.0520833
+mean_severity_distance      = 0.100455
+valid_rate                  = 1.000000
+failure_rate                = 0.192708
+Gate A                      = FAIL
+```
+
+pairwise failure disagreement：
+
+| Pair | disagreement |
+|---|---:|
+| assertive ↔ cautious | 0.000000 |
+| assertive ↔ defensive | 0.104167 |
+| assertive ↔ normal | 0.000000 |
+| cautious ↔ defensive | 0.104167 |
+| cautious ↔ normal | 0.000000 |
+| defensive ↔ normal | 0.104167 |
+
+该结果的含义不是“测试空间不合适”。相反：
+
+- `valid_rate = 1.0`：场景物理执行稳定；
+- `failure_rate ≈ 0.193`：既不是全安全，也不是全失败；
+- 真正的问题是 `assertive / cautious / normal` 在当前 48 个 aligned configurations 上得到完全相同的 failure pattern；
+- 只有 `defensive` 与另外三个 profiles 表现出约 10.4% 的 failure disagreement。
+
+因此当前阶段的修正方向应是**继续拉开 meta-train IDM profiles 的行为/失效边界**，而不是优先扩大或收缩 scene parameter ranges。
+
+### 研究级接受建议
+
+代码硬 Gate 只要求平均 disagreement ≥ 0.10，但论文级 task heterogeneity 不应只依赖平均值。建议同时检查：
+
+1. `mean_failure_disagreement >= 0.10`；
+2. 不应存在 3 个 meta-train profiles 在全部 aligned configurations 上 failure pattern 完全一致；
+3. `valid_rate >= 0.80`；
+4. `failure_rate` 保持在非退化区间；
+5. severity / dangerous-region overlap 至少能显示多个 profile pair 的差异。
+
+这些检查全部来自同一次 Gate A 输出，不额外增加实验。
 
 ### 早停
 
@@ -262,7 +344,17 @@ failure disagreement < 0.10 → profile failure landscape 不够异质
 valid_rate < 0.80      → 场景执行本身不稳定
 ```
 
-先改 IDM profiles / scene parameter ranges，不要靠继续训练补救。
+处理原则：
+
+```text
+如果 valid_rate / failure_rate 退化
+→ 再考虑 scene parameter ranges
+
+如果 valid_rate、failure_rate 健康，但 disagreement < 0.10
+→ 只优先修改 IDM profiles，不动场景范围
+```
+
+当前最新结果属于第二种情况：**优先继续修改 IDM profiles；不要进入 Inner，也不要先改 scene parameter ranges。**
 
 ---
 
@@ -822,7 +914,7 @@ CEM 或 BO
 第一主指标建议：
 
 \[
-oxed{	ext{Failure Discovery AUC}}
+\boxed{\text{Failure Discovery AUC}}
 \]
 
 同时报告：
@@ -857,10 +949,12 @@ invalid_rate 不显著恶化
 
 | Gate | 核心判断 | 推荐条件 |
 |---|---|---|
-| A Task Heterogeneity | IDM failure landscape 是否不同 | cross/within ≥1.25；valid≥0.8 |
+| A Task Heterogeneity | IDM failure landscape 是否不同 | mean disagreement ≥0.10；valid≥0.80；failure rate∈[0.02,0.80] |
 | B Inner Controllability | Inner 是否会制造有效风险 | repeated success≥0.8；invalid≤0.15 |
 | C Few-shot Utility | z 是否可识别且有因果作用 | between>within；correct-z > zero/swapped |
 | D Equal-budget Profitability | Full 是否真正省测试预算 | AUC > best baseline，目标 +10–15% |
+
+**当前状态**：Gate A 仍为 FAIL，因此本轮正确动作仍是停止在 Stage 1；Gate B/C/D 尚未开始，不应提前解读。
 
 Gate 失败时不继续后续昂贵阶段。
 
@@ -1040,7 +1134,29 @@ inner_pretrain
 
 ---
 
-# 22. 最终运行原则
+# 22. 本版相对上一目标文档的更新
+
+本版只同步最新代码与最新 Gate A 结果，没有改变主算法设计。
+
+主要更新：
+
+1. 代码基线从 `1845d0b6` 更新为 `c467ccfc`；
+2. Gate A 已从旧的 `cross/within` 统计彻底切换为 aligned `failure disagreement`；
+3. Gate A 只评估 4 个 meta-train IDM profiles；
+4. 文档中的代码硬阈值修正为：
+   - `mean_failure_disagreement >= 0.10`
+   - `valid_rate >= 0.80`
+   - `0.02 <= failure_rate <= 0.80`
+5. 记录最新 Gate A 实际结果，并明确当前仍未通过；
+6. 明确当前 failure/valid 分布健康，因此当前不建议先动 scene parameter ranges；
+7. 修复 Scientific Gates 表中残留的旧 `cross/within` 条目；
+8. 修复 Markdown 中 `\boxed{}` 的转义损坏；
+9. Inner、Posterior、Calibration、Outer 的命令、预算和训练顺序保持不变；
+10. validation evaluator 仍是正式 early stopping 前需要补齐的 P0 工程项。
+
+---
+
+# 23. 最终运行原则
 
 不要问：
 
