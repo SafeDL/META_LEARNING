@@ -24,6 +24,8 @@ class IDMSUTAdapter:
         # profile-specific, but never exposed to learned modules as IDs.
         policy.DISTANCE_WANTED = float(profile.distance_wanted_m)
         policy.TIME_WANTED = float(profile.time_headway_s)
+        policy.ACC_FACTOR = float(profile.acceleration_factor)
+        policy.DEACC_FACTOR = float(profile.deceleration_factor)
         return policy
 
     def observe(self, env: Any, vehicle: Any) -> Mapping[str, Any]:
@@ -35,8 +37,7 @@ class IDMSUTAdapter:
         }
 
     def step(self, observation: Mapping[str, Any]) -> Any:
-        # MetaDrive invokes the attached traffic policy.  The method exists so
-        # external adapters can share the same black-box protocol.
+        # MetaDrive invokes the attached traffic policy.
         return observation
 
     def metadata(self, profile: ControllerProfile) -> dict[str, Any]:

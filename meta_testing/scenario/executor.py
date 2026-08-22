@@ -80,8 +80,6 @@ class ScenarioExecutor:
                 raise RuntimeError(f"runtime map hash changed between layout and execution: expected {task.map_hash}, got {map_tokens.map_hash}")
             adversary = self._adversary(env)
             sut_adapter, sut_profile = self.sut_registry.create(task.sut_ref)
-            if sut_adapter.name == "external":
-                raise RuntimeError("external SUT adapters require a MetaDrive traffic-policy bridge and are not executable in P0-B")
             sut_adapter.reset(env, task, config, task.seed)
             sut = spawn_sut(env, lane_index=layout.sut_lane, longitudinal_m=float(config["sut_spawn_m"]), speed_mps=float(config["sut_initial_speed_mps"]), destination=layout.sut_destination, adapter=sut_adapter, profile=sut_profile, seed=task.seed)
             self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)

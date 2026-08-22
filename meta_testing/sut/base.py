@@ -13,12 +13,21 @@ class ControllerProfile:
     enable_lane_change: bool
     distance_wanted_m: float
     time_headway_s: float
+    acceleration_factor: float = 1.0
+    deceleration_factor: float = -5.0
 
     def validate(self) -> None:
         if not self.profile_id or not self.adapter_name:
             raise ValueError("controller profile id and adapter name are required")
-        if self.target_speed_mps <= 0.0 or self.distance_wanted_m <= 0.0 or self.time_headway_s <= 0.0:
+        if (
+            self.target_speed_mps <= 0.0
+            or self.distance_wanted_m <= 0.0
+            or self.time_headway_s <= 0.0
+            or self.acceleration_factor <= 0.0
+        ):
             raise ValueError("controller profile parameters must be positive")
+        if self.deceleration_factor >= 0.0:
+            raise ValueError("IDM deceleration_factor must be negative")
 
 
 class SUTAdapter(Protocol):

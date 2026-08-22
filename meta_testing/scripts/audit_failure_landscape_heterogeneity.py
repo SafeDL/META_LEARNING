@@ -23,21 +23,28 @@ ADAPTERS = {"merge": MergeScenarioAdapter(), "cutin": CutInScenarioAdapter(), "r
 
 
 def _actions(space, count: int, seed: int) -> list[NormalizedScenarioAction]:
-    samples = sobol_like(seed, space.continuous_dim + 2, count)
+    samples = sobol_like(seed, space.continuous_dim + 1, count)
     result = []
     for row in samples:
         candidate = min(len(space.candidates) - 1, int((row[0] + 1.0) * 0.5 * len(space.candidates)))
-        option = space.options[min(len(space.options) - 1, int((row[1] + 1.0) * 0.5 * len(space.options)))]
-        result.append(NormalizedScenarioAction(candidate, tuple(float(value) for value in row[2:]), option))
+        result.append(NormalizedScenarioAction(candidate, tuple(float(value) for value in row[1:]), space.options[0]))
     return result
 
 
 def run(taskbook: str | Path, *, configurations: int = 16) -> dict[str, object]:
-    tasks = {task.scenario_family: task for task in load_taskbook(taskbook)}
-    if set(tasks) != set(ADAPTERS):
-        raise ValueError("Gate A taskbook must contain exactly one task for merge, cutin, and roundabout")
+    taskbook_rows = load_taskbook(taskbook)
+    tasks = {}
+    for family in ADAPTERS:
+        family_tasks = [task for task in taskbook_rows if task.scenario_family == family]
+        if not family_tasks:
+            raise ValueError(f"Gate A taskbook is missing {family!r}")
+        tasks[family] = family_tasks[0]
+
+    train_profile_ids = sorted({task.sut_ref for task in taskbook_rows if task.split == "meta_train"})
     registry = default_registry()
-    profiles = [profile for profile in registry.profiles.values() if profile.adapter_name == "idm"]
+    profiles = [registry.profiles[profile_id] for profile_id in train_profile_ids]
+    if len(profiles) < 2 or any(profile.adapter_name != "idm" for profile in profiles):
+        raise ValueError("Gate A requires at least two meta-train IDM profiles")
     spaces = mvr_parameter_spaces()
     executor, runner = ScenarioExecutor(ADAPTERS, spaces, registry), HierarchicalRunner()
     rows: list[dict[str, object]] = []
@@ -55,20 +62,52 @@ def run(taskbook: str | Path, *, configurations: int = 16) -> dict[str, object]:
                 rows.append({"family": family, "profile": profile.profile_id, "config_id": config_id, "failure": float(signature.is_failure), "valid": float(signature.is_valid_episode), "severity": list(signature.severity_vector)})
     vectors: dict[str, np.ndarray] = {}
     for profile in profiles:
-        vector = [next(row for row in rows if row["profile"] == profile.profile_id and row["family"] == family and row["config_id"] == config_id) for family in ADAPTERS for config_id in range(configurations)]
-        vectors[profile.profile_id] = np.asarray([[row["failure"], 1.0 - row["valid"], *(np.asarray(row["severity"], dtype=float) / 4.0)] for row in vector])
+        rows_for_profile = [
+            next(
+                row for row in rows
+                if row["profile"] == profile.profile_id
+                and row["family"] == family
+                and row["config_id"] == config_id
+            )
+            for family in ADAPTERS
+            for config_id in range(configurations)
+        ]
+        vectors[profile.profile_id] = np.asarray(
+            [
+                [row["failure"], *(np.asarray(row["severity"], dtype=float) / 4.0)]
+                for row in rows_for_profile
+            ],
+            dtype=np.float32,
+        )
     names = list(vectors)
-    pairwise = {f"{left}__{right}": float(np.linalg.norm(vectors[left] - vectors[right]) / np.sqrt(vectors[left].size)) for index, left in enumerate(names) for right in names[index + 1:]}
-    rng, within = np.random.default_rng(0), []
-    for vector in vectors.values():
-        for _ in range(128):
-            left, right = rng.integers(0, len(vector), size=(2, len(vector)))
-            within.append(float(np.linalg.norm(vector[left].mean(0) - vector[right].mean(0))))
+    failure_disagreement: dict[str, float] = {}
+    severity_distance: dict[str, float] = {}
+    overlaps: dict[str, float] = {}
+    for index, left in enumerate(names):
+        for right in names[index + 1:]:
+            key = f"{left}__{right}"
+            left_failure = vectors[left][:, 0] > 0.5
+            right_failure = vectors[right][:, 0] > 0.5
+            failure_disagreement[key] = float(np.mean(left_failure != right_failure))
+            severity_distance[key] = float(np.sqrt(np.mean((vectors[left][:, 1:] - vectors[right][:, 1:]) ** 2)))
+            overlaps[key] = float(np.sum(left_failure & right_failure) / max(1, np.sum(left_failure | right_failure)))
     valid_rate = float(np.mean([row["valid"] for row in rows]))
     failure_rate = float(np.mean([row["failure"] for row in rows]))
-    gate = gate_failure_landscape(float(np.mean(within)), float(np.mean(list(pairwise.values()))), valid_rate, failure_rate)
-    overlaps = {key: float(np.sum((vectors[left][:, 0] > 0) & (vectors[right][:, 0] > 0)) / max(1, np.sum((vectors[left][:, 0] > 0) | (vectors[right][:, 0] > 0)))) for key in pairwise for left, right in [key.split("__", 1)]}
-    return {"configurations_per_family": configurations, "episodes": len(rows), "profiles": names, "rows": rows, "pairwise_distance": pairwise, "dangerous_region_overlap": overlaps, "gate": gate}
+    mean_failure_disagreement = float(np.mean(list(failure_disagreement.values())))
+    mean_severity_distance = float(np.mean(list(severity_distance.values())))
+    gate = gate_failure_landscape(mean_failure_disagreement, mean_severity_distance, valid_rate, failure_rate)
+    return {
+        "configurations_per_family": configurations,
+        "episodes": len(rows),
+        "profiles": names,
+        "rows": rows,
+        "pairwise_failure_disagreement": failure_disagreement,
+        "pairwise_severity_distance": severity_distance,
+        "dangerous_region_overlap": overlaps,
+        "mean_failure_disagreement": mean_failure_disagreement,
+        "mean_severity_distance": mean_severity_distance,
+        "gate": gate,
+    }
 
 
 def main() -> None:

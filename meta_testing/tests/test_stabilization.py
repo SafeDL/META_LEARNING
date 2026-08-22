@@ -18,6 +18,7 @@ from meta_testing.scenario.applied import ExecutableEpisode
 from meta_testing.scenario.catalog import mvr_parameter_spaces
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
 from meta_testing.failure.signature import FailureSignature
+from meta_testing.scripts.audit_failure_landscape_heterogeneity import _actions
 from meta_testing.scripts.training_cli import resolve_device
 from meta_testing.state import INNER_STATE_FIELDS, PhysicalStateExtractor
 
@@ -56,9 +57,18 @@ def test_outer_ppo_updates_only_finished_on_policy_rollout() -> None:
     assert np.isfinite(update_outer_ppo(policy, buffer, torch.optim.Adam(policy.parameters(), lr=1e-3), epochs=1, batch_size=1))
 
 
-def test_gate_a_requires_non_degenerate_cross_profile_difference() -> None:
-    assert gate_failure_landscape(0.1, 0.2, 0.9, 0.2)["pass"]
-    assert not gate_failure_landscape(0.1, 0.2, 1.0, 0.0)["pass"]
+def test_gate_a_requires_aligned_profile_failure_disagreement() -> None:
+    assert gate_failure_landscape(0.10, 0.2, 0.9, 0.2)["pass"]
+    assert not gate_failure_landscape(0.09, 0.2, 0.9, 0.2)["pass"]
+    assert not gate_failure_landscape(0.10, 0.2, 1.0, 0.0)["pass"]
+
+
+def test_gate_a_actions_fix_the_non_physical_option_dimension() -> None:
+    space = mvr_parameter_spaces()["merge_v1"]
+    actions = _actions(space, 16, 11)
+    assert len(actions) == 16
+    assert {action.option for action in actions} == {space.options[0]}
+    assert all(len(action.continuous) == space.continuous_dim for action in actions)
 
 
 def test_online_loop_updates_posterior_and_respects_budget() -> None:

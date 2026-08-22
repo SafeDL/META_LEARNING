@@ -17,9 +17,26 @@ def gate_heterogeneity(within_sut_score: float, cross_sut_score: float) -> dict[
     return {"gate": "G3", "pass": cross_sut_score > within_sut_score, "within_sut_score": within_sut_score, "cross_sut_score": cross_sut_score}
 
 
-def gate_failure_landscape(within_profile_distance: float, cross_profile_distance: float, valid_rate: float, failure_rate: float) -> dict[str, object]:
-    passed = cross_profile_distance > within_profile_distance and valid_rate > 0.0 and 0.0 < failure_rate < 1.0
-    return {"gate": "A", "pass": passed, "within_profile_distance": within_profile_distance, "cross_profile_distance": cross_profile_distance, "valid_rate": valid_rate, "failure_rate": failure_rate}
+def gate_failure_landscape(
+    mean_failure_disagreement: float,
+    mean_severity_distance: float,
+    valid_rate: float,
+    failure_rate: float,
+) -> dict[str, object]:
+    """Assess aligned scenario outcomes across meta-train SUT profiles."""
+    passed = (
+        valid_rate >= 0.80
+        and 0.02 <= failure_rate <= 0.80
+        and mean_failure_disagreement >= 0.10
+    )
+    return {
+        "gate": "A",
+        "pass": passed,
+        "mean_failure_disagreement": mean_failure_disagreement,
+        "mean_severity_distance": mean_severity_distance,
+        "valid_rate": valid_rate,
+        "failure_rate": failure_rate,
+    }
 
 
 def gate_inner_controllability(option_effect_size: float, repeated_success_rate: float) -> dict[str, object]:
