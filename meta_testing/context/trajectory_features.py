@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from ..simulator import RoutePolyline
+from ..scenario.route_geometry import RoutePolyline
 from .trajectory_encoder import TRAJECTORY_FIELDS
 
 

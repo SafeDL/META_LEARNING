@@ -1,7 +1,8 @@
-"""Machine-readable Gate G1--G8 diagnostics used before advancing stages."""
+"""Machine-readable G1--G8 diagnostics used before MVR experiments."""
 from __future__ import annotations
 
 from typing import Mapping, Sequence
+
 import numpy as np
 
 
@@ -17,21 +18,11 @@ def gate_heterogeneity(within_sut_score: float, cross_sut_score: float) -> dict[
     return {"gate": "G3", "pass": cross_sut_score > within_sut_score, "within_sut_score": within_sut_score, "cross_sut_score": cross_sut_score}
 
 
-def gate_failure_landscape(
-    mean_failure_disagreement: float,
-    mean_severity_distance: float,
-    valid_rate: float,
-    failure_rate: float,
-) -> dict[str, object]:
-    """Assess aligned scenario outcomes across meta-train SUT profiles."""
-    passed = (
-        valid_rate >= 0.80
-        and 0.02 <= failure_rate <= 0.80
-        and mean_failure_disagreement >= 0.10
-    )
+def gate_sut_heterogeneity(mean_failure_disagreement: float, mean_severity_distance: float, valid_rate: float, failure_rate: float) -> dict[str, object]:
+    """Assess aligned scenario outcomes across meta-train IDM profiles."""
     return {
-        "gate": "A",
-        "pass": passed,
+        "gate": "G3",
+        "pass": valid_rate >= 0.80 and 0.02 <= failure_rate <= 0.80 and mean_failure_disagreement >= 0.10,
         "mean_failure_disagreement": mean_failure_disagreement,
         "mean_severity_distance": mean_severity_distance,
         "valid_rate": valid_rate,

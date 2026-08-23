@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy as np
 
-from .simulator import RoutePolyline
+from .scenario.route_geometry import RoutePolyline
 
 INNER_STATE_FIELDS = (
     "relative_longitudinal_m",

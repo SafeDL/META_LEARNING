@@ -1,4 +1,4 @@
-from .training_cli import evaluate
+from ..evaluation.run import evaluate
 
 
 if __name__ == "__main__":

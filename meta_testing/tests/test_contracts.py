@@ -10,7 +10,7 @@ from meta_testing.scenario.parameter_space import NormalizedScenarioAction, Para
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
 from meta_testing.scenario.taskbook import load_taskbook
 from meta_testing.sut.registry import default_registry
-from meta_testing.scripts.training_cli import _tasks
+from meta_testing.training.pipeline import selected_tasks
 
 
 HASH = "a" * 64
@@ -53,6 +53,6 @@ def test_evaluation_task_selection_respects_split_and_profile_key() -> None:
         "training": {"family_filter": "all"},
         "sut_profiles": {"validation": ["idm_fast_small_gap"]},
     }
-    tasks = _tasks(config, Path("meta_testing/configs/idm_taskbook.json"), "meta_validation", "validation")
+    tasks = selected_tasks(config, Path("meta_testing/configs/idm_taskbook.json"), "meta_validation", "validation")
     assert len(tasks) == 3
     assert {task.sut_ref for task in tasks} == {"idm_fast_small_gap"}

@@ -3,10 +3,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .criteria import FailureCriteria
 from .signature import FailureSignature, FailureSignatureBuilder
 
 
-def analyze_rollout(transitions: list[dict[str, Any]], scenario_family: str, conflict_zone_id: str, candidate_id: str) -> tuple[Mapping[str, Any], FailureSignature]:
+def analyze_rollout(
+    transitions: list[dict[str, Any]],
+    scenario_family: str,
+    conflict_zone_id: str,
+    candidate_id: str,
+    criteria: FailureCriteria,
+) -> tuple[Mapping[str, Any], FailureSignature]:
     if not transitions:
         raise ValueError("cannot analyze an empty rollout")
     infos = [row["info"] for row in transitions]
@@ -21,7 +28,13 @@ def analyze_rollout(transitions: list[dict[str, Any]], scenario_family: str, con
         "min_distance": min(float(row[10]) * 100.0 for row in features),
         "max_closing_speed": max(float(row[10]) * 100.0 / max(float(row[8]) * 15.0, 1e-3) if row[8] < 1.0 else 0.0 for row in features),
     }
-    outcome["valid_critical_near_miss"] = not outcome["target_collision"] and outcome["min_ttc"] < 5.0 and outcome["min_distance"] < 10.0
-    signature = FailureSignatureBuilder().from_outcome(outcome, scenario_family, conflict_zone_id, candidate_id)
+    outcome["valid_critical_near_miss"] = (
+        not outcome["target_collision"]
+        and outcome["min_ttc"] < criteria.ttc_s
+        and outcome["min_distance"] < criteria.distance_m
+    )
+    signature = FailureSignatureBuilder(criteria).from_outcome(
+        outcome, scenario_family, conflict_zone_id, candidate_id
+    )
     outcome.update({"is_valid_episode": signature.is_valid_episode, "is_failure": signature.is_failure, "is_collision": bool(outcome["target_collision"]), "is_near_miss": bool(outcome["valid_critical_near_miss"]), "severity_vector": signature.severity_vector, "candidate_id": candidate_id, "conflict_zone_id": conflict_zone_id, "failure_signature": signature.signature_id})
     return outcome, signature

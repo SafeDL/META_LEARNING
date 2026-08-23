@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 
 
-def sobol_like(seed: int, dimension: int, count: int) -> np.ndarray:
+def low_discrepancy_samples(seed: int, dimension: int, count: int) -> np.ndarray:
     """Low-discrepancy fallback that avoids another runtime dependency."""
     rng = np.random.default_rng(seed)
     offsets = rng.random(dimension)

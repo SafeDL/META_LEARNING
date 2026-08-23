@@ -3,7 +3,8 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-from meta_testing.audits import gate_failure_landscape
+from meta_testing.validation.gates import gate_sut_heterogeneity
+from meta_testing.failure.criteria import DEFAULT_FAILURE_CRITERIA
 from meta_testing.failure.inner_reward import InnerRiskReward
 from meta_testing.failure.signature import FailureSignatureBuilder
 from meta_testing.training.replay import InnerReplay, InnerTransition, OuterRolloutBuffer, OuterRolloutStep
@@ -18,8 +19,8 @@ from meta_testing.scenario.applied import ExecutableEpisode
 from meta_testing.scenario.catalog import mvr_parameter_spaces
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
 from meta_testing.failure.signature import FailureSignature
-from meta_testing.scripts.audit_failure_landscape_heterogeneity import _actions
-from meta_testing.scripts.training_cli import resolve_device
+from meta_testing.scripts.validate_mvr import _actions
+from meta_testing.training.pipeline import resolve_device
 from meta_testing.state import INNER_STATE_FIELDS, PhysicalStateExtractor
 
 
@@ -29,7 +30,7 @@ def test_safe_valid_episode_is_not_a_failure() -> None:
 
 
 def test_inner_reward_uses_risk_not_environment_reward() -> None:
-    reward = InnerRiskReward()
+    reward = InnerRiskReward(DEFAULT_FAILURE_CRITERIA)
     safe = np.zeros(12, dtype=np.float32)
     safe[8], safe[10] = 1.0, 1.0
     dangerous = safe.copy()
@@ -57,13 +58,13 @@ def test_outer_ppo_updates_only_finished_on_policy_rollout() -> None:
     assert np.isfinite(update_outer_ppo(policy, buffer, torch.optim.Adam(policy.parameters(), lr=1e-3), epochs=1, batch_size=1))
 
 
-def test_gate_a_requires_aligned_profile_failure_disagreement() -> None:
-    assert gate_failure_landscape(0.10, 0.2, 0.9, 0.2)["pass"]
-    assert not gate_failure_landscape(0.09, 0.2, 0.9, 0.2)["pass"]
-    assert not gate_failure_landscape(0.10, 0.2, 1.0, 0.0)["pass"]
+def test_g3_requires_aligned_profile_failure_disagreement() -> None:
+    assert gate_sut_heterogeneity(0.10, 0.2, 0.9, 0.2)["pass"]
+    assert not gate_sut_heterogeneity(0.09, 0.2, 0.9, 0.2)["pass"]
+    assert not gate_sut_heterogeneity(0.10, 0.2, 1.0, 0.0)["pass"]
 
 
-def test_gate_a_actions_fix_the_non_physical_option_dimension() -> None:
+def test_g3_actions_fix_the_non_physical_option_dimension() -> None:
     space = mvr_parameter_spaces()["merge_v1"]
     actions = _actions(space, 16, 11)
     assert len(actions) == 16

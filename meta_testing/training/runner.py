@@ -7,8 +7,9 @@ from typing import Any, Callable, Mapping
 import numpy as np
 
 from ..failure.analyzer import analyze_rollout
-from ..failure.signature import FailureSignature
+from ..failure.criteria import DEFAULT_FAILURE_CRITERIA, FailureCriteria
 from ..failure.inner_reward import InnerRiskReward
+from ..failure.signature import FailureSignature
 from ..context.trajectory_features import TrajectoryFeatureExtractor
 from ..scenario.applied import ExecutableEpisode
 from ..state import PhysicalStateExtractor
@@ -23,14 +24,15 @@ class Rollout:
 
 
 class HierarchicalRunner:
-    def __init__(self, max_steps: int = 240) -> None:
+    def __init__(self, max_steps: int = 240, criteria: FailureCriteria = DEFAULT_FAILURE_CRITERIA) -> None:
         self.max_steps = int(max_steps)
+        self.criteria = criteria
 
     def rollout(self, episode: ExecutableEpisode, scenario_family: str, option: str, inner_action: Callable[[np.ndarray], np.ndarray], *, trajectory_extractor: TrajectoryFeatureExtractor | None = None, reward_fn: InnerRiskReward | None = None) -> Rollout:
         transitions: list[dict[str, Any]] = []
         env = episode.env
         extractor = trajectory_extractor or TrajectoryFeatureExtractor()
-        reward_fn = reward_fn or InnerRiskReward()
+        reward_fn = reward_fn or InnerRiskReward(self.criteria)
         state_extractor = PhysicalStateExtractor()
         extractor.reset(env, episode.layout)
         state_extractor.reset(env, episode.layout)
@@ -50,5 +52,6 @@ class HierarchicalRunner:
             scenario_family,
             applied.conflict_zone_id,
             applied.selected_candidate,
+            self.criteria,
         )
         return Rollout(transitions, outcome, signature, extractor.finalize())

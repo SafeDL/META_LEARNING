@@ -1,12 +1,35 @@
 # Hierarchical Map-Aware Meta-Testing
 
-`meta_testing` 是当前 active MVR 研究包：地图作为显式条件，完整测试轨迹作为 one-episode context token，潜变量仅描述未见 SUT 的 vulnerability，Outer scene policy 与 Inner adversarial SAC 共用地图/latent 表征。
+`meta_testing` is the active MVR implementation. It mines safety-critical scenarios for held-out IDM controller profiles under a fixed simulator-episode budget.
 
-当前只支持 IDM 与 rule-based controller profiles，用于 controller-profile POC；外部/学习型 ADS adapter 需要显式提供 controller 和 I/O contract 后才可注册。
+## Method
+
+Each episode follows `Outer scene action → MetaDrive execution → Inner adversary rollout → trajectory/outcome token → posterior z → next scene action`. The Inner controller receives only the explicit 10-D physical state. The Outer policy receives map embedding and posterior latent `z`; it never receives SUT identity.
+
+## Tasks and scope
+
+`configs/idm_taskbook.json` defines merge, cut-in, and roundabout tasks. The first four IDM profiles are meta-train, `idm_fast_small_gap` is validation, and `idm_late_response` is meta-test. Every family currently uses one fixed map, so this package supports map-conditioned testing, not unseen-map generalization.
+
+## Canonical pipeline
+
+```text
+inner_pretrain → posterior → inner_latent_calibration → outer
+```
+
+`training/pipeline.py` enforces this order and writes one checkpoint plus JSON summary per stage. `inner_latent_calibration` is required because the final Inner policy consumes posterior `z`.
+
+## Evaluation and validation
+
+Evaluation uses 20 total simulator episodes and K = 0/1/2/4 support shots; support episodes are charged to the same budget. G3 replays shared low-discrepancy configurations across IDM profiles to verify that their failure landscapes are non-degenerate.
+
+```powershell
+python -m meta_testing.scripts.validate_mvr --config meta_testing/configs/mvr.yaml --output results/validation/g3.json
+python -m meta_testing.scripts.train_mvr --config meta_testing/configs/mvr.yaml --output results/meta_testing/run_001
+python -m meta_testing.scripts.evaluate_mvr --config meta_testing/configs/mvr.yaml --checkpoint results/meta_testing/run_001/outer.pt --output results/meta_testing/run_001/evaluation.json
+```
+
+## Verification
 
 ```powershell
 conda run -n metadrive python -m pytest meta_testing/tests -q
-conda run -n metadrive python -m pytest pearl_learning/tests -q
 ```
-
-训练必须按 `inner_pretrain → posterior → outer` 推进；`light_joint` 默认关闭，只用于证明需要校准时。评估使用总预算 20 个 simulator episodes，K=0/1/2/4 的 probe 成本全部计入预算；未通过相关 Gate 前不得输出方法性能结论。
