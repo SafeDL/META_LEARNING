@@ -2,16 +2,16 @@
 
 ## Project Structure & Module Organization
 
-`meta_testing/` is the active map-aware meta-testing implementation. Keep its simulator contracts, policy/context modules, training code, and tests together under that package. `pearl_learning/` and `sac_scenario_mining/` are reproducible legacy baselines: do not add new method features there unless a baseline comparison requires it. Store design notes in `docs/`, durable experiment artifacts in `results/`, and reusable cross-package helpers in root `tools/`.
+`mvr/` is the active map-aware MVR implementation; keep its simulator contracts, policy/context modules, training code, and tests together under that package. `archives/pearl_learning/` and `archives/sac_scenario_mining/` are frozen legacy baselines and should not receive new method features. Store design notes in `docs/`, durable experiment artifacts in `results/`, and reusable cross-package helpers in root `tools/`.
 
 ## Build, Test, and Development Commands
 
 Use the MetaDrive Conda environment:
 
 ```powershell
-conda run -n metadrive python -m pytest meta_testing/tests -q
-conda run -n metadrive python -m pytest pearl_learning/tests -q
-conda run -n metadrive python -m compileall -q meta_testing pearl_learning sac_scenario_mining
+conda run -n metadrive python -m pytest mvr/tests -q
+conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
+conda run -n metadrive python -m compileall -q mvr archives/pearl_learning archives/sac_scenario_mining
 ```
 
 The first command exercises active MVR contracts, including headless MetaDrive fixtures. Run the second before changing shared legacy utilities. Compile after structural edits when a formatter or linter is unavailable.

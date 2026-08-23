@@ -1,0 +1,158 @@
+"""The single online few-shot protocol shared by training and evaluation."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Mapping
+
+import numpy as np
+import torch
+
+from ..context.outcome_schema import encode_outcome
+from ..failure.novelty import NoveltyTracker
+from ..failure.reward import outer_reward
+from ..model import TransferableScenarioMiner
+from ..scenario.catalog import mvr_parameter_spaces
+from ..scenario.concrete import ConcreteScenario
+from ..scenario.executor import ScenarioExecutor
+from ..scenario.parameter_space import NormalizedScenarioAction
+from ..scenario.task_spec import ScenarioMiningTaskSpec
+from ..provenance import content_hash
+from ..state import PhysicalStateExtractor
+from .replay import InnerTransition, OuterRolloutBuffer, OuterRolloutStep
+from .runner import HierarchicalRunner, Rollout
+
+
+@dataclass(frozen=True)
+class OnlineEpisode:
+    episode_id: str
+    rollout: Rollout
+    token: torch.Tensor
+    latent_before: torch.Tensor
+    latent_after: torch.Tensor
+    map_tokens: Any
+    scene_embedding: torch.Tensor
+    config: torch.Tensor
+    option_index: torch.Tensor
+    outcome: Mapping[str, Any]
+    concrete_scenario: ConcreteScenario
+
+
+@dataclass
+class OnlineMetaTestResult:
+    episodes: list[OnlineEpisode]
+    inner_transitions: list[InnerTransition]
+    outer_rollout: OuterRolloutBuffer
+
+
+class OnlineMetaTest:
+    """Execute a fixed testing budget without exposing SUT identity to the model."""
+
+    def __init__(self, model: TransferableScenarioMiner, executor: ScenarioExecutor, runner: HierarchicalRunner) -> None:
+        self.model = model
+        self.executor = executor
+        self.runner = runner
+        self._scene_cache: dict[str, tuple[Any, Any, Any]] = {}
+
+    def _inner_policy_hash(self) -> str:
+        return content_hash({
+            component: {
+                name: value.detach().cpu().tolist()
+                for name, value in self.model.training_components()[component].state_dict().items()
+            }
+            for component in ("shared_feature_encoder", "option_embedding", "inner_sac")
+        })
+
+    def _scene_encoding(self, task: ScenarioMiningTaskSpec) -> tuple[Any, Any, Any]:
+        cached = self._scene_cache.get(task.geometry_hash)
+        if cached is not None:
+            return cached
+        tokens, candidates = self.executor.enumerate_interactions(task)
+        with torch.no_grad():
+            encoding = self.model.encode_scene(tokens, candidates)
+        map_frozen = not self.model.training or not any(
+            parameter.requires_grad for parameter in self.model.map_encoder.parameters()
+        )
+        if map_frozen:
+            self._scene_cache[task.geometry_hash] = (tokens, candidates, encoding)
+        return tokens, candidates, encoding
+
+    def run(self, task: ScenarioMiningTaskSpec, budget: int, *, deterministic: bool = False, posterior_support_limit: int | None = None) -> OnlineMetaTestResult:
+        if budget < 1:
+            raise ValueError("online meta-test requires a positive budget")
+        if self.model.state_dim != PhysicalStateExtractor.dimension:
+            raise ValueError("online Inner rollout requires the physical state schema")
+        if posterior_support_limit is not None and not 0 <= posterior_support_limit <= budget:
+            raise ValueError("posterior support limit must lie within the episode budget")
+        space = mvr_parameter_spaces()[task.functional_scenario + "_v1"]
+        tokens, candidates, encoding = self._scene_encoding(task)
+        scene_embedding = encoding.global_embedding
+        device = self.model.device
+        latent, _ = self.model.context_encoder.prior(device=device)
+        inner_policy_hash = self._inner_policy_hash()
+        evidence_tokens: list[torch.Tensor] = []
+        result = OnlineMetaTestResult([], [], OuterRolloutBuffer())
+        novelty = NoveltyTracker()
+        for index in range(budget):
+            with torch.no_grad():
+                scene = self.model.select_scene(encoding, latent, deterministic=deterministic)
+            action = NormalizedScenarioAction(int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), space.options[int(scene.option_index.item())])
+            episode_seed = task.geometry_seed + index
+            episode = self.executor.reset(task, action, episode_seed=episode_seed)
+            concrete = ConcreteScenario.from_applied(
+                task,
+                episode.applied_scenario,
+                inner_policy_hash,
+                latent=latent.squeeze(0).detach().cpu().tolist(),
+                episode_seed=episode_seed,
+            )
+            option_index = scene.option_index.detach()
+            def inner_action(state_values: np.ndarray) -> np.ndarray:
+                state = torch.as_tensor(state_values, dtype=torch.float32, device=device).reshape(1, -1)
+                with torch.no_grad():
+                    value = self.model.act_inner(state, scene_embedding.unsqueeze(0), latent, option_index, scene.continuous, deterministic=deterministic)
+                return value.squeeze(0).cpu().numpy()
+
+            try:
+                rollout = self.runner.rollout(episode, task.functional_scenario, action.option.value, inner_action)
+            finally:
+                episode.env.close()
+            signature = rollout.signature
+            outcome = dict(rollout.outcome)
+            outcome.update({"is_valid_episode": signature.is_valid_episode, "is_failure": signature.is_failure})
+            outcome_tensor = encode_outcome(outcome).to(device).unsqueeze(0)
+            trajectory = rollout.trajectory.to(device).unsqueeze(0)
+            mask = torch.ones(trajectory.shape[:2], dtype=torch.bool, device=device)
+            with torch.no_grad():
+                token = self.model.episode_token_builder(scene_embedding.unsqueeze(0), scene.continuous, option_index, trajectory, mask, outcome_tensor).squeeze(0)
+            evidence_tokens.append(token)
+            support = torch.stack(evidence_tokens).unsqueeze(0)
+            support_mask = torch.ones((1, len(evidence_tokens)), dtype=torch.bool, device=device)
+            latent_after = latent
+            if posterior_support_limit is None or index < posterior_support_limit:
+                with torch.no_grad():
+                    latent_after, _ = self.model.infer_posterior(support, support_mask)
+            reward = outer_reward(signature, novel=novelty.observe(signature))
+            result.outer_rollout.add(OuterRolloutStep(
+                scene_embedding.cpu(), encoding.candidate_embeddings.cpu(), encoding.candidate_mask.cpu(),
+                latent.squeeze(0).cpu(), scene.expert_index.cpu(), scene.candidate_index.cpu(),
+                scene.continuous.squeeze(0).cpu(), scene.option_index.cpu(), scene.log_prob.cpu(),
+                scene.value.cpu(), reward, index + 1 == budget,
+            ))
+            episode_id = f"{task.task_id}:{index}"
+            result.inner_transitions.extend(
+                InnerTransition(
+                    episode_id, row["state"], row["action"], row["reward_inner"], row["next_state"],
+                    row["done"], tokens, candidates, latent.squeeze(0).detach().cpu(),
+                    option_index.squeeze(0).detach().cpu(), scene.continuous.squeeze(0).detach().cpu(),
+                )
+                for row in rollout.transitions
+            )
+            result.episodes.append(OnlineEpisode(
+                episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(),
+                latent_after.detach().cpu().clone(), tokens, scene_embedding.detach().cpu(),
+                scene.continuous.squeeze(0).detach().cpu(), option_index.squeeze(0).detach().cpu(), outcome,
+                concrete,
+            ))
+            latent = latent_after
+        result.outer_rollout.finish()
+        return result

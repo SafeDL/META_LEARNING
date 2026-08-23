@@ -1,0 +1,56 @@
+schema: transferable_scenario_miner_v2
+seed: 11
+taskbook: mvr/configs/taskbook.json
+model:
+  state_dim: 10
+  latent_dim: 16
+  num_experts: 4
+context:
+  type: pearl_product
+  kl_weight: 0.001
+  support_shots: [1, 2, 4]
+training:
+  device: cuda
+  family_filter: all
+  step_budget: 240
+  learning_rate: 0.0003
+evaluation:
+  total_episode_budget: 20
+  support_shots: [0, 1, 2, 4]
+  seeds: [11, 22, 33]
+  deterministic: false
+  regimes: [R1_seen_sut_seen_geometry, R2_unseen_sut_seen_geometry, R3_seen_sut_unseen_geometry, R4_unseen_sut_unseen_geometry]
+failure:
+  severity_thresholds: {ttc_s: 5.0, distance_m: 10.0, closing_speed_mps: 20.0}
+  severity_bins: 5
+inner:
+  algorithm: option_conditioned_sac
+  action_dim: 2
+  batch_size: 64
+  episode_budget: 20
+  updates_per_episode: 8
+  replay_capacity: 100000
+  learning_rate: 0.0003
+inner_latent_calibration:
+  simulator_episode_budget: 16
+  support_episodes: 1
+  updates_per_episode: 8
+  replay_capacity: 100000
+  batch_size: 64
+  learning_rate: 0.0003
+posterior:
+  episode_budget: 20
+  support_episodes: [1, 2, 4]
+  learning_rate: 0.0003
+outer:
+  algorithm: hybrid_moe_ppo
+  router_balance_weight: 0.01
+  ppo_epochs: 4
+  batch_size: 64
+  episodes_per_task: 20
+  learning_rate: 0.0003
+map:
+  encoder: hptr_style_v1
+  polyline_points: 16
+  embedding_dim: 128
+  cache_embeddings_only_when_frozen: true

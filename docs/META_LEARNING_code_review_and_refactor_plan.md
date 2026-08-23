@@ -125,7 +125,7 @@ flowchart TD
 
 ### 当前问题
 
-`meta_testing/README.md` 写的是：
+`mvr/README.md` 写的是：
 
 ```text
 inner_pretrain → posterior → outer
@@ -198,7 +198,7 @@ inner_latent_calibration
 建议新增：
 
 ```text
-meta_testing/training/pipeline.py
+mvr/training/pipeline.py
 ```
 
 由它负责：
@@ -213,7 +213,7 @@ meta_testing/training/pipeline.py
 最终只有一个正式训练入口：
 
 ```text
-meta_testing/scripts/train_mvr.py
+mvr/scripts/train_mvr.py
 ```
 
 用户不应再手动分别调用四个 stage wrapper。
@@ -223,10 +223,10 @@ meta_testing/scripts/train_mvr.py
 若采用统一 pipeline，建议删除：
 
 ```text
-meta_testing/scripts/train_inner.py
-meta_testing/scripts/train_posterior.py
-meta_testing/scripts/train_inner_calibration.py
-meta_testing/scripts/train_outer.py
+mvr/scripts/train_inner.py
+mvr/scripts/train_posterior.py
+mvr/scripts/train_inner_calibration.py
+mvr/scripts/train_outer.py
 ```
 
 这些文件现在都只是几行转发代码，不增加科研可读性。
@@ -248,7 +248,7 @@ test_pipeline_records_stage_order
 
 ### 当前问题
 
-`meta_testing/configs/mvr.yaml` 中定义了：
+`mvr/configs/mvr.yaml` 中定义了：
 
 ```yaml
 failure:
@@ -288,7 +288,7 @@ class FailureCriteria:
 建议放在：
 
 ```text
-meta_testing/failure/criteria.py
+mvr/failure/criteria.py
 ```
 
 并由配置一次性构造：
@@ -345,17 +345,17 @@ test_failure_threshold_config_changes_failure_decision
 当前：
 
 ```python
-# meta_testing/simulator.py
-from pearl_learning.src.routes import RoutePolyline
+# mvr/simulator.py
+from archives.pearl_learning.src.routes import RoutePolyline
 ```
 
-而 `meta_testing/state.py` 又使用：
+而 `mvr/state.py` 又使用：
 
 ```python
 from .simulator import RoutePolyline
 ```
 
-这与 `meta_testing/__init__.py` 中“PEARL 是独立 frozen legacy baseline”的描述矛盾。
+这与 `mvr/__init__.py` 中“PEARL 是独立 frozen legacy baseline”的描述矛盾。
 
 当前实际依赖关系是：
 
@@ -377,13 +377,13 @@ legacy PEARL
 把 active MVR 实际需要的 route geometry 移入 active domain：
 
 ```text
-meta_testing/scenario/route_geometry.py
+mvr/scenario/route_geometry.py
 ```
 
 然后：
 
 ```text
-meta_testing/state.py
+mvr/state.py
 ```
 
 改为直接导入：
@@ -395,7 +395,7 @@ from .scenario.route_geometry import RoutePolyline
 完成后删除：
 
 ```text
-meta_testing/simulator.py
+mvr/simulator.py
 ```
 
 ### 关于 PEARL
@@ -413,7 +413,7 @@ meta_testing/simulator.py
 ### 验收条件
 
 ```bash
-grep -R "pearl_learning" meta_testing
+grep -R "pearl_learning" mvr
 ```
 
 应无运行时代码命中。
@@ -540,7 +540,7 @@ inner_latent_calibration:
 
 ### 3.5.1 `__all__` 当前存在直接覆盖
 
-当前 `meta_testing/__init__.py`：
+当前 `mvr/__init__.py`：
 
 ```python
 __all__ = ("FailureSignature", "MetaTestTaskSpec")
@@ -727,9 +727,9 @@ META_LEARNING/
 │   ├── references.md
 │   └── style.md
 │
-├── meta_testing/
-├── pearl_learning/
-├── sac_scenario_mining/
+├── mvr/
+├── archives/pearl_learning/
+├── archives/sac_scenario_mining/
 │
 └── results/
 ```
@@ -797,16 +797,16 @@ baselines/sac/
 
 因此本轮建议：
 
-> **保留 `pearl_learning/` 与 `sac_scenario_mining/` 原路径，不做纯美观式的大搬家。**
+> **保留 `archives/pearl_learning/` 与 `archives/sac_scenario_mining/` 归档路径，主方法仍保留在 mvr/。**
 
 这符合“克制重构”的原则。
 
 ---
 
-## 4.2 `meta_testing/` 推荐结构
+## 4.2 `mvr/` 推荐结构
 
 ```text
-meta_testing/
+mvr/
 ├── README.md
 ├── __init__.py
 ├── model.py
@@ -920,7 +920,7 @@ meta_testing/
 | `audit_failure_landscape_heterogeneity.py` | 合入 `validate_mvr.py` | 中 | 减少一次性脚本 |
 | `failure/metrics.py` | `evaluation/metrics.py` | 中 | discovery metrics 属于 evaluation |
 | `simulator.py` | 删除 | 高 | 当前只是 legacy forwarding wrapper |
-| `meta_testing/` | 暂时保留 | 低 | 若 MVR 最终成为论文正式算法名，再统一改为 `mvr/`；现在不值得做大范围 import churn |
+| `mvr/` | 暂时保留 | 低 | MVR 已作为正式方法包名统一为 `mvr/`，无需保留兼容层 |
 | `map/` | 保留 | - | 足够清楚，不需要为了形式改成复杂名称 |
 | `model.py` | 保留 | - | 在单一 active package 内是常见且清晰的名称 |
 
@@ -1343,7 +1343,7 @@ works on real-world ADS
 只保留：
 
 ```text
-python -m meta_testing.scripts.validate_mvr --config ...
+python -m mvr.scripts.validate_mvr --config ...
 ```
 
 内部：
@@ -1458,14 +1458,14 @@ results/
 ├── validation/
 │   └── g3_sut_heterogeneity.json
 │
-├── meta_testing/
+├── mvr/
 │   └── final/
 │       ├── manifest.json
 │       ├── metrics.json
 │       └── per_seed.json
 │
-├── pearl_learning/
-└── sac_scenario_mining/
+├── archives/pearl_learning/
+└── archives/sac_scenario_mining/
 ```
 
 正式 MVR result manifest 至少记录：
@@ -1499,7 +1499,7 @@ failure criteria
 
 ---
 
-## `meta_testing/README.md`
+## `mvr/README.md`
 
 建议固定以下结构：
 
@@ -1520,17 +1520,17 @@ failure criteria
 最终最好只有：
 
 ```bash
-python -m meta_testing.scripts.validate_mvr \
-  --config meta_testing/configs/mvr.yaml
+python -m mvr.scripts.validate_mvr \
+  --config mvr/configs/mvr.yaml
 
-python -m meta_testing.scripts.train_mvr \
-  --config meta_testing/configs/mvr.yaml \
-  --output results/meta_testing/run_001
+python -m mvr.scripts.train_mvr \
+  --config mvr/configs/mvr.yaml \
+  --output results/mvr/run_001
 
-python -m meta_testing.scripts.evaluate_mvr \
-  --config meta_testing/configs/mvr.yaml \
-  --checkpoint results/meta_testing/run_001/final.pt \
-  --output results/meta_testing/run_001/evaluation.json
+python -m mvr.scripts.evaluate_mvr \
+  --config mvr/configs/mvr.yaml \
+  --checkpoint results/mvr/run_001/final.pt \
+  --output results/mvr/run_001/evaluation.json
 ```
 
 比“用户自己依次调用四个 train_xxx.py”更适合论文复现。
@@ -1605,8 +1605,8 @@ Pipfile
 ## Commit 3 — `Decouple active MVR from legacy code`
 
 - [ ] `RoutePolyline` 进入 active `scenario/route_geometry.py`
-- [ ] 删除 `meta_testing/simulator.py`
-- [ ] 确保 `meta_testing` 不 import `pearl_learning`
+- [ ] 删除 `mvr/simulator.py`
+- [ ] 确保 `mvr` 不 import `pearl_learning`
 - [ ] 保持 PEARL 本体 frozen
 
 ---
@@ -1631,7 +1631,7 @@ Pipfile
 - [ ] 新增 `environment.yml`
 - [ ] 修改 `.gitignore`
 - [ ] 更新根 README
-- [ ] 更新 `meta_testing/README.md`
+- [ ] 更新 `mvr/README.md`
 
 ---
 
@@ -1706,13 +1706,13 @@ Invalid rate
 
 ## active / legacy 边界
 
-- [ ] `grep -R "pearl_learning" meta_testing` 没有 active runtime dependency
+- [ ] `grep -R "pearl_learning" mvr` 没有 active runtime dependency
 - [ ] PEARL 与 SAC 不新增 active MVR 功能
 - [ ] legacy baseline 的历史结果与新结果严格区分
 
 ## 命名
 
-- [ ] `grep -R "P0" meta_testing` 无方法 API/测试名称遗留
+- [ ] `grep -R "P0" mvr` 无方法 API/测试名称遗留
 - [ ] 不再同时存在 Gate A 和 G1–G8
 - [ ] `sobol_like` 不再误用 Sobol 名称
 - [ ] `__all__` 只有一次定义
@@ -1730,17 +1730,17 @@ Invalid rate
 以下命令均能从仓库根目录执行：
 
 ```bash
-conda run -n metadrive python -m pytest meta_testing/tests -q
-conda run -n metadrive python -m pytest pearl_learning/tests -q
-conda run -n metadrive python -m compileall -q meta_testing pearl_learning sac_scenario_mining
+conda run -n metadrive python -m pytest mvr/tests -q
+conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
+conda run -n metadrive python -m compileall -q mvr archives/pearl_learning archives/sac_scenario_mining
 ```
 
 重构完成后还应有：
 
 ```bash
-python -m meta_testing.scripts.validate_mvr --config meta_testing/configs/mvr.yaml
-python -m meta_testing.scripts.train_mvr --config meta_testing/configs/mvr.yaml --output <run-dir>
-python -m meta_testing.scripts.evaluate_mvr --config meta_testing/configs/mvr.yaml --checkpoint <ckpt> --output <json>
+python -m mvr.scripts.validate_mvr --config mvr/configs/mvr.yaml
+python -m mvr.scripts.train_mvr --config mvr/configs/mvr.yaml --output <run-dir>
+python -m mvr.scripts.evaluate_mvr --config mvr/configs/mvr.yaml --checkpoint <ckpt> --output <json>
 ```
 
 ---
@@ -1752,8 +1752,8 @@ python -m meta_testing.scripts.evaluate_mvr --config meta_testing/configs/mvr.ya
 1. **把 `inner_pretrain → posterior → inner_latent_calibration → outer` 变成代码强制的唯一正式 pipeline。**
 2. **新增 `FailureCriteria`，让 YAML failure 阈值真正控制 analyzer、signature 和 Inner reward。**
 3. **统一/重命名所有 training budget，使其真实反映 simulator episode 消耗。**
-4. **移除 active `meta_testing → pearl_learning` 的 RoutePolyline 依赖，并删除 `simulator.py` forwarding wrapper。**
-5. **修复 `meta_testing/__init__.py` 中被覆盖的 `__all__`。**
+4. **移除 active `mvr → pearl_learning` 的 RoutePolyline 依赖，并删除 `simulator.py` forwarding wrapper。**
+5. **修复 `mvr/__init__.py` 中被覆盖的 `__all__`。**
 6. **把 Gate A 合并成 G3，最终只保留 G1–G8 一套概念。**
 7. **拆掉 `training_cli.py` 的多重职责，只保留一个 `train_mvr.py` 与一个 `evaluate_mvr.py`。**
 8. **删除未使用 YAML 配置和 `P0` 等内部开发命名。**
@@ -1778,4 +1778,3 @@ python -m meta_testing.scripts.evaluate_mvr --config meta_testing/configs/mvr.ya
 6. README 与命名收口。
 
 完成这些后，工程会更接近一份可供论文审稿人直接检查的“方法实现”，而不是一个持续演化的研究工作区。
-

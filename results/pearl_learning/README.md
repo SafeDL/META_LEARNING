@@ -13,4 +13,4 @@
 - 分开报告 `meta_test_template`（ID，已知逻辑类型）和 `meta_test_logical`（OOD，未见逻辑类型）；
 - 通过当前契约测试、输入哈希与无梯度评估审计。
 
-实现与重跑说明见 [`../../pearl_learning/README.md`](../../pearl_learning/README.md)。
+实现与重跑说明见 [`../../archives/pearl_learning/README.md`](../../archives/pearl_learning/README.md)。
