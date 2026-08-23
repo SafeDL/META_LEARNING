@@ -31,6 +31,7 @@ from ..training.workflow import StagedWorkflow
 
 
 ADAPTERS = {"merge": MergeScenarioAdapter(), "cutin": CutInScenarioAdapter(), "roundabout": RoundaboutScenarioAdapter()}
+CHECKPOINT_CONFIG_KEYS = ("schema", "taskbook", "model", "map", "inner", "posterior", "inner_calibration", "outer", "training")
 
 
 def resolve_device(value: str) -> torch.device:
@@ -47,6 +48,10 @@ def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def checkpoint_config_hash(config: dict[str, Any]) -> str:
+    return content_hash({key: config[key] for key in CHECKPOINT_CONFIG_KEYS if key in config})
 
 
 def _rng_state() -> dict[str, Any]:
@@ -147,13 +152,28 @@ def _restore(model: HierarchicalMetaTester, optimizer: torch.optim.Optimizer, pa
 
 
 def _save(path: Path, *, stage: str, config: dict[str, Any], model: HierarchicalMetaTester, optimizer: torch.optim.Optimizer | None, progress: dict[str, Any], metrics: dict[str, Any], device: torch.device, inner_replay: InnerReplay | None = None) -> None:
-    state: dict[str, Any] = {"model": model.state_dict(), "progress": progress, "rng_state": _rng_state()}
+    state: dict[str, Any] = {
+        "model": model.state_dict(),
+        "progress": progress,
+        "rng_state": _rng_state(),
+        "provenance_config": config,
+    }
     if optimizer is not None:
         state["optimizer"] = optimizer.state_dict()
     if inner_replay is not None:
         state["inner_replay"] = list(inner_replay.rows)
-    HierarchicalCheckpoint(HierarchicalCheckpoint.SCHEMA, stage, content_hash(config), state).save(path)
-    path.with_suffix(".json").write_text(json.dumps({"stage": stage, "device": str(device), "seed": config["seed"], "metrics": metrics, "progress": progress}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    compatibility_hash = checkpoint_config_hash(config)
+    HierarchicalCheckpoint(HierarchicalCheckpoint.SCHEMA, stage, compatibility_hash, state).save(path)
+    summary = {
+        "stage": stage,
+        "device": str(device),
+        "seed": config["seed"],
+        "compatibility_hash": compatibility_hash,
+        "config": config,
+        "metrics": metrics,
+        "progress": progress,
+    }
+    path.with_suffix(".json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def _inner_replay(settings: dict[str, Any], rows: list[Any] | None) -> InnerReplay:
@@ -213,7 +233,7 @@ def _train_posterior(model: HierarchicalMetaTester, tasks: list[MetaTestTaskSpec
             raise ValueError("posterior episode_budget cannot be partitioned into held-out K groups")
         support_count = random.choice(choices)
         task = tasks[index % len(tasks)]
-        result = _online(model, task, int(config["training"]["step_budget"])).run(task, support_count + 1)
+        result = _online(model, task, int(config["training"]["step_budget"])).run(task, support_count + 1, posterior_support_limit=0)
         loss = model.posterior_loss(posterior_batch_from_episodes(model, result.episodes))
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
@@ -244,7 +264,7 @@ def run(stage: TrainingStage, argv: list[str] | None = None) -> None:
     active = workflow.activate(stage)
     section = {TrainingStage.INNER_PRETRAIN: "inner", TrainingStage.INNER_CALIBRATION: "inner_calibration", TrainingStage.POSTERIOR: "posterior", TrainingStage.OUTER: "outer", TrainingStage.LIGHT_JOINT: "light_joint"}[stage]
     optimizer = _optimizer(model, active, float(config.get(section, {}).get("learning_rate", config.get("training", {}).get("learning_rate", 3e-4))))
-    previous = _restore(model, optimizer, args.resume, content_hash(config), device, stage)
+    previous = _restore(model, optimizer, args.resume, checkpoint_config_hash(config), device, stage)
     workflow.activate(stage)
     tasks = _tasks(config, taskbook, "meta_train", "meta_train")
     trainer = {TrainingStage.INNER_PRETRAIN: _train_inner, TrainingStage.INNER_CALIBRATION: _train_inner_calibration, TrainingStage.POSTERIOR: _train_posterior, TrainingStage.OUTER: _train_outer}.get(stage)
@@ -263,7 +283,7 @@ def run(stage: TrainingStage, argv: list[str] | None = None) -> None:
 def evaluate(argv: list[str] | None = None) -> None:
     args = _parser(evaluation=True).parse_args(argv)
     config, taskbook, device = _load_config(args)
-    checkpoint = HierarchicalCheckpoint.load(args.checkpoint, expected_config_hash=content_hash(config))
+    checkpoint = HierarchicalCheckpoint.load(args.checkpoint, expected_config_hash=checkpoint_config_hash(config))
     model = _model(config, device)
     model.load_state_dict(checkpoint.state["model"])
     model.eval()
