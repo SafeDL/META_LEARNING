@@ -7,6 +7,7 @@ import torch
 from torch import nn
 import yaml
 
+from meta_testing.evaluation.run import evaluate
 from meta_testing.model import HierarchicalMetaTester
 from meta_testing.scenario.catalog import mvr_parameter_spaces
 from meta_testing.scenario.task_spec import MetaTestTaskSpec
@@ -103,6 +104,25 @@ def test_default_inner_updates_and_calibration_budget_are_explicit() -> None:
     assert config["inner_latent_calibration"]["updates_per_episode"] == 8
     assert config["inner_latent_calibration"]["simulator_episode_budget"] == 16
     assert config["outer"]["episodes_per_task"] == 20
+    assert "information_gain_weight" not in config["outer"]
+    assert {"confidence_level", "bootstrap_samples"}.isdisjoint(config["evaluation"])
+
+
+def test_formal_evaluation_rejects_non_outer_checkpoint(monkeypatch) -> None:
+    checkpoint = HierarchicalCheckpoint(
+        HierarchicalCheckpoint.SCHEMA,
+        TrainingStage.POSTERIOR.value,
+        "hash",
+        {},
+    )
+    monkeypatch.setattr(
+        "meta_testing.evaluation.run.load_config",
+        lambda path: ({}, Path("taskbook.json"), torch.device("cpu")),
+    )
+    monkeypatch.setattr("meta_testing.evaluation.run.checkpoint_config_hash", lambda config: "hash")
+    monkeypatch.setattr("meta_testing.evaluation.run.HierarchicalCheckpoint.load", lambda *args, **kwargs: checkpoint)
+    with pytest.raises(ValueError, match="formal evaluation requires an outer checkpoint"):
+        evaluate(["--checkpoint", "posterior.pt", "--output", "metrics.json"])
 
 
 def test_posterior_collection_stays_at_the_prior(monkeypatch) -> None:
@@ -141,7 +161,9 @@ def test_pipeline_records_stage_order(tmp_path, monkeypatch) -> None:
     config = yaml.safe_load(Path("meta_testing/configs/mvr.yaml").read_text(encoding="utf-8"))
     task = MetaTestTaskSpec("task", "meta_train", "idm_cautious", "merge", "map", "a" * 64, "template", "merge_v1", 1)
     pipeline = MVRTrainingPipeline(config, Path("meta_testing/configs/idm_taskbook.json"), torch.device("cpu"))
+    seeds = []
     monkeypatch.setattr("meta_testing.training.pipeline.selected_tasks", lambda *args: [task])
+    monkeypatch.setattr("meta_testing.training.pipeline.seed_everything", seeds.append)
     monkeypatch.setattr(pipeline, "_train_stage", lambda stage, tasks, optimizer: {"simulator_episodes_consumed": 0})
     manifest = pipeline.run(tmp_path)
     stages = yaml.safe_load(manifest.read_text(encoding="utf-8"))["stages"]
@@ -153,3 +175,8 @@ def test_pipeline_records_stage_order(tmp_path, monkeypatch) -> None:
     )]
     checkpoint = HierarchicalCheckpoint.load(tmp_path / "outer.pt")
     assert checkpoint.state["taskbook_hash"] == taskbook_hash("meta_testing/configs/idm_taskbook.json")
+    assert seeds == [11, 12, 13, 14]
+
+    seeds.clear()
+    pipeline.run(tmp_path, resume=tmp_path / "posterior.pt")
+    assert seeds == [13, 14]

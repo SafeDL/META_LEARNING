@@ -216,6 +216,8 @@ class MVRTrainingPipeline:
             if predecessor is not None:
                 previous_stage = TrainingStage(HierarchicalCheckpoint.load(predecessor).stage)
             validate_stage_transition(stage, previous_stage)
+            stage_seed = int(self.config["seed"]) + index
+            seed_everything(stage_seed)
             active = self.workflow.activate(stage)
             settings = _stage_settings(self.config, stage)
             optimizer = _optimizer(
@@ -235,7 +237,14 @@ class MVRTrainingPipeline:
                 self.taskbook,
             )
             predecessor = checkpoint_path
-            records.append({"stage": stage.value, "checkpoint": checkpoint_path.name, "metrics": metrics})
+            records.append(
+                {
+                    "stage": stage.value,
+                    "seed": stage_seed,
+                    "checkpoint": checkpoint_path.name,
+                    "metrics": metrics,
+                }
+            )
         manifest = output_path / "manifest.json"
         manifest.write_text(
             json.dumps(

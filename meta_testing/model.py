@@ -1,4 +1,4 @@
-"""The single model-level contract used by P0-B/C training and evaluation."""
+"""The single model-level contract used by training and evaluation."""
 from __future__ import annotations
 
 from typing import Mapping

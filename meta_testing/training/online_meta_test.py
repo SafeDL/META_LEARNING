@@ -62,7 +62,7 @@ class OnlineMetaTest:
 
     def run(self, task: MetaTestTaskSpec, budget: int, *, deterministic: bool = False, posterior_support_limit: int | None = None) -> OnlineMetaTestResult:
         if budget < 1 or self.model.outer_history_dim != 0:
-            raise ValueError("P0 online meta-test requires a positive budget and zero outer history")
+            raise ValueError("online meta-test requires a positive budget and zero outer history")
         if self.model.state_dim != PhysicalStateExtractor.dimension:
             raise ValueError("online Inner rollout requires the physical state schema")
         if posterior_support_limit is not None and not 0 <= posterior_support_limit <= budget:

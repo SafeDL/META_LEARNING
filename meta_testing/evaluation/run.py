@@ -20,6 +20,7 @@ from ..training.pipeline import (
     seed_everything,
     selected_tasks,
 )
+from ..training.stages import TrainingStage
 from ..training.trainers import build_online
 from .budget_protocol import BudgetProtocol
 
@@ -32,6 +33,8 @@ def evaluate(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     config, taskbook, device = load_config(args.config)
     checkpoint = HierarchicalCheckpoint.load(args.checkpoint, expected_config_hash=checkpoint_config_hash(config))
+    if checkpoint.stage != TrainingStage.OUTER.value:
+        raise ValueError("formal evaluation requires an outer checkpoint")
     assert_taskbook_compatible(checkpoint, taskbook)
     model = build_model(config, device)
     model.load_state_dict(checkpoint.state["model"])
