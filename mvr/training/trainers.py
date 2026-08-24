@@ -18,6 +18,7 @@ from .meta_sampler import MetaTaskSampler
 from .posterior_data import posterior_batch_from_episodes
 from .replay import InnerReplay
 from .runner import HierarchicalRunner
+from .stage1_sampling import PretrainSceneSampler
 from .updates import update_inner_sac, update_outer_ppo
 
 
@@ -56,16 +57,30 @@ def train_inner(
     optimizer: torch.optim.Optimizer,
 ) -> tuple[dict[str, Any], InnerReplay]:
     settings = dict(config["inner"])
-    budget, max_steps = int(settings["episode_budget"]), int(config["training"]["step_budget"])
+    episodes_per_task = int(settings["episodes_per_task"])
+    if episodes_per_task < 1:
+        raise ValueError("inner episodes_per_task must be positive")
+    max_steps = int(config["training"]["step_budget"])
     replay, losses = _replay(settings, None), []
     sampler = MetaTaskSampler(tasks)
-    for _ in range(budget):
-        task = sampler.sample()
-        result = build_online(model, task, max_steps, criteria).run(task, 1)
+    scene_sampler = PretrainSceneSampler(tuple(tasks), episodes_per_task, int(config["seed"]))
+    episodes = []
+    transitions_collected = 0
+    for task in sampler.shuffled_epoch():
+        result = build_online(model, task, max_steps, criteria).run(
+            task,
+            episodes_per_task,
+            posterior_support_limit=0,
+            scene_action_provider=scene_sampler,
+        )
         for row in result.inner_transitions:
             replay.add(row)
+        transitions_collected += len(result.inner_transitions)
+        episodes.extend((task, episode) for episode in result.episodes)
         _update_inner(model, replay, optimizer, settings, losses)
-    return _inner_metrics(budget, replay, losses), replay
+    return _inner_metrics(
+        len(episodes), replay, losses, episodes, transitions_collected,
+    ), replay
 
 
 def train_inner_latent_calibration(
@@ -102,14 +117,75 @@ def train_inner_latent_calibration(
 
 
 def _inner_metrics(
-    episodes: int, replay: InnerReplay, losses: list[dict[str, float]]
+    episodes: int,
+    replay: InnerReplay,
+    losses: list[dict[str, float]],
+    episode_records: list[tuple[ScenarioMiningTaskSpec, Any]] | None = None,
+    transitions_collected: int | None = None,
 ) -> dict[str, Any]:
-    return {
+    records = list(episode_records or ())
+    task_counts = {task.task_id: 0 for task, _ in records}
+    family_counts: dict[str, int] = {}
+    geometry_counts: dict[str, int] = {}
+    sut_counts: dict[str, int] = {}
+    candidate_counts: dict[str, int] = {}
+    option_counts: dict[str, int] = {}
+    returns, valid, failures, min_ttc, min_distance, closing = [], [], [], [], [], []
+    action_values, saturated = [], []
+    for task, episode in records:
+        task_counts[task.task_id] += 1
+        family_counts[task.functional_scenario] = family_counts.get(task.functional_scenario, 0) + 1
+        geometry_counts[task.geometry_id] = geometry_counts.get(task.geometry_id, 0) + 1
+        sut_counts[task.sut_ref] = sut_counts.get(task.sut_ref, 0) + 1
+        scenario = episode.concrete_scenario
+        candidate_counts[scenario.candidate_id] = candidate_counts.get(scenario.candidate_id, 0) + 1
+        option_counts[scenario.option] = option_counts.get(scenario.option, 0) + 1
+        returns.append(sum(float(row["reward_inner"]) for row in episode.rollout.transitions))
+        valid.append(float(episode.rollout.signature.is_valid_episode))
+        failures.append(float(episode.rollout.signature.is_failure))
+        outcome = episode.rollout.outcome
+        min_ttc.append(float(outcome.get("min_ttc", 0.0)))
+        min_distance.append(float(outcome.get("min_distance", 0.0)))
+        closing.append(float(outcome.get("max_closing_speed", 0.0)))
+        for row in episode.rollout.transitions:
+            action = np.asarray(row["action"], dtype=np.float32)
+            action_values.extend(np.abs(action).tolist())
+            saturated.extend((np.abs(action) > 0.95).tolist())
+
+    def mean(values: list[float]) -> float:
+        return float(np.mean(values)) if values else 0.0
+
+    actor = [value["inner_actor_loss"] for value in losses if "inner_actor_loss" in value]
+    critic = [value["inner_critic_loss"] for value in losses if "inner_critic_loss" in value]
+    alpha = [value["inner_alpha_loss"] for value in losses if "inner_alpha_loss" in value]
+    metrics = {
         "simulator_episodes_consumed": episodes,
-        "transitions": len(replay.rows),
+        "transitions": transitions_collected if transitions_collected is not None else len(replay.rows),
+        "replay_transitions": len(replay.rows),
         "optimizer_updates": len(losses),
         "last_loss": losses[-1] if losses else {},
+        "task_episode_counts": task_counts,
+        "family_episode_counts": family_counts,
+        "geometry_episode_counts": geometry_counts,
+        "sut_episode_counts": sut_counts,
+        "candidate_episode_counts": candidate_counts,
+        "option_episode_counts": option_counts,
+        "mean_inner_episode_return": mean(returns),
+        "mean_valid_rate": mean(valid),
+        "mean_failure_rate": mean(failures),
+        "mean_min_ttc": mean(min_ttc),
+        "mean_min_distance": mean(min_distance),
+        "mean_max_closing_speed": mean(closing),
+        "actor_loss_mean": mean(actor),
+        "actor_loss_last": actor[-1] if actor else None,
+        "critic_loss_mean": mean(critic),
+        "critic_loss_last": critic[-1] if critic else None,
+        "alpha_loss_mean": mean(alpha),
+        "alpha_loss_last": alpha[-1] if alpha else None,
+        "action_abs_mean": mean(action_values),
+        "action_saturation_rate": mean([float(value) for value in saturated]),
     }
+    return metrics
 
 
 def train_posterior(

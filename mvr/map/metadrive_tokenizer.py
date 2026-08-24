@@ -33,7 +33,13 @@ def tokenize_road_network(road_network: Any, *, points_per_polyline: int = 16) -
     payload = []
     for lane_index, lane in rows:
         xy, headings, curvature = _resample_lane(lane, points_per_polyline)
-        payload.append({"lane_index": list(map(str, lane_index)), "points": xy.round(6).tolist()})
+        payload.append({
+            "lane_index": list(map(str, lane_index)),
+            "polyline_type": type(lane).__name__,
+            "points": xy.round(6).tolist(),
+            "lane_width": round(float(getattr(lane, "width", 3.5)), 6),
+            "speed_limit": round(float(getattr(lane, "speed_limit", 0.0)), 6),
+        })
         polylines.append(MapPolyline(
             polyline_id="|".join(map(str, lane_index)), polyline_type=type(lane).__name__, points_xy=xy,
             headings=headings, curvature=curvature, lane_width=float(getattr(lane, "width", 3.5)),

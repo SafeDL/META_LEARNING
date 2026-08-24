@@ -76,19 +76,17 @@ class ScenarioExecutor:
                 layout_env, {"route_id": "sut", "lane_sequence": layout.sut_route}
             )
             resolved = dict(config)
-            resolved["adversary_spawn_m"] = adapter.spawn_from_conflict_distance(
-                adversary_route,
-                layout.conflict_xy,
-                float(config["adversary_distance_to_conflict_m"]),
-            )
-            resolved["sut_spawn_m"] = adapter.spawn_from_conflict_distance(
-                sut_route,
-                layout.conflict_xy,
-                float(config["sut_distance_to_conflict_m"]),
-            )
             for name, route in (("adversary", adversary_route), ("sut", sut_route)):
-                if float(resolved[f"{name}_spawn_m"]) > route.lane_end_s_m[0]:
-                    raise ValueError(f"{name} spawn must remain on its selected start lane")
+                distance_key = f"{name}_distance_to_conflict_m"
+                conflict_s = route.conflict_s(layout.conflict_xy)
+                lower = max(0.0, conflict_s - route.lane_end_s_m[0] + 1e-3)
+                upper = max(lower, conflict_s)
+                requested = float(config[distance_key])
+                applied_distance = float(np.clip(requested, lower, upper))
+                resolved[distance_key] = applied_distance
+                resolved[f"{name}_spawn_m"] = adapter.spawn_from_conflict_distance(
+                    route, layout.conflict_xy, applied_distance
+                )
             return layout, resolved
         finally:
             layout_env.close()

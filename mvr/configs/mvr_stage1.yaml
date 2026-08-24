@@ -14,21 +14,16 @@ training:
   family_filter: all
   step_budget: 240
   learning_rate: 0.0003
-evaluation:
-  total_episode_budget: 20
-  support_shots: [0, 1, 2, 4]
-  seeds: [11, 22, 33]
-  deterministic: false
-  regimes: [R1_seen_sut_seen_geometry, R2_unseen_sut_seen_geometry, R3_seen_sut_unseen_geometry, R4_unseen_sut_unseen_geometry]
 failure:
   severity_thresholds: {ttc_s: 5.0, distance_m: 10.0, closing_speed_mps: 20.0}
   severity_bins: 5
 inner:
   algorithm: option_conditioned_sac
   action_dim: 2
-  batch_size: 64
+  sampling: balanced_low_discrepancy
   episodes_per_task: 5
   updates_per_episode: 8
+  batch_size: 64
   replay_capacity: 100000
   learning_rate: 0.0003
 inner_latent_calibration:
@@ -54,3 +49,9 @@ map:
   polyline_points: 16
   embedding_dim: 128
   cache_embeddings_only_when_frozen: true
+evaluation:
+  total_episode_budget: 20
+  support_shots: [0, 1, 2, 4]
+  seeds: [11, 22, 33]
+  deterministic: false
+  regimes: [R1_seen_sut_seen_geometry, R2_unseen_sut_seen_geometry, R3_seen_sut_unseen_geometry, R4_unseen_sut_unseen_geometry]

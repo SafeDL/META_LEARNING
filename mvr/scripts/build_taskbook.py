@@ -78,14 +78,24 @@ def build_taskbook(output: str | Path) -> Path:
                 geometry_split=geometry.split,
             )
             tasks.append(task.to_dict())
-    train_hashes = {
-        row["geometry_hash"] for row in tasks if row["geometry_split"] == "train"
+    hashes_by_split = {
+        split: {row["geometry_hash"] for row in tasks if row["geometry_split"] == split}
+        for split in ("train", "validation", "test")
     }
-    test_hashes = {
-        row["geometry_hash"] for row in tasks if row["geometry_split"] == "test"
-    }
-    if not train_hashes or not test_hashes or train_hashes & test_hashes:
-        raise RuntimeError("geometry train/test hashes must be non-empty and disjoint")
+    for left, right in (("train", "validation"), ("train", "test"), ("validation", "test")):
+        if not hashes_by_split[left] or hashes_by_split[left] & hashes_by_split[right]:
+            raise RuntimeError(f"geometry {left}/{right} hashes must be non-empty and disjoint")
+    expected_counts = {"train": 3, "validation": 1, "test": 1}
+    for family in {geometry.functional_scenario for geometry in geometries}:
+        for split, expected in expected_counts.items():
+            actual = {
+                row["geometry_hash"] for row in tasks
+                if row["functional_scenario"] == family and row["geometry_split"] == split
+            }
+            if len(actual) != expected:
+                raise RuntimeError(
+                    f"{family} requires {expected} unique {split} geometries, got {len(actual)}"
+                )
     path = Path(output)
     path.write_text(json.dumps(tasks, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path

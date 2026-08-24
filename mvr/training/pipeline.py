@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import random
+import subprocess
 from typing import Any, Iterable
 
 import numpy as np
@@ -155,6 +157,17 @@ def _save_stage(
     }
     compatibility_hash = checkpoint_config_hash(config)
     HierarchicalCheckpoint(HierarchicalCheckpoint.SCHEMA, stage.value, compatibility_hash, state).save(path)
+    checkpoint_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    try:
+        git_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path.cwd(),
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        git_commit = "unknown"
     path.with_suffix(".json").write_text(
         json.dumps(
             {
@@ -162,7 +175,10 @@ def _save_stage(
                 "device": str(device),
                 "seed": config["seed"],
                 "compatibility_hash": compatibility_hash,
+                "config_hash": compatibility_hash,
                 "taskbook_hash": taskbook_digest,
+                "checkpoint_hash": checkpoint_digest,
+                "git_commit": git_commit,
                 "config": config,
                 "metrics": metrics,
             },
@@ -172,6 +188,23 @@ def _save_stage(
         + "\n",
         encoding="utf-8",
     )
+    if stage is TrainingStage.INNER_PRETRAIN:
+        coverage = {
+            "task_episode_counts": metrics.get("task_episode_counts", {}),
+            "family_episode_counts": metrics.get("family_episode_counts", {}),
+            "geometry_episode_counts": metrics.get("geometry_episode_counts", {}),
+            "sut_episode_counts": metrics.get("sut_episode_counts", {}),
+            "candidate_episode_counts": metrics.get("candidate_episode_counts", {}),
+            "option_episode_counts": metrics.get("option_episode_counts", {}),
+        }
+        path.with_name("coverage.json").write_text(
+            json.dumps(coverage, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        path.with_name("validation.json").write_text(
+            json.dumps({"stage": stage.value, "status": "pending", "metrics": metrics}, indent=2, ensure_ascii=False)
+            + "\n",
+            encoding="utf-8",
+        )
 
 
 class MVRTrainingPipeline:
@@ -214,16 +247,32 @@ class MVRTrainingPipeline:
         result = trainers[stage](self.model, tasks, self.config, self.criteria, optimizer)
         return result[0] if isinstance(result, tuple) else result
 
-    def run(self, output: str | Path, *, resume: str | Path | None = None) -> Path:
+    def run(
+        self,
+        output: str | Path,
+        *,
+        resume: str | Path | None = None,
+        stop_after: TrainingStage | str | None = None,
+    ) -> Path:
         output_path = Path(output)
         output_path.mkdir(parents=True, exist_ok=True)
         tasks = selected_tasks(self.config, self.taskbook, "train", "train")
         start = self._load_resume(resume)
         if start == len(CANONICAL_STAGES):
             raise ValueError("the resume checkpoint already completed the canonical pipeline")
+        if stop_after is None:
+            stop_index = len(CANONICAL_STAGES) - 1
+        else:
+            try:
+                stop_stage = stop_after if isinstance(stop_after, TrainingStage) else TrainingStage(stop_after)
+            except ValueError as error:
+                raise ValueError(f"unknown stop-after stage: {stop_after!r}") from error
+            stop_index = CANONICAL_STAGES.index(stop_stage)
+            if stop_index < start:
+                raise ValueError("stop-after stage precedes the resume checkpoint")
         records = []
         predecessor = Path(resume) if resume is not None else None
-        for index, stage in enumerate(CANONICAL_STAGES[start:], start=start):
+        for index, stage in enumerate(CANONICAL_STAGES[start:stop_index + 1], start=start):
             previous_stage = None
             if predecessor is not None:
                 previous_stage = TrainingStage(HierarchicalCheckpoint.load(predecessor).stage)
@@ -262,6 +311,7 @@ class MVRTrainingPipeline:
             json.dumps(
                 {
                     "stages": records,
+                    "stop_after": records[-1]["stage"] if records else None,
                     "compatibility_hash": checkpoint_config_hash(self.config),
                     "taskbook": str(self.taskbook),
                     "taskbook_hash": taskbook_hash(self.taskbook),
@@ -280,6 +330,9 @@ def train(argv: list[str] | None = None) -> None:
     parser.add_argument("--config", default="mvr/configs/mvr.yaml")
     parser.add_argument("--output", required=True)
     parser.add_argument("--resume")
+    parser.add_argument("--stop-after", choices=[stage.value for stage in CANONICAL_STAGES])
     args = parser.parse_args(argv)
     config, taskbook, device = load_config(args.config)
-    MVRTrainingPipeline(config, taskbook, device).run(args.output, resume=args.resume)
+    MVRTrainingPipeline(config, taskbook, device).run(
+        args.output, resume=args.resume, stop_after=args.stop_after
+    )

@@ -5,6 +5,7 @@ import argparse
 from dataclasses import replace
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import yaml
@@ -18,6 +19,11 @@ from ..scenario.registry import load_adapters
 from ..scenario.taskbook import load_taskbook
 from ..sut.registry import default_registry
 from ..training.runner import HierarchicalRunner
+from ..training.checkpoint import HierarchicalCheckpoint
+from ..training.pipeline import assert_taskbook_compatible, build_model, checkpoint_config_hash, load_config
+from ..training.stage1_sampling import PretrainSceneSampler
+from ..training.stages import TrainingStage
+from ..training.trainers import build_online
 from ..validation.gates import gate_sut_heterogeneity
 
 
@@ -121,13 +127,140 @@ def run(taskbook: str | Path, criteria: FailureCriteria, *, configurations: int 
     }
 
 
+def run_inner_validation(
+    config: dict[str, Any],
+    taskbook: str | Path,
+    checkpoint_path: str | Path,
+    device: Any,
+    criteria: FailureCriteria,
+    *,
+    cases_per_task: int = 16,
+) -> dict[str, object]:
+    checkpoint = HierarchicalCheckpoint.load(
+        checkpoint_path, expected_config_hash=checkpoint_config_hash(config)
+    )
+    if checkpoint.stage != TrainingStage.INNER_PRETRAIN.value:
+        raise ValueError("Inner validation requires an inner_pretrain checkpoint")
+    assert_taskbook_compatible(checkpoint, taskbook)
+    model = build_model(config, device)
+    model.load_state_dict(checkpoint.state["model"])
+    model.eval()
+    family = str(config["training"].get("family_filter", "all"))
+    tasks = [
+        task for task in load_taskbook(taskbook)
+        if task.sut_split == "validation"
+        and task.geometry_split == "validation"
+        and task.functional_split == "train"
+        and (family == "all" or task.functional_scenario == family)
+    ]
+    if not tasks:
+        raise ValueError("taskbook has no validation SUT + validation geometry tasks")
+
+    def evaluate_policy(name: str, action_provider: Any = None) -> dict[str, object]:
+        sampler = PretrainSceneSampler(tuple(tasks), cases_per_task, int(config["seed"]))
+        records: list[dict[str, object]] = []
+        for task in tasks:
+            result = build_online(
+                model, task, int(config["training"]["step_budget"]), criteria
+            ).run(
+                task,
+                cases_per_task,
+                deterministic=True,
+                posterior_support_limit=0,
+                scene_action_provider=sampler,
+                inner_action_provider=action_provider,
+            )
+            for episode in result.episodes:
+                records.append(
+                    {
+                        "family": task.functional_scenario,
+                        "signature": episode.rollout.signature,
+                        "outcome": episode.rollout.outcome,
+                        "episode_return": sum(
+                            float(row["reward_inner"])
+                            for row in episode.rollout.transitions
+                        ),
+                    }
+                )
+
+        def summarize(rows: list[dict[str, object]]) -> dict[str, object]:
+            signatures = [row["signature"] for row in rows]
+            outcomes = [row["outcome"] for row in rows]
+            valid = [float(signature.is_valid_episode) for signature in signatures]
+            failures = [float(signature.is_failure) for signature in signatures]
+            return {
+                "episodes": len(rows),
+                "valid_rate": float(np.mean(valid)),
+                "invalid_rate": float(1.0 - np.mean(valid)),
+                "valid_critical_rate": float(np.mean(failures)),
+                "target_collision_rate": float(
+                    np.mean([float(row.get("target_collision", False)) for row in outcomes])
+                ),
+                "near_miss_rate": float(
+                    np.mean([float(row.get("valid_critical_near_miss", False)) for row in outcomes])
+                ),
+                "median_min_ttc": float(
+                    np.median([float(row.get("min_ttc", 0.0)) for row in outcomes])
+                ),
+                "median_min_distance": float(
+                    np.median([float(row.get("min_distance", 0.0)) for row in outcomes])
+                ),
+                "max_closing_speed": float(
+                    np.max([float(row.get("max_closing_speed", 0.0)) for row in outcomes])
+                ),
+                "mean_inner_episode_return": float(
+                    np.mean([float(row["episode_return"]) for row in rows])
+                ),
+            }
+
+        by_family = {
+            family: summarize([row for row in records if row["family"] == family])
+            for family in sorted({str(row["family"]) for row in records})
+        }
+        return {
+            "policy": name,
+            **summarize(records),
+            "by_family": by_family,
+        }
+
+    random_rng = np.random.default_rng(int(config["seed"]) + 1)
+    reports = [
+        evaluate_policy("zero", lambda _: np.zeros(2, dtype=np.float32)),
+        evaluate_policy("random", lambda _: random_rng.uniform(-1.0, 1.0, 2).astype(np.float32)),
+        evaluate_policy("trained_inner"),
+    ]
+    return {
+        "mode": "inner",
+        "regime": "V4_validation_sut_validation_geometry",
+        "cases_per_task": cases_per_task,
+        "tasks": [task.task_id for task in tasks],
+        "policies": reports,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="mvr/configs/mvr.yaml")
+    parser.add_argument("--checkpoint")
+    parser.add_argument("--mode", choices=("g3", "inner"), default="g3")
+    parser.add_argument("--cases-per-task", type=int, default=16)
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
-    report = run(config["taskbook"], FailureCriteria.from_config(config["failure"]))
+    if args.mode == "inner":
+        if not args.checkpoint:
+            parser.error("--checkpoint is required for --mode inner")
+        _, taskbook, device = load_config(args.config)
+        report = run_inner_validation(
+            config,
+            taskbook,
+            args.checkpoint,
+            device,
+            FailureCriteria.from_config(config["failure"]),
+            cases_per_task=args.cases_per_task,
+        )
+    else:
+        report = run(config["taskbook"], FailureCriteria.from_config(config["failure"]))
     Path(args.output).write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 

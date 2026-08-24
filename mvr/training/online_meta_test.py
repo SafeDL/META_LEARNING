@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 import torch
@@ -11,6 +11,7 @@ from ..context.outcome_schema import encode_outcome
 from ..failure.novelty import NoveltyTracker
 from ..failure.reward import outer_reward
 from ..model import TransferableScenarioMiner
+from ..policy.universal_scene_policy import UniversalSceneAction
 from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.concrete import ConcreteScenario
 from ..scenario.executor import ScenarioExecutor
@@ -76,7 +77,16 @@ class OnlineMetaTest:
             self._scene_cache[task.geometry_hash] = (tokens, candidates, encoding)
         return tokens, candidates, encoding
 
-    def run(self, task: ScenarioMiningTaskSpec, budget: int, *, deterministic: bool = False, posterior_support_limit: int | None = None) -> OnlineMetaTestResult:
+    def run(
+        self,
+        task: ScenarioMiningTaskSpec,
+        budget: int,
+        *,
+        deterministic: bool = False,
+        posterior_support_limit: int | None = None,
+        scene_action_provider: Callable[[ScenarioMiningTaskSpec, int, tuple[Any, ...], Any], NormalizedScenarioAction] | None = None,
+        inner_action_provider: Callable[[np.ndarray], np.ndarray] | None = None,
+    ) -> OnlineMetaTestResult:
         if budget < 1:
             raise ValueError("online meta-test requires a positive budget")
         if self.model.state_dim != PhysicalStateExtractor.dimension:
@@ -93,8 +103,20 @@ class OnlineMetaTest:
         result = OnlineMetaTestResult([], [], OuterRolloutBuffer())
         novelty = NoveltyTracker()
         for index in range(budget):
-            with torch.no_grad():
-                scene = self.model.select_scene(encoding, latent, deterministic=deterministic)
+            if scene_action_provider is None:
+                with torch.no_grad():
+                    scene = self.model.select_scene(encoding, latent, deterministic=deterministic)
+            else:
+                provided = scene_action_provider(task, index, candidates, space)
+                provided.validate(space.continuous_dim)
+                scene = UniversalSceneAction(
+                    expert_index=torch.zeros(1, dtype=torch.long, device=device),
+                    candidate_index=torch.tensor([provided.candidate_index], dtype=torch.long, device=device),
+                    continuous=torch.as_tensor(provided.continuous, dtype=torch.float32, device=device).unsqueeze(0),
+                    option_index=torch.tensor([space.options.index(provided.option)], dtype=torch.long, device=device),
+                    log_prob=torch.zeros(1, dtype=torch.float32, device=device),
+                    value=torch.zeros(1, dtype=torch.float32, device=device),
+                )
             action = NormalizedScenarioAction(int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), space.options[int(scene.option_index.item())])
             episode_seed = task.geometry_seed + index
             episode = self.executor.reset(task, action, episode_seed=episode_seed)
@@ -107,6 +129,8 @@ class OnlineMetaTest:
             )
             option_index = scene.option_index.detach()
             def inner_action(state_values: np.ndarray) -> np.ndarray:
+                if inner_action_provider is not None:
+                    return np.asarray(inner_action_provider(state_values), dtype=np.float32)
                 state = torch.as_tensor(state_values, dtype=torch.float32, device=device).reshape(1, -1)
                 with torch.no_grad():
                     value = self.model.act_inner(state, scene_embedding.unsqueeze(0), latent, option_index, scene.continuous, deterministic=deterministic)

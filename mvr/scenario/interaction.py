@@ -23,14 +23,22 @@ class InteractionCandidate:
     sut_route_curvature: float
     adversary_route_curvature: float
     conflict_zone_id: str
+    sut_distance_min_m: float = 0.0
+    adversary_distance_min_m: float = 0.0
 
     def features(self) -> np.ndarray:
         """SE(2)-invariant descriptors; labels and family names are excluded."""
-        return np.asarray((
+        # Keep descriptor magnitudes comparable before the learned projection.
+        # Distances are bounded by the scenario parameter space and curvature is
+        # an angle-like quantity in radians.
+        values = np.asarray((
             math.sin(self.crossing_angle_rad), math.cos(self.crossing_angle_rad),
-            self.sut_distance_available_m, self.adversary_distance_available_m,
-            self.sut_route_curvature, self.adversary_route_curvature,
+            self.sut_distance_available_m / 100.0,
+            self.adversary_distance_available_m / 100.0,
+            self.sut_route_curvature / math.pi,
+            self.adversary_route_curvature / math.pi,
         ), dtype=np.float32)
+        return np.nan_to_num(values, nan=0.0, posinf=1.0, neginf=-1.0)
 
     @classmethod
     def from_layout(cls, env: Any, layout: ScenarioLayout) -> "InteractionCandidate":
@@ -55,4 +63,6 @@ class InteractionCandidate:
             layout.candidate, layout.sut_route, layout.adversary_route, layout.conflict_xy,
             angle, sut_s, adversary_s, curvature(sut, sut_s), curvature(adversary, adversary_s),
             layout.conflict_zone_id,
+            max(0.0, sut_s - sut.lane_end_s_m[0]),
+            max(0.0, adversary_s - adversary.lane_end_s_m[0]),
         )
