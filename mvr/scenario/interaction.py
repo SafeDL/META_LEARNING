@@ -46,6 +46,15 @@ class InteractionCandidate:
             env, {"route_id": "adversary", "lane_sequence": layout.adversary_route}
         )
         sut = RoutePolyline.from_env(env, {"route_id": "sut", "lane_sequence": layout.sut_route})
+        return cls.from_routes(layout, adversary, sut)
+
+    @classmethod
+    def from_routes(
+        cls,
+        layout: ScenarioLayout,
+        adversary: RoutePolyline,
+        sut: RoutePolyline,
+    ) -> "InteractionCandidate":
         adversary_s = adversary.conflict_s(layout.conflict_xy)
         sut_s = sut.conflict_s(layout.conflict_xy)
         adv_tangent = adversary.tangent_at_s(adversary_s)

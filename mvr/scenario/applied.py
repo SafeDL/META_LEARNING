@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .layout import LaneIndex
+from .route_geometry import RoutePolyline
 
 
 @dataclass(frozen=True)
@@ -37,4 +38,6 @@ class ExecutableEpisode:
     applied_scenario: AppliedScenario
     map_tokens: Any
     layout: Any
+    adversary_route: RoutePolyline
+    sut_route: RoutePolyline
     episode_seed: int | None = None

@@ -23,10 +23,20 @@ class TrajectoryFeatureExtractor:
         self._sut_conflict_s = 0.0
         self._previous_sut_speed: float | None = None
 
-    def reset(self, env: Any, layout: Any) -> None:
+    def reset(
+        self,
+        env: Any,
+        layout: Any,
+        adversary_route: RoutePolyline | None = None,
+        sut_route: RoutePolyline | None = None,
+    ) -> None:
         self._rows.clear()
-        self._adversary_route = RoutePolyline.from_env(env, {"route_id": "adversary", "lane_sequence": list(layout.adversary_route)})
-        self._sut_route = RoutePolyline.from_env(env, {"route_id": "sut", "lane_sequence": list(layout.sut_route)})
+        self._adversary_route = adversary_route or RoutePolyline.from_env(
+            env, {"route_id": "adversary", "lane_sequence": list(layout.adversary_route)}
+        )
+        self._sut_route = sut_route or RoutePolyline.from_env(
+            env, {"route_id": "sut", "lane_sequence": list(layout.sut_route)}
+        )
         self._adv_conflict_s = self._adversary_route.conflict_s(layout.conflict_xy)
         self._sut_conflict_s = self._sut_route.conflict_s(layout.conflict_xy)
         self._previous_sut_speed = None

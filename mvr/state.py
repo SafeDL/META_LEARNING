@@ -46,9 +46,19 @@ class PhysicalStateExtractor:
     def _eta(remaining_m: float, speed_mps: float) -> float:
         return float(np.clip(remaining_m / max(speed_mps, 0.25), -15.0, 15.0))
 
-    def reset(self, env: Any, layout: Any) -> None:
-        self._adversary_route = RoutePolyline.from_env(env, {"route_id": "adversary", "lane_sequence": list(layout.adversary_route)})
-        self._sut_route = RoutePolyline.from_env(env, {"route_id": "sut", "lane_sequence": list(layout.sut_route)})
+    def reset(
+        self,
+        env: Any,
+        layout: Any,
+        adversary_route: RoutePolyline | None = None,
+        sut_route: RoutePolyline | None = None,
+    ) -> None:
+        self._adversary_route = adversary_route or RoutePolyline.from_env(
+            env, {"route_id": "adversary", "lane_sequence": list(layout.adversary_route)}
+        )
+        self._sut_route = sut_route or RoutePolyline.from_env(
+            env, {"route_id": "sut", "lane_sequence": list(layout.sut_route)}
+        )
         self._adversary_conflict_s = self._adversary_route.conflict_s(layout.conflict_xy)
         self._sut_conflict_s = self._sut_route.conflict_s(layout.conflict_xy)
 

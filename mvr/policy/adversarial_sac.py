@@ -61,15 +61,29 @@ class OptionConditionedSAC(nn.Module):
         distribution = self.actor.distribution(features)
         return (distribution.mean if deterministic else distribution.rsample()).tanh()
 
-    def losses(self, features: torch.Tensor, action: torch.Tensor, reward: torch.Tensor, next_features: torch.Tensor, done: torch.Tensor, *, gamma: float = 0.99) -> SACLosses:
+    def critic_loss(self, features: torch.Tensor, action: torch.Tensor, reward: torch.Tensor, next_features: torch.Tensor, done: torch.Tensor, *, gamma: float = 0.99) -> torch.Tensor:
         with torch.no_grad():
             next_action, next_logprob = self.actor.sample(next_features)
             next_q = torch.minimum(self.target1(next_features, next_action), self.target2(next_features, next_action)) - self.alpha.detach() * next_logprob
             target = reward + gamma * (1.0 - done.float()) * next_q
-        critic = (self.critic1(features, action).sub(target).square() + self.critic2(features, action).sub(target).square()).mean()
-        sampled, logprob = self.actor.sample(features)
-        actor = (self.alpha.detach() * logprob - torch.minimum(self.critic1(features, sampled), self.critic2(features, sampled))).mean()
+        return (self.critic1(features, action).sub(target).square() + self.critic2(features, action).sub(target).square()).mean()
+
+    def actor_alpha_losses(self, features: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        critics = (*self.critic1.parameters(), *self.critic2.parameters())
+        for parameter in critics:
+            parameter.requires_grad_(False)
+        try:
+            sampled, logprob = self.actor.sample(features)
+            actor = (self.alpha.detach() * logprob - torch.minimum(self.critic1(features, sampled), self.critic2(features, sampled))).mean()
+        finally:
+            for parameter in critics:
+                parameter.requires_grad_(True)
         alpha = -(self.log_alpha * (logprob.detach() + self.target_entropy)).mean()
+        return actor, alpha
+
+    def losses(self, features: torch.Tensor, action: torch.Tensor, reward: torch.Tensor, next_features: torch.Tensor, done: torch.Tensor, *, gamma: float = 0.99) -> SACLosses:
+        critic = self.critic_loss(features, action, reward, next_features, done, gamma=gamma)
+        actor, alpha = self.actor_alpha_losses(features)
         return SACLosses(actor, critic, alpha)
 
     @torch.no_grad()

@@ -34,8 +34,8 @@ class HierarchicalRunner:
         extractor = trajectory_extractor or TrajectoryFeatureExtractor()
         reward_fn = reward_fn or InnerRiskReward(self.criteria)
         state_extractor = PhysicalStateExtractor()
-        extractor.reset(env, episode.layout)
-        state_extractor.reset(env, episode.layout)
+        extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
+        state_extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         for _ in range(self.max_steps):
             state = state_extractor(episode.adversary, episode.sut)
             action = np.asarray(inner_action(state), dtype=np.float32)

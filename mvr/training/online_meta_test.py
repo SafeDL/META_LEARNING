@@ -84,6 +84,7 @@ class OnlineMetaTest:
         *,
         deterministic: bool = False,
         posterior_support_limit: int | None = None,
+        episode_index_offset: int = 0,
         scene_action_provider: Callable[[ScenarioMiningTaskSpec, int, tuple[Any, ...], Any], NormalizedScenarioAction] | None = None,
         inner_action_provider: Callable[[np.ndarray], np.ndarray] | None = None,
     ) -> OnlineMetaTestResult:
@@ -93,6 +94,8 @@ class OnlineMetaTest:
             raise ValueError("online Inner rollout requires the physical state schema")
         if posterior_support_limit is not None and not 0 <= posterior_support_limit <= budget:
             raise ValueError("posterior support limit must lie within the episode budget")
+        if episode_index_offset < 0:
+            raise ValueError("episode index offset must be non-negative")
         space = mvr_parameter_spaces()[task.functional_scenario + "_v1"]
         tokens, candidates, encoding = self._scene_encoding(task)
         scene_embedding = encoding.global_embedding
@@ -103,11 +106,12 @@ class OnlineMetaTest:
         result = OnlineMetaTestResult([], [], OuterRolloutBuffer())
         novelty = NoveltyTracker()
         for index in range(budget):
+            episode_index = episode_index_offset + index
             if scene_action_provider is None:
                 with torch.no_grad():
                     scene = self.model.select_scene(encoding, latent, deterministic=deterministic)
             else:
-                provided = scene_action_provider(task, index, candidates, space)
+                provided = scene_action_provider(task, episode_index, candidates, space)
                 provided.validate(space.continuous_dim)
                 scene = UniversalSceneAction(
                     expert_index=torch.zeros(1, dtype=torch.long, device=device),
@@ -118,7 +122,7 @@ class OnlineMetaTest:
                     value=torch.zeros(1, dtype=torch.float32, device=device),
                 )
             action = NormalizedScenarioAction(int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), space.options[int(scene.option_index.item())])
-            episode_seed = task.geometry_seed + index
+            episode_seed = task.geometry_seed + episode_index
             episode = self.executor.reset(task, action, episode_seed=episode_seed)
             concrete = ConcreteScenario.from_applied(
                 task,
@@ -162,10 +166,10 @@ class OnlineMetaTest:
                 scene.continuous.squeeze(0).cpu(), scene.option_index.cpu(), scene.log_prob.cpu(),
                 scene.value.cpu(), reward, index + 1 == budget,
             ))
-            episode_id = f"{task.task_id}:{index}"
+            episode_id = f"{task.task_id}:{episode_index}"
             result.inner_transitions.extend(
                 InnerTransition(
-                    episode_id, row["state"], row["action"], row["reward_inner"], row["next_state"],
+                    episode_id, task.geometry_hash, row["state"], row["action"], row["reward_inner"], row["next_state"],
                     row["done"], tokens, candidates, latent.squeeze(0).detach().cpu(),
                     option_index.squeeze(0).detach().cpu(), scene.continuous.squeeze(0).detach().cpu(),
                 )

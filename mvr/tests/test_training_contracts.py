@@ -3,6 +3,7 @@ from __future__ import annotations
 import torch
 
 from mvr.model import TransferableScenarioMiner
+from mvr.policy.adversarial_sac import OptionConditionedSAC
 from mvr.training.replay import OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
 from mvr.training.updates import update_outer_ppo
@@ -28,3 +29,14 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
     buffer.finish()
     loss = update_outer_ppo(policy, buffer, torch.optim.Adam(policy.parameters(), lr=1e-3), epochs=1, batch_size=1)
     assert torch.isfinite(torch.tensor(loss))
+
+
+def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:
+    sac = OptionConditionedSAC(feature_dim=4, action_dim=2)
+    losses = sac.losses(
+        torch.randn(3, 4), torch.randn(3, 2).tanh(), torch.randn(3),
+        torch.randn(3, 4), torch.zeros(3, dtype=torch.bool),
+    )
+    losses.actor.backward()
+    assert all(parameter.grad is None for parameter in sac.critic1.parameters())
+    assert all(parameter.grad is None for parameter in sac.critic2.parameters())

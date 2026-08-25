@@ -11,6 +11,7 @@ import torch
 @dataclass(frozen=True)
 class InnerTransition:
     episode_id: str
+    geometry_hash: str
     state: Any
     action: Any
     reward: float

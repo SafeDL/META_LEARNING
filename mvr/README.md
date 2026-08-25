@@ -8,7 +8,7 @@ Each episode follows `Outer interaction/x0 action → MetaDrive execution → In
 
 ## Tasks and scope
 
-`configs/geometry_catalog.json` defines four concrete geometries per family: three train and one disjoint test geometry. `configs/taskbook.json` combines them with the IDM profile split. Regimes R1–R4 separate seen/unseen SUT from seen/unseen geometry.
+`configs/geometry_catalog.json` defines five concrete geometries per family: three train, one validation, and one disjoint test geometry. `configs/taskbook.json` combines them with the IDM profile split. Regimes R1–R4 separate seen/unseen SUT from seen/unseen geometry.
 
 ## Canonical pipeline
 
@@ -26,9 +26,8 @@ Evaluation JSON records each concrete scenario's geometry hash, conflict-relativ
 
 ```powershell
 python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
-python -m mvr.scripts.validate_mvr --config mvr/configs/mvr.yaml --output results/validation/g3.json
-python -m mvr.scripts.train_mvr --config mvr/configs/mvr.yaml --output results/mvr/run_001
-python -m mvr.scripts.evaluate_mvr --config mvr/configs/mvr.yaml --checkpoint results/mvr/run_001/outer.pt --output results/mvr/run_001/evaluation.json
+python -m mvr.scripts.train_mvr --config mvr/configs/mvr_stage1.yaml --output results/mvr/stage1_seed11 --stop-after inner_pretrain
+python -m mvr.scripts.validate_mvr --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt --mode inner --output results/mvr/stage1_seed11/validation.json
 ```
 
 ## Verification

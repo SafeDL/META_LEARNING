@@ -33,11 +33,9 @@ class SUTRegistry:
 
 def default_registry() -> SUTRegistry:
     from .idm import IDMSUTAdapter
-    from .rule_based import RuleBasedSUTAdapter
 
     registry = SUTRegistry()
     registry.register_adapter(IDMSUTAdapter())
-    registry.register_adapter(RuleBasedSUTAdapter())
     profiles = (
         ControllerProfile("idm_cautious", "idm", 7.0, False, 24.0, 3.0, 1.20, -2.0),
         ControllerProfile("idm_defensive", "idm", 10.0, False, 16.0, 2.2, 1.10, -3.0),

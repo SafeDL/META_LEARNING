@@ -26,11 +26,26 @@ class ScenarioAdapter(Protocol):
     def spawn_from_conflict_distance(self, route: RoutePolyline, conflict_xy: tuple[float, float], distance_to_conflict_m: float) -> float: ...
 
 
+@dataclass(frozen=True)
+class _CachedLayout:
+    layout: ScenarioLayout
+    adversary_route: RoutePolyline
+    sut_route: RoutePolyline
+
+
+@dataclass(frozen=True)
+class _StaticScene:
+    map_tokens: Any
+    candidates: tuple[InteractionCandidate, ...]
+    layouts: Mapping[str, _CachedLayout]
+
+
 @dataclass
 class ScenarioExecutor:
     adapters: Mapping[str, ScenarioAdapter]
     spaces: Mapping[str, ParameterSpace]
     sut_registry: SUTRegistry = field(default_factory=default_registry)
+    _static_scenes: dict[tuple[str, str], _StaticScene] = field(default_factory=dict, init=False, repr=False)
 
     @staticmethod
     def _adversary(env: Any) -> Any:
@@ -55,47 +70,44 @@ class ScenarioExecutor:
         if not np.isclose(ScenarioExecutor._speed_mps(vehicle), float(speed_mps), atol=0.25):
             raise RuntimeError("runtime vehicle initial speed differs from outer output")
 
-    def _resolve_layout(
-        self,
+    @staticmethod
+    def _static_key(task: ScenarioMiningTaskSpec) -> tuple[str, str]:
+        return task.adapter_id, task.geometry_hash
+
+    @staticmethod
+    def _resolve_spawn_config(
         adapter: ScenarioAdapter,
-        task: ScenarioMiningTaskSpec,
+        cached: _CachedLayout,
         config: Mapping[str, float | str],
-        candidates: tuple[str, ...],
-    ) -> tuple[ScenarioLayout, dict[str, float | str]]:
-        layout_env = adapter.build_env(task, config)
-        try:
-            adapter.reset(layout_env, task, config, task.geometry_seed)
-            layout_tokens = tokenize_road_network(layout_env.current_map.road_network)
-            if layout_tokens.map_hash != task.map_hash:
-                raise RuntimeError(f"runtime map hash mismatch for {task.task_id}: expected {task.map_hash}, got {layout_tokens.map_hash}")
-            layout = adapter.resolve_layout(layout_env, task, config, candidates)
-            adversary_route = RoutePolyline.from_env(
-                layout_env, {"route_id": "adversary", "lane_sequence": layout.adversary_route}
+    ) -> dict[str, float | str]:
+        resolved = dict(config)
+        for name, route in (("adversary", cached.adversary_route), ("sut", cached.sut_route)):
+            distance_key = f"{name}_distance_to_conflict_m"
+            conflict_s = route.conflict_s(cached.layout.conflict_xy)
+            lower = max(0.0, conflict_s - route.lane_end_s_m[0] + 1e-3)
+            upper = max(lower, conflict_s)
+            applied_distance = float(np.clip(float(config[distance_key]), lower, upper))
+            resolved[distance_key] = applied_distance
+            resolved[f"{name}_spawn_m"] = adapter.spawn_from_conflict_distance(
+                route, cached.layout.conflict_xy, applied_distance
             )
-            sut_route = RoutePolyline.from_env(
-                layout_env, {"route_id": "sut", "lane_sequence": layout.sut_route}
-            )
-            resolved = dict(config)
-            for name, route in (("adversary", adversary_route), ("sut", sut_route)):
-                distance_key = f"{name}_distance_to_conflict_m"
-                conflict_s = route.conflict_s(layout.conflict_xy)
-                lower = max(0.0, conflict_s - route.lane_end_s_m[0] + 1e-3)
-                upper = max(lower, conflict_s)
-                requested = float(config[distance_key])
-                applied_distance = float(np.clip(requested, lower, upper))
-                resolved[distance_key] = applied_distance
-                resolved[f"{name}_spawn_m"] = adapter.spawn_from_conflict_distance(
-                    route, layout.conflict_xy, applied_distance
-                )
-            return layout, resolved
-        finally:
-            layout_env.close()
+        return resolved
+
+    def _static_scene(self, task: ScenarioMiningTaskSpec) -> _StaticScene:
+        key = self._static_key(task)
+        if key not in self._static_scenes:
+            self.enumerate_interactions(task)
+        return self._static_scenes[key]
 
     def enumerate_interactions(
         self, task: ScenarioMiningTaskSpec
     ) -> tuple[Any, tuple[InteractionCandidate, ...]]:
         """Inspect the runtime map before policy selection without exposing labels."""
         task.validate()
+        key = self._static_key(task)
+        cached = self._static_scenes.get(key)
+        if cached is not None:
+            return cached.map_tokens, cached.candidates
         try:
             adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario + "_v1"]
         except KeyError as error:
@@ -108,13 +120,23 @@ class ScenarioExecutor:
             if tokens.map_hash != task.geometry_hash:
                 raise RuntimeError(f"runtime map hash mismatch for {task.task_id}")
             candidates = []
+            layouts: dict[str, _CachedLayout] = {}
             for index in range(len(space.candidates)):
                 config = space.decode(
                     NormalizedScenarioAction(index, (0.0,) * space.continuous_dim, space.options[0])
                 )
                 layout = adapter.resolve_layout(env, task, config, space.candidates)
-                candidates.append(InteractionCandidate.from_layout(env, layout))
-            return tokens, tuple(candidates)
+                adversary_route = RoutePolyline.from_env(
+                    env, {"route_id": "adversary", "lane_sequence": layout.adversary_route}
+                )
+                sut_route = RoutePolyline.from_env(
+                    env, {"route_id": "sut", "lane_sequence": layout.sut_route}
+                )
+                layouts[layout.candidate] = _CachedLayout(layout, adversary_route, sut_route)
+                candidates.append(InteractionCandidate.from_routes(layout, adversary_route, sut_route))
+            static = _StaticScene(tokens, tuple(candidates), layouts)
+            self._static_scenes[key] = static
+            return static.map_tokens, static.candidates
         finally:
             env.close()
 
@@ -132,17 +154,25 @@ class ScenarioExecutor:
         except KeyError as error:
             raise ValueError(f"no executable contract for task {task.task_id}") from error
         config = space.decode(action)
-        layout, config = self._resolve_layout(adapter, task, config, space.candidates)
-        env = adapter.build_env(task, config, layout)
+        static = self._static_scene(task)
+        candidate = str(config["route_or_conflict_candidate"])
+        try:
+            cached = static.layouts[candidate]
+        except KeyError as error:
+            raise RuntimeError(f"static layout is missing candidate {candidate!r}") from error
+        config = self._resolve_spawn_config(adapter, cached, config)
+        env = adapter.build_env(task, config, cached.layout)
         try:
             observation, _ = adapter.reset(env, task, config, task.geometry_seed)
             adapter.validate_runtime(env, task, config)
-            map_tokens = tokenize_road_network(env.current_map.road_network)
-            if map_tokens.map_hash != task.map_hash:
-                raise RuntimeError(f"runtime map hash changed between layout and execution: expected {task.map_hash}, got {map_tokens.map_hash}")
+            runtime_tokens = tokenize_road_network(env.current_map.road_network)
+            if runtime_tokens.map_hash != task.map_hash:
+                raise RuntimeError(f"runtime map hash changed between layout and execution: expected {task.map_hash}, got {runtime_tokens.map_hash}")
+            map_tokens = static.map_tokens
             adversary = self._adversary(env)
             sut_adapter, sut_profile = self.sut_registry.create(task.sut_ref)
             sut_adapter.reset(env, task, config, run_seed)
+            layout = cached.layout
             sut = spawn_sut(env, lane_index=layout.sut_lane, longitudinal_m=float(config["sut_spawn_m"]), speed_mps=float(config["sut_initial_speed_mps"]), destination=layout.sut_destination, adapter=sut_adapter, profile=sut_profile, seed=run_seed)
             self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
             self._assert_vehicle_applied(sut, layout.sut_lane, float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
@@ -158,7 +188,7 @@ class ScenarioExecutor:
             setattr(env, "_mvr_episode", applied)
             return ExecutableEpisode(
                 env, observation, adversary, sut, sut_adapter, sut_profile,
-                applied, map_tokens, layout, run_seed,
+                applied, map_tokens, layout, cached.adversary_route, cached.sut_route, run_seed,
             )
         except Exception:
             env.close()

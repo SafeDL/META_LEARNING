@@ -61,13 +61,22 @@ def update_outer_ppo(
     return sum(losses) / len(losses) if losses else 0.0
 
 
+def _scene_embeddings(model: "TransferableScenarioMiner", rows: list[object]) -> torch.Tensor:
+    """Encode each static geometry once while preserving encoder gradients."""
+    unique: dict[str, torch.Tensor] = {}
+    for row in rows:
+        geometry_hash = str(row.geometry_hash)
+        if geometry_hash not in unique:
+            unique[geometry_hash] = model.encode_scene(
+                row.map_tokens, row.interactions
+            ).global_embedding
+    return torch.stack([unique[str(row.geometry_hash)] for row in rows])
+
+
 def update_inner_sac(model: "TransferableScenarioMiner", replay: InnerReplay, optimizer: torch.optim.Optimizer, *, batch_size: int = 64) -> dict[str, float]:
     """Update the Inner SAC from risk-reward replay with reconstructed features."""
     rows = replay.sample(batch_size)
     device = model.device
-    maps = torch.stack([
-        model.encode_scene(row.map_tokens, row.interactions).global_embedding for row in rows
-    ])
     states = torch.as_tensor(np.stack([row.state for row in rows]), dtype=torch.float32, device=device)
     next_states = torch.as_tensor(np.stack([row.next_state for row in rows]), dtype=torch.float32, device=device)
     latent = torch.stack([row.latent for row in rows]).to(device)
@@ -76,12 +85,19 @@ def update_inner_sac(model: "TransferableScenarioMiner", replay: InnerReplay, op
     action = torch.as_tensor(np.stack([row.action for row in rows]), dtype=torch.float32, device=device)
     reward = torch.as_tensor([row.reward for row in rows], dtype=torch.float32, device=device)
     done = torch.as_tensor([row.done for row in rows], dtype=torch.bool, device=device)
+    maps = _scene_embeddings(model, rows)
     features = model.inner_features(states, maps, latent, option, config)
     next_features = model.inner_features(next_states, maps, latent, option, config)
-    losses = model.inner_sac.losses(features, action, reward, next_features, done)
-    total = losses.actor + losses.critic + losses.alpha
+    critic = model.inner_sac.critic_loss(features, action, reward, next_features, done)
     optimizer.zero_grad(set_to_none=True)
-    total.backward()
+    critic.backward()
+    optimizer.step()
+
+    maps = _scene_embeddings(model, rows)
+    features = model.inner_features(states, maps, latent, option, config)
+    actor, alpha = model.inner_sac.actor_alpha_losses(features)
+    optimizer.zero_grad(set_to_none=True)
+    (actor + alpha).backward()
     optimizer.step()
     model.inner_sac.soft_update()
-    return {"inner_actor_loss": float(losses.actor.detach().cpu()), "inner_critic_loss": float(losses.critic.detach().cpu()), "inner_alpha_loss": float(losses.alpha.detach().cpu())}
+    return {"inner_actor_loss": float(actor.detach().cpu()), "inner_critic_loss": float(critic.detach().cpu()), "inner_alpha_loss": float(alpha.detach().cpu())}

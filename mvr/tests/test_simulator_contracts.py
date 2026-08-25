@@ -34,3 +34,34 @@ def test_runtime_hash_mismatch_fails_fast() -> None:
         ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
             broken, NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE)
         )
+
+
+def test_static_geometry_cache_avoids_rebuilding_layout_env(monkeypatch) -> None:
+    task = next(
+        row for row in load_taskbook("mvr/configs/taskbook.json")
+        if row.functional_scenario == "merge" and row.geometry_split == "train"
+    )
+    adapter = load_adapters()["merge"]
+    original_build_env = adapter.build_env
+    layouts = []
+
+    def counted_build_env(task, config, layout=None):
+        layouts.append(layout)
+        return original_build_env(task, config, layout)
+
+    monkeypatch.setattr(adapter, "build_env", counted_build_env)
+    executor = ScenarioExecutor({"merge": adapter}, mvr_parameter_spaces())
+    action = NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE)
+
+    executor.enumerate_interactions(task)
+    first = executor.reset(task, action)
+    cached_tokens = first.map_tokens
+    first.env.close()
+    second = executor.reset(task, action, episode_seed=999)
+    try:
+        assert layouts[0] is None
+        assert all(layout is not None for layout in layouts[1:])
+        assert len(layouts) == 3
+        assert cached_tokens is second.map_tokens
+    finally:
+        second.env.close()

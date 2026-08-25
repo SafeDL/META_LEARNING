@@ -24,12 +24,16 @@ from .updates import update_inner_sac, update_outer_ppo
 
 def build_online(
     model: TransferableScenarioMiner,
-    task: ScenarioMiningTaskSpec,
+    _task: ScenarioMiningTaskSpec,
     max_steps: int,
     criteria: FailureCriteria,
+    executor: ScenarioExecutor | None = None,
 ) -> OnlineMetaTest:
-    executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
-    return OnlineMetaTest(model, executor, HierarchicalRunner(max_steps, criteria))
+    return OnlineMetaTest(
+        model,
+        executor or ScenarioExecutor(load_adapters(), mvr_parameter_spaces()),
+        HierarchicalRunner(max_steps, criteria),
+    )
 
 
 def _replay(settings: dict[str, Any], rows: list[Any] | None) -> InnerReplay:
@@ -64,23 +68,34 @@ def train_inner(
     replay, losses = _replay(settings, None), []
     sampler = MetaTaskSampler(tasks)
     scene_sampler = PretrainSceneSampler(tuple(tasks), episodes_per_task, int(config["seed"]))
+    executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
+    online = build_online(model, tasks[0], max_steps, criteria, executor)
     episodes = []
     transitions_collected = 0
-    for task in sampler.shuffled_epoch():
-        result = build_online(model, task, max_steps, criteria).run(
-            task,
-            episodes_per_task,
-            posterior_support_limit=0,
-            scene_action_provider=scene_sampler,
-        )
-        for row in result.inner_transitions:
-            replay.add(row)
-        transitions_collected += len(result.inner_transitions)
-        episodes.extend((task, episode) for episode in result.episodes)
-        _update_inner(model, replay, optimizer, settings, losses)
-    return _inner_metrics(
+    for episode_index in range(episodes_per_task):
+        for task in sampler.shuffled_epoch():
+            result = online.run(
+                task,
+                1,
+                posterior_support_limit=0,
+                episode_index_offset=episode_index,
+                scene_action_provider=scene_sampler,
+            )
+            for row in result.inner_transitions:
+                replay.add(row)
+            transitions_collected += len(result.inner_transitions)
+            episodes.extend((task, episode) for episode in result.episodes)
+            _update_inner(model, replay, optimizer, settings, losses)
+    metrics = _inner_metrics(
         len(episodes), replay, losses, episodes, transitions_collected,
-    ), replay
+    )
+    metrics.update({
+        "balanced_sampling_epochs": episodes_per_task,
+        "updates_per_episode": int(settings["updates_per_episode"]),
+        "requested_optimizer_updates": len(episodes) * int(settings["updates_per_episode"]),
+        "warmup_skipped_updates": len(episodes) * int(settings["updates_per_episode"]) - len(losses),
+    })
+    return metrics, replay
 
 
 def train_inner_latent_calibration(
