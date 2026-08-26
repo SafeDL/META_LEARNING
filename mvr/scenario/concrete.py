@@ -48,11 +48,14 @@ class ConcreteScenario:
         )
 
     def replay_action(self, space: ParameterSpace) -> NormalizedScenarioAction:
-        return space.encode({
+        values: dict[str, float | str] = {
             "route_or_conflict_candidate": self.candidate_id,
             "option": self.option,
             **self.initial_state,
-        })
+        }
+        for name, (lower, upper) in space.bounds.items():
+            values[name] = min(max(float(values[name]), lower), upper)
+        return space.encode(values)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

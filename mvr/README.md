@@ -10,6 +10,8 @@ Each episode follows `Outer interaction/x0 action → MetaDrive execution → In
 
 `configs/geometry_catalog.json` defines five concrete geometries per family: three train, one validation, and one disjoint test geometry. `configs/taskbook.json` combines them with the IDM profile split. Regimes R1–R4 separate seen/unseen SUT from seen/unseen geometry.
 
+Roundabout candidates are explicit entry-to-exit lane sequences. `RouteBoundIDMPolicy` keeps the black-box IDM controller on that same prescribed sequence, rather than allowing MetaDrive to replace it with a shortest route.
+
 ## Canonical pipeline
 
 ```text
@@ -25,9 +27,21 @@ Evaluation uses 20 total simulator episodes and K = 0/1/2/4 support shots; suppo
 Evaluation JSON records each concrete scenario's geometry hash, conflict-relative initial state, option, latent, Inner-policy hash, and episode seed so it can be reconstructed from the taskbook.
 
 ```powershell
-python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
-python -m mvr.scripts.train_mvr --config mvr/configs/mvr_stage1.yaml --output results/mvr/stage1_seed11 --stop-after inner_pretrain
-python -m mvr.scripts.validate_mvr --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt --mode inner --output results/mvr/stage1_seed11/validation.json
+conda run -n metadrive python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
+conda run -n metadrive python -m mvr.scripts.train_mvr --config mvr/configs/mvr_stage1.yaml --output results/mvr/stage1_seed11 --stop-after inner_pretrain
+conda run -n metadrive python -m mvr.scripts.validate_mvr --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt --mode inner --output results/mvr/stage1_seed11/validation.json
+```
+
+The current validated pre-experiment produces one independent GIF for each logical scenario and does not require a checkpoint:
+
+```powershell
+conda run -n metadrive python -m mvr.scripts.visualize_traffic_pilot
+```
+
+After a checkpoint has been retrained against the current taskbook, create auditable high-frame-rate GIF replays for formal tasks. Each policy replay is written to its own GIF; each frame combines a blue-SUT tail-following 3D camera with a synchronized global top-down view where the adversary is red:
+
+```powershell
+conda run -n metadrive python -m mvr.scripts.visualize_stage1 --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt --output results/mvr/stage1_seed11/visualization
 ```
 
 ## Verification

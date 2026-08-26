@@ -81,7 +81,7 @@ def run(taskbook: str | Path, criteria: FailureCriteria, *, configurations: int 
     executor, runner = ScenarioExecutor(adapters, spaces, registry), HierarchicalRunner(criteria=criteria)
     rows: list[dict[str, object]] = []
     for family, template in templates.items():
-        space = spaces[template.functional_scenario + "_v1"]
+        space = spaces[template.functional_scenario]
         for profile in profiles:
             task = replace(template, sut_ref=profile.profile_id)
             for config_id, action in enumerate(_actions(space, configurations, template.geometry_seed)):
@@ -145,6 +145,9 @@ def run_inner_validation(
     model = build_model(config, device)
     model.load_state_dict(checkpoint.state["model"])
     model.eval()
+    # Stage 1 compares a fixed policy mean on identical initial conditions.
+    # The general evaluation flag controls the later stochastic outer protocol.
+    deterministic = True
     family = str(config["training"].get("family_filter", "all"))
     tasks = [
         task for task in load_taskbook(taskbook)
@@ -165,7 +168,7 @@ def run_inner_validation(
             ).run(
                 task,
                 cases_per_task,
-                deterministic=True,
+                deterministic=deterministic,
                 posterior_support_limit=0,
                 scene_action_provider=sampler,
                 inner_action_provider=action_provider,
@@ -188,13 +191,29 @@ def run_inner_validation(
             outcomes = [row["outcome"] for row in rows]
             valid = [float(signature.is_valid_episode) for signature in signatures]
             failures = [float(signature.is_failure) for signature in signatures]
+            violation_fields = (
+                "non_target_collision",
+                "adversary_out_of_road",
+                "sut_out_of_road",
+                "wrong_route",
+                "adversary_traffic_violation",
+            )
             return {
                 "episodes": len(rows),
                 "valid_rate": float(np.mean(valid)),
                 "invalid_rate": float(1.0 - np.mean(valid)),
                 "valid_critical_rate": float(np.mean(failures)),
+                "critical_rate_given_valid": float(
+                    np.sum(failures) / max(np.sum(valid), 1.0)
+                ),
                 "target_collision_rate": float(
-                    np.mean([float(row.get("target_collision", False)) for row in outcomes])
+                    np.mean([float(row.get("valid_target_collision", False)) for row in outcomes])
+                ),
+                "invalid_target_collision_rate": float(
+                    np.mean([
+                        float(row.get("target_collision", False) and not row.get("is_valid_episode", False))
+                        for row in outcomes
+                    ])
                 ),
                 "near_miss_rate": float(
                     np.mean([float(row.get("valid_critical_near_miss", False)) for row in outcomes])
@@ -211,6 +230,10 @@ def run_inner_validation(
                 "mean_inner_episode_return": float(
                     np.mean([float(row["episode_return"]) for row in rows])
                 ),
+                "violation_rates": {
+                    field: float(np.mean([float(row["outcome"].get(field, False)) for row in rows]))
+                    for field in violation_fields
+                },
             }
 
         by_family = {
@@ -232,6 +255,7 @@ def run_inner_validation(
     return {
         "mode": "inner",
         "regime": "V4_validation_sut_validation_geometry",
+        "deterministic": deterministic,
         "cases_per_task": cases_per_task,
         "tasks": [task.task_id for task in tasks],
         "policies": reports,

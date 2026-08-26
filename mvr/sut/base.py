@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping, Protocol, Sequence
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,14 @@ class SUTAdapter(Protocol):
     name: str
 
     def reset(self, env: Any, task: Any, config: Mapping[str, Any], seed: int) -> None: ...
-    def attach(self, env: Any, vehicle: Any, profile: ControllerProfile, seed: int) -> Any: ...
+    def attach(
+        self,
+        env: Any,
+        vehicle: Any,
+        profile: ControllerProfile,
+        seed: int,
+        route: Sequence[tuple[Any, Any, int]],
+    ) -> Any: ...
     def observe(self, env: Any, vehicle: Any) -> Mapping[str, Any]: ...
     def step(self, observation: Mapping[str, Any]) -> Any: ...
     def metadata(self, profile: ControllerProfile) -> dict[str, Any]: ...

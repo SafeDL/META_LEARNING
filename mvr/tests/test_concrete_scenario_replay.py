@@ -16,8 +16,33 @@ def test_concrete_scenario_reconstructs_the_outer_action() -> None:
             "sut_initial_speed_mps": 9.0,
         }, "policy-hash",
     )
-    action = scenario.replay_action(mvr_parameter_spaces()["merge_v1"])
+    action = scenario.replay_action(mvr_parameter_spaces()["merge"])
     assert action.candidate_index == 0 and scenario.to_dict()["geometry_hash"] == task.geometry_hash
+
+
+def test_concrete_scenario_replay_clamps_geometry_applied_distance() -> None:
+    task = load_taskbook("mvr/configs/taskbook.json")[0]
+    scenario = ConcreteScenario(
+        task.geometry_id,
+        task.geometry_hash,
+        task.geometry_seed,
+        "main_conflict",
+        "merge:zone",
+        "gap_close",
+        {
+            "adversary_distance_to_conflict_m": 99.0,
+            "sut_distance_to_conflict_m": 2.0,
+            "adversary_initial_speed_mps": 11.0,
+            "sut_initial_speed_mps": 9.0,
+        },
+        "policy-hash",
+    )
+    space = mvr_parameter_spaces()["merge"]
+    action = scenario.replay_action(space)
+    decoded = space.decode(action)
+    assert decoded["adversary_distance_to_conflict_m"] == space.bounds[
+        "adversary_distance_to_conflict_m"
+    ][1]
 
 
 def test_concrete_manifest_keeps_inner_condition_and_episode_seed() -> None:

@@ -19,7 +19,13 @@ from .task_spec import ScenarioMiningTaskSpec
 
 class ScenarioAdapter(Protocol):
     family: str
-    def build_env(self, task: ScenarioMiningTaskSpec, config: Mapping[str, float | str], layout: ScenarioLayout | None = None) -> Any: ...
+    def build_env(
+        self,
+        task: ScenarioMiningTaskSpec,
+        config: Mapping[str, float | str],
+        layout: ScenarioLayout | None = None,
+        environment_overrides: Mapping[str, Any] | None = None,
+    ) -> Any: ...
     def reset(self, env: Any, task: ScenarioMiningTaskSpec, config: Mapping[str, float | str], seed: int) -> tuple[Any, Mapping[str, Any]]: ...
     def resolve_layout(self, env: Any, task: ScenarioMiningTaskSpec, config: Mapping[str, float | str], candidates: tuple[str, ...]) -> ScenarioLayout: ...
     def validate_runtime(self, env: Any, task: ScenarioMiningTaskSpec, config: Mapping[str, float | str]) -> None: ...
@@ -71,6 +77,13 @@ class ScenarioExecutor:
             raise RuntimeError("runtime vehicle initial speed differs from outer output")
 
     @staticmethod
+    def _assert_vehicle_route(vehicle: Any, route: tuple[Any, ...]) -> None:
+        expected = tuple([route[0][0], *(lane_index[1] for lane_index in route)])
+        actual = tuple(vehicle.navigation.checkpoints)
+        if actual != expected:
+            raise RuntimeError("runtime vehicle navigation differs from resolved candidate route")
+
+    @staticmethod
     def _static_key(task: ScenarioMiningTaskSpec) -> tuple[str, str]:
         return task.adapter_id, task.geometry_hash
 
@@ -109,7 +122,7 @@ class ScenarioExecutor:
         if cached is not None:
             return cached.map_tokens, cached.candidates
         try:
-            adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario + "_v1"]
+            adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario]
         except KeyError as error:
             raise ValueError(f"no executable contract for task {task.task_id}") from error
         base = space.decode(NormalizedScenarioAction(0, (0.0,) * space.continuous_dim, space.options[0]))
@@ -146,11 +159,12 @@ class ScenarioExecutor:
         action: NormalizedScenarioAction,
         *,
         episode_seed: int | None = None,
+        environment_overrides: Mapping[str, Any] | None = None,
     ) -> ExecutableEpisode:
         task.validate()
         run_seed = task.geometry_seed if episode_seed is None else int(episode_seed)
         try:
-            adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario + "_v1"]
+            adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario]
         except KeyError as error:
             raise ValueError(f"no executable contract for task {task.task_id}") from error
         config = space.decode(action)
@@ -161,7 +175,10 @@ class ScenarioExecutor:
         except KeyError as error:
             raise RuntimeError(f"static layout is missing candidate {candidate!r}") from error
         config = self._resolve_spawn_config(adapter, cached, config)
-        env = adapter.build_env(task, config, cached.layout)
+        if environment_overrides:
+            env = adapter.build_env(task, config, cached.layout, environment_overrides)
+        else:
+            env = adapter.build_env(task, config, cached.layout)
         try:
             observation, _ = adapter.reset(env, task, config, task.geometry_seed)
             adapter.validate_runtime(env, task, config)
@@ -173,9 +190,21 @@ class ScenarioExecutor:
             sut_adapter, sut_profile = self.sut_registry.create(task.sut_ref)
             sut_adapter.reset(env, task, config, run_seed)
             layout = cached.layout
-            sut = spawn_sut(env, lane_index=layout.sut_lane, longitudinal_m=float(config["sut_spawn_m"]), speed_mps=float(config["sut_initial_speed_mps"]), destination=layout.sut_destination, adapter=sut_adapter, profile=sut_profile, seed=run_seed)
+            sut = spawn_sut(
+                env,
+                lane_index=layout.sut_lane,
+                longitudinal_m=float(config["sut_spawn_m"]),
+                speed_mps=float(config["sut_initial_speed_mps"]),
+                destination=layout.sut_destination,
+                route=layout.sut_route,
+                adapter=sut_adapter,
+                profile=sut_profile,
+                seed=run_seed,
+            )
             self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
             self._assert_vehicle_applied(sut, layout.sut_lane, float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
+            self._assert_vehicle_route(adversary, layout.adversary_route)
+            self._assert_vehicle_route(sut, layout.sut_route)
             applied = AppliedScenario(
                 str(adversary.id), str(sut.id), layout.adversary_lane, layout.sut_lane,
                 float(config["adversary_spawn_m"]), float(config["sut_spawn_m"]),

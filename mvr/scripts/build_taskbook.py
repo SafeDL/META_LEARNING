@@ -34,7 +34,7 @@ def _geometry_hash(geometry_id: str) -> str:
         geometry_hash="0" * 64,
         geometry_seed=geometry.seed,
         adapter_id=geometry.functional_scenario,
-        interaction_schema_id="two_route_conflict_v1",
+        interaction_schema_id="two_route_conflict",
         sut_split="train",
         geometry_split=geometry.split,
     )
@@ -42,7 +42,7 @@ def _geometry_hash(geometry_id: str) -> str:
     try:
         env.reset()
         tokens = tokenize_road_network(env.current_map.road_network)
-        space = mvr_parameter_spaces()[f"{geometry.functional_scenario}_v1"]
+        space = mvr_parameter_spaces()[geometry.functional_scenario]
         adapter = adapters[geometry.functional_scenario]
         for index in range(len(space.candidates)):
             action = NormalizedScenarioAction(
@@ -73,7 +73,7 @@ def build_taskbook(output: str | Path) -> Path:
                 geometry_hash=geometry_hash,
                 geometry_seed=geometry.seed,
                 adapter_id=geometry.functional_scenario,
-                interaction_schema_id="two_route_conflict_v1",
+                interaction_schema_id="two_route_conflict",
                 sut_split=sut_split,
                 geometry_split=geometry.split,
             )

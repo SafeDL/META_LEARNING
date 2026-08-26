@@ -11,6 +11,37 @@ LaneIndex = tuple[Any, Any, int]
 
 
 @dataclass(frozen=True)
+class TrafficBehaviorContract:
+    """Non-learned traffic rules that constrain the adversary at runtime."""
+
+    speed_limit_mps: float
+    allowed_lane_numbers: tuple[int, ...]
+    source_lane_number: int
+    target_lane_number: int | None = None
+    merge_window_s: tuple[float, float] | None = None
+    crossing_boundary: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.speed_limit_mps <= 0.0 or not self.allowed_lane_numbers:
+            raise ValueError("traffic contract requires a speed limit and allowed lanes")
+        if self.source_lane_number not in self.allowed_lane_numbers:
+            raise ValueError("traffic contract source lane must be allowed")
+        if self.target_lane_number is None:
+            if self.merge_window_s is not None or self.crossing_boundary is not None:
+                raise ValueError("lane-following contract cannot define a merge window")
+            return
+        if self.target_lane_number not in self.allowed_lane_numbers:
+            raise ValueError("traffic contract target lane must be allowed")
+        if self.target_lane_number == self.source_lane_number:
+            raise ValueError("traffic contract target lane must differ from source")
+        if self.merge_window_s is None or self.crossing_boundary is None:
+            raise ValueError("lane-change contract requires a window and boundary")
+        start, end = self.merge_window_s
+        if not 0.0 <= start < end:
+            raise ValueError("traffic contract merge window must be ordered and non-negative")
+
+
+@dataclass(frozen=True)
 class ScenarioLayout:
     """Lane/route binding resolved from the *actual* generated road network.
 
@@ -28,6 +59,7 @@ class ScenarioLayout:
     adversary_route: tuple[LaneIndex, ...]
     sut_route: tuple[LaneIndex, ...]
     conflict_xy: tuple[float, float]
+    traffic_contract: TrafficBehaviorContract
 
     def __post_init__(self) -> None:
         if not self.candidate or not self.conflict_zone_id or not self.adversary_route or not self.sut_route:

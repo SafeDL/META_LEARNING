@@ -6,5 +6,6 @@ from .parameter_space import ParameterSpace, NormalizedScenarioAction
 from .option import AdversarialOption
 from .applied import AppliedScenario, ExecutableEpisode
 from .executor import ScenarioExecutor
+from .layout import TrafficBehaviorContract
 
-__all__ = ("AdversarialOption", "AppliedScenario", "ConcreteScenario", "ExecutableEpisode", "NormalizedScenarioAction", "ParameterSpace", "ScenarioExecutor", "ScenarioMiningTaskSpec")
+__all__ = ("AdversarialOption", "AppliedScenario", "ConcreteScenario", "ExecutableEpisode", "NormalizedScenarioAction", "ParameterSpace", "ScenarioExecutor", "ScenarioMiningTaskSpec", "TrafficBehaviorContract")

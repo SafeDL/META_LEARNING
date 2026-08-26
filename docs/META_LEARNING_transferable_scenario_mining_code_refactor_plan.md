@@ -31,7 +31,7 @@ conda activate metadrive
 | 分层搜索：Outer 初始条件 + Inner 对抗驾驶 | 已完整实现 | **满足** |
 | 显式地图/几何编码 | HPTR-style map encoder 已实现 | **满足表示层，未满足数据分布层** |
 | unseen SUT few-shot | held-out IDM profile + posterior | **部分满足** |
-| 不同风格/不同算法 SUT | registry 有 `rule_based` adapter，但正式 taskbook 仍全部为 IDM | **尚未验证** |
+| 不同风格/不同算法 SUT | active registry 仅保留已验证的 IDM；正式 taskbook 仍全部为 IDM | **尚未验证** |
 | unseen road geometry | 每个 family 只有一个 `map_hash` | **不满足** |
 | unseen functional scenario | train/test 均包含 merge/cutin/roundabout | **不满足** |
 | 统一跨场景搜索空间 | 仍以 family-specific candidate + lane-start `spawn_m` 表示 | **不满足** |
@@ -629,9 +629,9 @@ scene_policies[task.parameter_space_id]
 也就是：
 
 ```text
-merge_v1       -> Merge policy
-cutin_v1       -> Cut-in policy
-roundabout_v1  -> Roundabout policy
+merge          -> Merge policy
+cutin          -> Cut-in policy
+roundabout     -> Roundabout policy
 ```
 
 这是 **hard routing by known family**。
@@ -1063,10 +1063,9 @@ same SUT, different geometry
 
 ```text
 IDMSUTAdapter
-RuleBasedSUTAdapter
 ```
 
-但 profile 实际只注册了多个 IDM。
+未注册且未被 taskbook 使用的 `RuleBasedSUTAdapter` 已删除；profile 目前只注册多个 IDM。
 
 因此当前 held-out test：
 
@@ -1945,8 +1944,7 @@ mvr/
 ├── sut/
 │   ├── base.py
 │   ├── registry.py
-│   ├── idm.py
-│   └── rule_based.py
+│   └── idm.py
 │
 ├── failure/
 │   └── ...
@@ -2090,7 +2088,7 @@ simple set-mean context
   "geometry_seed": 103,
 
   "adapter_id": "merge",
-  "interaction_schema_id": "two_route_conflict_v1",
+  "interaction_schema_id": "two_route_conflict",
 
   "sut_split": "test",
   "geometry_split": "test",
@@ -2442,7 +2440,7 @@ roundabout
 且不查找：
 
 ```text
-scene_policies["merge_v1"]
+scene_policies["merge"]
 ```
 
 ---

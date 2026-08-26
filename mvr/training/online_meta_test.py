@@ -87,6 +87,8 @@ class OnlineMetaTest:
         episode_index_offset: int = 0,
         scene_action_provider: Callable[[ScenarioMiningTaskSpec, int, tuple[Any, ...], Any], NormalizedScenarioAction] | None = None,
         inner_action_provider: Callable[[np.ndarray], np.ndarray] | None = None,
+        rollout_step_callback: Callable[[Any, int, Mapping[str, Any]], None] | None = None,
+        environment_overrides: Mapping[str, Any] | None = None,
     ) -> OnlineMetaTestResult:
         if budget < 1:
             raise ValueError("online meta-test requires a positive budget")
@@ -96,7 +98,7 @@ class OnlineMetaTest:
             raise ValueError("posterior support limit must lie within the episode budget")
         if episode_index_offset < 0:
             raise ValueError("episode index offset must be non-negative")
-        space = mvr_parameter_spaces()[task.functional_scenario + "_v1"]
+        space = mvr_parameter_spaces()[task.functional_scenario]
         tokens, candidates, encoding = self._scene_encoding(task)
         scene_embedding = encoding.global_embedding
         device = self.model.device
@@ -123,7 +125,12 @@ class OnlineMetaTest:
                 )
             action = NormalizedScenarioAction(int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), space.options[int(scene.option_index.item())])
             episode_seed = task.geometry_seed + episode_index
-            episode = self.executor.reset(task, action, episode_seed=episode_seed)
+            episode = self.executor.reset(
+                task,
+                action,
+                episode_seed=episode_seed,
+                environment_overrides=environment_overrides,
+            )
             concrete = ConcreteScenario.from_applied(
                 task,
                 episode.applied_scenario,
@@ -141,7 +148,13 @@ class OnlineMetaTest:
                 return value.squeeze(0).cpu().numpy()
 
             try:
-                rollout = self.runner.rollout(episode, task.functional_scenario, action.option.value, inner_action)
+                rollout = self.runner.rollout(
+                    episode,
+                    task.functional_scenario,
+                    action.option.value,
+                    inner_action,
+                    step_callback=rollout_step_callback,
+                )
             finally:
                 episode.env.close()
             signature = rollout.signature

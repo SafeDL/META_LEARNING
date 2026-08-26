@@ -615,7 +615,6 @@ episodes_per_task = 10
 approach_conflict
 yield_then_press
 gap_close
-route_block
 ```
 
 全部覆盖。

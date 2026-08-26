@@ -1,7 +1,7 @@
 """Explicit adversary/SUT spawning extracted from the legacy IDM coupling."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Sequence
 import numpy as np
 
 from ..sut.base import ControllerProfile, SUTAdapter
@@ -14,6 +14,7 @@ def spawn_sut(
     longitudinal_m: float,
     speed_mps: float,
     destination: Any,
+    route: Sequence[tuple[Any, Any, int]],
     adapter: SUTAdapter,
     profile: ControllerProfile,
     seed: int,
@@ -29,6 +30,6 @@ def spawn_sut(
         "destination": destination, "enable_reverse": False,
     })
     manager._traffic_vehicles.append(vehicle)
-    adapter.attach(env, vehicle, profile, int(seed))
+    adapter.attach(env, vehicle, profile, int(seed), route)
     vehicle.set_velocity(np.asarray(vehicle.heading, dtype=float) * float(speed_mps))
     return vehicle

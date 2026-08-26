@@ -163,7 +163,7 @@ def _inner_metrics(
         min_distance.append(float(outcome.get("min_distance", 0.0)))
         closing.append(float(outcome.get("max_closing_speed", 0.0)))
         for row in episode.rollout.transitions:
-            action = np.asarray(row["action"], dtype=np.float32)
+            action = np.asarray(row.get("executed_action", row["action"]), dtype=np.float32)
             action_values.extend(np.abs(action).tolist())
             saturated.extend((np.abs(action) > 0.95).tolist())
 

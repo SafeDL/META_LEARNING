@@ -58,9 +58,23 @@ class FailureSignatureBuilder:
         conflict_zone_id: str | None,
         candidate_id: str | None = None,
     ) -> FailureSignature:
-        invalid = any(bool(outcome.get(key, False)) for key in ("non_target_collision", "adversary_out_of_road", "sut_out_of_road", "wrong_route"))
+        invalid = any(
+            bool(outcome.get(key, False))
+            for key in (
+                "non_target_collision",
+                "adversary_out_of_road",
+                "sut_out_of_road",
+                "wrong_route",
+                "adversary_traffic_violation",
+            )
+        )
         is_valid_episode = bool(outcome.get("is_valid_episode", not invalid)) and not invalid
-        collision = bool(outcome.get("target_collision", False))
+        collision = bool(
+            outcome.get(
+                "valid_target_collision",
+                outcome.get("target_collision", False) and not invalid,
+            )
+        ) and not invalid
         near_miss = bool(outcome.get("valid_critical_near_miss", outcome.get("valid_critical_strict", False)))
         is_failure = is_valid_episode and (collision or near_miss)
         failure_type = "target_collision" if collision else "valid_critical_near_miss" if near_miss else "none"

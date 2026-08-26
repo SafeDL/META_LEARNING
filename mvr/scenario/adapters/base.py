@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from ..layout import LaneIndex, ScenarioLayout
+from ..layout import LaneIndex, ScenarioLayout, TrafficBehaviorContract
 from ..registry import load_geometry_catalog
 from ..route_geometry import RoutePolyline
 from ..task_spec import ScenarioMiningTaskSpec
@@ -14,6 +14,7 @@ from ..task_spec import ScenarioMiningTaskSpec
 
 class MetaDriveFamilyAdapter:
     family = ""
+    SPEED_LIMITS_MPS = {"cutin": 20.0, "merge": 18.0, "roundabout": 12.0}
 
     def env_config(
         self,
@@ -23,11 +24,20 @@ class MetaDriveFamilyAdapter:
     ) -> dict[str, Any]:
         raise NotImplementedError
 
-    def build_env(self, task: ScenarioMiningTaskSpec, config: Mapping[str, float | str], layout: ScenarioLayout | None = None) -> Any:
+    def build_env(
+        self,
+        task: ScenarioMiningTaskSpec,
+        config: Mapping[str, float | str],
+        layout: ScenarioLayout | None = None,
+        environment_overrides: Mapping[str, Any] | None = None,
+    ) -> Any:
         from metadrive.envs.metadrive_env import MetaDriveEnv
         if task.functional_scenario != self.family or task.adapter_id != self.family:
             raise ValueError(f"{self.family} adapter cannot execute {task.functional_scenario}")
-        return MetaDriveEnv(self.env_config(task, config, layout))
+        runtime_config = self.env_config(task, config, layout)
+        if environment_overrides:
+            runtime_config.update(environment_overrides)
+        return MetaDriveEnv(runtime_config)
 
     @staticmethod
     def geometry_config(task: ScenarioMiningTaskSpec) -> dict[str, Any]:
@@ -96,12 +106,26 @@ class MetaDriveFamilyAdapter:
 
     @staticmethod
     def _route_from(road_network: Any, lane_index: LaneIndex) -> tuple[tuple[LaneIndex, ...], Any]:
-        """Take one concrete successor road so a candidate changes navigation, too."""
+        """Follow the geometrically continuous successor of one concrete lane."""
         start, end, number = lane_index
         successors = road_network.graph.get(end, {})
         if not successors:
             return (lane_index,), end
-        next_end, next_lanes = sorted(successors.items(), key=lambda row: str(row[0]))[0]
+        current_lane = road_network.get_lane(lane_index)
+        current_heading = float(current_lane.heading_theta_at(float(current_lane.length)))
+        current_end = np.asarray(current_lane.position(float(current_lane.length), 0.0), dtype=float)
+
+        def continuity(row: tuple[Any, Any]) -> tuple[float, float, str]:
+            next_end, next_lanes = row
+            next_lane = next_lanes[min(int(number), len(next_lanes) - 1)]
+            next_heading = float(next_lane.heading_theta_at(0.0))
+            alignment = float(np.cos(next_heading - current_heading))
+            gap = float(np.linalg.norm(
+                np.asarray(next_lane.position(0.0, 0.0), dtype=float) - current_end
+            ))
+            return alignment, -gap, str(next_end)
+
+        next_end, next_lanes = max(successors.items(), key=continuity)
         next_index = (end, next_end, min(int(number), len(next_lanes) - 1))
         return (lane_index, next_index), next_end
 
@@ -151,6 +175,14 @@ class MetaDriveFamilyAdapter:
         shared = [lane_index for lane_index in adversary_route if lane_index in sut_route]
         if shared:
             conflict = np.asarray(road_network.get_lane(shared[0]).position(0.0, 0.0), dtype=float)
+        elif self.family == "merge" and adversary_index[1] == sut_index[1]:
+            # The incoming lanes meet at this node, even when their natural
+            # outgoing branches differ.  Using the branch midpoint here
+            # creates a fictitious conflict and forces the SUT to turn away
+            # from its physically continuous route.
+            conflict = np.asarray(
+                adversary_lane.position(float(adversary_lane.length), 0.0), dtype=float
+            )
         else:
             conflict = 0.5 * (np.asarray(self._midpoint(adversary_lane)) + np.asarray(self._midpoint(sut_lane)))
         return ScenarioLayout(
@@ -163,4 +195,9 @@ class MetaDriveFamilyAdapter:
             adversary_route=adversary_route,
             sut_route=sut_route,
             conflict_xy=(float(conflict[0]), float(conflict[1])),
+            traffic_contract=TrafficBehaviorContract(
+                self.SPEED_LIMITS_MPS[self.family],
+                tuple(sorted({lane[2] for lane in adversary_route})),
+                adversary_route[0][2],
+            ),
         )

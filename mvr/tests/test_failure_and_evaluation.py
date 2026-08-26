@@ -29,6 +29,36 @@ def test_signature_distinguishes_candidate_and_conflict_zone() -> None:
     assert left.signature_id != right.signature_id
 
 
+def test_traffic_violation_invalidates_an_otherwise_critical_outcome() -> None:
+    signature = FailureSignatureBuilder().from_outcome(
+        {
+            "target_collision": True,
+            "adversary_traffic_violation": True,
+            "min_ttc": 1.0,
+            "min_distance": 0.5,
+            "max_closing_speed": 12.0,
+        },
+        "cutin",
+        "merge_window",
+    )
+    assert not signature.is_valid_episode
+    assert not signature.is_failure
+
+
+def test_traffic_violation_cannot_be_a_valid_target_collision() -> None:
+    criteria = FailureCriteria(5.0, 10.0, 20.0, 5)
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
+    outcome, signature = analyze_rollout(
+        [{"info": {"target_collision": True, "adversary_traffic_violation": True},
+          "trajectory_features": features}],
+        "cutin", "zone", "candidate", criteria,
+    )
+    assert outcome["target_collision"]
+    assert not outcome["valid_target_collision"]
+    assert not signature.is_failure
+
+
 def test_failure_threshold_config_changes_failure_decision_and_inner_reward() -> None:
     broad = FailureCriteria.from_config(
         {"severity_thresholds": {"ttc_s": 5.0, "distance_m": 10.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
@@ -44,3 +74,38 @@ def test_failure_threshold_config_changes_failure_decision_and_inner_reward() ->
     assert broad_signature.is_failure
     assert not strict_signature.is_failure
     assert InnerRiskReward(broad)(features, {}, "gap_close", 1, 10) > InnerRiskReward(strict)(features, {}, "gap_close", 1, 10)
+
+
+def test_inner_reward_prefers_critical_interaction_over_direct_impact() -> None:
+    criteria = FailureCriteria.from_config(
+        {"severity_thresholds": {"ttc_s": 3.0, "distance_m": 5.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
+    )
+    critical = np.zeros(12, dtype=np.float32)
+    critical[8], critical[10] = 3.0 / 15.0, 5.0 / 100.0
+    impact = np.zeros(12, dtype=np.float32)
+    reward = InnerRiskReward(criteria)
+    assert reward(critical, {}, "approach_conflict", 1, 10) > reward(impact, {}, "approach_conflict", 1, 10)
+
+
+def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
+    criteria = FailureCriteria.from_config(
+        {"severity_thresholds": {"ttc_s": 3.0, "distance_m": 5.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
+    )
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
+    reward = InnerRiskReward(criteria)
+    event = reward(features, {"crash_vehicle": True}, "approach_conflict", 1, 10)
+    invalid_event = reward(
+        features,
+        {"crash_vehicle": True, "adversary_traffic_violation": True},
+        "approach_conflict",
+        1,
+        10,
+    )
+    assert event > invalid_event
+
+
+def test_inner_reward_has_no_positive_success_signal_without_consequence() -> None:
+    reward = InnerRiskReward(FailureCriteria(3.0, 5.0, 20.0, 5))
+    features = np.zeros(12, dtype=np.float32)
+    assert reward(features, {}, "approach_conflict", 1, 10) <= 0.0
