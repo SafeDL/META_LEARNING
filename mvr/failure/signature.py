@@ -8,7 +8,7 @@ from .criteria import DEFAULT_FAILURE_CRITERIA, FailureCriteria
 from ..provenance import content_hash
 
 
-FAILURE_SCHEMA = "failure_signature_v2"
+FAILURE_SCHEMA = "failure_signature_v3"
 
 
 @dataclass(frozen=True)
@@ -58,7 +58,7 @@ class FailureSignatureBuilder:
         conflict_zone_id: str | None,
         candidate_id: str | None = None,
     ) -> FailureSignature:
-        invalid = any(
+        raw_invalid = any(
             bool(outcome.get(key, False))
             for key in (
                 "non_target_collision",
@@ -68,6 +68,11 @@ class FailureSignatureBuilder:
                 "adversary_traffic_violation",
             )
         )
+        event_frozen = outcome.get("event_kind") in {"collision", "near_miss"}
+        event_traffic_valid = bool(outcome.get("event_traffic_valid", False))
+        # At a target event the semantic monitor latches traffic validity
+        # before collision dynamics can emit a later out-of-road flag.
+        invalid = (not event_traffic_valid) if event_frozen else raw_invalid
         is_valid_episode = bool(outcome.get("is_valid_episode", not invalid)) and not invalid
         collision = bool(
             outcome.get(

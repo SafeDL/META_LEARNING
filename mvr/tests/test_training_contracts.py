@@ -11,7 +11,7 @@ from mvr.training.workflow import StagedWorkflow
 
 
 def test_stage_ownership_and_universal_on_policy_ppo() -> None:
-    model = TransferableScenarioMiner(state_dim=10, map_dim=8)
+    model = TransferableScenarioMiner(state_dim=14, map_dim=8)
     workflow = StagedWorkflow(model.training_components())
     workflow.activate(TrainingStage.OUTER)
     assert trainable_components(TrainingStage.OUTER) == {"universal_scene_policy"}
@@ -32,9 +32,9 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
 
 
 def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:
-    sac = OptionConditionedSAC(feature_dim=4, action_dim=2)
+    sac = OptionConditionedSAC(feature_dim=4, action_dim=3)
     losses = sac.losses(
-        torch.randn(3, 4), torch.randn(3, 2).tanh(), torch.randn(3),
+        torch.randn(3, 4), torch.randn(3, 3).tanh(), torch.randn(3),
         torch.randn(3, 4), torch.zeros(3, dtype=torch.bool),
     )
     losses.actor.backward()

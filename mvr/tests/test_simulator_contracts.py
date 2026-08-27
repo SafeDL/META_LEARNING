@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 import numpy as np
+from metadrive.policy.idm_policy import IDMPolicy
 
 from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
@@ -9,7 +10,6 @@ from mvr.scenario.option import AdversarialOption
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.taskbook import load_taskbook
 from mvr.scenario.registry import load_adapters
-from mvr.sut.idm import RouteBoundIDMPolicy
 from mvr.training.runner import HierarchicalRunner
 
 
@@ -37,14 +37,16 @@ def test_runtime_geometry_hash_and_sut_attachment(family: str) -> None:
         assert episode.map_tokens.map_hash == task.geometry_hash
         assert episode.episode_seed == 999
         assert episode.sut_adapter.metadata(episode.sut_profile)["profile_is_model_input"] is False
-        assert not episode.env.engine.get_policy(episode.sut.id).enable_lane_change
+        policy = episode.env.engine.get_policy(episode.sut.id)
+        assert isinstance(policy, IDMPolicy)
+        assert not policy.enable_lane_change
     finally:
         episode.env.close()
 
 
 @pytest.mark.parametrize("family", ("merge", "cutin", "roundabout"))
 def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
-    """SUT is route-bound; SAC must never produce lateral SUT motion."""
+    """Lane-stable native SUT routes must not oscillate under a zero residual."""
     task = next(
         row for row in load_taskbook("mvr/configs/taskbook.json")
         if row.functional_scenario == family and row.geometry_split == "train"
@@ -67,7 +69,7 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
             episode,
             family,
             AdversarialOption.GAP_CLOSE.value,
-            lambda _state: np.zeros(2, dtype=np.float32),
+            lambda _state: np.zeros(3, dtype=np.float32),
             step_callback=record_sut_tracking,
         )
         assert lateral_errors
@@ -144,6 +146,9 @@ def test_roundabout_candidate_binds_idm_to_complete_entry_exit_route(
         assert any(lane[1] == f"1O{entry}_0_" for lane in route)
         assert route[-1][0] == f"1O{exit_}_2_"
         assert tuple(episode.sut.navigation.checkpoints) == checkpoints
-        assert isinstance(episode.env.engine.get_policy(episode.sut.id), RouteBoundIDMPolicy)
+        assert episode.layout.native_navigation.sut_checkpoints == checkpoints
+        assert episode.layout.native_navigation.sut_lane_stable
+        assert isinstance(episode.env.engine.get_policy(episode.sut.id), IDMPolicy)
+        assert not episode.env.engine.get_policy(episode.sut.id).enable_lane_change
     finally:
         episode.env.close()

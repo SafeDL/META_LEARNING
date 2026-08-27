@@ -10,7 +10,7 @@ from mvr.training.trainers import build_online
 
 def test_online_adaptation_obeys_k_shot_budget_and_freezes_after_support() -> None:
     task = load_taskbook("mvr/configs/taskbook.json")[0]
-    model = TransferableScenarioMiner(state_dim=10, map_dim=16)
+    model = TransferableScenarioMiner(state_dim=14, map_dim=16)
     zero = build_online(model, task, 1, DEFAULT_FAILURE_CRITERIA).run(
         task, 2, posterior_support_limit=0
     )

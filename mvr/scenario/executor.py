@@ -77,11 +77,17 @@ class ScenarioExecutor:
             raise RuntimeError("runtime vehicle initial speed differs from outer output")
 
     @staticmethod
-    def _assert_vehicle_route(vehicle: Any, route: tuple[Any, ...]) -> None:
-        expected = tuple([route[0][0], *(lane_index[1] for lane_index in route)])
+    def _assert_vehicle_route(
+        vehicle: Any,
+        expected: tuple[Any, ...],
+        *,
+        lane_stable: bool = False,
+    ) -> None:
         actual = tuple(vehicle.navigation.checkpoints)
         if actual != expected:
-            raise RuntimeError("runtime vehicle navigation differs from resolved candidate route")
+            raise RuntimeError("native navigation checkpoints differ from scenario contract")
+        if lane_stable and int(vehicle.lane.index[2]) != int(vehicle.config["spawn_lane_index"][2]):
+            raise RuntimeError("lane-stable SUT route changed lanes during native initialization")
 
     @staticmethod
     def _static_key(task: ScenarioMiningTaskSpec) -> tuple[str, str]:
@@ -196,15 +202,21 @@ class ScenarioExecutor:
                 longitudinal_m=float(config["sut_spawn_m"]),
                 speed_mps=float(config["sut_initial_speed_mps"]),
                 destination=layout.sut_destination,
-                route=layout.sut_route,
                 adapter=sut_adapter,
                 profile=sut_profile,
                 seed=run_seed,
             )
             self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
             self._assert_vehicle_applied(sut, layout.sut_lane, float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
-            self._assert_vehicle_route(adversary, layout.adversary_route)
-            self._assert_vehicle_route(sut, layout.sut_route)
+            navigation = layout.native_navigation
+            if navigation is None:
+                raise RuntimeError("scenario layout has no native navigation contract")
+            self._assert_vehicle_route(
+                adversary, navigation.adversary_checkpoints
+            )
+            self._assert_vehicle_route(
+                sut, navigation.sut_checkpoints, lane_stable=navigation.sut_lane_stable
+            )
             applied = AppliedScenario(
                 str(adversary.id), str(sut.id), layout.adversary_lane, layout.sut_lane,
                 float(config["adversary_spawn_m"]), float(config["sut_spawn_m"]),

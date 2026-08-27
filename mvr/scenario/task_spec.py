@@ -6,7 +6,7 @@ import re
 from typing import Any, Mapping
 
 
-TASK_SCHEMA = "transferable_scenario_task_v2"
+TASK_SCHEMA = "transferable_scenario_task_v3"
 SPLITS = frozenset({"train", "validation", "test"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 

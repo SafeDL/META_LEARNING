@@ -1,8 +1,8 @@
-schema: transferable_scenario_miner_v2
+schema: transferable_scenario_miner_v3
 seed: 11
 taskbook: mvr/configs/taskbook.json
 model:
-  state_dim: 10
+  state_dim: 14
   latent_dim: 16
   num_experts: 4
 context:
@@ -25,12 +25,16 @@ failure:
   severity_bins: 5
 inner:
   algorithm: option_conditioned_sac
-  action_dim: 2
+  action_dim: 3
   batch_size: 64
   episodes_per_task: 5
   updates_per_episode: 8
   replay_capacity: 100000
   learning_rate: 0.0003
+control:
+  action_schema: interaction_residual_3d_v1
+  nominal_controller_schema: metadrive_native_idm_v1
+  scenario_contract_schema: scenario_contract_v2
 inner_latent_calibration:
   simulator_episode_budget: 16
   support_episodes: 1

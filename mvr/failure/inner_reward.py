@@ -40,13 +40,8 @@ class InnerRiskReward:
                 "adversary_traffic_violation",
             )
         )
-        target_collision = bool(
-            info.get("target_collision", info.get("crash_vehicle", False))
-        )
-        valid_near_miss = (
-            0.0 < distance < self.criteria.distance_m
-            and ttc < self.criteria.ttc_s
-        )
+        target_collision = bool(info.get("valid_target_collision", False))
+        valid_near_miss = bool(info.get("event_kind") == "near_miss" and info.get("event_semantic_valid", False) and info.get("event_traffic_valid", False))
         event_bonus = 0.0
         if not invalid:
             if target_collision:
@@ -57,5 +52,6 @@ class InnerRiskReward:
         # can guide SAC toward the conflict, but cannot be mistaken for a
         # successful attack.  Positive reward is reserved for a lawful
         # collision or a lawful thresholded near miss.
+        shield_penalty = float(info.get("traffic_shield_intervention_l2", 0.0)) ** 2
         shaping = -0.05 * (1.0 - criticality) - 0.01 * (1.0 - intent)
-        return float(np.clip(shaping + event_bonus - 1.25 * float(invalid), -2.0, 2.0))
+        return float(np.clip(shaping + event_bonus - 1.25 * float(invalid) - 0.10 * shield_penalty, -2.0, 2.0))

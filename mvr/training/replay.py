@@ -22,6 +22,8 @@ class InnerTransition:
     latent: torch.Tensor
     option_index: torch.Tensor
     config: torch.Tensor
+    schedule_state: Any
+    maneuver_update_mask: bool
 
 
 @dataclass

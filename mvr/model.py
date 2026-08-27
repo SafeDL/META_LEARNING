@@ -34,6 +34,7 @@ class TransferableScenarioMiner(nn.Module):
         token_dim: int = 128,
         continuous_dim: int = 4,
         option_count: int = 4,
+        inner_action_dim: int = 3,
         num_experts: int = 4,
         context_kl_weight: float = 1e-3,
     ) -> None:
@@ -61,7 +62,7 @@ class TransferableScenarioMiner(nn.Module):
         self.shared_feature_encoder = SharedFeatureEncoder(
             self.state_dim, map_dim, latent_dim, 16, continuous_dim
         )
-        self.inner_sac = OptionConditionedSAC(256)
+        self.inner_sac = OptionConditionedSAC(256, action_dim=inner_action_dim)
 
     @property
     def device(self) -> torch.device:

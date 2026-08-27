@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Mapping, Protocol
 
 
 @dataclass(frozen=True)
@@ -10,7 +10,6 @@ class ControllerProfile:
     profile_id: str
     adapter_name: str
     target_speed_mps: float
-    enable_lane_change: bool
     distance_wanted_m: float
     time_headway_s: float
     acceleration_factor: float = 1.0
@@ -40,7 +39,6 @@ class SUTAdapter(Protocol):
         vehicle: Any,
         profile: ControllerProfile,
         seed: int,
-        route: Sequence[tuple[Any, Any, int]],
     ) -> Any: ...
     def observe(self, env: Any, vehicle: Any) -> Mapping[str, Any]: ...
     def step(self, observation: Mapping[str, Any]) -> Any: ...

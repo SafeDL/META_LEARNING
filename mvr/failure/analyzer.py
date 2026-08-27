@@ -31,20 +31,28 @@ def analyze_rollout(
         "min_distance": min(float(row[10]) * 100.0 for row in features),
         "max_closing_speed": max(float(row[10]) * 100.0 / max(float(row[8]) * 15.0, 1e-3) if row[8] < 1.0 else 0.0 for row in features),
     }
-    traffic_infos = [info for info in infos if "traffic_raw_action" in info]
+    event_infos = [info for info in infos if info.get("event_kind") is not None]
+    event_info = event_infos[0] if event_infos else {}
+    outcome["event_kind"] = event_info.get("event_kind")
+    outcome["event_semantic_valid"] = bool(event_info.get("event_semantic_valid", False))
+    outcome["event_traffic_valid"] = bool(event_info.get("event_traffic_valid", False))
+    traffic_infos = [info for info in infos if "traffic_base_action" in info]
     if traffic_infos:
         final_traffic = traffic_infos[-1]
         outcome["traffic_telemetry"] = {
-            "raw_actions": [list(info["traffic_raw_action"]) for info in traffic_infos],
-            "applied_actions": [list(info["traffic_applied_action"]) for info in traffic_infos],
+            "base_actions": [list(info["traffic_base_action"]) for info in traffic_infos],
+            "candidate_actions": [list(info["traffic_candidate_action"]) for info in traffic_infos],
+            "executed_actions": [list(info["traffic_executed_action"]) for info in traffic_infos],
+            "shield_intervention_l2": [
+                float(info["traffic_shield_intervention_l2"]) for info in traffic_infos
+            ],
             "rejection_counts": dict(final_traffic["traffic_rejection_counts"]),
             "violation_counts": dict(final_traffic["traffic_violation_counts"]),
             "max_speed_mps": float(final_traffic["traffic_max_speed_mps"]),
             "max_abs_acceleration_mps2": float(final_traffic["traffic_max_abs_acceleration_mps2"]),
             "max_abs_jerk_mps3": float(final_traffic["traffic_max_abs_jerk_mps3"]),
             "max_lateral_acceleration_mps2": float(final_traffic["traffic_max_lateral_acceleration_mps2"]),
-            "max_abs_lane_lateral_m": float(final_traffic["traffic_max_abs_lane_lateral_m"]),
-            "lane_change_completed": bool(final_traffic["traffic_lane_change_completed"]),
+            "legal_lane_lateral_m": float(final_traffic["traffic_legal_lane_lateral_m"]),
         }
     invalid = any(
         bool(outcome[key])
@@ -56,15 +64,25 @@ def analyze_rollout(
             "adversary_traffic_violation",
         )
     )
-    outcome["valid_target_collision"] = bool(outcome["target_collision"] and not invalid)
-    outcome["valid_critical_near_miss"] = (
-        not outcome["target_collision"]
-        and not invalid
-        and outcome["min_ttc"] < criteria.ttc_s
-        and outcome["min_distance"] < criteria.distance_m
+    event_valid = bool(
+        outcome["event_semantic_valid"] and outcome["event_traffic_valid"]
     )
+    outcome["valid_target_collision"] = bool(
+        outcome["target_collision"]
+        and outcome["event_kind"] == "collision"
+        and event_valid
+    )
+    outcome["valid_critical_near_miss"] = (
+        outcome["event_kind"] == "near_miss" and event_valid
+    )
+    # A valid event is frozen before post-impact simulator transients.  For
+    # episodes without an event, ordinary traffic validity remains decisive.
+    invalid = invalid and not (
+        outcome["valid_target_collision"] or outcome["valid_critical_near_miss"]
+    )
+    outcome["is_valid_episode"] = not invalid
     signature = FailureSignatureBuilder(criteria).from_outcome(
         outcome, scenario_family, conflict_zone_id, candidate_id
     )
-    outcome.update({"is_valid_episode": signature.is_valid_episode, "is_failure": signature.is_failure, "is_collision": bool(outcome["target_collision"]), "is_near_miss": bool(outcome["valid_critical_near_miss"]), "severity_vector": signature.severity_vector, "candidate_id": candidate_id, "conflict_zone_id": conflict_zone_id, "failure_signature": signature.signature_id})
+    outcome.update({"is_valid_episode": signature.is_valid_episode, "is_failure": signature.is_failure, "is_collision": bool(outcome["valid_target_collision"]), "is_near_miss": bool(outcome["valid_critical_near_miss"]), "severity_vector": signature.severity_vector, "candidate_id": candidate_id, "conflict_zone_id": conflict_zone_id, "failure_signature": signature.signature_id})
     return outcome, signature

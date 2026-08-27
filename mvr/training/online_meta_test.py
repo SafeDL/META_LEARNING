@@ -185,6 +185,8 @@ class OnlineMetaTest:
                     episode_id, task.geometry_hash, row["state"], row["action"], row["reward_inner"], row["next_state"],
                     row["done"], tokens, candidates, latent.squeeze(0).detach().cpu(),
                     option_index.squeeze(0).detach().cpu(), scene.continuous.squeeze(0).detach().cpu(),
+                    np.asarray(row["state"][-4:], dtype=np.float32).copy(),
+                    bool(row["maneuver_update_mask"]),
                 )
                 for row in rollout.transitions
             )

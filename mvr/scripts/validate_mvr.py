@@ -87,7 +87,7 @@ def run(taskbook: str | Path, criteria: FailureCriteria, *, configurations: int 
             for config_id, action in enumerate(_actions(space, configurations, template.geometry_seed)):
                 episode = executor.reset(task, action)
                 try:
-                    rollout = runner.rollout(episode, family, action.option.value, lambda _: np.zeros(2, dtype=np.float32))
+                    rollout = runner.rollout(episode, family, action.option.value, lambda _: np.zeros(3, dtype=np.float32))
                 finally:
                     episode.env.close()
                 rows.append(
@@ -248,8 +248,8 @@ def run_inner_validation(
 
     random_rng = np.random.default_rng(int(config["seed"]) + 1)
     reports = [
-        evaluate_policy("zero", lambda _: np.zeros(2, dtype=np.float32)),
-        evaluate_policy("random", lambda _: random_rng.uniform(-1.0, 1.0, 2).astype(np.float32)),
+        evaluate_policy("base", lambda _: np.zeros(3, dtype=np.float32)),
+        evaluate_policy("random_residual", lambda _: random_rng.uniform(-1.0, 1.0, 3).astype(np.float32)),
         evaluate_policy("trained_inner"),
     ]
     return {

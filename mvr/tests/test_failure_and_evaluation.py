@@ -59,6 +59,27 @@ def test_traffic_violation_cannot_be_a_valid_target_collision() -> None:
     assert not signature.is_failure
 
 
+def test_event_time_traffic_validity_survives_post_impact_transient() -> None:
+    signature = FailureSignatureBuilder().from_outcome(
+        {
+            "target_collision": True,
+            "adversary_out_of_road": True,
+            "event_kind": "collision",
+            "event_semantic_valid": True,
+            "event_traffic_valid": True,
+            "valid_target_collision": True,
+            "is_valid_episode": True,
+            "min_ttc": 1.0,
+            "min_distance": 0.5,
+            "max_closing_speed": 12.0,
+        },
+        "cutin",
+        "merge_window",
+    )
+    assert signature.is_valid_episode
+    assert signature.is_failure
+
+
 def test_failure_threshold_config_changes_failure_decision_and_inner_reward() -> None:
     broad = FailureCriteria.from_config(
         {"severity_thresholds": {"ttc_s": 5.0, "distance_m": 10.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
@@ -68,9 +89,14 @@ def test_failure_threshold_config_changes_failure_decision_and_inner_reward() ->
     )
     features = np.zeros(12, dtype=np.float32)
     features[8], features[10] = 0.2, 0.05
-    transitions = [{"info": {}, "trajectory_features": features}]
-    _, broad_signature = analyze_rollout(transitions, "merge", "zone", "candidate", broad)
-    _, strict_signature = analyze_rollout(transitions, "merge", "zone", "candidate", strict)
+    broad_transitions = [{"info": {
+        "event_kind": "near_miss",
+        "event_semantic_valid": True,
+        "event_traffic_valid": True,
+    }, "trajectory_features": features}]
+    strict_transitions = [{"info": {}, "trajectory_features": features}]
+    _, broad_signature = analyze_rollout(broad_transitions, "merge", "zone", "candidate", broad)
+    _, strict_signature = analyze_rollout(strict_transitions, "merge", "zone", "candidate", strict)
     assert broad_signature.is_failure
     assert not strict_signature.is_failure
     assert InnerRiskReward(broad)(features, {}, "gap_close", 1, 10) > InnerRiskReward(strict)(features, {}, "gap_close", 1, 10)
@@ -94,10 +120,21 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
     features = np.zeros(12, dtype=np.float32)
     features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
     reward = InnerRiskReward(criteria)
-    event = reward(features, {"crash_vehicle": True}, "approach_conflict", 1, 10)
+    event = reward(features, {
+        "valid_target_collision": True,
+        "event_kind": "collision",
+        "event_semantic_valid": True,
+        "event_traffic_valid": True,
+    }, "approach_conflict", 1, 10)
     invalid_event = reward(
         features,
-        {"crash_vehicle": True, "adversary_traffic_violation": True},
+        {
+            "valid_target_collision": False,
+            "event_kind": "collision",
+            "event_semantic_valid": True,
+            "event_traffic_valid": False,
+            "adversary_traffic_violation": True,
+        },
         "approach_conflict",
         1,
         10,

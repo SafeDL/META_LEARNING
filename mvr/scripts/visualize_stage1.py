@@ -83,8 +83,8 @@ def _closest_frame(transitions: Sequence[Mapping[str, Any]]) -> int:
 
 
 def _policy_provider(name: str) -> Callable[[np.ndarray], np.ndarray] | None:
-    if name == "zero":
-        return lambda _: np.zeros(2, dtype=np.float32)
+    if name == "base":
+        return lambda _: np.zeros(3, dtype=np.float32)
     if name == "trained_inner":
         return None
     raise ValueError(f"unsupported visualization policy {name!r}")
@@ -202,10 +202,10 @@ def _capture(
         )
         if info.get("traffic_shield_rejected"):
             traffic_status = str(info.get("traffic_shield_rejection_reason"))
-        elif info.get("traffic_lane_change_completed"):
-            traffic_status = "legal merge complete"
-        elif info.get("traffic_lane_change_started"):
-            traffic_status = "legal merge active"
+        elif info.get("semantic_maneuver_completed"):
+            traffic_status = "maneuver complete"
+        elif info.get("semantic_maneuver_active"):
+            traffic_status = "maneuver active"
         else:
             traffic_status = "lane following"
         route_progress = episode.adversary_route.projection(

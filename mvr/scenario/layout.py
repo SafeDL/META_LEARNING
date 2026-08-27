@@ -8,6 +8,7 @@ import numpy as np
 
 
 LaneIndex = tuple[Any, Any, int]
+SCENARIO_CONTRACT_SCHEMA = "scenario_contract_v2"
 
 
 @dataclass(frozen=True)
@@ -20,8 +21,11 @@ class TrafficBehaviorContract:
     target_lane_number: int | None = None
     merge_window_s: tuple[float, float] | None = None
     crossing_boundary: str | None = None
+    schema: str = SCENARIO_CONTRACT_SCHEMA
 
     def __post_init__(self) -> None:
+        if self.schema != SCENARIO_CONTRACT_SCHEMA:
+            raise ValueError("unsupported traffic behavior contract schema")
         if self.speed_limit_mps <= 0.0 or not self.allowed_lane_numbers:
             raise ValueError("traffic contract requires a speed limit and allowed lanes")
         if self.source_lane_number not in self.allowed_lane_numbers:
@@ -39,6 +43,19 @@ class TrafficBehaviorContract:
         start, end = self.merge_window_s
         if not 0.0 <= start < end:
             raise ValueError("traffic contract merge window must be ordered and non-negative")
+
+
+@dataclass(frozen=True)
+class NativeNavigationContract:
+    """Road-level route expected from native spawn-lane/destination navigation."""
+
+    adversary_checkpoints: tuple[Any, ...]
+    sut_checkpoints: tuple[Any, ...]
+    sut_lane_stable: bool
+
+    @staticmethod
+    def checkpoints(route: tuple[LaneIndex, ...]) -> tuple[Any, ...]:
+        return tuple((route[0][0], *(lane[1] for lane in route)))
 
 
 @dataclass(frozen=True)
@@ -60,6 +77,7 @@ class ScenarioLayout:
     sut_route: tuple[LaneIndex, ...]
     conflict_xy: tuple[float, float]
     traffic_contract: TrafficBehaviorContract
+    native_navigation: NativeNavigationContract | None = None
 
     def __post_init__(self) -> None:
         if not self.candidate or not self.conflict_zone_id or not self.adversary_route or not self.sut_route:
@@ -68,3 +86,13 @@ class ScenarioLayout:
             raise ValueError("each runtime route must begin on its spawn lane")
         if not np.isfinite(np.asarray(self.conflict_xy, dtype=float)).all():
             raise ValueError("scenario layout conflict reference must be finite")
+        if self.native_navigation is None:
+            object.__setattr__(
+                self,
+                "native_navigation",
+                NativeNavigationContract(
+                    NativeNavigationContract.checkpoints(self.adversary_route),
+                    NativeNavigationContract.checkpoints(self.sut_route),
+                    len({lane[2] for lane in self.sut_route}) == 1,
+                ),
+            )

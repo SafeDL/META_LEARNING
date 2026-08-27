@@ -17,8 +17,10 @@ from ..failure.criteria import FailureCriteria
 from ..model import TransferableScenarioMiner
 from ..provenance import content_hash
 from ..scenario.catalog import mvr_parameter_spaces
+from ..scenario.layout import SCENARIO_CONTRACT_SCHEMA
 from ..scenario.task_spec import ScenarioMiningTaskSpec
 from ..scenario.taskbook import load_taskbook
+from ..state import PhysicalStateExtractor
 from .checkpoint import HierarchicalCheckpoint
 from .stages import CANONICAL_TRAINING_STAGES, TrainingStage, validate_stage_transition
 from .trainers import train_inner, train_inner_latent_calibration, train_outer, train_posterior
@@ -27,6 +29,7 @@ from .workflow import StagedWorkflow
 
 CHECKPOINT_CONFIG_KEYS = (
     "schema",
+    "control",
     "taskbook",
     "model",
     "context",
@@ -72,6 +75,13 @@ def assert_taskbook_compatible(checkpoint: HierarchicalCheckpoint, taskbook: str
 
 def load_config(path: str | Path) -> tuple[dict[str, Any], Path, torch.device]:
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    control = config.get("control", {})
+    if control.get("action_schema") != "interaction_residual_3d_v1":
+        raise ValueError("config must declare interaction_residual_3d_v1")
+    if control.get("nominal_controller_schema") != "metadrive_native_idm_v1":
+        raise ValueError("config must declare metadrive_native_idm_v1")
+    if control.get("scenario_contract_schema") != SCENARIO_CONTRACT_SCHEMA:
+        raise ValueError(f"config must declare {SCENARIO_CONTRACT_SCHEMA}")
     taskbook = Path(config["taskbook"])
     if not taskbook.is_file():
         raise FileNotFoundError(f"taskbook not found: {taskbook}")
@@ -104,12 +114,13 @@ def selected_tasks(
 def build_model(config: dict[str, Any], device: torch.device) -> TransferableScenarioMiner:
     space = next(iter(mvr_parameter_spaces().values()))
     return TransferableScenarioMiner(
-        state_dim=int(config["model"].get("state_dim", 10)),
+        state_dim=int(config["model"].get("state_dim", PhysicalStateExtractor.dimension)),
         map_dim=int(config["map"].get("embedding_dim", 128)),
         latent_dim=int(config["model"].get("latent_dim", 16)),
         continuous_dim=space.continuous_dim,
         option_count=len(space.options),
         num_experts=int(config["model"].get("num_experts", 4)),
+        inner_action_dim=int(config["inner"].get("action_dim", 3)),
         context_kl_weight=float(config.get("context", {}).get("kl_weight", 1e-3)),
     ).to(device)
 
@@ -154,6 +165,7 @@ def _save_stage(
         "model": model.state_dict(),
         "provenance_config": config,
         "taskbook_hash": taskbook_digest,
+        "control_contract": dict(config["control"]),
     }
     compatibility_hash = checkpoint_config_hash(config)
     HierarchicalCheckpoint(HierarchicalCheckpoint.SCHEMA, stage.value, compatibility_hash, state).save(path)
@@ -177,6 +189,7 @@ def _save_stage(
                 "compatibility_hash": compatibility_hash,
                 "config_hash": compatibility_hash,
                 "taskbook_hash": taskbook_digest,
+                "control_contract": config["control"],
                 "checkpoint_hash": checkpoint_digest,
                 "git_commit": git_commit,
                 "config": config,
@@ -313,6 +326,7 @@ class MVRTrainingPipeline:
                     "stages": records,
                     "stop_after": records[-1]["stage"] if records else None,
                     "compatibility_hash": checkpoint_config_hash(self.config),
+                    "control_contract": self.config["control"],
                     "taskbook": str(self.taskbook),
                     "taskbook_hash": taskbook_hash(self.taskbook),
                 },

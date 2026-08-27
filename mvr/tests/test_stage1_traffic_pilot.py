@@ -34,7 +34,7 @@ def test_non_cutin_stage1_pilots_remain_lawful(
             episode,
             task.functional_scenario,
             AdversarialOption.APPROACH_CONFLICT.value,
-            lambda _: np.zeros(2, dtype=np.float32),
+            lambda _: np.zeros(3, dtype=np.float32),
         )
     finally:
         episode.env.close()
