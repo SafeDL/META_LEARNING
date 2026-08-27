@@ -31,6 +31,13 @@ def analyze_rollout(
         "min_distance": min(float(row[10]) * 100.0 for row in features),
         "max_closing_speed": max(float(row[10]) * 100.0 / max(float(row[8]) * 15.0, 1e-3) if row[8] < 1.0 else 0.0 for row in features),
     }
+    final_info = infos[-1]
+    outcome["test_completion_condition"] = final_info.get("test_completion_condition")
+    outcome["termination_reason"] = final_info.get("termination_reason")
+    outcome["sut_arrived_destination"] = any(
+        bool(info.get("sut_arrived_destination", False)) for info in infos
+    )
+    outcome["test_process_completed"] = bool(outcome["sut_arrived_destination"])
     event_infos = [info for info in infos if info.get("event_kind") is not None]
     event_info = event_infos[0] if event_infos else {}
     outcome["event_kind"] = event_info.get("event_kind")
@@ -53,6 +60,28 @@ def analyze_rollout(
             "max_abs_jerk_mps3": float(final_traffic["traffic_max_abs_jerk_mps3"]),
             "max_lateral_acceleration_mps2": float(final_traffic["traffic_max_lateral_acceleration_mps2"]),
             "legal_lane_lateral_m": float(final_traffic["traffic_legal_lane_lateral_m"]),
+        }
+    sut_infos = [info for info in infos if "sut_steering" in info]
+    if sut_infos:
+        outcome["sut_telemetry"] = {
+            "current_lanes": [list(info["sut_current_lane"]) for info in sut_infos],
+            "routing_target_lanes": [
+                None if info["sut_routing_target_lane"] is None else list(info["sut_routing_target_lane"])
+                for info in sut_infos
+            ],
+            "current_ref_lanes": [
+                [list(lane) for lane in info["sut_current_ref_lanes"]] for info in sut_infos
+            ],
+            "steering": [float(info["sut_steering"]) for info in sut_infos],
+            "lateral_error_m": [float(info["sut_lateral_error_m"]) for info in sut_infos],
+            "heading_error_rad": [float(info["sut_heading_error_rad"]) for info in sut_infos],
+            "speed_mps": [float(info["sut_speed_mps"]) for info in sut_infos],
+            "route_progress_m": [float(info["sut_route_progress_m"]) for info in sut_infos],
+            "target_speed_mps": [float(info["sut_target_speed_mps"]) for info in sut_infos],
+            "nominal_target_speed_mps": [
+                float(info["sut_nominal_target_speed_mps"]) for info in sut_infos
+            ],
+            "curve_safe_speed_mps": [float(info["sut_curve_safe_speed_mps"]) for info in sut_infos],
         }
     invalid = any(
         bool(outcome[key])

@@ -8,7 +8,7 @@ import numpy as np
 
 
 LaneIndex = tuple[Any, Any, int]
-SCENARIO_CONTRACT_SCHEMA = "scenario_contract_v2"
+SCENARIO_CONTRACT_SCHEMA = "scenario_contract_v3"
 
 
 @dataclass(frozen=True)
@@ -16,18 +16,32 @@ class TrafficBehaviorContract:
     """Non-learned traffic rules that constrain the adversary at runtime."""
 
     speed_limit_mps: float
+    sut_nominal_speed_mps: float
     allowed_lane_numbers: tuple[int, ...]
     source_lane_number: int
     target_lane_number: int | None = None
     merge_window_s: tuple[float, float] | None = None
     crossing_boundary: str | None = None
+    adversary_intent: str = "route_follow"
+    sut_role: str = "route_following"
+    completion_condition: str = "sut_route_destination"
+    terminate_on_target_collision: bool = True
+    min_completion_steps: int = 240
     schema: str = SCENARIO_CONTRACT_SCHEMA
 
     def __post_init__(self) -> None:
         if self.schema != SCENARIO_CONTRACT_SCHEMA:
             raise ValueError("unsupported traffic behavior contract schema")
-        if self.speed_limit_mps <= 0.0 or not self.allowed_lane_numbers:
-            raise ValueError("traffic contract requires a speed limit and allowed lanes")
+        if min(self.speed_limit_mps, self.sut_nominal_speed_mps) <= 0.0 or not self.allowed_lane_numbers:
+            raise ValueError("traffic contract requires positive speeds and allowed lanes")
+        if not self.adversary_intent or not self.sut_role:
+            raise ValueError("traffic contract requires explicit vehicle roles")
+        if self.completion_condition != "sut_route_destination":
+            raise ValueError("Stage 1 requires SUT route completion as the test condition")
+        if not self.terminate_on_target_collision:
+            raise ValueError("Stage 1 must terminate immediately on a target collision")
+        if int(self.min_completion_steps) < 1:
+            raise ValueError("traffic contract requires a positive completion-step budget")
         if self.source_lane_number not in self.allowed_lane_numbers:
             raise ValueError("traffic contract source lane must be allowed")
         if self.target_lane_number is None:
@@ -51,11 +65,26 @@ class NativeNavigationContract:
 
     adversary_checkpoints: tuple[Any, ...]
     sut_checkpoints: tuple[Any, ...]
+    sut_lane_sequence: tuple[int, ...]
     sut_lane_stable: bool
 
     @staticmethod
     def checkpoints(route: tuple[LaneIndex, ...]) -> tuple[Any, ...]:
         return tuple((route[0][0], *(lane[1] for lane in route)))
+
+    def expected_sut_lane_number(self, road: tuple[Any, Any]) -> int:
+        for index, lane_number in zip(zip(self.sut_checkpoints[:-1], self.sut_checkpoints[1:]), self.sut_lane_sequence):
+            if tuple(road) == tuple(index):
+                return int(lane_number)
+        raise RuntimeError(f"SUT is outside its native route: {road!r}")
+
+    def validate(self) -> None:
+        if len(self.sut_checkpoints) < 2:
+            raise ValueError("native navigation contract requires a SUT road route")
+        if len(self.sut_lane_sequence) != len(self.sut_checkpoints) - 1:
+            raise ValueError("SUT lane sequence must align with its road checkpoints")
+        if self.sut_lane_stable and len(set(self.sut_lane_sequence)) != 1:
+            raise ValueError("lane-stable SUT route cannot change lane numbers")
 
 
 @dataclass(frozen=True)
@@ -93,6 +122,8 @@ class ScenarioLayout:
                 NativeNavigationContract(
                     NativeNavigationContract.checkpoints(self.adversary_route),
                     NativeNavigationContract.checkpoints(self.sut_route),
+                    tuple(int(lane[2]) for lane in self.sut_route),
                     len({lane[2] for lane in self.sut_route}) == 1,
                 ),
             )
+        self.native_navigation.validate()

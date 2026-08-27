@@ -133,7 +133,7 @@ def _dual_view_frame(
     topdown = topdown.resize((round(topdown.width * height / topdown.height), height))
     left = _label_panel(
         np.asarray(chase),
-        f"SUT tail view | blue IDM SUT | red SAC | {policy}",
+        f"SUT tail view | blue IDM SUT | red adversary | {policy}",
         f"candidate: {candidate} | step: {step} | {traffic_status}",
     )
     right = _label_panel(
@@ -212,7 +212,10 @@ def _capture(
             episode.adversary.position,
             episode.adversary.heading_theta,
         ).s_m
-        traffic_status = f"{traffic_status} | route: {route_progress:.0f}/{episode.adversary_route.length_m:.0f} m"
+        traffic_status = (
+            f"{episode.layout.traffic_contract.adversary_intent} | {traffic_status} | "
+            f"route: {route_progress:.0f}/{episode.adversary_route.length_m:.0f} m"
+        )
         frames.append(_dual_view_frame(
             _chase_frame(episode),
             np.asarray(topdown_frame),

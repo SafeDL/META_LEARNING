@@ -178,7 +178,7 @@ class ScenarioSemanticMonitor:
         )
 
     def capture_event(self, kind: str | None, info: Mapping[str, Any]) -> None:
-        if kind is None or self._event_kind is not None:
+        if kind is None:
             return
         if kind not in {"collision", "near_miss"}:
             raise ValueError(f"unknown event kind {kind!r}")
@@ -188,6 +188,13 @@ class ScenarioSemanticMonitor:
                 semantic = semantic and self._state.challenge_phase_active
         else:
             semantic = self._state.challenge_phase_active
+        # A near-miss is recorded once but does not end the route-completion
+        # test.  A later target collision is the decisive event and replaces
+        # the earlier near-miss latch.
+        if self._event_kind == "collision" or (
+            self._event_kind == "near_miss" and kind == "near_miss"
+        ):
+            return
         self._event_kind = kind
         self._event_semantic_valid = bool(semantic)
         self._event_traffic_valid = self._traffic_valid(info)

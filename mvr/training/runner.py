@@ -14,6 +14,7 @@ from ..failure.signature import FailureSignature
 from ..context.trajectory_features import TrajectoryFeatureExtractor
 from ..safety import TrafficActionShield
 from ..scenario.applied import ExecutableEpisode
+from ..scenario.executor import ScenarioExecutor
 from ..scenario.semantics import ScenarioActionAdapter, ScenarioSemanticMonitor
 from ..state import PhysicalStateExtractor
 
@@ -63,10 +64,14 @@ class HierarchicalRunner:
         controller = NativeAdversaryBaseController(episode, scenario_family, schedule)
         shield = TrafficActionShield(episode, schedule)
         monitor = ScenarioSemanticMonitor(episode, scenario_family, schedule)
+        max_steps = max(
+            self.max_steps,
+            int(episode.layout.traffic_contract.min_completion_steps),
+        )
         extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         state_extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         try:
-            for step in range(self.max_steps):
+            for step in range(max_steps):
                 state = state_extractor(episode.adversary, episode.sut, schedule.state)
                 raw_action = np.asarray(inner_action(state), dtype=np.float32).reshape(-1)
                 if raw_action.shape != (3,) or not np.isfinite(raw_action).all():
@@ -81,6 +86,30 @@ class HierarchicalRunner:
                 shielded = shield.project(base_action, candidate_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 info = {**dict(info), **shield.observe(shielded, info)}
+                sut_policy = env.engine.get_policy(episode.sut.id)
+                sut_action = np.asarray(
+                    getattr(sut_policy, "action_info", {}).get("action", (0.0, 0.0)),
+                    dtype=float,
+                )
+                sut_projection = episode.sut_route.projection(
+                    episode.sut.position, episode.sut.heading_theta
+                )
+                info.update(ScenarioExecutor.sut_lane_status(episode, require_routing_target=True))
+                info.update({
+                    "sut_steering": float(sut_action[0]),
+                    "sut_acceleration": float(sut_action[1]),
+                    "sut_lateral_error_m": float(sut_projection.lateral_m),
+                    "sut_heading_error_rad": float(sut_projection.heading_error),
+                    "sut_speed_mps": float(episode.sut.speed_km_h) / 3.6,
+                    "sut_route_progress_m": float(sut_projection.s_m),
+                    "sut_target_speed_mps": float(getattr(sut_policy, "target_speed", 0.0)) / 3.6,
+                    "sut_nominal_target_speed_mps": float(
+                        getattr(sut_policy, "nominal_target_speed_mps", 0.0)
+                    ),
+                    "sut_curve_safe_speed_mps": float(
+                        getattr(sut_policy, "curve_safe_speed_mps", 0.0)
+                    ),
+                })
                 info["adversary_out_of_road"] = bool(
                     info.get("adversary_out_of_road", info.get("out_of_road", False))
                 )
@@ -115,19 +144,35 @@ class HierarchicalRunner:
                 )
                 sut_arrived = self._sut_arrived_destination(episode)
                 info["sut_arrived_destination"] = sut_arrived
-                valid_event = bool(
-                    info["event_kind"] is not None
-                    and info["event_semantic_valid"]
-                    and info["event_traffic_valid"]
-                )
                 hard_violation = bool(info["adversary_traffic_violation"])
+                if target_collision:
+                    termination_reason = "target_collision"
+                elif hard_violation:
+                    termination_reason = "hard_traffic_violation"
+                elif sut_arrived:
+                    termination_reason = "sut_route_completed"
+                # MetaDrive's sole controllable agent is the adversary.  Its
+                # native arrival sets ``terminated`` permanently, but does
+                # not make the SUT route complete; continue this test until
+                # the SUT completes or a real terminal event occurs.
+                elif terminated and not bool(info.get("arrive_dest", False)):
+                    termination_reason = "simulator_terminated"
+                elif step + 1 >= max_steps:
+                    termination_reason = "runner_step_budget"
+                else:
+                    termination_reason = None
+                info["test_completion_condition"] = (
+                    episode.layout.traffic_contract.completion_condition
+                )
+                info["termination_reason"] = termination_reason
                 if step_callback is not None:
                     step_callback(episode, len(transitions), info)
                 sut_observation = episode.sut_adapter.observe(env, episode.sut)
                 sut_evidence = episode.sut_adapter.step(sut_observation)
-                done = bool(
-                    terminated or truncated or sut_arrived or valid_event or hard_violation
-                )
+                # A near-miss is evidence, not a route terminator: unless a
+                # collision or hard violation occurs, the SUT must finish its
+                # declared route for the scenario to be a complete test.
+                done = termination_reason is not None
                 transitions.append({
                     "state": state,
                     "raw_action": raw_action,
@@ -139,7 +184,7 @@ class HierarchicalRunner:
                     "candidate_action": shielded.candidate_action,
                     "maneuver_update_mask": schedule.state.maneuver_update_mask,
                     "reward_inner": reward_fn(
-                        trajectory_row, info, option, len(transitions), self.max_steps
+                        trajectory_row, info, option, len(transitions), max_steps
                     ),
                     "reward_env": float(env_reward),
                     "next_state": state_extractor(episode.adversary, episode.sut, schedule.state),

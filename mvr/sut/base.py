@@ -9,7 +9,7 @@ from typing import Any, Mapping, Protocol
 class ControllerProfile:
     profile_id: str
     adapter_name: str
-    target_speed_mps: float
+    speed_ratio: float
     distance_wanted_m: float
     time_headway_s: float
     acceleration_factor: float = 1.0
@@ -19,7 +19,7 @@ class ControllerProfile:
         if not self.profile_id or not self.adapter_name:
             raise ValueError("controller profile id and adapter name are required")
         if (
-            self.target_speed_mps <= 0.0
+            self.speed_ratio <= 0.0
             or self.distance_wanted_m <= 0.0
             or self.time_headway_s <= 0.0
             or self.acceleration_factor <= 0.0
@@ -39,6 +39,8 @@ class SUTAdapter(Protocol):
         vehicle: Any,
         profile: ControllerProfile,
         seed: int,
+        speed_limit_mps: float,
+        nominal_speed_mps: float,
     ) -> Any: ...
     def observe(self, env: Any, vehicle: Any) -> Mapping[str, Any]: ...
     def step(self, observation: Mapping[str, Any]) -> Any: ...

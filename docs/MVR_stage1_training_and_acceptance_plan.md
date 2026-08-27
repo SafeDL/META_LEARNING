@@ -303,7 +303,7 @@ python -m mvr.scripts.train_mvr
 ```powershell
 python -m mvr.scripts.train_mvr ^
   --config mvr/configs/mvr_stage1.yaml ^
-  --output results/mvr/stage1_seed11 ^
+  --output results/mvr/stage1 ^
   --stop-after inner_pretrain
 ```
 
@@ -539,7 +539,7 @@ tasks = 36
 可以临时：
 
 ```text
-step_budget = 60
+step_budget = 240  # a smoke rollout must still let the SUT complete its route
 ```
 
 Smoke PASS：
@@ -643,7 +643,7 @@ v_{sut}
 输出建议：
 
 ```text
-results/mvr/stage1_seed11/
+results/mvr/stage1/
 ├── inner_pretrain.pt
 ├── inner_pretrain.json
 ├── manifest.json
@@ -1197,7 +1197,7 @@ python -m mvr.scripts.train_mvr ^
 ```powershell
 python -m mvr.scripts.train_mvr ^
   --config mvr/configs/mvr_stage1.yaml ^
-  --output results/mvr/stage1_seed11 ^
+  --output results/mvr/stage1 ^
   --stop-after inner_pretrain
 ```
 
@@ -1208,9 +1208,9 @@ python -m mvr.scripts.train_mvr ^
 ```powershell
 python -m mvr.scripts.validate_mvr ^
   --config mvr/configs/mvr_stage1.yaml ^
-  --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt ^
+  --checkpoint results/mvr/stage1/inner_pretrain.pt ^
   --mode inner ^
-  --output results/mvr/stage1_seed11/validation.json
+  --output results/mvr/stage1/validation.json
 ```
 
 ---

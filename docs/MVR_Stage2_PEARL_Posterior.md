@@ -1447,7 +1447,7 @@ validation 192 episodes
 ```powershell
 python -m mvr.scripts.train_mvr ^
   --config mvr/configs/mvr_stage2.yaml ^
-  --resume results/mvr/stage1_seed11/inner_pretrain.pt ^
+  --resume results/mvr/stage1/inner_pretrain.pt ^
   --output results/mvr/stage2_seed11 ^
   --stop-after posterior
 ```

@@ -15,6 +15,7 @@ from ..task_spec import ScenarioMiningTaskSpec
 class MetaDriveFamilyAdapter:
     family = ""
     SPEED_LIMITS_MPS = {"cutin": 20.0, "merge": 18.0, "roundabout": 12.0}
+    SUT_NOMINAL_SPEEDS_MPS = {"cutin": 8.3, "merge": 8.3, "roundabout": 4.5}
 
     def env_config(
         self,
@@ -154,18 +155,6 @@ class MetaDriveFamilyAdapter:
             members = multi_lane_roads[rank % len(multi_lane_roads)]
             adversary_index, adversary_lane = members[0 if candidate.startswith("left") else -1]
             sut_index, sut_lane = members[-1 if candidate.startswith("left") else 0]
-        elif self.family == "merge":
-            incoming: dict[Any, list[tuple[LaneIndex, Any]]] = defaultdict(list)
-            for index, lane in rows:
-                incoming[index[1]].append((index, lane))
-            merge_groups = [members for members in incoming.values() if len({index[0] for index, _ in members}) >= 2]
-            if merge_groups:
-                members = sorted(merge_groups[rank % len(merge_groups)], key=lambda row: tuple(map(str, row[0])))
-                adversary_index, adversary_lane = members[0]
-                sut_index, sut_lane = members[-1]
-            else:
-                adversary_index, adversary_lane = rows[(2 * rank) % len(rows)]
-                sut_index, sut_lane = rows[(2 * rank + 1) % len(rows)]
         else:
             adversary_index, adversary_lane = rows[(2 * rank) % len(rows)]
             sut_index, sut_lane = rows[(2 * rank + 1) % len(rows)]
@@ -197,7 +186,11 @@ class MetaDriveFamilyAdapter:
             conflict_xy=(float(conflict[0]), float(conflict[1])),
             traffic_contract=TrafficBehaviorContract(
                 self.SPEED_LIMITS_MPS[self.family],
+                self.SUT_NOMINAL_SPEEDS_MPS[self.family],
                 tuple(sorted({lane[2] for lane in adversary_route})),
                 adversary_route[0][2],
+                adversary_intent="route_follow",
+                sut_role="route_following",
+                min_completion_steps=240,
             ),
         )

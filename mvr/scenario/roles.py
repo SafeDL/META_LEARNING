@@ -17,6 +17,8 @@ def spawn_sut(
     adapter: SUTAdapter,
     profile: ControllerProfile,
     seed: int,
+    speed_limit_mps: float,
+    nominal_speed_mps: float,
 ) -> Any:
     from metadrive.component.vehicle.vehicle_type import TrafficDefaultVehicle
 
@@ -29,6 +31,13 @@ def spawn_sut(
         "destination": destination, "enable_reverse": False,
     })
     manager._traffic_vehicles.append(vehicle)
-    adapter.attach(env, vehicle, profile, int(seed))
+    adapter.attach(
+        env,
+        vehicle,
+        profile,
+        int(seed),
+        float(speed_limit_mps),
+        float(nominal_speed_mps),
+    )
     vehicle.set_velocity(np.asarray(vehicle.heading, dtype=float) * float(speed_mps))
     return vehicle

@@ -22,12 +22,16 @@ class NativeAdversaryBaseController:
         self.schedule = schedule
         self.policy = IDMPolicy(episode.adversary, int(episode.episode_seed or 0))
         self.policy.enable_lane_change = False
-        self.policy.NORMAL_SPEED = 0.75 * float(episode.layout.traffic_contract.speed_limit_mps) * 3.6
+        self.policy.NORMAL_SPEED = float(episode.layout.traffic_contract.sut_nominal_speed_mps) * 3.6
         self.policy.target_speed = self.policy.NORMAL_SPEED
 
     def _set_target_speed(self) -> None:
         speed_limit = float(self.episode.layout.traffic_contract.speed_limit_mps) * 3.6
-        nominal = 0.75 * speed_limit
+        # Zero residual is ordinary, matched-flow traffic.  The timing and
+        # longitudinal residuals then create bounded interaction pressure;
+        # a fixed 75%-of-limit base would make the adversary leave short
+        # scenario routes long before the SUT completed its test route.
+        nominal = float(self.episode.layout.traffic_contract.sut_nominal_speed_mps) * 3.6
         target = nominal + self.timing_speed_scale_kmh * self.schedule.state.timing_reference
         self.policy.NORMAL_SPEED = float(np.clip(target, 1.0, speed_limit))
         self.policy.target_speed = self.policy.NORMAL_SPEED

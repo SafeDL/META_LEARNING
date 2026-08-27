@@ -28,18 +28,29 @@ Evaluation uses 20 total simulator episodes and K = 0/1/2/4 support shots; suppo
 
 Evaluation JSON records each concrete scenario's geometry hash, conflict-relative initial state, option, latent, Inner-policy hash, and episode seed so it can be reconstructed from the taskbook.
 
-Checkpoints require `transferable_scenario_miner_v3`, `scenario_contract_v2`, `interaction_residual_3d_v1`, and `metadrive_native_idm_v1`; previous 2-D residual checkpoints are intentionally incompatible.
+Checkpoints require `transferable_scenario_miner_v3`, `scenario_contract_v3`, `interaction_residual_3d_v1`, and `metadrive_lane_stable_idm_v2`; earlier controller checkpoints are intentionally incompatible.
+
+Every Stage 1 contract has a family-specific minimum completion budget and ends only when the SUT reaches its declared destination; a target collision or a hard adversary traffic violation ends the rollout early.  In Merge, the red adversary is always the one-lane branch vehicle and the blue SUT remains on the multi-lane mainline.
 
 ```powershell
 conda run -n metadrive python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
-conda run -n metadrive python -m mvr.scripts.train_mvr --config mvr/configs/mvr_stage1.yaml --output results/mvr/stage1_seed11 --stop-after inner_pretrain
-conda run -n metadrive python -m mvr.scripts.validate_mvr --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt --mode inner --output results/mvr/stage1_seed11/validation.json
+conda run -n metadrive python -m mvr.scripts.train_mvr --config mvr/configs/mvr_stage1.yaml --output results/mvr/stage1 --stop-after inner_pretrain
+conda run -n metadrive python -m mvr.scripts.validate_mvr --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1/inner_pretrain.pt --mode inner --output results/mvr/stage1/validation.json
 ```
 
 After a checkpoint has been retrained against the current taskbook, create auditable high-frame-rate GIF replays for formal tasks. Each policy replay is written to its own GIF; each frame combines a blue-SUT tail-following 3D camera with a synchronized global top-down view where the adversary is red:
 
 ```powershell
-conda run -n metadrive python -m mvr.scripts.visualize_stage1 --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1_seed11/inner_pretrain.pt --output results/mvr/stage1_seed11/visualization
+conda run -n metadrive python -m mvr.scripts.visualize_stage1 --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1/inner_pretrain.pt --output results/mvr/stage1/visualization
+```
+
+No current-contract trained checkpoint exists yet. The retained preflight evidence is
+`results/mvr/sut_only_native_idm_diagnostic.json` and the zero-residual GIF set in
+`results/mvr/stage1_native_idm_residual_smoke`; regenerate it with:
+
+```powershell
+conda run -n metadrive python -m mvr.scripts.diagnose_sut --output results/mvr/sut_only_native_idm_diagnostic.json
+conda run -n metadrive python -m mvr.scripts.visualize_stage1_base --config mvr/configs/mvr_stage1_smoke.yaml --output results/mvr/stage1_native_idm_residual_smoke
 ```
 
 ## Verification

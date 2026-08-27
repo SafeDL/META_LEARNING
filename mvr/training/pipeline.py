@@ -60,6 +60,39 @@ def seed_everything(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def source_tree_provenance() -> dict[str, str | bool]:
+    """Record the exact source state when a checkpoint is produced."""
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=Path.cwd(), check=True, capture_output=True, text=True
+        ).stdout.strip()
+        status = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=Path.cwd(), check=True, capture_output=True, text=True
+        ).stdout
+        diff = subprocess.run(
+            ["git", "diff", "--binary", "HEAD"], cwd=Path.cwd(), check=True, capture_output=True
+        ).stdout
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "--", "mvr"],
+            cwd=Path.cwd(),
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError):
+        return {"git_commit": "unknown", "working_tree_clean": False, "source_tree_hash": "unknown"}
+    digest = hashlib.sha256(diff + status.encode("utf-8"))
+    for relative_path in sorted(untracked):
+        path = Path.cwd() / relative_path
+        digest.update(relative_path.encode("utf-8"))
+        digest.update(path.read_bytes())
+    return {
+        "git_commit": commit,
+        "working_tree_clean": not bool(status.strip()),
+        "source_tree_hash": digest.hexdigest(),
+    }
+
+
 def checkpoint_config_hash(config: dict[str, Any]) -> str:
     return content_hash({key: config[key] for key in CHECKPOINT_CONFIG_KEYS if key in config})
 
@@ -78,8 +111,8 @@ def load_config(path: str | Path) -> tuple[dict[str, Any], Path, torch.device]:
     control = config.get("control", {})
     if control.get("action_schema") != "interaction_residual_3d_v1":
         raise ValueError("config must declare interaction_residual_3d_v1")
-    if control.get("nominal_controller_schema") != "metadrive_native_idm_v1":
-        raise ValueError("config must declare metadrive_native_idm_v1")
+    if control.get("nominal_controller_schema") != "metadrive_lane_stable_idm_v2":
+        raise ValueError("config must declare metadrive_lane_stable_idm_v2")
     if control.get("scenario_contract_schema") != SCENARIO_CONTRACT_SCHEMA:
         raise ValueError(f"config must declare {SCENARIO_CONTRACT_SCHEMA}")
     taskbook = Path(config["taskbook"])
@@ -161,25 +194,17 @@ def _save_stage(
     taskbook: Path,
 ) -> None:
     taskbook_digest = taskbook_hash(taskbook)
+    source_provenance = source_tree_provenance()
     state = {
         "model": model.state_dict(),
         "provenance_config": config,
         "taskbook_hash": taskbook_digest,
         "control_contract": dict(config["control"]),
+        "source_provenance": source_provenance,
     }
     compatibility_hash = checkpoint_config_hash(config)
     HierarchicalCheckpoint(HierarchicalCheckpoint.SCHEMA, stage.value, compatibility_hash, state).save(path)
     checkpoint_digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    try:
-        git_commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=Path.cwd(),
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        git_commit = "unknown"
     path.with_suffix(".json").write_text(
         json.dumps(
             {
@@ -191,7 +216,7 @@ def _save_stage(
                 "taskbook_hash": taskbook_digest,
                 "control_contract": config["control"],
                 "checkpoint_hash": checkpoint_digest,
-                "git_commit": git_commit,
+                **source_provenance,
                 "config": config,
                 "metrics": metrics,
             },

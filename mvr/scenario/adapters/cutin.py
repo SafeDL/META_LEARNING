@@ -108,11 +108,15 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
             conflict_xy=(float(conflict[0]), float(conflict[1])),
             traffic_contract=TrafficBehaviorContract(
                 self.SPEED_LIMITS_MPS[self.family],
+                self.SUT_NOMINAL_SPEEDS_MPS[self.family],
                 (source_lane, target_lane),
                 source_lane,
                 target_lane,
                 (merge_start, merge_end),
                 "broken",
+                adversary_intent="cut_in_to_sut_lane",
+                sut_role="lane_stable_main_corridor",
+                min_completion_steps=300,
             ),
         )
 

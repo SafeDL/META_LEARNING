@@ -11,6 +11,7 @@ from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.taskbook import load_taskbook
 from mvr.scenario.registry import load_adapters
 from mvr.training.runner import HierarchicalRunner
+from mvr.sut.idm import LaneStableNativeIDMPolicy
 
 
 def test_initial_speed_bounds_follow_family_traffic_contract() -> None:
@@ -38,6 +39,7 @@ def test_runtime_geometry_hash_and_sut_attachment(family: str) -> None:
         assert episode.episode_seed == 999
         assert episode.sut_adapter.metadata(episode.sut_profile)["profile_is_model_input"] is False
         policy = episode.env.engine.get_policy(episode.sut.id)
+        assert isinstance(policy, LaneStableNativeIDMPolicy)
         assert isinstance(policy, IDMPolicy)
         assert not policy.enable_lane_change
     finally:
@@ -57,12 +59,14 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
         episode_seed=999,
     )
     lateral_errors: list[float] = []
+    lane_statuses: list[dict[str, object]] = []
 
-    def record_sut_tracking(current, _step, _info) -> None:
+    def record_sut_tracking(current, _step, info) -> None:
         projection = current.sut_route.projection(
             current.sut.position, current.sut.heading_theta
         )
         lateral_errors.append(abs(projection.lateral_m))
+        lane_statuses.append(dict(info))
 
     try:
         HierarchicalRunner(max_steps=80).rollout(
@@ -73,8 +77,14 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
             step_callback=record_sut_tracking,
         )
         assert lateral_errors
+        assert np.sqrt(np.mean(np.square(lateral_errors))) <= 0.30
         assert max(lateral_errors) <= 0.60, (
             f"{family} SUT lateral errors: {np.round(lateral_errors, 3).tolist()}"
+        )
+        assert all(
+            row["sut_current_lane"][2] == row["sut_expected_lane_number"]
+            and row["sut_routing_target_lane"][2] == row["sut_expected_lane_number"]
+            for row in lane_statuses
         )
     finally:
         episode.env.close()
@@ -120,6 +130,34 @@ def test_static_geometry_cache_avoids_rebuilding_layout_env(monkeypatch) -> None
         second.env.close()
 
 
+@pytest.mark.parametrize("candidate_index", (0, 1))
+def test_merge_always_assigns_branch_entry_to_the_adversary(candidate_index: int) -> None:
+    task = next(
+        row for row in load_taskbook("mvr/configs/taskbook.json")
+        if row.task_id == "merge-g04-fast_small_gap"
+    )
+    episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
+        task,
+        NormalizedScenarioAction(candidate_index, (0.0,) * 4, AdversarialOption.GAP_CLOSE),
+        episode_seed=204 + candidate_index,
+    )
+    try:
+        layout = episode.layout
+        contract = layout.traffic_contract
+        network = episode.env.current_map.road_network
+        adversary_source_width = len(network.graph[layout.adversary_lane[0]][layout.adversary_lane[1]])
+        sut_source_width = len(network.graph[layout.sut_lane[0]][layout.sut_lane[1]])
+        assert contract.adversary_intent == "merge_from_branch"
+        assert contract.sut_role == "lane_stable_mainline"
+        assert adversary_source_width == 1
+        assert sut_source_width >= 2
+        assert layout.adversary_route[1] == layout.sut_route[1]
+        assert contract.completion_condition == "sut_route_destination"
+        assert contract.terminate_on_target_collision
+    finally:
+        episode.env.close()
+
+
 @pytest.mark.parametrize(
     ("candidate_index", "entry", "exit_", "minimum_segments"),
     ((0, 0, 1, 6), (1, 1, 2, 7), (2, 2, 0, 9)),
@@ -148,7 +186,7 @@ def test_roundabout_candidate_binds_idm_to_complete_entry_exit_route(
         assert tuple(episode.sut.navigation.checkpoints) == checkpoints
         assert episode.layout.native_navigation.sut_checkpoints == checkpoints
         assert episode.layout.native_navigation.sut_lane_stable
-        assert isinstance(episode.env.engine.get_policy(episode.sut.id), IDMPolicy)
+        assert isinstance(episode.env.engine.get_policy(episode.sut.id), LaneStableNativeIDMPolicy)
         assert not episode.env.engine.get_policy(episode.sut.id).enable_lane_change
     finally:
         episode.env.close()

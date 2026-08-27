@@ -90,6 +90,35 @@ class ScenarioExecutor:
             raise RuntimeError("lane-stable SUT route changed lanes during native initialization")
 
     @staticmethod
+    def sut_lane_status(episode: ExecutableEpisode, *, require_routing_target: bool) -> dict[str, Any]:
+        """Validate the SUT's physical and controller lane targets at this step."""
+        contract = episode.layout.native_navigation
+        if contract is None:
+            raise RuntimeError("scenario layout has no native navigation contract")
+        navigation_lane = episode.sut.navigation.current_lane
+        actual_lane = episode.sut.lane
+        expected_number = contract.expected_sut_lane_number(navigation_lane.index[:2])
+        policy = episode.env.engine.get_policy(episode.sut.id)
+        routing_lane = getattr(policy, "routing_target_lane", None)
+        status = {
+            "sut_current_lane": tuple(actual_lane.index),
+            "sut_navigation_lane": tuple(navigation_lane.index),
+            "sut_current_ref_lanes": tuple(tuple(lane.index) for lane in episode.sut.navigation.current_ref_lanes),
+            "sut_routing_target_lane": None if routing_lane is None else tuple(routing_lane.index),
+            "sut_expected_lane_number": int(expected_number),
+        }
+        if int(actual_lane.index[2]) != expected_number or int(navigation_lane.index[2]) != expected_number:
+            raise RuntimeError(f"SUT lane number violates lane-stable route: {status!r}")
+        if require_routing_target:
+            # Policies act before navigation localization is advanced by the
+            # same physics tick.  At a road boundary the concrete road index
+            # can therefore lag by one tick, but the lane number must never
+            # deviate from the declared lane-stable sequence.
+            if routing_lane is None or int(routing_lane.index[2]) != expected_number:
+                raise RuntimeError(f"SUT routing target violates lane-stable route: {status!r}")
+        return status
+
+    @staticmethod
     def _static_key(task: ScenarioMiningTaskSpec) -> tuple[str, str]:
         return task.adapter_id, task.geometry_hash
 
@@ -205,6 +234,8 @@ class ScenarioExecutor:
                 adapter=sut_adapter,
                 profile=sut_profile,
                 seed=run_seed,
+                speed_limit_mps=layout.traffic_contract.speed_limit_mps,
+                nominal_speed_mps=layout.traffic_contract.sut_nominal_speed_mps,
             )
             self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
             self._assert_vehicle_applied(sut, layout.sut_lane, float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
@@ -227,10 +258,12 @@ class ScenarioExecutor:
                 layout.adversary_route, layout.sut_route,
             )
             setattr(env, "_mvr_episode", applied)
-            return ExecutableEpisode(
+            episode = ExecutableEpisode(
                 env, observation, adversary, sut, sut_adapter, sut_profile,
                 applied, map_tokens, layout, cached.adversary_route, cached.sut_route, run_seed,
             )
+            self.sut_lane_status(episode, require_routing_target=False)
+            return episode
         except Exception:
             env.close()
             raise
