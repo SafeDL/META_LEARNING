@@ -23,10 +23,10 @@ conda run -n metadrive python -m compileall -q mvr archives/pearl_learning archi
 MVR 的正式入口只有：
 
 ```powershell
-python -m mvr.scripts.validate_mvr --output results/validation/g3.json
+python -m mvr.scripts.validate_mvr --output results/mvr/stage1/g3.json
 python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
-python -m mvr.scripts.train_mvr --output results/mvr/run_001
-python -m mvr.scripts.evaluate_mvr --checkpoint results/mvr/run_001/outer.pt --output results/mvr/run_001/evaluation.json
+python -m mvr.scripts.train_mvr --output results/mvr/stage1
+python -m mvr.scripts.evaluate_mvr --checkpoint results/mvr/stage1/outer.pt --output results/mvr/stage1/evaluation.json
 ```
 
 训练严格按 `inner_pretrain → posterior → inner_latent_calibration → outer` 执行。中间 checkpoint、rollout 和日志可由 manifest 与配置重建，不应提交。

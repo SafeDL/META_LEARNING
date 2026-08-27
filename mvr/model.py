@@ -16,6 +16,7 @@ from .map.schema import MapTokens
 from .policy.adversarial_sac import OptionConditionedSAC
 from .policy.shared_features import SharedFeatureEncoder
 from .policy.universal_scene_policy import UniversalSceneAction, UniversalScenePolicy
+from .scenario.option import AdversarialOption
 from .scenario.interaction import InteractionCandidate
 from .state import PhysicalStateExtractor
 from .training.updates import posterior_elbo
@@ -33,7 +34,7 @@ class TransferableScenarioMiner(nn.Module):
         latent_dim: int = 16,
         token_dim: int = 128,
         continuous_dim: int = 4,
-        option_count: int = 4,
+        option_count: int = len(AdversarialOption),
         inner_action_dim: int = 3,
         num_experts: int = 4,
         context_kl_weight: float = 1e-3,

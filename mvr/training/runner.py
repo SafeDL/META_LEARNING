@@ -61,7 +61,7 @@ class HierarchicalRunner:
         reward_fn = reward_fn or InnerRiskReward(self.criteria)
         state_extractor = PhysicalStateExtractor()
         schedule = ScenarioActionAdapter(episode, scenario_family)
-        controller = NativeAdversaryBaseController(episode, scenario_family, schedule)
+        controller = NativeAdversaryBaseController(episode, scenario_family, schedule, option)
         shield = TrafficActionShield(episode, schedule)
         monitor = ScenarioSemanticMonitor(episode, scenario_family, schedule)
         max_steps = max(
@@ -85,6 +85,7 @@ class HierarchicalRunner:
                 base_action, candidate_action = controller.action(effective_action)
                 shielded = shield.project(base_action, candidate_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
+                controller.observe_environment(info)
                 info = {**dict(info), **shield.observe(shielded, info)}
                 sut_policy = env.engine.get_policy(episode.sut.id)
                 sut_action = np.asarray(

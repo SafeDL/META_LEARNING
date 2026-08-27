@@ -126,15 +126,18 @@ class ScenarioExecutor:
     def _resolve_spawn_config(
         adapter: ScenarioAdapter,
         cached: _CachedLayout,
+        candidate: InteractionCandidate,
         config: Mapping[str, float | str],
+        action: NormalizedScenarioAction,
     ) -> dict[str, float | str]:
         resolved = dict(config)
-        for name, route in (("adversary", cached.adversary_route), ("sut", cached.sut_route)):
+        for index, (name, route) in enumerate((("adversary", cached.adversary_route), ("sut", cached.sut_route))):
             distance_key = f"{name}_distance_to_conflict_m"
-            conflict_s = route.conflict_s(cached.layout.conflict_xy)
-            lower = max(0.0, conflict_s - route.lane_end_s_m[0] + 1e-3)
-            upper = max(lower, conflict_s)
-            applied_distance = float(np.clip(float(config[distance_key]), lower, upper))
+            lower = float(getattr(candidate, f"{name}_distance_min_m"))
+            upper = float(getattr(candidate, f"{name}_distance_available_m"))
+            if not 0.0 <= lower <= upper:
+                raise RuntimeError(f"{candidate.candidate_id} has no executable {name} spawn interval")
+            applied_distance = float(lower + 0.5 * (float(action.continuous[index]) + 1.0) * (upper - lower))
             resolved[distance_key] = applied_distance
             resolved[f"{name}_spawn_m"] = adapter.spawn_from_conflict_distance(
                 route, cached.layout.conflict_xy, applied_distance
@@ -209,7 +212,8 @@ class ScenarioExecutor:
             cached = static.layouts[candidate]
         except KeyError as error:
             raise RuntimeError(f"static layout is missing candidate {candidate!r}") from error
-        config = self._resolve_spawn_config(adapter, cached, config)
+        interaction = next(row for row in static.candidates if row.candidate_id == candidate)
+        config = self._resolve_spawn_config(adapter, cached, interaction, config, action)
         if environment_overrides:
             env = adapter.build_env(task, config, cached.layout, environment_overrides)
         else:
@@ -255,7 +259,7 @@ class ScenarioExecutor:
                 float(config["sut_distance_to_conflict_m"]),
                 float(config["adversary_initial_speed_mps"]), float(config["sut_initial_speed_mps"]),
                 layout.candidate, layout.conflict_zone_id, str(config["option"]),
-                layout.adversary_route, layout.sut_route,
+                layout.adversary_route, layout.sut_route, tuple(float(value) for value in action.continuous),
             )
             setattr(env, "_mvr_episode", applied)
             episode = ExecutableEpisode(

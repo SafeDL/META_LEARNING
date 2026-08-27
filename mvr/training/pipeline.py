@@ -238,11 +238,6 @@ def _save_stage(
         path.with_name("coverage.json").write_text(
             json.dumps(coverage, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
-        path.with_name("validation.json").write_text(
-            json.dumps({"stage": stage.value, "status": "pending", "metrics": metrics}, indent=2, ensure_ascii=False)
-            + "\n",
-            encoding="utf-8",
-        )
 
 
 class MVRTrainingPipeline:

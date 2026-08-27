@@ -51,24 +51,7 @@ class PretrainSceneSampler:
             len(self.tasks) * self.episodes_per_task,
         )
         controls = np.asarray(rows[sequence_index], dtype=np.float32)
-        # A candidate's conflict may be closer than the global 5 m upper
-        # bound.  Stratify in the legal conflict-relative interval and encode
-        # back into the shared ParameterSpace coordinates so every sampled
-        # episode remains executable.
-        for dimension, available_field, bound_field in (
-            (0, "adversary_distance_available_m", "adversary_distance_to_conflict_m"),
-            (1, "sut_distance_available_m", "sut_distance_to_conflict_m"),
-        ):
-            available = float(getattr(candidates[candidate_index], available_field, 5.0))
-            lower, global_upper = space.bounds[bound_field]
-            minimum = float(getattr(
-                candidates[candidate_index],
-                "adversary_distance_min_m" if dimension == 0 else "sut_distance_min_m",
-                lower,
-            ))
-            lower = max(float(lower), minimum)
-            upper = min(float(global_upper), max(lower, available - 1e-3))
-            unit = 0.5 * (float(controls[dimension]) + 1.0)
-            value = float(lower) + unit * (upper - float(lower))
-            controls[dimension] = 2.0 * (value - float(lower)) / (float(global_upper) - float(lower)) - 1.0
+        # The first two controls are candidate-relative spawn fractions.  The
+        # executor maps them into the selected route's exact feasible interval;
+        # re-encoding through global metre bounds would silently change x0.
         return NormalizedScenarioAction(candidate_index, controls, space.options[option_index])

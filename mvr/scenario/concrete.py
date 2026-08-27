@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
 from .applied import AppliedScenario
+from .option import AdversarialOption
 from .parameter_space import NormalizedScenarioAction, ParameterSpace
 from .task_spec import ScenarioMiningTaskSpec
 
@@ -19,6 +20,7 @@ class ConcreteScenario:
     option: str
     initial_state: Mapping[str, float]
     inner_policy_hash: str
+    normalized_continuous: tuple[float, ...]
     latent: tuple[float, ...] = ()
     episode_seed: int | None = None
 
@@ -42,20 +44,19 @@ class ConcreteScenario:
                 "adversary_initial_speed_mps": applied.adversary_speed_mps,
                 "sut_initial_speed_mps": applied.sut_speed_mps,
             },
-            inner_policy_hash,
+            inner_policy_hash, applied.normalized_continuous,
             latent_values,
             episode_seed,
         )
 
     def replay_action(self, space: ParameterSpace) -> NormalizedScenarioAction:
-        values: dict[str, float | str] = {
-            "route_or_conflict_candidate": self.candidate_id,
-            "option": self.option,
-            **self.initial_state,
-        }
-        for name, (lower, upper) in space.bounds.items():
-            values[name] = min(max(float(values[name]), lower), upper)
-        return space.encode(values)
+        if self.candidate_id not in space.candidates:
+            raise ValueError("concrete scenario candidate is absent from the parameter space")
+        if len(self.normalized_continuous) != space.continuous_dim:
+            raise ValueError("concrete scenario lacks its normalized Outer action")
+        return NormalizedScenarioAction(
+            space.candidates.index(self.candidate_id), self.normalized_continuous, AdversarialOption(self.option)
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

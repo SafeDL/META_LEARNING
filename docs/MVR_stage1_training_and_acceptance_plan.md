@@ -162,7 +162,43 @@ Test:
 
 ---
 
-# 5. 当前默认配置不适合作为正式第一阶段预算
+# 5. 三类 Functional Scenario 的交通语义
+
+三个 family 共享同一套 3-D interaction residual，但 residual 只能在各自的
+`TrafficBehaviorContract` 所定义的正常交通意图内增加挑战性。交通违规本身不是
+攻击成功；只有在合法语义事件中对蓝色 SUT 产生目标后果的交互才是有效样本。
+无 target collision 或 hard traffic violation 时，测试过程必须继续到 SUT 到达
+其声明的 route destination。
+
+## Cut-in
+
+正常语义是红色 adversary 从相邻的 source lane，在允许的 merge window 内进入
+蓝色 SUT 正在行驶的 target lane。SAC 可以优化切入开始时机、切入时的相对速度、
+可用 gap、纵向压力，以及合法轨迹附近的有限横向 aggressiveness；它不能选择不切入、
+仅在相邻车道贴着 SUT 行驶，因为这不构成 Cut-in。
+
+`ScenarioSemanticMonitor` 显式记录 `maneuver_started`、`target_lane_intrusion`、
+`maneuver_completed` 与 `challenge_phase_active`。Cut-in collision 只有在机动处于
+active 状态且已发生物理 target-lane intrusion 时才具有场景语义；near-miss 还必须
+发生在实际 target-lane conflict envelope 内。
+
+## Merge
+
+正常语义是红色 adversary 从自己的单车道 incoming branch route 合法汇入蓝色 SUT
+所在的 mainline traffic stream，并经过共同 conflict region。SAC 可以优化抵达 merge
+point 的时机、加速/减速、gap closing 以及有限 lateral residual；它不能离开规定 route
+后直接横向撞击 SUT。Merge adapter 必须始终将支路车辆分配给 adversary、多车道主路
+车辆分配给 SUT。只有两车真实进入共同 conflict interaction phase 后，TTC/PET 才能
+构成有效 near-miss。
+
+## Roundabout
+
+正常语义是红色 adversary 按指定入口和道路路线进入环岛，并经过与 SUT 共享的 conflict
+region。SAC 可以优化进入冲突区的 timing、approach speed、yield/press 行为，以及合法
+轨迹附近的小范围 aggressiveness；它不能穿越环岛内部、逆行或抄近路撞击 SUT。只有双方
+实际进入共同冲突阶段后的 target consequence 才能记为有效事件。
+
+# 6. 当前默认配置不适合作为正式第一阶段预算
 
 当前：
 
@@ -185,11 +221,11 @@ inner:
 
 ---
 
-# 6. 第一阶段正式训练前建议先完成的 5 个小修改
+# 7. 第一阶段正式训练前建议先完成的 5 个小修改
 
 这些不是再次重构架构，而是让第一阶段实验具有科学可解释性。
 
-## 6.1 必须修改 1：增加 validation geometry
+## 7.1 必须修改 1：增加 validation geometry
 
 当前 geometry 只有 `train/test`，虽然 `GeometrySpec` 已支持 `validation`，但 catalog 中没有真正 validation geometry。
 
@@ -211,7 +247,7 @@ g05 test
 
 ---
 
-# 7. 必须修改 2：Task sampler 要保证均衡覆盖
+# 8. 必须修改 2：Task sampler 要保证均衡覆盖
 
 当前 `random.choice(tasks)` 不能保证覆盖。
 
@@ -242,7 +278,7 @@ N_{episodes}=N_{tasks}\times N_{episodes/task}
 
 ---
 
-# 8. 必须修改 3：Inner pretrain 不应依赖随机初始化的 Outer MoE
+# 9. 必须修改 3：Inner pretrain 不应依赖随机初始化的 Outer MoE
 
 当前 `train_inner()` 通过 `OnlineMetaTest.run()` 收集数据，而该流程会调用未训练的 `universal_scene_policy` 选择：
 
@@ -282,7 +318,7 @@ continuous x0: low-discrepancy / stratified sampling
 
 ---
 
-# 9. 必须修改 4：pipeline 支持训练到 Stage 1 就停止
+# 10. 必须修改 4：pipeline 支持训练到 Stage 1 就停止
 
 当前：
 
@@ -311,7 +347,7 @@ python -m mvr.scripts.train_mvr ^
 
 ---
 
-# 10. 强烈建议修改 5：补充 Stage-1 metrics
+# 11. 强烈建议修改 5：补充 Stage-1 metrics
 
 当前 `train_inner()` 主要记录：
 
@@ -351,7 +387,7 @@ action_saturation_rate
 
 ---
 
-# 11. 额外推荐：Interaction descriptor 归一化
+# 12. 额外推荐：Interaction descriptor 归一化
 
 当前 `InteractionCandidate.features()` 中：
 
@@ -377,7 +413,7 @@ curvature / π
 
 ---
 
-# 12. Geometry hash 再增加一个契约
+# 13. Geometry hash 再增加一个契约
 
 当前 taskbook builder 已检查：
 
@@ -405,9 +441,9 @@ polyline type
 
 ---
 
-# 13. 第一阶段训练前 Pre-flight 验收
+# 14. 第一阶段训练前 Pre-flight 验收
 
-## 13.1 Code tests
+## 14.1 Code tests
 
 ```powershell
 conda run -n metadrive python -m pytest mvr/tests -q
@@ -415,7 +451,7 @@ conda run -n metadrive python -m pytest mvr/tests -q
 
 硬性要求：100% PASS。
 
-## 13.2 Compile
+## 14.2 Compile
 
 ```powershell
 conda run -n metadrive python -m compileall -q mvr
@@ -423,7 +459,7 @@ conda run -n metadrive python -m compileall -q mvr
 
 要求 0 error。
 
-## 13.3 重建 taskbook
+## 14.3 重建 taskbook
 
 ```powershell
 python -m mvr.scripts.build_taskbook ^
@@ -440,7 +476,7 @@ train/validation/test hash 严格隔离
 
 ---
 
-# 14. Pre-flight G1：Geometry / Interaction Representation
+# 15. Pre-flight G1：Geometry / Interaction Representation
 
 验收目标：
 
@@ -460,7 +496,7 @@ NaN/Inf = 0
 
 ---
 
-# 15. Pre-flight G2：Simulator / Coordinate Contract
+# 16. Pre-flight G2：Simulator / Coordinate Contract
 
 对 3 families × train/validation geometries 运行代表性 reset。
 
@@ -497,14 +533,14 @@ route distance to conflict ≈ d
 
 ---
 
-# 16. Pre-flight G3：SUT failure-landscape heterogeneity
+# 17. Pre-flight G3：SUT failure-landscape heterogeneity
 
 执行：
 
 ```powershell
 python -m mvr.scripts.validate_mvr ^
   --config mvr/configs/mvr.yaml ^
-  --output results/validation/g3_pre_stage1.json
+  --output results/mvr/stage1/g3_pre_stage1.json
 ```
 
 目标是证明不同 train SUT 在相同测试配置下存在不同 failure landscape。
@@ -521,7 +557,7 @@ G3 不通过：禁止开始正式 Stage 1。
 
 ---
 
-# 17. 第一阶段训练建议分两步
+# 18. 第一阶段训练建议分两步
 
 ## Stage 1A：Coverage Smoke Run
 
@@ -561,7 +597,7 @@ Smoke 不追求高 failure rate。
 
 ---
 
-# 18. Stage 1B：正式 Pilot Pretraining
+# 19. Stage 1B：正式 Pilot Pretraining
 
 Smoke 全通过后：
 
@@ -601,7 +637,7 @@ episodes_per_task = 10
 
 ---
 
-# 19. 第一阶段场景采样应保持 balanced
+# 20. 第一阶段场景采样应保持 balanced
 
 每个 task 的 episode 应覆盖：
 
@@ -638,7 +674,7 @@ v_{sut}
 
 ---
 
-# 20. 第一阶段 checkpoint / artifacts
+# 21. 第一阶段 checkpoint / artifacts
 
 输出建议：
 
@@ -667,7 +703,7 @@ training physical metrics
 
 ---
 
-# 21. 第一阶段验收不能只看 training loss
+# 22. 第一阶段验收不能只看 training loss
 
 SAC actor/critic/alpha loss 只能说明优化器是否工作，不能证明 adversarial policy 学会制造危险交互。
 
@@ -675,15 +711,15 @@ SAC actor/critic/alpha loss 只能说明优化器是否工作，不能证明 adv
 
 ---
 
-# 22. 第一阶段 Validation regime
+# 23. 第一阶段 Validation regime
 
 推荐四个诊断 regime，都只评价 Inner policy，不运行 posterior adaptation。
 
-## V1：Seen SUT + Seen Geometry
+## Seen SUT + Seen Geometry
 
 目的：判断基本训练能力。
 
-## V2：Validation SUT + Seen Geometry
+## Validation SUT + Seen Geometry
 
 ```text
 idm_fast_small_gap + train geometry
@@ -691,11 +727,11 @@ idm_fast_small_gap + train geometry
 
 判断 SUT-style transfer。
 
-## V3：Seen SUT + Validation Geometry
+## Seen SUT + Validation Geometry
 
 判断 geometry transfer。
 
-## V4：Validation SUT + Validation Geometry
+## Joint validation: Validation SUT + Validation Geometry
 
 这是第一阶段最重要的 validation regime：
 
@@ -707,7 +743,7 @@ idm_fast_small_gap + train geometry
 
 ---
 
-# 23. Validation 必须固定初始场景
+# 24. Validation 必须固定初始场景
 
 为了单独评价 Inner SAC，所有 policy 必须共享完全相同：
 
@@ -728,7 +764,7 @@ episode seed
 
 ---
 
-# 24. 第一阶段 Baseline
+# 25. 第一阶段 Baseline
 
 只需要两个：
 
@@ -744,7 +780,7 @@ episode seed
 
 ---
 
-# 25. Validation case 数
+# 26. Validation case 数
 
 推荐每个 Functional Scenario：
 
@@ -764,7 +800,7 @@ balanced option
 
 产生。
 
-V4：
+Joint validation：
 
 \[
 3\times16=48\text{ episodes/policy}
@@ -776,7 +812,7 @@ V4：
 
 ---
 
-# 26. 第一阶段核心验收指标
+# 27. 第一阶段核心验收指标
 
 ## A. Engineering correctness
 
@@ -874,7 +910,7 @@ invalid rate
 
 ---
 
-# 27. 第一阶段 Hard PASS 标准
+# 28. 第一阶段 Hard PASS 标准
 
 建议使用相对 baseline gate，而不是武断绝对 reward threshold。
 
@@ -921,7 +957,7 @@ improvement 至少在：
 
 ### H4
 
-V4：
+Joint validation：
 
 ```text
 validation SUT + validation geometry
@@ -931,7 +967,7 @@ validation SUT + validation geometry
 
 ### H5
 
-V4：
+Joint validation：
 
 ```text
 valid_rate >= 0.80
@@ -943,7 +979,7 @@ valid_rate >= 0.80
 
 ---
 
-# 28. 推荐 Stage-1 Transfer Gain
+# 29. 推荐 Stage-1 Transfer Gain
 
 定义：
 
@@ -972,7 +1008,7 @@ G_JOINT
 
 ---
 
-# 29. 不建议设置“failure rate 必须达到 X%”
+# 30. 不建议设置“failure rate 必须达到 X%”
 
 第一阶段 Outer 尚未训练，x0 来自覆盖型 sampling，而不是危险初始状态搜索。
 
@@ -986,7 +1022,7 @@ G_JOINT
 
 ---
 
-# 30. 第一阶段建议画的曲线
+# 31. 第一阶段建议画的曲线
 
 只需四类：
 
@@ -999,7 +1035,7 @@ G_JOINT
 
 ---
 
-# 31. 第一阶段不验证什么
+# 32. 第一阶段不验证什么
 
 Stage 1 不回答：
 
@@ -1029,7 +1065,7 @@ Stage 1 也禁止使用 final test geometry / final test SUT 做 checkpoint sele
 
 ---
 
-# 32. Stage 1 成功意味着什么
+# 33. Stage 1 成功意味着什么
 
 Stage 1 PASS 只能支持：
 
@@ -1039,7 +1075,7 @@ Stage 1 PASS 只能支持：
 
 ---
 
-# 33. Stage 1 失败的定位顺序
+# 34. Stage 1 失败的定位顺序
 
 ## A：所有 family 都没有优于 random
 
@@ -1077,7 +1113,7 @@ distance-to-conflict coordinate
 
 ---
 
-# 34. 第一阶段训练决策树
+# 35. 第一阶段训练决策树
 
 ```text
 pytest / compile
@@ -1103,7 +1139,7 @@ STOP    36-episode smoke
            Stage-1 validation
                   │
                   ▼
-       V4 transfer gain > 0
+       joint validation transfer gain > 0
        + valid_rate >= 0.80?
              ┌────┴────┐
             NO        YES
@@ -1116,7 +1152,7 @@ STOP    36-episode smoke
 
 ---
 
-# 35. 推荐第一阶段配置
+# 36. 推荐第一阶段配置
 
 建议建立：
 
@@ -1152,7 +1188,7 @@ episodes_per_task
 
 ---
 
-# 36. 推荐执行命令
+# 37. 推荐执行命令
 
 完成上述小修改后：
 
@@ -1180,7 +1216,7 @@ python -m mvr.scripts.build_taskbook ^
 ```powershell
 python -m mvr.scripts.validate_mvr ^
   --config mvr/configs/mvr_stage1.yaml ^
-  --output results/validation/g3_stage1.json
+  --output results/mvr/stage1/g3_stage1.json
 ```
 
 ## Smoke
@@ -1215,7 +1251,7 @@ python -m mvr.scripts.validate_mvr ^
 
 ---
 
-# 37. 第一阶段最终验收表
+# 38. 第一阶段最终验收表
 
 | 类别 | 项目 | Hard Gate |
 |---|---|---|
@@ -1231,11 +1267,11 @@ python -m mvr.scripts.validate_mvr ^
 | Coverage | candidate / option | 100% |
 | Optimization | SAC actor/critic/alpha | finite |
 | Optimization | optimizer updates | > 0 |
-| Validity | V4 valid rate | ≥ 0.80 |
+| Validity | joint validation valid rate | ≥ 0.80 |
 | Control | trained > random overall | YES |
 | Control | trained > zero overall | YES |
 | Transfer | positive gain in ≥2/3 families | YES |
-| Transfer | V4 joint validation gain | > 0 |
+| Transfer | joint validation gain | > 0 |
 | Provenance | checkpoint/config/taskbook hash | 完整 |
 | Replay | checkpoint reload/reproduce | PASS |
 
@@ -1247,7 +1283,7 @@ STAGE_1_PASS
 
 ---
 
-# 38. 第一阶段通过后才能进入第二阶段
+# 39. 第一阶段通过后才能进入第二阶段
 
 Stage 1 PASS 后才进入：
 
@@ -1271,7 +1307,7 @@ K-shot context utility
 
 ---
 
-# 39. 对当前最新代码的最终判断
+# 40. 对当前最新代码的最终判断
 
 与上一版相比，这次重构已经跨过最重要的架构门槛：
 

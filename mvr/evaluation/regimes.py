@@ -21,6 +21,13 @@ REGIMES = (
     EvaluationRegime("R4_unseen_sut_unseen_geometry", "test", "test"),
 )
 
+# Engineering-only regime for the framework pilot.  It deliberately excludes
+# final test SUTs and geometries, so repeated implementation checks do not
+# contaminate R1--R4 evidence.
+PILOT_VALIDATION_REGIME = EvaluationRegime(
+    "PV_validation_sut_validation_geometry", "validation", "validation"
+)
+
 
 def select_regime_tasks(
     tasks: Iterable[ScenarioMiningTaskSpec], regime: EvaluationRegime, family: str = "all"

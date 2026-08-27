@@ -6,7 +6,7 @@
 
 Each episode follows `Outer interaction/x0 action → native navigation → semantic schedule → native IDM nominal action → 3-D interaction residual → hard action projection → event-time semantic failure → trajectory/outcome token → posterior z → next action`. The Outer policy sees geometry-derived scene/candidate embeddings and `z`, never SUT or functional-family identifiers.
 
-The Inner SAC action is `interaction_residual_3d_v1 = [u_long, u_maneuver, u_lat]`. `u_maneuver` is a low-frequency, stateful conflict-timing reference; the four schedule values are included in the Inner observation. MetaDrive native IDM handles normal driving. The residual only makes an already lawful maneuver more or less challenging, while `TrafficActionShield` only performs a final physical projection and never lane-follows on behalf of the controller.
+The Inner SAC action is `[u_long, u_maneuver, u_lat]`. `u_maneuver` is a low-frequency, stateful conflict-timing reference; the four schedule values are included in the Inner observation. MetaDrive native IDM handles normal driving. The residual only makes an already lawful maneuver more or less challenging, while `TrafficActionShield` only performs a final physical projection and never lane-follows on behalf of the controller.
 
 ## Tasks and scope
 
@@ -28,7 +28,7 @@ Evaluation uses 20 total simulator episodes and K = 0/1/2/4 support shots; suppo
 
 Evaluation JSON records each concrete scenario's geometry hash, conflict-relative initial state, option, latent, Inner-policy hash, and episode seed so it can be reconstructed from the taskbook.
 
-Checkpoints require `transferable_scenario_miner_v3`, `scenario_contract_v3`, `interaction_residual_3d_v1`, and `metadrive_lane_stable_idm_v2`; earlier controller checkpoints are intentionally incompatible.
+Checkpoints require the exact current model, scenario, action, and nominal-controller contracts; incompatible historical checkpoints are rejected.
 
 Every Stage 1 contract has a family-specific minimum completion budget and ends only when the SUT reaches its declared destination; a target collision or a hard adversary traffic violation ends the rollout early.  In Merge, the red adversary is always the one-lane branch vehicle and the blue SUT remains on the multi-lane mainline.
 
@@ -44,13 +44,13 @@ After a checkpoint has been retrained against the current taskbook, create audit
 conda run -n metadrive python -m mvr.scripts.visualize_stage1 --config mvr/configs/mvr_stage1.yaml --checkpoint results/mvr/stage1/inner_pretrain.pt --output results/mvr/stage1/visualization
 ```
 
-No current-contract trained checkpoint exists yet. The retained preflight evidence is
-`results/mvr/sut_only_native_idm_diagnostic.json` and the zero-residual GIF set in
-`results/mvr/stage1_native_idm_residual_smoke`; regenerate it with:
+The retained current-contract pilot evidence is
+`results/mvr/pilot/sut_only_diagnostic.json` and the zero-residual GIF set in
+`results/mvr/pilot/base_visualization`; regenerate it with:
 
 ```powershell
-conda run -n metadrive python -m mvr.scripts.diagnose_sut --output results/mvr/sut_only_native_idm_diagnostic.json
-conda run -n metadrive python -m mvr.scripts.visualize_stage1_base --config mvr/configs/mvr_stage1_smoke.yaml --output results/mvr/stage1_native_idm_residual_smoke
+conda run -n metadrive python -m mvr.scripts.diagnose_sut --output results/mvr/pilot/sut_only_diagnostic.json
+conda run -n metadrive python -m mvr.scripts.visualize_stage1_base --config mvr/configs/mvr_pilot.yaml --output results/mvr/pilot/base_visualization
 ```
 
 ## Verification

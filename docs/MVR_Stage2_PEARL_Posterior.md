@@ -333,9 +333,9 @@ action saturation 低于原 Stage1 collapse diagnostic 的 0.95，最终 losses 
 
 ---
 
-# 8. Stage1 V4 formal 验收
+# 8. Stage1 joint-validation formal 验收
 
-V4：
+Joint validation：
 
 ```text
 validation SUT = idm_fast_small_gap
@@ -412,7 +412,7 @@ valid rate >= 0.80              PASS
 trained > random overall        PASS
 trained > zero overall          PASS
 positive gain >= 2/3 families   PASS (actual 3/3)
-V4 joint gain > 0               PASS
+Joint-validation gain > 0       PASS
 ```
 
 因此：

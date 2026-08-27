@@ -76,6 +76,26 @@ def test_zero_residual_preserves_native_nominal_action() -> None:
         episode.env.close()
 
 
+def test_options_change_nominal_longitudinal_intent_without_changing_route() -> None:
+    episode = _episode()
+    try:
+        targets = []
+        for option in AdversarialOption:
+            schedule = ScenarioActionAdapter(episode, "cutin")
+            controller = NativeAdversaryBaseController(episode, "cutin", schedule, option.value)
+            try:
+                controller.action(np.zeros(3, dtype=np.float32))
+                targets.append(controller.policy.NORMAL_SPEED)
+            finally:
+                controller.destroy()
+        assert targets[1] < targets[0] < targets[2]
+        assert episode.adversary.navigation.current_lane.index[2] == (
+            episode.layout.traffic_contract.source_lane_number
+        )
+    finally:
+        episode.env.close()
+
+
 def test_cutin_schedule_is_low_passed_and_latched() -> None:
     episode = _episode()
     try:

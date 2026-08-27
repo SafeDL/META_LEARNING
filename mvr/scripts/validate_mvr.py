@@ -254,7 +254,7 @@ def run_inner_validation(
     ]
     return {
         "mode": "inner",
-        "regime": "V4_validation_sut_validation_geometry",
+        "regime": "validation_sut_validation_geometry",
         "deterministic": deterministic,
         "cases_per_task": cases_per_task,
         "tasks": [task.task_id for task in tasks],

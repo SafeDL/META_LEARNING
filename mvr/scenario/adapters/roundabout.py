@@ -95,7 +95,7 @@ class RoundaboutScenarioAdapter(MetaDriveFamilyAdapter):
                 0,
                 adversary_intent="roundabout_conflict_entry",
                 sut_role="lane_stable_roundabout_route",
-                min_completion_steps=360,
+                min_completion_steps=600,
             ),
         )
 

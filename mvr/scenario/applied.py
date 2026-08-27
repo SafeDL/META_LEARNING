@@ -25,6 +25,7 @@ class AppliedScenario:
     selected_option: str
     adversary_route: tuple[LaneIndex, ...]
     sut_route: tuple[LaneIndex, ...]
+    normalized_continuous: tuple[float, ...]
 
 
 @dataclass

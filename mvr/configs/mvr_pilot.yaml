@@ -1,0 +1,73 @@
+schema: transferable_scenario_miner_v3
+seed: 11
+taskbook: mvr/configs/taskbook.json
+model:
+  state_dim: 14
+  latent_dim: 16
+  num_experts: 4
+context:
+  type: pearl_product
+  kl_weight: 0.001
+  support_shots: [1]
+training:
+  device: cuda
+  family_filter: all
+  # A legal Cut-in or Roundabout needs a complete SUT route, not a short rollout.
+  step_budget: 240
+  learning_rate: 0.0003
+failure:
+  severity_thresholds: {ttc_s: 5.0, distance_m: 10.0, closing_speed_mps: 20.0}
+  severity_bins: 5
+inner:
+  algorithm: option_conditioned_sac
+  action_dim: 3
+  sampling: balanced_low_discrepancy
+  episodes_per_task: 1
+  updates_per_episode: 1
+  batch_size: 32
+  replay_capacity: 100000
+  learning_rate: 0.0003
+control:
+  action_schema: interaction_residual_3d_v1
+  nominal_controller_schema: metadrive_lane_stable_idm_v2
+  scenario_contract_schema: scenario_contract_v4
+inner_latent_calibration:
+  simulator_episode_budget: 4
+  support_episodes: 1
+  updates_per_episode: 1
+  replay_capacity: 100000
+  batch_size: 32
+  learning_rate: 0.0003
+posterior:
+  episode_budget: 4
+  support_episodes: [1]
+  learning_rate: 0.0003
+outer:
+  algorithm: hybrid_moe_ppo
+  router_balance_weight: 0.01
+  ppo_epochs: 1
+  batch_size: 32
+  episodes_per_task: 1
+  learning_rate: 0.0003
+map:
+  encoder: hptr_style_v1
+  polyline_points: 16
+  embedding_dim: 128
+  cache_embeddings_only_when_frozen: true
+evaluation:
+  total_episode_budget: 4
+  support_shots: [0, 1]
+  seeds: [11]
+  deterministic: true
+visualization:
+  cases_per_task: 1
+  policies: [base, trained_inner]
+  topdown:
+    screen_size: [800, 800]
+    scaling: 5
+    frame_stride: 1
+    fps: 20
+  tail_camera:
+    height: 3.2
+    distance: 8.0
+    pitch: 12.0

@@ -108,18 +108,10 @@ class TrafficActionShield:
 
     def _legal_lane_lateral(self) -> float:
         vehicle = self.episode.adversary
-        current = vehicle.navigation.current_lane.index
-        source = self.episode.env.current_map.road_network.get_lane(
-            (current[0], current[1], self.contract.source_lane_number)
+        projection = self.episode.adversary_route.projection(
+            vehicle.position, vehicle.heading_theta
         )
-        lanes = [source]
-        if self.schedule.state.maneuver_latched and self.contract.target_lane_number is not None:
-            lanes.append(
-                self.episode.env.current_map.road_network.get_lane(
-                    (current[0], current[1], self.contract.target_lane_number)
-                )
-            )
-        return min(abs(float(lane.local_coordinates(vehicle.position)[1])) for lane in lanes)
+        return abs(float(projection.lateral_m))
 
     def observe(
         self,
@@ -164,8 +156,12 @@ class TrafficActionShield:
         if environment_info is not None and bool(environment_info.get("out_of_road", False)):
             self._violations["out_of_road"] += 1
         lateral = self._legal_lane_lateral()
+        route_projection = self.episode.adversary_route.projection(
+            vehicle.position, vehicle.heading_theta
+        )
         if (
             residual_changed_steering
+            and not self.episode.adversary_route.in_lane_change(route_projection.s_m)
             and lateral > 0.5 * float(vehicle.navigation.current_lane.width) + 0.2
         ):
             self._violations["lane_boundary_crossing"] += 1
@@ -185,4 +181,5 @@ class TrafficActionShield:
             "traffic_max_abs_jerk_mps3": self._max_abs_jerk_mps3,
             "traffic_max_lateral_acceleration_mps2": self._max_lateral_acceleration_mps2,
             "traffic_legal_lane_lateral_m": lateral,
+            "traffic_route_transition_active": self.episode.adversary_route.in_lane_change(route_projection.s_m),
         }
