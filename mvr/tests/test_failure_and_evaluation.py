@@ -80,6 +80,37 @@ def test_event_time_traffic_validity_survives_post_impact_transient() -> None:
     assert signature.is_failure
 
 
+def test_analyzer_prefers_a_later_collision_over_an_earlier_near_miss() -> None:
+    criteria = FailureCriteria(5.0, 10.0, 20.0, 5)
+    features = np.zeros(12, dtype=np.float32)
+    transitions = [
+        {
+            "info": {
+                "event_kind": "near_miss",
+                "event_semantic_valid": True,
+                "event_traffic_valid": True,
+            },
+            "trajectory_features": features,
+        },
+        {
+            "info": {
+                "target_collision": True,
+                "event_kind": "collision",
+                "event_semantic_valid": True,
+                "event_traffic_valid": True,
+            },
+            "trajectory_features": features,
+        },
+    ]
+    outcome, signature = analyze_rollout(
+        transitions, "cutin", "zone", "candidate", criteria
+    )
+    assert outcome["event_kind"] == "collision"
+    assert outcome["valid_target_collision"]
+    assert not outcome["valid_critical_near_miss"]
+    assert signature.failure_type == "target_collision"
+
+
 def test_failure_threshold_config_changes_failure_decision_and_inner_reward() -> None:
     broad = FailureCriteria.from_config(
         {"severity_thresholds": {"ttc_s": 5.0, "distance_m": 10.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
@@ -122,6 +153,7 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
     reward = InnerRiskReward(criteria)
     event = reward(features, {
         "valid_target_collision": True,
+        "event_just_captured": True,
         "event_kind": "collision",
         "event_semantic_valid": True,
         "event_traffic_valid": True,
@@ -140,6 +172,22 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
         10,
     )
     assert event > invalid_event
+
+
+def test_inner_reward_emits_near_miss_bonus_only_on_capture() -> None:
+    reward = InnerRiskReward(FailureCriteria(3.0, 5.0, 20.0, 5))
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
+    event_info = {
+        "event_kind": "near_miss",
+        "event_semantic_valid": True,
+        "event_traffic_valid": True,
+        "event_just_captured": True,
+    }
+    latched_info = {**event_info, "event_just_captured": False}
+    assert reward(features, event_info, "approach_conflict", 1, 10) > reward(
+        features, latched_info, "approach_conflict", 2, 10
+    )
 
 
 def test_inner_reward_has_no_positive_success_signal_without_consequence() -> None:

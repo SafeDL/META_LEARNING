@@ -177,9 +177,12 @@ class HierarchicalRunner:
                 transitions.append({
                     "state": state,
                     "raw_action": raw_action,
-                    # Replay stores the command that actually changed the
-                    # schedule, rather than a latched raw timing sample.
-                    "action": effective_action,
+                    # SAC acts in raw-residual coordinates.  The schedule
+                    # state is part of ``state``; storing its low-pass output
+                    # here would make replay actions differ from policy
+                    # actions for the same state.
+                    "action": raw_action,
+                    "effective_action": effective_action,
                     "executed_action": shielded.action,
                     "base_action": shielded.base_action,
                     "candidate_action": shielded.candidate_action,

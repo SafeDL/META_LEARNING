@@ -20,12 +20,15 @@ failure:
 inner:
   algorithm: option_conditioned_sac
   action_dim: 3
-  sampling: balanced_low_discrepancy
+  sampling: balanced_interaction_aligned
   episodes_per_task: 5
   updates_per_episode: 8
   batch_size: 64
   replay_capacity: 100000
   learning_rate: 0.0003
+  gradient_clip_norm: 5.0
+  event_sample_fraction: 0.25
+  event_action_weight: 2.0
 control:
   action_schema: interaction_residual_3d_v1
   nominal_controller_schema: metadrive_lane_stable_idm_v2

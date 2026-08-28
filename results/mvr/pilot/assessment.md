@@ -32,6 +32,10 @@ They use the current lane-stable IDM and the same control contract as the
 pilot.  The manifests record no adversary traffic violation and complete the
 prescribed SUT route.
 
+Pilot SAC replays are in `trained_sac_visualization`.  They load
+`inner_pretrain.pt` with the matching `mvr_pilot.yaml` configuration and are
+illustrative only; they are not formal Stage1 acceptance evidence.
+
 ## Mini pipeline
 
 `manifest.json` records four reloadable checkpoints.  Inner pretraining

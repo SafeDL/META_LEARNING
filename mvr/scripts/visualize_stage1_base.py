@@ -15,7 +15,7 @@ from ..scenario.parameter_space import NormalizedScenarioAction
 from ..scenario.taskbook import load_taskbook
 from ..training.pipeline import build_model, load_config, source_tree_provenance
 from ..training.trainers import build_online
-from .visualize_stage1 import _capture, _write_gif
+from .visualize_stage1 import _capture, _compact_outcome, _write_gif
 
 
 TASK_IDS = (
@@ -84,7 +84,7 @@ def _run(config_path: str | Path, output: str | Path) -> dict[str, Any]:
             "family": task.functional_scenario,
             "task_id": task.task_id,
             "scenario": replay.scenario.to_dict(),
-            "outcome": dict(replay.outcome),
+            "outcome": _compact_outcome(replay.outcome),
             "frames": len(replay.frames),
         })
     report = {

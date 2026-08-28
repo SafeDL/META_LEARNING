@@ -14,6 +14,7 @@ class NativeAdversaryBaseController:
 
     longitudinal_residual_scale = 0.25
     lateral_residual_scale = 0.15
+    longitudinal_target_speed_scale_kmh = 6.0
     timing_speed_scale_kmh = 9.0
 
     _option_speed_bias_kmh = {
@@ -45,7 +46,7 @@ class NativeAdversaryBaseController:
         """Hold the completed adversary route while the SUT finishes its test."""
         self._arrived_destination = self._arrived_destination or bool(dict(info).get("arrive_dest", False))
 
-    def _set_target_speed(self) -> None:
+    def _set_target_speed(self, longitudinal_residual: float) -> None:
         speed_limit = float(self.episode.layout.traffic_contract.speed_limit_mps) * 3.6
         # Zero residual is ordinary, matched-flow traffic.  The timing and
         # longitudinal residuals then create bounded interaction pressure;
@@ -58,6 +59,7 @@ class NativeAdversaryBaseController:
         target = (
             nominal
             + option_bias
+            + self.longitudinal_target_speed_scale_kmh * float(longitudinal_residual)
             + self.timing_speed_scale_kmh * self.schedule.state.timing_reference
         )
         self.policy.NORMAL_SPEED = float(np.clip(target, 1.0, speed_limit))
@@ -109,7 +111,7 @@ class NativeAdversaryBaseController:
         if self._arrived_destination:
             stopped = np.asarray((0.0, -1.0), dtype=np.float32)
             return stopped, stopped.copy()
-        self._set_target_speed()
+        self._set_target_speed(float(residual[0]))
         base = self._cutin_action() if self.family == "cutin" else self._route_follow_action()
         base = np.clip(base, -1.0, 1.0)
         candidate = base + np.asarray(

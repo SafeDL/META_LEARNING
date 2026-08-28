@@ -1,1345 +1,954 @@
-# MVR 第一阶段训练与验收计划
-## Transferable Inner Adversarial Prior Pretraining
+# MVR Stage1 目标与完整工作流更新
+
+系统的gpu环境在：
+conda activate metadrive
 
 > 仓库：`SafeDL/META_LEARNING`  
-> 审计基线：`8047284d37430898fb869bfc8945c3d0cb6a81fb`  
-> 当前 active 方法：`mvr/`  
-> 第一阶段：`inner_pretrain`  
-> 本文核心最低目标：**unseen SUT + unseen road geometry + few-shot transferable scenario mining**
+> 当前代码基线：`0d02a6d19bd7e860413051fea763b9138e7ec14c`  
+> 当前方法：`mvr/`  
+> 当前状态：**Framework Pilot 已跑通；Formal Stage1 尚未开始**  
+> 本文最低目标：**unseen SUT + unseen road geometry + few-shot transferable scenario mining**
 
 ---
 
-# 1. 最新代码审计结论
+# 1. 本文档为什么需要更新
 
-本次代码修改已经基本落实上一版重构计划的主体结构，当前 `mvr/` 已不再只是“held-out IDM profile + fixed map”的实现，而已经具备可迁移场景挖掘的主要架构骨架：
+旧版 Stage1 文档将训练流程设计成：
 
-1. 主方法从 `meta_testing/` 独立迁移为 `mvr/`；
-2. `pearl_learning` 与 `sac_scenario_mining` 已移动到 `archives/`；
-3. Task 定义已经分离 `sut_split / geometry_split / functional_split`；
-4. 已建立多 geometry catalog；
-5. Taskbook 已显式记录 `geometry_hash`；
-6. Outer 初始条件已改为 conflict-relative：
-   - `adversary_distance_to_conflict_m`
-   - `sut_distance_to_conflict_m`
-7. 已新增 geometry-only `InteractionCandidate`；
-8. 已新增 `InteractionEncoder`；
-9. 已删除 family-specific neural policy heads；
-10. 已新增 Universal MoE Outer Policy；
-11. 已新增 learned MoE Router；
-12. 已新增 PEARL-inspired Product-of-Gaussians context encoder；
-13. 已新增 R1–R4 SUT/geometry OOD evaluation regimes；
-14. concrete scenario manifest 已记录 geometry、conflict-relative initial state、latent、Inner policy hash、episode seed；
-15. canonical pipeline 仍为：
-   `inner_pretrain → posterior → inner_latent_calibration → outer`。
+```text
+Preflight
+→ Formal Stage1
+→ Stage1 必须达到正式 transfer gate
+→ Posterior
+→ Latent calibration
+→ Outer
+```
 
-因此，**方法架构已经足以进入分阶段训练验证**。
+这套逻辑适合最终论文实验，但已经不符合当前开发状态。当前代码已经实际跑通：
 
-但不建议立即执行完整四阶段训练。当前最合理的下一步是：
+```text
+Mini Inner Pretrain
+→ Mini PEARL Posterior
+→ Mini Inner Latent Calibration
+→ Mini MoE Outer
+→ Validation-only End-to-End Pilot
+```
+
+并产生 `results/mvr/pilot/`，当前状态为：
+
+```text
+FRAMEWORK_PILOT_PASS
+```
+
+因此 Stage1 文档必须拆成两层：
+
+```text
+Level A — Framework-Pilot Stage1
+目的：验证完整方法链路是否可执行、可更新、信息流是否存在
+状态：已完成
+
+Level B — Formal Stage1
+目的：正式验证 transferable Inner adversarial prior 的性能
+状态：下一步
+```
+
+---
+
+# 2. 当前代码设计是否已经符合论文预期
+
+总体判断：
 
 \[
-\boxed{\text{先单独训练并验收 Inner transferable adversarial prior}}
+\boxed{\text{YES，框架级设计已经符合预期}}
 \]
 
-只有第一阶段通过，才进入 posterior/context training。
+当前实现形成了完整的层次化测试机制：
 
----
+```text
+Outer x0 / interaction proposal
+        ↓
+Native navigation
+        ↓
+Functional-Scenario semantic schedule
+        ↓
+Native IDM nominal traffic behavior
+        ↓
+3-D adversarial interaction residual
+        ↓
+TrafficActionShield
+        ↓
+ScenarioSemanticMonitor
+        ↓
+event-time semantic / traffic validity
+        ↓
+trajectory + outcome
+        ↓
+PEARL posterior z
+        ↓
+MoE Outer / Inner conditioning
+```
 
-# 2. 第一阶段到底在训练什么？
-
-第一阶段不是在训练完整 MVR，也不是在验证 few-shot adaptation。
-
-第一阶段只回答一个基础问题：
-
-> **一个共享的 Inner SAC 是否能够在不同 SUT、不同道路几何和不同 Functional Scenario 上，学习到具有迁移性的危险驾驶/对抗交互先验？**
-
-形式化地，第一阶段训练：
+当前对抗策略不是“任意 SAC steering/throttle policy”，而是：
 
 \[
-\pi_{\mathrm{inner}}
-(a_t^{adv}
-\mid
-s_t,
-h_{\mathrm{scene}},
-x_0,
-o,
-z=0)
+\pi_{adv}^{F}
+=
+Shield_F
+\circ
+[
+\pi_{nominal}^{F}
++
+A_F(\Delta\pi_{SAC})
+]
 \]
 
 其中：
 
-- \(s_t\)：当前 SUT–adversary 的通用物理状态；
-- \(h_{\mathrm{scene}}\)：geometry / interaction embedding；
-- \(x_0\)：conflict-relative 初始条件；
-- \(o\)：high-level adversarial option；
-- \(z=0\)：PEARL posterior 的 unit prior。
+- \(\pi_{nominal}^{F}\)：执行给定 Functional Scenario 的正常交通行为；
+- \(A_F\)：将统一 interaction residual 映射到当前场景；
+- \(\Delta\pi_{SAC}\)：学习对抗压力；
+- Shield：最后的交通/动力学硬约束。
 
-第一阶段**不使用 learned SUT latent 进行适应**。
+因此当前代码实现的是：
 
-因此，第一阶段要验证的是：
-
-\[
-\boxed{\text{geometry-conditioned transferable adversarial control prior}}
-\]
-
-而不是 few-shot adaptation gain。
+> **在给定场景语义下执行正确交通机动，再学习如何把这个机动变得更具挑战性。**
 
 ---
 
-# 3. 第一阶段哪些网络被训练？
+# 3. “合理对抗行为”必须继续作为 Stage1 的硬契约
 
-根据当前 `mvr/training/stages.py`：
-
-## Trainable
-
-```text
-map_encoder
-interaction_encoder
-shared_feature_encoder
-option_embedding
-inner_sac
-```
-
-## Frozen
-
-```text
-episode_token_builder
-context_encoder
-outcome_decoder
-universal_scene_policy / MoE Outer
-```
-
-特别是：
-
-- PEARL Context Encoder 不应在第一阶段学习；
-- MoE Router 不应在第一阶段学习；
-- Outer PPO 不应在第一阶段学习。
-
-这保证第一阶段的科学问题足够单纯：
-
-> 是否能够先学到一个跨 task 的 adversarial driving prior？
-
----
-
-# 4. 当前第一阶段训练集规模
-
-当前 geometry catalog：
-
-```text
-Merge:      g01/g02/g03 train, g04 test
-Cut-in:     g01/g02/g03 train, g04 test
-Roundabout: g01/g02/g03 train, g04 test
-```
-
-SUT：
-
-```text
-Train:
-    idm_cautious
-    idm_defensive
-    idm_normal
-    idm_assertive
-
-Validation:
-    idm_fast_small_gap
-
-Test:
-    idm_late_response
-```
-
-因此 meta-train task 数：
+最终可报告 failure 必须满足：
 
 \[
-3\text{ families}
-\times
-3\text{ train geometries}
-\times
-4\text{ train SUTs}
+\boxed{
+ReportableFailure
 =
-\boxed{36\text{ tasks}}
+EventSemanticValid
+\land
+EventTrafficValid
+\land
+TargetConsequence
+}
 \]
 
-这 36 个 task 才是第一阶段 Inner pretrain 应真正覆盖的训练分布。
+## 3.1 Cut-in
+
+正常交通意图：
+
+```text
+adjacent source lane
+→ legal merge window
+→ target-lane intrusion
+→ target-lane occupation
+```
+
+SAC 可以改变：
+
+```text
+切入 timing
+纵向速度 / acceleration pressure
+gap closing
+有限 lateral aggressiveness
+```
+
+但不能：
+
+```text
+不执行 Cut-in
+仅在相邻车道靠近 SUT
+然后利用 TTC/distance 获得 failure
+```
+
+## 3.2 Merge
+
+角色固定：
+
+```text
+Red adversary = one-lane incoming branch / ramp
+Blue SUT      = multi-lane mainline
+```
+
+两车随后进入共同 downstream / conflict region。
+
+SAC 可以改变：
+
+```text
+merge arrival timing
+gap
+acceleration/deceleration
+limited lateral residual
+```
+
+但不能脱离 ramp/merge route 直接撞击 SUT。
+
+## 3.3 Roundabout
+
+两车必须：
+
+```text
+follow declared entry/exit route
+→ enter shared conflict phase
+```
+
+SAC 只改变：
+
+```text
+arrival timing
+approach speed
+yield / press intensity
+limited lateral residual
+```
 
 ---
 
-# 5. 三类 Functional Scenario 的交通语义
+# 4. 当前控制接口已经适合跨场景共享
 
-三个 family 共享同一套 3-D interaction residual，但 residual 只能在各自的
-`TrafficBehaviorContract` 所定义的正常交通意图内增加挑战性。交通违规本身不是
-攻击成功；只有在合法语义事件中对蓝色 SUT 产生目标后果的交互才是有效样本。
-无 target collision 或 hard traffic violation 时，测试过程必须继续到 SUT 到达
-其声明的 route destination。
+当前统一 Inner action：
 
-## Cut-in
+\[
+\boxed{
+a_t^{res}
+=
+[u_{long},u_{maneuver},u_{lat}]
+}
+\]
 
-正常语义是红色 adversary 从相邻的 source lane，在允许的 merge window 内进入
-蓝色 SUT 正在行驶的 target lane。SAC 可以优化切入开始时机、切入时的相对速度、
-可用 gap、纵向压力，以及合法轨迹附近的有限横向 aggressiveness；它不能选择不切入、
-仅在相邻车道贴着 SUT 行驶，因为这不构成 Cut-in。
+- `u_long`：逐 timestep 的纵向 interaction pressure；
+- `u_maneuver`：低频、平滑、状态化的 conflict/maneuver timing reference；
+- `u_lat`：合法名义路径附近的有限横向 aggressiveness。
 
-`ScenarioSemanticMonitor` 显式记录 `maneuver_started`、`target_lane_intrusion`、
-`maneuver_completed` 与 `challenge_phase_active`。Cut-in collision 只有在机动处于
-active 状态且已发生物理 target-lane intrusion 时才具有场景语义；near-miss 还必须
-发生在实际 target-lane conflict envelope 内。
+不同场景的差异被限制在：
 
-## Merge
+```text
+ScenarioActionAdapter
++
+TrafficBehaviorContract
++
+Native nominal controller
+```
 
-正常语义是红色 adversary 从自己的单车道 incoming branch route 合法汇入蓝色 SUT
-所在的 mainline traffic stream，并经过共同 conflict region。SAC 可以优化抵达 merge
-point 的时机、加速/减速、gap closing 以及有限 lateral residual；它不能离开规定 route
-后直接横向撞击 SUT。Merge adapter 必须始终将支路车辆分配给 adversary、多车道主路
-车辆分配给 SUT。只有两车真实进入共同 conflict interaction phase 后，TTC/PET 才能
-构成有效 near-miss。
+而不是不同 SAC network head。
 
-## Roundabout
+---
 
-正常语义是红色 adversary 按指定入口和道路路线进入环岛，并经过与 SUT 共享的 conflict
-region。SAC 可以优化进入冲突区的 timing、approach speed、yield/press 行为，以及合法
-轨迹附近的小范围 aggressiveness；它不能穿越环岛内部、逆行或抄近路撞击 SUT。只有双方
-实际进入共同冲突阶段后的 target consequence 才能记为有效事件。
+# 5. 当前 Framework Pilot 已经验证了什么
 
-# 6. 当前默认配置不适合作为正式第一阶段预算
+## 5.1 Preflight 已通过
 
-当前：
+SUT-only diagnostic 在 Merge、Cut-in、Roundabout 中均验证：
+
+```text
+route completion = true
+out-of-road = false
+routing-target lane mismatch = 0
+no sustained steering-sign oscillation
+```
+
+因此旧版本中蓝色 SUT 的剧烈左右摆动已经不再是当前方法链路的 blocker。
+
+## 5.2 Mini Stage1 已覆盖全部 36 个训练 task
+
+Pilot Inner：
+
+```text
+36 train tasks
+1 episode / task
+1 optimizer update / episode
+```
+
+已经覆盖：
+
+```text
+3 Functional Scenario
+9 train geometries
+4 train SUT profiles
+2 Cut-in candidates
+2 Merge candidates
+3 Roundabout candidates
+3 adversarial options
+```
+
+并完成有限、非 NaN 的 SAC 更新。
+
+## 5.3 Mini Posterior 已跑通
+
+```text
+support episode
+→ evidence token
+→ PEARL-style Product-of-Gaussians posterior
+→ z update
+```
+
+## 5.4 Mini Latent Calibration 已跑通
+
+```text
+z != prior
+→ z-conditioned Inner
+→ optimizer update
+```
+
+## 5.5 Mini MoE Outer 已跑通
+
+```text
+h_scene + z
+→ MoE Router
+→ expert
+→ candidate / x0
+→ executable scenario
+→ reward
+→ PPO update
+```
+
+## 5.6 Validation-only End-to-End 已跑通
+
+当前 Pilot 使用：
+
+```text
+validation SUT = idm_fast_small_gap
+validation geometry = g04
+K = 0 / 1
+total episode budget = 4
+```
+
+已验证：
+
+```text
+all_finite
+K=0 stays at prior
+K=1 updates posterior
+Inner responds to posterior
+MoE is active
+posterior changes Outer proposal
+```
+
+所以当前合理的工程结论是：
+
+\[
+\boxed{FRAMEWORK\_PILOT\_PASS}
+\]
+
+---
+
+# 6. 当前 Pilot 不能解释成什么
+
+当前 Pilot 只证明：
+
+> 方法链路能够工作。
+
+不能解释为：
+
+```text
+Inner 已经学到强 transferable adversarial policy
+PEARL 已经具有可靠 few-shot gain
+MoE 已经优于非-MoE
+K=1 已经优于 K=0
+R4 已经成立
+```
+
+因为当前总训练预算只有约 80 simulator episodes。
+
+---
+
+# 7. Stage1 文档最关键的修改
+
+旧流程：
+
+```text
+Formal Stage1 PASS
+        ↓
+Posterior
+```
+
+现在应改为：
+
+```text
+Framework Pilot
+    ├─ Mini Stage1
+    ├─ Mini Posterior
+    ├─ Mini Calibration
+    └─ Mini Outer
+        ↓
+FRAMEWORK_PILOT_PASS
+        ↓
+Formal Stage1
+        ↓
+Formal Posterior
+        ↓
+Formal Calibration
+        ↓
+Formal Outer
+        ↓
+R1–R4
+```
+
+Pilot 的目标是纵向验证整条方法链路；Formal experiment 的目标是横向扩大预算并建立科研证据。
+
+---
+
+# 8. 当前最需要区分的两个 Stage1
+
+## 8.1 Pilot Stage1
+
+目标：
+
+> Inner training mechanism 是否能够工作？
+
+预算：
+
+```text
+1 episode / task
+36 episodes total
+1 update / episode
+```
+
+PASS：
+
+```text
+36/36 task coverage
+loss finite
+3D residual finite
+semantic contract valid
+no policy collapse
+checkpoint can reload
+```
+
+当前这一层已经通过。
+
+## 8.2 Formal Stage1
+
+目标：
+
+> shared Inner adversarial residual prior 是否真的具有 transfer ability？
+
+建议第一轮：
+
+```text
+5 episodes / task
+36 tasks
+=
+180 episodes
+```
+
+正式比较：
+
+```text
+Base
+Base + Random Residual
+Base + Trained Residual
+```
+
+这里才要求：
+
+```text
+trained > Base
+trained > Random
+positive transfer on held-out validation SUT + geometry
+```
+
+---
+
+# 9. Formal Stage1 前仍需修正的 3 个小问题
+
+这些问题不要求重新设计整体架构，但在把 Stage1 结果作为正式论文证据前建议修复。
+
+## 9.1 Cut-in 的 `target_lane_intrusion` 判据应改为车辆 footprint 级别
+
+当前判据偏宽，应改成车辆 footprint 与 target lane corridor 的真实重叠，例如：
+
+\[
+|e_y^{target}|
+<
+\frac{w_{lane}}{2}
++
+\frac{w_{vehicle}}{2}
+\]
+
+或直接使用 bounding box 与 target-lane polygon overlap。
+
+必须新增反例：
+
+```text
+maneuver latched
++
+车辆尚未真实跨入 target lane
++
+low TTC
+→ semantic failure = false
+```
+
+## 9.2 FailureAnalyzer 应使用“最终 decisive event”
+
+SemanticMonitor 允许：
+
+```text
+near-miss
+→ later target collision
+```
+
+其中 collision 应具有更高优先级。
+
+Formal Stage1 前应保证：
+
+```text
+collision > near-miss
+```
+
+建议 Analyzer 使用 monitor 最终 latched event，而不是 episode 中最早的 event 记录。
+
+## 9.3 Near-miss positive bonus 只奖励新事件一次
+
+当前 near-miss event latch 后，后续 timestep 可能继续满足奖励条件。
+
+建议新增：
+
+```text
+event_just_captured
+```
+
+或：
+
+```text
+new_valid_near_miss
+```
+
+只有第一次有效 near-miss 获得 success bonus。后续保留 continuous criticality shaping，但不能重复领取 event reward。
+
+---
+
+# 10. 上述三个修正不会改变论文方法
+
+修正后仍保持：
+
+```text
+Native traffic-compliant nominal controller
++
+3D interaction residual
++
+Traffic Shield
++
+Semantic Monitor
+```
+
+只是在：
+
+```text
+semantic validity
+event priority
+reward bookkeeping
+```
+
+上更严格。
+
+---
+
+# 11. 更新后的当前工作流
+
+```text
+────────────────────────────────────────
+Phase A — Framework Integration
+────────────────────────────────────────
+
+A0  SUT / Scenario / Base Preflight
+        ↓
+A1  Mini Stage1
+        ↓
+A2  Mini Posterior
+        ↓
+A3  Mini Latent Calibration
+        ↓
+A4  Mini MoE Outer
+        ↓
+A5  validation-only K=0/K=1 E2E
+        ↓
+FRAMEWORK_PILOT_PASS
+
+当前状态：
+✓ 已完成
+
+────────────────────────────────────────
+Phase B — Formal Mechanism Verification
+────────────────────────────────────────
+
+B0  修复 3 个 semantic/event/reward 小问题
+        ↓
+B1  Formal Stage1
+        ↓
+B2  Formal Stage1 Validation
+        ↓
+STAGE1_PASS
+        ↓
+B3  Formal Posterior
+        ↓
+B4  Formal Latent Calibration
+        ↓
+B5  Formal MoE Outer
+        ↓
+FULL_METHOD_READY
+
+────────────────────────────────────────
+Phase C — Paper Evaluation
+────────────────────────────────────────
+
+R1 seen SUT / seen geometry
+R2 unseen SUT / seen geometry
+R3 seen SUT / unseen geometry
+R4 unseen SUT / unseen geometry
+        ↓
+K = 0 / 1 / 2 / 4
+        ↓
+multiple seeds
+```
+
+---
+
+# 12. Formal Stage1 的新目标
+
+正式 Stage1 应表述为：
+
+> **在多个已见 Functional Scenario、多个道路 geometry 和不同 SUT 风格上联合训练时，共享的 interaction-residual adversarial policy 能否学习“在正确交通语义内施加挑战”的可迁移控制先验，并在 held-out SUT + held-out geometry 上保持有效的 zero-shot adversarial controllability？**
+
+形式化：
+
+\[
+\pi_{inner}
+:
+(s_t,h_{scene},x_0,o)
+\rightarrow
+[u_{long},u_{maneuver},u_{lat}]
+\]
+
+同时必须满足：
+
+\[
+\pi_{adv}^{F}\in\Pi_{adv,F}
+\]
+
+---
+
+# 13. Formal Stage1 的训练分布
+
+保持：
+
+```text
+Functional Scenario:
+    Merge
+    Cut-in
+    Roundabout
+
+Train geometry:
+    g01 / g02 / g03
+
+Validation geometry:
+    g04
+
+Final test geometry:
+    g05
+
+Train SUT:
+    cautious
+    defensive
+    normal
+    assertive
+
+Validation SUT:
+    fast_small_gap
+
+Final test SUT:
+    late_response
+```
+
+Train tasks：
+
+\[
+3\times3\times4=36
+\]
+
+---
+
+# 14. Formal Stage1 第一轮预算
+
+建议：
 
 ```yaml
 inner:
-  episode_budget: 20
-```
-
-但训练集有 36 tasks，同时 `MetaTaskSampler` 当前只是 `random.choice(tasks)`。
-
-因此：
-
-```text
-20 episodes < 36 train tasks
-```
-
-甚至无法保证每个训练 task 被访问一次。
-
-所以当前 `episode_budget=20` 只适合极小 smoke test，不适合作为正式 Inner pretraining。
-
----
-
-# 7. 第一阶段正式训练前建议先完成的 5 个小修改
-
-这些不是再次重构架构，而是让第一阶段实验具有科学可解释性。
-
-## 7.1 必须修改 1：增加 validation geometry
-
-当前 geometry 只有 `train/test`，虽然 `GeometrySpec` 已支持 `validation`，但 catalog 中没有真正 validation geometry。
-
-如果训练期间用 `g04 test` 调参或判断是否继续训练，就会污染最终 unseen-geometry test set。
-
-推荐每个 family 改为：
-
-```text
-g01 train
-g02 train
-g03 train
-g04 validation
-g05 test
-```
-
-训练 task 数仍保持 36。
-
-第一阶段禁止使用 `geometry_split == test` 进行超参数选择、训练轮数选择或 checkpoint selection。
-
----
-
-# 8. 必须修改 2：Task sampler 要保证均衡覆盖
-
-当前 `random.choice(tasks)` 不能保证覆盖。
-
-建议 `MetaTaskSampler` 增加：
-
-```python
-def shuffled_epoch(self):
-    tasks = list(self.tasks)
-    random.shuffle(tasks)
-    return tasks
-```
-
-训练采用：
-
-```text
-每一轮：
-    每个 train task 恰好出现一次
-    只随机化 task 顺序
+  episodes_per_task: 5
+  updates_per_episode: 8
+  batch_size: 64
 ```
 
 即：
 
 \[
-N_{episodes}=N_{tasks}\times N_{episodes/task}
+36\times5=180\text{ episodes}
 \]
 
-正式 pretraining 不要再用无覆盖保证的全局随机 `episode_budget`。
+若 validation curve 仍持续改善，再扩展到 10 episodes/task。
 
 ---
 
-# 9. 必须修改 3：Inner pretrain 不应依赖随机初始化的 Outer MoE
+# 15. Formal Stage1 baseline 更新
 
-当前 `train_inner()` 通过 `OnlineMetaTest.run()` 收集数据，而该流程会调用未训练的 `universal_scene_policy` 选择：
+旧版 `Zero / No-op adversary` 不再合适。
 
-```text
-candidate
-x0
-option
-```
+现在正式 baseline 应为：
 
-第一阶段 Outer 是冻结的随机初始化网络，因此训练数据分布会被一个未经训练的随机 neural policy 控制。
-
-推荐第一阶段加入独立的：
+### B0 — Base
 
 ```text
-PretrainSceneSampler
+Native nominal controller
++
+zero interaction residual
 ```
 
-或者让 `OnlineMetaTest.run()` 接受：
-
-```python
-scene_action_provider=
-```
-
-第一阶段 provider 使用：
+### B1 — Base + Random Residual
 
 ```text
-candidate: balanced cycle
-option: balanced cycle
-continuous x0: low-discrepancy / stratified sampling
+Native nominal controller
++
+random 3D residual
 ```
 
-目标是让 Inner 看到一个：
+### Method — Base + Trained Residual
 
-\[
-\boxed{\text{广覆盖、可重复、与未训练 Outer 无关的场景分布}}
-\]
+```text
+Native nominal controller
++
+trained shared Inner SAC
+```
+
+比较的是学习到的 adversarial residual 是否比正常交通和随机扰动更有效。
 
 ---
 
-# 10. 必须修改 4：pipeline 支持训练到 Stage 1 就停止
+# 16. Formal Stage1 Validation
 
-当前：
+建议每个 Functional Scenario 使用 16 个固定 initial-condition cases。
 
-```bash
-python -m mvr.scripts.train_mvr
-```
-
-会自动执行四个阶段，不适合 gate-based training。
-
-建议加入：
-
-```bash
---stop-after inner_pretrain
-```
-
-示例：
-
-```powershell
-python -m mvr.scripts.train_mvr ^
-  --config mvr/configs/mvr_stage1.yaml ^
-  --output results/mvr/stage1 ^
-  --stop-after inner_pretrain
-```
-
-验收通过后再 `--resume inner_pretrain.pt` 进入 posterior。
-
----
-
-# 11. 强烈建议修改 5：补充 Stage-1 metrics
-
-当前 `train_inner()` 主要记录：
-
-```text
-simulator_episodes_consumed
-transitions
-optimizer_updates
-last_loss
-```
-
-这不足以验收。
-
-建议增加：
-
-```text
-task_episode_counts
-family_episode_counts
-geometry_episode_counts
-sut_episode_counts
-
-mean_inner_episode_return
-mean_valid_rate
-mean_failure_rate
-mean_min_ttc
-mean_min_distance
-mean_max_closing_speed
-
-actor_loss_mean / last
-critic_loss_mean / last
-alpha_loss_mean / last
-
-action_abs_mean
-action_saturation_rate
-```
-
-尤其不要只保存 `last_loss`。
-
----
-
-# 12. 额外推荐：Interaction descriptor 归一化
-
-当前 `InteractionCandidate.features()` 中：
-
-```text
-sin(angle)
-cos(angle)
-sut_distance_available_m
-adversary_distance_available_m
-sut_route_curvature
-adversary_route_curvature
-```
-
-尺度差异较大。建议进入 `InteractionEncoder` 前统一 normalization，例如：
-
-```text
-distance / 100.0
-curvature / π
-```
-
-或基于固定工程范围归一化。
-
-这是低成本、值得在正式训练前完成的稳定性改进。
-
----
-
-# 13. Geometry hash 再增加一个契约
-
-当前 taskbook builder 已检查：
-
-```text
-train_hashes ∩ test_hashes = ∅
-```
-
-建议再加入：
-
-```text
-每个 family 的 train / validation / test geometry 必须具有预期数量的 unique hashes
-```
-
-同时建议 geometry hash payload 包含所有 model-visible static geometry 信息：
-
-```text
-lane points
-lane index
-lane width
-speed limit
-polyline type
-```
-
-保证模型看到的不同 geometry 不会被误记录成同一个 hash。
-
----
-
-# 14. 第一阶段训练前 Pre-flight 验收
-
-## 14.1 Code tests
-
-```powershell
-conda run -n metadrive python -m pytest mvr/tests -q
-```
-
-硬性要求：100% PASS。
-
-## 14.2 Compile
-
-```powershell
-conda run -n metadrive python -m compileall -q mvr
-```
-
-要求 0 error。
-
-## 14.3 重建 taskbook
-
-```powershell
-python -m mvr.scripts.build_taskbook ^
-  --output mvr/configs/taskbook.json
-```
-
-验收：
-
-```text
-所有 geometry hash 可重建
-train/validation/test hash 严格隔离
-每个 family geometry 数量符合预期
-```
-
----
-
-# 15. Pre-flight G1：Geometry / Interaction Representation
-
-验收目标：
-
-1. HPTR map encoding 对 SE(2) 变换稳定；
-2. Interaction encoder 不读取 candidate label；
-3. 不读取 functional scenario ID；
-4. 不读取 SUT ID；
-5. scene/candidate embedding 全部 finite；
-6. 不同 geometry 不应全部 collapse 为同一 scene embedding；
-7. variable candidate count 可正确处理。
-
-硬门槛：
-
-```text
-NaN/Inf = 0
-```
-
----
-
-# 16. Pre-flight G2：Simulator / Coordinate Contract
-
-对 3 families × train/validation geometries 运行代表性 reset。
-
-验收：
-
-```text
-runtime geometry hash == task geometry hash
-SUT attachment success
-adversary attachment success
-candidate route valid
-conflict zone finite
-episode seed 正确记录
-```
-
-最关键：
-
-requested：
-
-```text
-distance_to_conflict = d
-```
-
-实际生成：
-
-```text
-route distance to conflict ≈ d
-```
-
-建议容差：
-
-```text
-≤ 0.25 m
-```
-
----
-
-# 17. Pre-flight G3：SUT failure-landscape heterogeneity
-
-执行：
-
-```powershell
-python -m mvr.scripts.validate_mvr ^
-  --config mvr/configs/mvr.yaml ^
-  --output results/mvr/stage1/g3_pre_stage1.json
-```
-
-目标是证明不同 train SUT 在相同测试配置下存在不同 failure landscape。
-
-保留当前 gate：
-
-```text
-valid_rate >= 0.80
-failure_rate ∈ [0.02, 0.80]
-mean_failure_disagreement >= 0.10
-```
-
-G3 不通过：禁止开始正式 Stage 1。
-
----
-
-# 18. 第一阶段训练建议分两步
-
-## Stage 1A：Coverage Smoke Run
-
-目标：确认 36 个 train tasks 都能进入同一个 Inner training loop。
-
-建议：
-
-```text
-episodes_per_task = 1
-tasks = 36
-```
-
-共 36 simulator episodes。
-
-可以临时：
-
-```text
-step_budget = 240  # a smoke rollout must still let the SUT complete its route
-```
-
-Smoke PASS：
-
-```text
-36/36 train tasks visited
-3/3 families visited
-9/9 train geometries visited
-4/4 train SUTs visited
-all candidates exercised
-all options exercised
-optimizer_updates > 0
-all losses finite
-no simulator contract error
-no geometry hash mismatch
-```
-
-Smoke 不追求高 failure rate。
-
----
-
-# 19. Stage 1B：正式 Pilot Pretraining
-
-Smoke 全通过后：
-
-```text
-episodes_per_task = 5
-```
-
-规模：
-
-\[
-36\times5=\boxed{180\text{ simulator episodes}}
-\]
-
-保留：
-
-```text
-step_budget = 240
-updates_per_episode = 8
-batch_size = 64
-```
-
-理论最大 simulator steps：
-
-\[
-180\times240=43,200
-\]
-
-如果 180 episodes 后 validation 仍明显改善，再扩展：
-
-```text
-episodes_per_task = 10
-```
-
-即 360 episodes。
-
-不要在没有 validation curve 时盲目扩大到上千 episode。
-
----
-
-# 20. 第一阶段场景采样应保持 balanced
-
-每个 task 的 episode 应覆盖：
-
-## Candidate
-
-各 candidate 尽量均衡。
-
-## Option
-
-```text
-approach_conflict
-yield_then_press
-gap_close
-```
-
-全部覆盖。
-
-## Continuous initial condition
-
-对：
-
-\[
-[
-d_{adv}^{C},
-d_{sut}^{C},
-v_{adv},
-v_{sut}
-]
-\]
-
-使用 deterministic low-discrepancy sequence。
-
-目标是训练广泛场景空间下的通用对抗策略，而不是随机初始化 Outer 偏好的狭窄区域。
-
----
-
-# 21. 第一阶段 checkpoint / artifacts
-
-输出建议：
-
-```text
-results/mvr/stage1/
-├── inner_pretrain.pt
-├── inner_pretrain.json
-├── manifest.json
-├── coverage.json
-└── validation.json
-```
-
-`inner_pretrain.json` 应记录：
-
-```text
-git commit
-config hash
-taskbook hash
-checkpoint hash
-stage seed
-task coverage
-optimizer updates
-loss summary
-training physical metrics
-```
-
----
-
-# 22. 第一阶段验收不能只看 training loss
-
-SAC actor/critic/alpha loss 只能说明优化器是否工作，不能证明 adversarial policy 学会制造危险交互。
-
-因此第一阶段必须有固定 validation protocol。
-
----
-
-# 23. 第一阶段 Validation regime
-
-推荐四个诊断 regime，都只评价 Inner policy，不运行 posterior adaptation。
-
-## Seen SUT + Seen Geometry
-
-目的：判断基本训练能力。
-
-## Validation SUT + Seen Geometry
-
-```text
-idm_fast_small_gap + train geometry
-```
-
-判断 SUT-style transfer。
-
-## Seen SUT + Validation Geometry
-
-判断 geometry transfer。
-
-## Joint validation: Validation SUT + Validation Geometry
-
-这是第一阶段最重要的 validation regime：
-
-\[
-\boxed{\text{unseen validation SUT + unseen validation geometry}}
-\]
-
-它不会污染最终 R4，因为 final test 仍使用 `idm_late_response + test geometry`。
-
----
-
-# 24. Validation 必须固定初始场景
-
-为了单独评价 Inner SAC，所有 policy 必须共享完全相同：
+所有 policy 共享：
 
 ```text
 geometry
 candidate
-distance-to-conflict
-initial speeds
+x0
+SUT
 option
 episode seed
 ```
 
-只改变：
+只改变 residual policy。
 
-\[
-\pi_{adv}
-\]
+验证：
+
+```text
+V1 seen SUT + seen geometry
+V2 validation SUT + seen geometry
+V3 seen SUT + validation geometry
+V4 validation SUT + validation geometry
+```
+
+V4 是最重要的 Stage1 transfer diagnosis。
 
 ---
 
-# 25. 第一阶段 Baseline
+# 17. Stage1 成功标准必须同时包含挑战性和合理性
 
-只需要两个：
-
-## B0：Zero / No-op adversary
-
-回答：初始条件本身有多危险？
-
-## B1：Random continuous adversary
-
-回答：学习到的 Inner 是否优于任意随机驾驶？
-
-第一阶段暂时不需要 PEARL baseline、single-task SAC 或 MoE ablation。
-
----
-
-# 26. Validation case 数
-
-推荐每个 Functional Scenario：
-
-```text
-16 fixed initial-condition cases
-```
-
-由：
-
-```text
-low-discrepancy x0
-+
-balanced candidate
-+
-balanced option
-```
-
-产生。
-
-Joint validation：
-
-\[
-3\times16=48\text{ episodes/policy}
-\]
-
-比较 zero / random / trained Inner，总计约 144 episodes。
-
-规模足够小。
-
----
-
-# 27. 第一阶段核心验收指标
-
-## A. Engineering correctness
-
-硬门槛：
-
-```text
-pytest = PASS
-compileall = PASS
-runtime geometry hash mismatch = 0
-NaN/Inf = 0
-checkpoint can reload
-```
-
-## B. Training coverage
-
-硬门槛：
-
-```text
-task coverage           = 100%
-functional coverage     = 100%
-train geometry coverage = 100%
-train SUT coverage      = 100%
-candidate coverage      = 100%
-option coverage         = 100%
-```
-
-## C. Optimization health
-
-要求：
-
-```text
-optimizer_updates > 0
-actor_loss finite
-critic_loss finite
-alpha_loss finite
-```
-
-记录 action mean/std 与 saturation。
-
-若 `|action| > 0.95` 的比例长期超过 95%，必须诊断 policy collapse。
-
-## D. Physical validity
-
-建议：
-
-Hard stop：
-
-```text
-valid_rate < 0.80
-```
-
-则 Stage 1 FAIL。
-
-Desired target：
-
-```text
-valid_rate >= 0.90
-```
-
-重点监控：
-
-```text
-non-target collision
-adversary out-of-road
-SUT out-of-road
-wrong route
-```
-
-## E. Adversarial controllability
-
-比较：
-
-```text
-Trained Inner
-vs
-Random
-vs
-Zero
-```
-
-固定 x0。
-
-报告：
+推荐报告：
 
 ```text
 valid critical rate
-target collision rate
-near-miss rate
+valid target collision rate
+valid near-miss rate
 median min TTC
 median min distance
-max closing speed
-mean Inner episode return
 invalid rate
+traffic violation rate
+shield intervention rate
+mean candidate→executed action distance
 ```
+
+不能只看 failure rate。
 
 ---
 
-# 28. 第一阶段 Hard PASS 标准
+# 18. Formal Stage1 Hard Gate
 
-建议使用相对 baseline gate，而不是武断绝对 reward threshold。
-
-必须同时满足：
-
-### H1
-
-整体 validation：
+## G1 — Engineering
 
 ```text
-Trained Inner 的有效危险发现能力 > Zero
+pytest PASS
+compileall PASS
+checkpoint reload PASS
+NaN / Inf = 0
 ```
 
-### H2
-
-整体 validation：
+## G2 — Coverage
 
 ```text
-Trained Inner 的有效危险发现能力 > Random
+36 / 36 tasks
+3 / 3 families
+9 / 9 train geometries
+4 / 4 train SUTs
+candidate coverage
+option coverage
 ```
 
-优先看：
+## G3 — Semantic / Traffic
 
 ```text
-valid critical rate
+valid_rate >= 0.90 preferred
+hard minimum >= 0.80
+traffic violation not higher than Random
+no Functional Scenario semantic violation
 ```
 
-若 failure 稀疏，则看：
+## G4 — Learned adversarial effect
+
+整体：
 
 ```text
-median min TTC 更低
-且 invalid rate 不恶化
+Trained > Base
+Trained > Random
 ```
 
-### H3
+且至少 2/3 Functional Scenario 出现正提升。
 
-improvement 至少在：
+## G5 — Joint transfer
 
-```text
-2 / 3 functional families
-```
-
-成立。
-
-### H4
-
-Joint validation：
+在：
 
 ```text
 validation SUT + validation geometry
 ```
 
-上必须保持正 transfer gain。
-
-### H5
-
-Joint validation：
-
-```text
-valid_rate >= 0.80
-```
-
-### H6
-
-不能有任何 family 出现 policy 完全失控。
-
----
-
-# 29. 推荐 Stage-1 Transfer Gain
-
-定义：
+上：
 
 \[
-G_{inner}=S_{trained}-S_{random}
+G_{joint}>0
 \]
 
-其中 \(S\) 优先采用 valid critical rate；若事件稀疏，可采用连续 risk score。
+---
 
-分别报告：
+# 19. Stage1 不需要证明什么
+
+Stage1 不证明：
 
 ```text
-G_ID
-G_SUT
-G_GEO
-G_JOINT
+few-shot K=1/2/4 gain
+unseen Functional Scenario
+unseen topology template
+完整 MVR superiority
 ```
 
-第一阶段最重要：
+Stage1 只证明：
 
 \[
-\boxed{G_{JOINT}>0}
+\boxed{
+zero\text{-}shot transferable Inner prior
+}
 \]
 
-暂时不需要统计显著性结论。
+---
+
+# 20. 更新后的执行顺序
+
+当前 Framework Pilot 已完成，因此下一步建议：
+
+1. 修复三个局部语义/事件/奖励问题；
+2. `pytest` + `compileall`；
+3. 重新跑 SUT / Base preflight；
+4. 运行 Formal Stage1；
+5. 运行 Formal Stage1 validation；
+6. Stage1 PASS 后 resume posterior → calibration → outer；
+7. 最后正式 R1–R4 + K=0/1/2/4 + multi-seed。
 
 ---
 
-# 30. 不建议设置“failure rate 必须达到 X%”
+# 21. 是否需要重新跑 Framework Pilot
 
-第一阶段 Outer 尚未训练，x0 来自覆盖型 sampling，而不是危险初始状态搜索。
+如果只修改：
 
-因此 failure rate 低不一定意味着 Inner 没学会。
+```text
+Cut-in intrusion criterion
+event priority
+one-shot near-miss bonus
+```
 
-更重要的是：
+建议做一次极小 regression pilot：
 
-> 在同样 x0 上，learned Inner 是否比 random/no-op 更容易推动系统进入危险状态。
+```text
+80 training episodes
++
+24 E2E validation episodes
+```
 
-所以 Stage 1 看的是 relative controllability gain。
+确认 `FRAMEWORK_PILOT_PASS` 仍然成立。
+
+之后冻结方法实现，进入 Formal Stage1。
 
 ---
 
-# 31. 第一阶段建议画的曲线
+# 22. 文档维护建议
 
-只需四类：
+建议以后明确维护两个文档：
 
-1. optimizer update vs critic loss；
-2. training episode vs rolling Inner episode return；
-3. checkpoint vs validation min TTC / valid critical rate；
-4. family vs trained/random/zero performance。
+```text
+docs/MVR_快速框架预实验与Stage1修订计划.md
+```
 
-不要第一阶段就做大量论文图。
+负责：
+
+> integration / pilot / debugging
+
+以及：
+
+```text
+docs/MVR_stage1_training_and_acceptance_plan.md
+```
+
+负责：
+
+> Formal Stage1 scientific acceptance
+
+避免一个文档同时承担工程 smoke、完整方法 integration 和论文 performance gate 三个目的。
 
 ---
 
-# 32. 第一阶段不验证什么
+# 23. 当前整体判断
 
-Stage 1 不回答：
-
-```text
-K=0 vs K=1/2/4
-```
-
-因为 Context Encoder 尚未训练。
-
-Stage 1 不回答：
-
-```text
-MoE 是否有效
-```
-
-因为 Outer 尚未训练。
-
-Stage 1 不回答：
-
-```text
-R4 failure-discovery AUC 是否超过 baseline
-```
-
-因为完整 MVR 尚未形成。
-
-Stage 1 也禁止使用 final test geometry / final test SUT 做 checkpoint selection。
-
----
-
-# 33. Stage 1 成功意味着什么
-
-Stage 1 PASS 只能支持：
-
-> **The shared adversarial controller learned a geometry-conditioned control prior that transfers across the training task distribution and retains controllability on held-out validation SUT/geometry combinations.**
-
-还不能支持 few-shot meta adaptation 或 MoE functional transfer。
-
----
-
-# 34. Stage 1 失败的定位顺序
-
-## A：所有 family 都没有优于 random
-
-检查：
-
-```text
-Inner reward
-SAC update
-action scaling
-replay
-```
-
-## B：seen geometry 有效，validation geometry 失效
-
-检查：
-
-```text
-InteractionEncoder
-MapEncoder
-geometry descriptor scaling
-distance-to-conflict coordinate
-```
-
-## C：seen SUT 有效，validation SUT 失效
-
-说明 Inner overfit train SUT style，应优先增加 SUT behavior diversity。
-
-## D：Merge 有效，Cut-in/Roundabout 无效
-
-检查 shared physical state / interaction representation / reward semantics。
-
-## E：危险度高但 invalid rate 高
-
-说明在利用 simulator loophole，应优先检查 invalid penalty、spawn bounds、action smoothness、route constraints。
-
----
-
-# 35. 第一阶段训练决策树
-
-```text
-pytest / compile
-      │
-      ▼
-Task/Geometry contracts
-      │
-      ▼
-G3 PASS?
- ┌────┴────┐
-NO        YES
-│          │
-STOP    36-episode smoke
-             │
-             ▼
-         smoke PASS?
-        ┌────┴────┐
-       NO        YES
-       │          │
-      FIX    180-episode pilot
-                  │
-                  ▼
-           Stage-1 validation
-                  │
-                  ▼
-       joint validation transfer gain > 0
-       + valid_rate >= 0.80?
-             ┌────┴────┐
-            NO        YES
-            │          │
-           STOP    STAGE_1_PASS
-                         │
-                         ▼
-                   train posterior
-```
-
----
-
-# 36. 推荐第一阶段配置
-
-建议建立：
-
-```text
-mvr/configs/mvr_stage1.yaml
-```
-
-概念配置：
-
-```yaml
-training:
-  device: cuda
-  step_budget: 240
-  family_filter: all
-
-inner:
-  algorithm: option_conditioned_sac
-  sampling: balanced_low_discrepancy
-  episodes_per_task: 5
-  updates_per_episode: 8
-  batch_size: 64
-  replay_capacity: 100000
-  learning_rate: 0.0003
-```
-
-正式确定后建议只保留语义清楚的：
-
-```text
-episodes_per_task
-```
-
-不要长期同时维护 `episode_budget` 与 `episodes_per_task`。
-
----
-
-# 37. 推荐执行命令
-
-完成上述小修改后：
-
-## Tests
-
-```powershell
-conda run -n metadrive python -m pytest mvr/tests -q
-```
-
-## Compile
-
-```powershell
-conda run -n metadrive python -m compileall -q mvr
-```
-
-## Build taskbook
-
-```powershell
-python -m mvr.scripts.build_taskbook ^
-  --output mvr/configs/taskbook.json
-```
-
-## G3
-
-```powershell
-python -m mvr.scripts.validate_mvr ^
-  --config mvr/configs/mvr_stage1.yaml ^
-  --output results/mvr/stage1/g3_stage1.json
-```
-
-## Smoke
-
-```powershell
-python -m mvr.scripts.train_mvr ^
-  --config mvr/configs/mvr_stage1_smoke.yaml ^
-  --output results/mvr/stage1_smoke_seed11 ^
-  --stop-after inner_pretrain
-```
-
-## Pilot
-
-```powershell
-python -m mvr.scripts.train_mvr ^
-  --config mvr/configs/mvr_stage1.yaml ^
-  --output results/mvr/stage1 ^
-  --stop-after inner_pretrain
-```
-
-## Validate Inner
-
-建议扩展现有 `validate_mvr.py`：
-
-```powershell
-python -m mvr.scripts.validate_mvr ^
-  --config mvr/configs/mvr_stage1.yaml ^
-  --checkpoint results/mvr/stage1/inner_pretrain.pt ^
-  --mode inner ^
-  --output results/mvr/stage1/validation.json
-```
-
----
-
-# 38. 第一阶段最终验收表
-
-| 类别 | 项目 | Hard Gate |
-|---|---|---|
-| Code | `pytest mvr/tests` | PASS |
-| Code | `compileall mvr` | PASS |
-| Data | train/test geometry hash | disjoint |
-| Data | validation geometry | 独立存在 |
-| Data | 每个 train family unique geometry hash | 达到预期数量 |
-| Runtime | geometry hash mismatch | 0 |
-| Runtime | conflict-relative spawn error | ≤ 0.25 m |
-| Coverage | 36 train tasks | 100% |
-| Coverage | 3 functional families | 100% |
-| Coverage | candidate / option | 100% |
-| Optimization | SAC actor/critic/alpha | finite |
-| Optimization | optimizer updates | > 0 |
-| Validity | joint validation valid rate | ≥ 0.80 |
-| Control | trained > random overall | YES |
-| Control | trained > zero overall | YES |
-| Transfer | positive gain in ≥2/3 families | YES |
-| Transfer | joint validation gain | > 0 |
-| Provenance | checkpoint/config/taskbook hash | 完整 |
-| Replay | checkpoint reload/reproduce | PASS |
-
-全部通过后标记：
-
-```text
-STAGE_1_PASS
-```
-
----
-
-# 39. 第一阶段通过后才能进入第二阶段
-
-Stage 1 PASS 后才进入：
-
-```text
-posterior
-```
-
-第二阶段的问题才是：
-
-> 给定已经具备对抗控制能力的 Inner policy，PEARL-style context 是否能从 K 个测试 episode 中推断出对后续搜索有用的 latent task/SUT vulnerability？
-
-第二阶段才验收：
-
-```text
-posterior identifiability
-correct-z vs swapped-z
-K-shot context utility
-```
-
-不要在 Stage 1 未通过时提前训练 Context Encoder。
-
----
-
-# 40. 对当前最新代码的最终判断
-
-与上一版相比，这次重构已经跨过最重要的架构门槛：
-
-```text
-fixed-map/family-head MVR
-        ↓
-multi-geometry
-interaction-centric
-universal MoE
-PEARL-inspired context
-R1–R4 task design
-```
-
-因此现在不需要再次大规模重构方法。
-
-第一阶段之前真正需要处理的是训练实验工程：
-
-1. 增加 validation geometry；
-2. balanced task coverage；
-3. Inner pretrain 使用独立覆盖型 initial-condition sampler；
-4. pipeline 支持 stop-after-stage；
-5. 补充 Stage-1 validation metrics；
-6. 归一化 interaction descriptors。
-
-完成这些后，就应该停止继续改网络，开始：
+当前代码已经达到：
 
 \[
-\boxed{\text{Inner transferable prior 的训练与验收}}
+\boxed{
+Architecture\ Correct
++
+Control\ Semantics\ Integrated
++
+Framework\ Information\ Flow\ Verified
+}
 \]
 
-第一阶段最核心的成功标准只有一句话：
+并已有：
 
-> **在完全固定相同的初始场景条件下，训练后的共享 Inner SAC 在未参与训练的 validation SUT + validation geometry 上，仍能比 random/no-op adversary 更稳定地诱导高风险且有效的交通交互。**
+```text
+FRAMEWORK_PILOT_PASS
+```
 
-只要这一点成立，才值得继续训练 PEARL posterior。
+所以当前主要问题已经从：
+
+> “这个方法能不能跑？”
+
+转变为：
+
+> “在严格合理的 adversarial scenario contract 下，这个方法是否真正具有可测量的 transferable advantage？”
+
+这正是 Formal Stage1 应回答的问题。
+
+---
+
+# 24. 最终 Stage1 一句话目标
+
+> **Stage1 aims to learn a shared interaction-residual adversarial prior that increases safety-critical pressure beyond a lawful nominal traffic policy while preserving the semantic and traffic validity of each Functional Scenario, and to verify that this control prior transfers zero-shot to held-out SUT/geometry combinations.**
+
+中文：
+
+> **Stage1 的目标是在不同功能场景、道路几何与 SUT 风格上学习一个共享的交互残差对抗先验：该策略必须在保持各 Functional Scenario 交通语义与行为有效性的前提下，相比正常交通基座产生更强的安全挑战，并能够零样本迁移到未参与训练的 SUT 与道路几何组合。**

@@ -8,6 +8,7 @@ from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
 from mvr.scenario.option import AdversarialOption
 from mvr.scenario.parameter_space import NormalizedScenarioAction
+from mvr.scenario.semantics import ScenarioSemanticMonitor
 from mvr.scenario.taskbook import load_taskbook
 from mvr.scenario.registry import load_adapters
 from mvr.training.runner import HierarchicalRunner
@@ -152,8 +153,65 @@ def test_merge_always_assigns_branch_entry_to_the_adversary(candidate_index: int
         assert adversary_source_width == 1
         assert sut_source_width >= 2
         assert layout.adversary_route[1] == layout.sut_route[1]
+        assert len(layout.adversary_route) == len(layout.sut_route) + 1
+        common_lane = network.get_lane(layout.adversary_route[1])
+        assert network.get_lane(layout.adversary_lane).is_previous_lane_of(common_lane)
+        assert network.get_lane(layout.sut_lane).is_previous_lane_of(common_lane)
         assert contract.completion_condition == "sut_route_destination"
         assert contract.terminate_on_target_collision
+    finally:
+        episode.env.close()
+
+
+@pytest.mark.parametrize("candidate_index", (0, 1))
+def test_merge_adversary_physically_enters_the_sut_downstream_lane(
+    candidate_index: int,
+) -> None:
+    task = next(
+        row for row in load_taskbook("mvr/configs/taskbook.json")
+        if row.task_id == "merge-g04-fast_small_gap"
+    )
+    episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
+        task,
+        NormalizedScenarioAction(
+            candidate_index, (0.0,) * 4, AdversarialOption.APPROACH_CONFLICT
+        ),
+        episode_seed=204 + candidate_index,
+    )
+    shared_lane = tuple(episode.layout.adversary_route[1])
+    shared_runtime_lane = episode.env.current_map.road_network.get_lane(shared_lane)
+    adversary_enters_shared_lane = False
+    both_overlap_shared_corridor = False
+    semantic_challenge_seen = False
+
+    def record_merge_runtime(current, _step, info) -> None:
+        nonlocal adversary_enters_shared_lane, both_overlap_shared_corridor, semantic_challenge_seen
+        adversary_enters_shared_lane |= tuple(current.adversary.lane.index) == shared_lane
+        overlaps = (
+            ScenarioSemanticMonitor._vehicle_overlaps_lane_corridor(
+                current.adversary, shared_runtime_lane
+            )
+            and ScenarioSemanticMonitor._vehicle_overlaps_lane_corridor(
+                current.sut, shared_runtime_lane
+            )
+        )
+        both_overlap_shared_corridor |= overlaps
+        semantic_challenge_seen |= bool(info["semantic_challenge_phase_active"])
+        if overlaps:
+            assert info["semantic_challenge_phase_active"]
+
+    try:
+        rollout = HierarchicalRunner(max_steps=80).rollout(
+            episode,
+            "merge",
+            AdversarialOption.APPROACH_CONFLICT.value,
+            lambda _state: np.zeros(3, dtype=np.float32),
+            step_callback=record_merge_runtime,
+        )
+        assert adversary_enters_shared_lane
+        assert both_overlap_shared_corridor
+        assert semantic_challenge_seen
+        assert rollout.outcome["termination_reason"] == "sut_route_completed"
     finally:
         episode.env.close()
 

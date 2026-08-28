@@ -104,6 +104,7 @@ class ScenarioSemanticMonitor:
     """Measure physical scenario semantics and freeze them at an event."""
 
     conflict_radius_m = 18.0
+    merge_conflict_radius_m = 45.0
 
     def __init__(self, episode: Any, family: str, schedule: ScenarioActionAdapter) -> None:
         self.episode = episode
@@ -113,6 +114,7 @@ class ScenarioSemanticMonitor:
         self._event_kind: str | None = None
         self._event_semantic_valid = False
         self._event_traffic_valid = False
+        self._event_just_captured = False
         self._state = SemanticState(False, False, False, False, False, False)
 
     def _target_lane(self) -> Any | None:
@@ -124,6 +126,16 @@ class ScenarioSemanticMonitor:
             (current[0], current[1], contract.target_lane_number)
         )
 
+    def _shared_conflict_lane(self) -> Any:
+        shared = [
+            lane_index
+            for lane_index in self.episode.layout.adversary_route
+            if lane_index in self.episode.layout.sut_route
+        ]
+        if not shared:
+            raise RuntimeError("shared-conflict scenario has no common lane")
+        return self.episode.env.current_map.road_network.get_lane(shared[0])
+
     def _shared_conflict_active(self) -> bool:
         adv_s = self.episode.adversary_route.projection(
             self.episode.adversary.position, self.episode.adversary.heading_theta
@@ -133,9 +145,37 @@ class ScenarioSemanticMonitor:
         ).s_m
         adv_conflict = self.episode.adversary_route.conflict_s(self.episode.layout.conflict_xy)
         sut_conflict = self.episode.sut_route.conflict_s(self.episode.layout.conflict_xy)
+        radius = (
+            self.merge_conflict_radius_m
+            if self.family == "merge"
+            else self.conflict_radius_m
+        )
+        return bool(abs(adv_conflict - adv_s) <= radius and abs(sut_conflict - sut_s) <= radius)
+
+    @staticmethod
+    def _vehicle_overlaps_lane_corridor(vehicle: Any, lane: Any) -> bool:
+        """Return whether the vehicle's oriented footprint overlaps ``lane``."""
+        longitudinal, lateral = lane.local_coordinates(vehicle.position)
+        lane_heading = float(
+            lane.heading_theta_at(
+                float(np.clip(longitudinal, 0.0, float(lane.length)))
+            )
+        )
+        heading_delta = float(vehicle.heading_theta) - lane_heading
+        half_length = 0.5 * float(getattr(vehicle, "LENGTH", 4.5))
+        half_width = 0.5 * float(getattr(vehicle, "WIDTH", 2.0))
+        footprint_longitudinal = (
+            abs(np.cos(heading_delta)) * half_length
+            + abs(np.sin(heading_delta)) * half_width
+        )
+        footprint_lateral = (
+            abs(np.sin(heading_delta)) * half_length
+            + abs(np.cos(heading_delta)) * half_width
+        )
         return bool(
-            abs(adv_conflict - adv_s) <= self.conflict_radius_m
-            and abs(sut_conflict - sut_s) <= self.conflict_radius_m
+            float(longitudinal) + footprint_longitudinal > 0.0
+            and float(longitudinal) - footprint_longitudinal < float(lane.length)
+            and abs(float(lateral)) - footprint_lateral < 0.5 * float(lane.width)
         )
 
     def update(self) -> SemanticState:
@@ -145,7 +185,9 @@ class ScenarioSemanticMonitor:
                 raise RuntimeError("cut-in semantic monitor requires a target lane")
             adversary_lateral = abs(float(target.local_coordinates(self.episode.adversary.position)[1]))
             sut_lateral = abs(float(target.local_coordinates(self.episode.sut.position)[1]))
-            intrusion = adversary_lateral < float(target.width)
+            intrusion = self._vehicle_overlaps_lane_corridor(
+                self.episode.adversary, target
+            )
             target_conflict = intrusion and sut_lateral <= 0.5 * float(target.width) + 0.2
             started = bool(self.schedule.state.maneuver_latched)
             active = started and intrusion
@@ -156,7 +198,22 @@ class ScenarioSemanticMonitor:
                 started, active, self._completed, challenge, intrusion, active
             )
         else:
-            challenge = self._shared_conflict_active()
+            target = self._shared_conflict_lane()
+            if self.family == "merge":
+                # Before both vehicles occupy the downstream lane, a lawful
+                # branch/mainline conflict occurs on two converging lanes.
+                # The route-progress window is tied to the verified merge
+                # point; the event detector still requires physical close
+                # distance and low TTC.
+                challenge = self._shared_conflict_active()
+            else:
+                challenge = bool(
+                    self._shared_conflict_active()
+                    and self._vehicle_overlaps_lane_corridor(
+                        self.episode.adversary, target
+                    )
+                    and self._vehicle_overlaps_lane_corridor(self.episode.sut, target)
+                )
             state = SemanticState(
                 challenge, challenge, challenge, challenge, False, challenge
             )
@@ -177,9 +234,10 @@ class ScenarioSemanticMonitor:
             )
         )
 
-    def capture_event(self, kind: str | None, info: Mapping[str, Any]) -> None:
+    def capture_event(self, kind: str | None, info: Mapping[str, Any]) -> bool:
+        self._event_just_captured = False
         if kind is None:
-            return
+            return False
         if kind not in {"collision", "near_miss"}:
             raise ValueError(f"unknown event kind {kind!r}")
         if self.family == "cutin":
@@ -194,10 +252,12 @@ class ScenarioSemanticMonitor:
         if self._event_kind == "collision" or (
             self._event_kind == "near_miss" and kind == "near_miss"
         ):
-            return
+            return False
         self._event_kind = kind
         self._event_semantic_valid = bool(semantic)
         self._event_traffic_valid = self._traffic_valid(info)
+        self._event_just_captured = True
+        return True
 
     def info(self) -> dict[str, Any]:
         return {
@@ -210,4 +270,5 @@ class ScenarioSemanticMonitor:
             "event_kind": self._event_kind,
             "event_semantic_valid": self._event_semantic_valid,
             "event_traffic_valid": self._event_traffic_valid,
+            "event_just_captured": self._event_just_captured,
         }

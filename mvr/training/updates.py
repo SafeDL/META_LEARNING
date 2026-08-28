@@ -73,9 +73,21 @@ def _scene_embeddings(model: "TransferableScenarioMiner", rows: list[object]) ->
     return torch.stack([unique[str(row.geometry_hash)] for row in rows])
 
 
-def update_inner_sac(model: "TransferableScenarioMiner", replay: InnerReplay, optimizer: torch.optim.Optimizer, *, batch_size: int = 64) -> dict[str, float]:
+def update_inner_sac(
+    model: "TransferableScenarioMiner",
+    replay: InnerReplay,
+    optimizer: torch.optim.Optimizer,
+    *,
+    batch_size: int = 64,
+    gradient_clip_norm: float = 5.0,
+    event_sample_fraction: float = 0.25,
+    event_action_weight: float = 2.0,
+) -> dict[str, float]:
     """Update the Inner SAC from risk-reward replay with reconstructed features."""
-    rows = replay.sample(batch_size)
+    rows = replay.sample(
+        batch_size,
+        positive_fraction=event_sample_fraction,
+    )
     device = model.device
     states = torch.as_tensor(np.stack([row.state for row in rows]), dtype=torch.float32, device=device)
     next_states = torch.as_tensor(np.stack([row.next_state for row in rows]), dtype=torch.float32, device=device)
@@ -91,13 +103,30 @@ def update_inner_sac(model: "TransferableScenarioMiner", replay: InnerReplay, op
     critic = model.inner_sac.critic_loss(features, action, reward, next_features, done)
     optimizer.zero_grad(set_to_none=True)
     critic.backward()
+    torch.nn.utils.clip_grad_norm_(
+        [parameter for group in optimizer.param_groups for parameter in group["params"]],
+        float(gradient_clip_norm),
+    )
     optimizer.step()
 
     maps = _scene_embeddings(model, rows)
     features = model.inner_features(states, maps, latent, option, config)
-    actor, alpha = model.inner_sac.actor_alpha_losses(features)
+    actor, alpha = model.inner_sac.actor_alpha_losses(
+        features,
+        actions=action,
+        rewards=reward,
+        event_action_weight=event_action_weight,
+    )
     optimizer.zero_grad(set_to_none=True)
     (actor + alpha).backward()
+    torch.nn.utils.clip_grad_norm_(
+        [parameter for group in optimizer.param_groups for parameter in group["params"]],
+        float(gradient_clip_norm),
+    )
     optimizer.step()
     model.inner_sac.soft_update()
-    return {"inner_actor_loss": float(actor.detach().cpu()), "inner_critic_loss": float(critic.detach().cpu()), "inner_alpha_loss": float(alpha.detach().cpu())}
+    return {
+        "inner_actor_loss": float(actor.detach().cpu()),
+        "inner_critic_loss": float(critic.detach().cpu()),
+        "inner_alpha_loss": float(alpha.detach().cpu()),
+    }

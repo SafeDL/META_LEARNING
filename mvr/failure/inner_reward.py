@@ -40,18 +40,26 @@ class InnerRiskReward:
                 "adversary_traffic_violation",
             )
         )
-        target_collision = bool(info.get("valid_target_collision", False))
-        valid_near_miss = bool(info.get("event_kind") == "near_miss" and info.get("event_semantic_valid", False) and info.get("event_traffic_valid", False))
+        event_just_captured = bool(info.get("event_just_captured", False))
+        target_collision = bool(
+            event_just_captured and info.get("valid_target_collision", False)
+        )
+        valid_near_miss = bool(
+            event_just_captured
+            and info.get("event_kind") == "near_miss"
+            and info.get("event_semantic_valid", False)
+            and info.get("event_traffic_valid", False)
+        )
         event_bonus = 0.0
         if not invalid:
             if target_collision:
-                event_bonus = 1.5
+                event_bonus = 4.0
             elif valid_near_miss:
-                event_bonus = 1.0
+                event_bonus = 3.0
         # Criticality and intent are only non-positive shaping here.  They
         # can guide SAC toward the conflict, but cannot be mistaken for a
         # successful attack.  Positive reward is reserved for a lawful
         # collision or a lawful thresholded near miss.
         shield_penalty = float(info.get("traffic_shield_intervention_l2", 0.0)) ** 2
-        shaping = -0.05 * (1.0 - criticality) - 0.01 * (1.0 - intent)
-        return float(np.clip(shaping + event_bonus - 1.25 * float(invalid) - 0.10 * shield_penalty, -2.0, 2.0))
+        shaping = -0.005 * (1.0 - criticality) - 0.001 * (1.0 - intent)
+        return float(np.clip(shaping + event_bonus - 1.25 * float(invalid) - 0.10 * shield_penalty, -2.0, 4.0))

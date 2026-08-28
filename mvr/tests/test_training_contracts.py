@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import torch
 
 from mvr.model import TransferableScenarioMiner
 from mvr.policy.adversarial_sac import OptionConditionedSAC
-from mvr.training.replay import OuterRolloutBuffer, OuterRolloutStep
+from mvr.training.replay import InnerReplay, OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
 from mvr.training.updates import update_outer_ppo
 from mvr.training.workflow import StagedWorkflow
@@ -40,3 +42,28 @@ def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:
     losses.actor.backward()
     assert all(parameter.grad is None for parameter in sac.critic1.parameters())
     assert all(parameter.grad is None for parameter in sac.critic2.parameters())
+
+
+def test_sac_event_action_anchor_is_finite_and_keeps_critics_frozen() -> None:
+    sac = OptionConditionedSAC(feature_dim=4, action_dim=3)
+    actor, _ = sac.actor_alpha_losses(
+        torch.randn(4, 4),
+        actions=torch.tensor([[-0.75, -0.75, 0.0]] * 4),
+        rewards=torch.tensor([4.0, -0.1, -0.1, -0.1]),
+        event_action_weight=2.0,
+    )
+    actor.backward()
+    assert torch.isfinite(actor)
+    assert all(parameter.grad is None for parameter in sac.critic1.parameters())
+    assert all(parameter.grad is None for parameter in sac.critic2.parameters())
+
+
+def test_inner_replay_reserves_positive_event_transitions() -> None:
+    replay = InnerReplay()
+    for index in range(12):
+        replay.add(SimpleNamespace(episode_id=str(index), reward=1.0 if index < 4 else -0.1))
+
+    rows = replay.sample(8, positive_fraction=0.5)
+
+    assert len(rows) == 8
+    assert sum(float(row.reward) > 0.0 for row in rows) == 4

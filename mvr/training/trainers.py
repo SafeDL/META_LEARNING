@@ -50,7 +50,17 @@ def _update_inner(
     batch_size = int(settings.get("batch_size", 64))
     for _ in range(int(settings["updates_per_episode"])):
         if len(replay.rows) >= batch_size:
-            losses.append(update_inner_sac(model, replay, optimizer, batch_size=batch_size))
+            losses.append(
+                update_inner_sac(
+                    model,
+                    replay,
+                    optimizer,
+                    batch_size=batch_size,
+                    gradient_clip_norm=float(settings.get("gradient_clip_norm", 5.0)),
+                    event_sample_fraction=float(settings.get("event_sample_fraction", 0.25)),
+                    event_action_weight=float(settings.get("event_action_weight", 2.0)),
+                )
+            )
 
 
 def train_inner(
@@ -80,6 +90,11 @@ def train_inner(
                 posterior_support_limit=0,
                 episode_index_offset=episode_index,
                 scene_action_provider=scene_sampler,
+            )
+            print(
+                f"inner episode {len(episodes) + 1}/{len(tasks) * episodes_per_task}: "
+                f"task={task.task_id}",
+                flush=True,
             )
             for row in result.inner_transitions:
                 replay.add(row)

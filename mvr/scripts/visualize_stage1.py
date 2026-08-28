@@ -48,6 +48,28 @@ VISUAL_ENVIRONMENT_OVERRIDES = {
 }
 SUT_COLOR = (0.12, 0.43, 0.95)
 ADVERSARY_COLOR = (0.92, 0.16, 0.14)
+REPLAY_OUTCOME_FIELDS = (
+    "is_valid_episode",
+    "is_failure",
+    "non_target_collision",
+    "adversary_out_of_road",
+    "sut_out_of_road",
+    "wrong_route",
+    "adversary_traffic_violation",
+    "target_collision",
+    "valid_target_collision",
+    "valid_critical_near_miss",
+    "event_kind",
+    "event_semantic_valid",
+    "event_traffic_valid",
+    "min_ttc",
+    "min_distance",
+    "max_closing_speed",
+    "termination_reason",
+    "sut_arrived_destination",
+    "test_process_completed",
+    "failure_signature",
+)
 
 
 def _rank(outcome: Mapping[str, Any]) -> tuple[float, ...]:
@@ -71,6 +93,15 @@ def select_representative(episodes: Sequence[Any]) -> Any:
     if not episodes:
         raise ValueError("cannot select a representative from no episodes")
     return max(episodes, key=lambda episode: _rank(episode.outcome))
+
+
+def _compact_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
+    """Keep replay manifests readable; detailed telemetry lives in validation JSON."""
+    return {
+        field: outcome[field]
+        for field in REPLAY_OUTCOME_FIELDS
+        if field in outcome
+    }
 
 
 def _closest_frame(transitions: Sequence[Mapping[str, Any]]) -> int:
@@ -333,13 +364,13 @@ def _run(config_path: str | Path, checkpoint_path: str | Path, output: str | Pat
             "family": task.functional_scenario,
             "task_id": task.task_id,
             "selected_episode_index": selected_index,
-            "selection_outcome": dict(selected.outcome),
+            "selection_outcome": _compact_outcome(selected.outcome),
             "selected_scenario": selected.concrete_scenario.to_dict(),
             "replays": [
                 {
                     "policy": replay.policy,
                     "scenario": replay.scenario.to_dict(),
-                    "outcome": dict(replay.outcome),
+                    "outcome": _compact_outcome(replay.outcome),
                     "frames": len(replay.frames),
                     "closest_frame": replay.closest_frame,
                 }

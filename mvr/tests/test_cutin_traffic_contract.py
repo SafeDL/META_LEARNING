@@ -96,6 +96,24 @@ def test_options_change_nominal_longitudinal_intent_without_changing_route() -> 
         episode.env.close()
 
 
+def test_longitudinal_residual_orders_native_target_speed() -> None:
+    episode = _episode()
+    try:
+        schedule = ScenarioActionAdapter(episode, "cutin")
+        schedule.update(0.0, 0)
+        targets = []
+        for command in (-1.0, 0.0, 1.0):
+            controller = NativeAdversaryBaseController(episode, "cutin", schedule)
+            try:
+                controller.action(np.asarray((command, 0.0, 0.0), dtype=np.float32))
+                targets.append(controller.policy.NORMAL_SPEED)
+            finally:
+                controller.destroy()
+        assert targets[0] < targets[1] < targets[2]
+    finally:
+        episode.env.close()
+
+
 def test_cutin_schedule_is_low_passed_and_latched() -> None:
     episode = _episode()
     try:
@@ -170,8 +188,39 @@ def test_cutin_event_requires_physical_target_lane_intrusion() -> None:
     finally:
         episode.env.close()
     assert any(observed_intrusion)
+    np.testing.assert_allclose(
+        rollout.transitions[0]["action"],
+        np.asarray((0.0, 1.0, 0.0), dtype=np.float32),
+    )
+    assert rollout.transitions[0]["effective_action"][1] < 1.0
     # SUT speed is now scene-relative, so this fixed timing no longer promises
     # a collision.  The contract under test is physical target-lane intrusion.
     if rollout.outcome["event_kind"] is not None:
         assert rollout.outcome["event_semantic_valid"]
         assert rollout.outcome["event_traffic_valid"]
+
+
+def test_cutin_intrusion_requires_vehicle_footprint_overlap() -> None:
+    class StraightLane:
+        width = 3.5
+        length = 100.0
+
+        @staticmethod
+        def local_coordinates(position):
+            return float(position[0]), float(position[1])
+
+        @staticmethod
+        def heading_theta_at(_longitudinal):
+            return 0.0
+
+    class Vehicle:
+        LENGTH = 4.5
+        WIDTH = 2.0
+        heading_theta = 0.0
+
+        def __init__(self, lateral: float) -> None:
+            self.position = np.asarray((50.0, lateral), dtype=float)
+
+    lane = StraightLane()
+    assert ScenarioSemanticMonitor._vehicle_overlaps_lane_corridor(Vehicle(2.74), lane)
+    assert not ScenarioSemanticMonitor._vehicle_overlaps_lane_corridor(Vehicle(2.76), lane)

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from mvr.scripts.visualize_stage1 import _dual_view_frame, select_representative
+from mvr.scripts.visualize_stage1 import _compact_outcome, _dual_view_frame, select_representative
 
 
 def test_representative_selection_prefers_valid_critical_episode() -> None:
@@ -59,3 +59,12 @@ def test_dual_view_frame_preserves_two_views() -> None:
         "lane following",
     )
     assert frame.shape == (20, 76, 3)
+
+
+def test_compact_outcome_excludes_detailed_telemetry() -> None:
+    compact = _compact_outcome({
+        "is_valid_episode": True,
+        "min_ttc": 1.5,
+        "traffic_telemetry": {"steps": [1, 2, 3]},
+    })
+    assert compact == {"is_valid_episode": True, "min_ttc": 1.5}

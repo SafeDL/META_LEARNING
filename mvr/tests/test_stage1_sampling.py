@@ -55,3 +55,37 @@ def test_pretrain_scene_sampler_balances_candidate_option_and_controls() -> None
     for action in actions:
         action.validate(space.continuous_dim)
         assert space.encode(space.decode(action)).continuous == pytest.approx(action.continuous)
+
+
+def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
+    task = SimpleNamespace(task_id="merge-task", functional_scenario="merge")
+    space = ParameterSpace(
+        "sampling-test",
+        ("candidate-0",),
+        {
+            "adversary_distance_to_conflict_m": (0.5, 5.0),
+            "sut_distance_to_conflict_m": (0.5, 5.0),
+            "adversary_initial_speed_mps": (4.0, 18.0),
+            "sut_initial_speed_mps": (4.0, 18.0),
+        },
+    )
+    candidate = SimpleNamespace(
+        adversary_distance_min_m=0.0,
+        adversary_distance_available_m=26.0,
+        sut_distance_min_m=0.0,
+        sut_distance_available_m=52.0,
+    )
+
+    action = PretrainSceneSampler((task,), episodes_per_task=1, seed=11)(
+        task, 0, (candidate,), space
+    )
+    config = space.decode(action)
+    adversary_distance = candidate.adversary_distance_min_m + 0.5 * (
+        action.continuous[0] + 1.0
+    ) * (candidate.adversary_distance_available_m - candidate.adversary_distance_min_m)
+    sut_distance = candidate.sut_distance_min_m + 0.5 * (action.continuous[1] + 1.0) * (
+        candidate.sut_distance_available_m - candidate.sut_distance_min_m
+    )
+    assert config["adversary_initial_speed_mps"] == pytest.approx(8.3)
+    assert config["sut_initial_speed_mps"] == pytest.approx(8.3)
+    assert sut_distance / 8.3 - adversary_distance / 8.3 == pytest.approx(1.5)

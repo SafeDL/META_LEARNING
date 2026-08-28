@@ -53,6 +53,16 @@ conda run -n metadrive python -m mvr.scripts.diagnose_sut --output results/mvr/p
 conda run -n metadrive python -m mvr.scripts.visualize_stage1_base --config mvr/configs/mvr_pilot.yaml --output results/mvr/pilot/base_visualization
 ```
 
+The pilot SAC replay uses the matching pilot config and is illustrative only:
+
+```powershell
+conda run -n metadrive python -m mvr.scripts.visualize_stage1 --config mvr/configs/mvr_pilot.yaml --checkpoint results/mvr/pilot/inner_pretrain.pt --output results/mvr/pilot/trained_sac_visualization
+```
+
+Formal Stage1 evidence is retained only after it passes the fixed validation
+comparison. Do not start posterior or Outer training until the Inner checkpoint
+has recorded passed G4 learned-adversarial-effect and G5 joint-transfer gates.
+
 ## Verification
 
 ```powershell

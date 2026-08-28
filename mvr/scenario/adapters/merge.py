@@ -23,7 +23,6 @@ class MergeScenarioAdapter(MetaDriveFamilyAdapter):
     def _branch_mainline_layout(
         self,
         road_network: Any,
-        rank: int,
     ) -> tuple[LaneIndex, LaneIndex, LaneIndex]:
         """Return ramp, mainline, and their common downstream lane.
 
@@ -43,10 +42,9 @@ class MergeScenarioAdapter(MetaDriveFamilyAdapter):
             for downstream, lanes in road_network.graph.get(junction, {}).items():
                 for lane_number, common_lane in enumerate(lanes):
                     common_index = (junction, downstream, lane_number)
-                    del common_lane
                     by_source: dict[Any, list[LaneIndex]] = defaultdict(list)
-                    for index, _ in distinct:
-                        if int(index[2]) == lane_number:
+                    for index, source_lane in distinct:
+                        if source_lane.is_previous_lane_of(common_lane):
                             by_source[index[0]].append(index)
                     if len(by_source) < 2:
                         continue
@@ -70,7 +68,7 @@ class MergeScenarioAdapter(MetaDriveFamilyAdapter):
                 "merge geometry has no one-lane branch joining a multi-lane mainline"
             )
         layouts.sort(key=lambda row: tuple(map(str, row)))
-        ramp, mainline, common = layouts[rank % len(layouts)]
+        ramp, mainline, common = layouts[0]
         return ramp, mainline, common
 
     def resolve_layout(
@@ -85,10 +83,13 @@ class MergeScenarioAdapter(MetaDriveFamilyAdapter):
         if candidate not in candidates:
             raise ValueError(f"invalid merge candidate {candidate!r}")
         road_network = env.current_map.road_network
-        ramp, mainline, common = self._branch_mainline_layout(
-            road_network, list(candidates).index(candidate)
+        ramp, mainline, common = self._branch_mainline_layout(road_network)
+        downstream_route, adversary_destination = self._route_from(
+            road_network, common
         )
-        adversary_route = (ramp, common)
+        if len(downstream_route) < 2:
+            raise RuntimeError("merge downstream lane has no exit for the adversary")
+        adversary_route = (ramp, *downstream_route)
         sut_route = (mainline, common)
         common_lane = road_network.get_lane(common)
         if candidate == "main_conflict":
@@ -101,7 +102,7 @@ class MergeScenarioAdapter(MetaDriveFamilyAdapter):
             conflict_zone_id=f"merge:{candidate}:{ramp[0]}->{common[1]}",
             adversary_lane=ramp,
             sut_lane=mainline,
-            adversary_destination=common[1],
+            adversary_destination=adversary_destination,
             sut_destination=common[1],
             adversary_route=adversary_route,
             sut_route=sut_route,

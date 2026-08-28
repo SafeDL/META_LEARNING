@@ -1,6 +1,7 @@
 """The single online few-shot protocol shared by training and evaluation."""
 from __future__ import annotations
 
+import gc
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
@@ -48,11 +49,14 @@ class OnlineMetaTestResult:
 class OnlineMetaTest:
     """Execute a fixed testing budget without exposing SUT identity to the model."""
 
+    garbage_collection_interval = 12
+
     def __init__(self, model: TransferableScenarioMiner, executor: ScenarioExecutor, runner: HierarchicalRunner) -> None:
         self.model = model
         self.executor = executor
         self.runner = runner
         self._scene_cache: dict[str, tuple[Any, Any, Any]] = {}
+        self._closed_episode_count = 0
 
     def _inner_policy_hash(self) -> str:
         return content_hash({
@@ -157,6 +161,13 @@ class OnlineMetaTest:
                 )
             finally:
                 episode.env.close()
+                # MetaDrive/Panda3D keeps cyclic scene references after the
+                # engine singleton is closed.  Collect cyclic references at
+                # a fixed cadence: per-episode collection dominates formal
+                # Stage1 runtime without improving resource boundedness.
+                self._closed_episode_count += 1
+                if self._closed_episode_count % self.garbage_collection_interval == 0:
+                    gc.collect()
             signature = rollout.signature
             outcome = dict(rollout.outcome)
             outcome.update({"is_valid_episode": signature.is_valid_episode, "is_failure": signature.is_failure})

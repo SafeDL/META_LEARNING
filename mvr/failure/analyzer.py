@@ -39,7 +39,17 @@ def analyze_rollout(
     )
     outcome["test_process_completed"] = bool(outcome["sut_arrived_destination"])
     event_infos = [info for info in infos if info.get("event_kind") is not None]
-    event_info = event_infos[0] if event_infos else {}
+    collision_events = [
+        info for info in event_infos if info.get("event_kind") == "collision"
+    ]
+    # A collision supersedes a prior near-miss.  In the absence of a
+    # collision, retain the last latched near-miss event.
+    if collision_events:
+        event_info = collision_events[-1]
+    elif event_infos:
+        event_info = event_infos[-1]
+    else:
+        event_info = {}
     outcome["event_kind"] = event_info.get("event_kind")
     outcome["event_semantic_valid"] = bool(event_info.get("event_semantic_valid", False))
     outcome["event_traffic_valid"] = bool(event_info.get("event_traffic_valid", False))

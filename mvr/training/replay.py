@@ -35,11 +35,38 @@ class InnerReplay:
         self.rows.append(row)
         del self.rows[:-self.capacity]
 
-    def sample(self, count: int, *, excluded_episode_ids: set[str] | None = None, rng: random.Random | None = None) -> list[InnerTransition]:
+    def sample(
+        self,
+        count: int,
+        *,
+        excluded_episode_ids: set[str] | None = None,
+        rng: random.Random | None = None,
+        positive_fraction: float = 0.0,
+    ) -> list[InnerTransition]:
+        if not 0.0 <= positive_fraction <= 1.0:
+            raise ValueError("positive_fraction must lie in [0, 1]")
         eligible = [row for row in self.rows if row.episode_id not in (excluded_episode_ids or set())]
         if len(eligible) < count:
             raise ValueError("not enough leakage-free inner transitions")
-        return (rng or random).sample(eligible, count)
+        sampler = rng or random
+        positive_count = min(
+            int(round(count * positive_fraction)),
+            sum(float(row.reward) > 0.0 for row in eligible),
+        )
+        if positive_count == 0:
+            return sampler.sample(eligible, count)
+        positives = [row for row in eligible if float(row.reward) > 0.0]
+        selected = sampler.sample(positives, positive_count)
+        selected_ids = {id(row) for row in selected}
+        remaining = [row for row in eligible if id(row) not in selected_ids]
+        needed = count - positive_count
+        non_positive = [row for row in remaining if float(row.reward) <= 0.0]
+        if len(non_positive) >= needed:
+            return selected + sampler.sample(non_positive, needed)
+        return selected + non_positive + sampler.sample(
+            [row for row in remaining if float(row.reward) > 0.0],
+            needed - len(non_positive),
+        )
 
 
 @dataclass(frozen=True)
