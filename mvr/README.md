@@ -72,6 +72,18 @@ event and positive-reward transition density overall, by family, and by scenario
 This distinguishes absent learning signal from an optimization failure without
 relaxing Formal Stage1 gates.
 
+The bounded preflight combines engineering, reward, reachability, and the
+six-episode SAC plumbing checks into one auditable report. Its default
+configuration stops before mini-learning and full coverage; enable those
+phases only after Merge and Roundabout x0 calibration passes:
+
+```powershell
+conda run -n metadrive python -m mvr.scripts.preflight_stage1 --config mvr/configs/mvr_stage1_preflight.yaml --output results/mvr/diagnostics/stage1_preflight.json
+```
+
+The report is diagnostic evidence, not a performance claim. A skipped phase is
+recorded as failed, so `pre_stage1_pass` cannot be inferred from a partial run.
+
 ## Verification
 
 ```powershell

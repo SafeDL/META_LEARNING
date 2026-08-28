@@ -80,6 +80,20 @@ conda run -n metadrive python -m mvr.scripts.sweep_stage1_actions --config mvr/c
 
 这说明下一步首先是校准 Merge 与 Roundabout 的 Logical Scenario/x0 分布，而不是重新引入时机状态机或扩大 SAC 预算。
 
+## 可执行的 Pre-Stage1 预实验
+
+门槛文档对应的代码入口是：
+
+```powershell
+conda run -n metadrive python -m mvr.scripts.preflight_stage1 --config mvr/configs/mvr_stage1_preflight.yaml --output results/mvr/diagnostics/stage1_preflight.json
+```
+
+该入口将工程契约、reward/event 审计、S0 reachability、P1 base 语义和 6-episode P4 SAC plumbing 写入同一个 JSON。配置中未启用的 P5/P6、onset nuisance 和 profile 消融会明确标记为 `skipped`，并阻止 `pre_stage1_pass`。
+
+当前运行证据：P0、P1、P3、P4 通过；P2 只有 Merge/Cut-in 具备可达 interaction，Roundabout 仍为不可达，因此总决策为 `pre_stage1_pass: false`。本结果支持继续校准 Roundabout x0，不支持启动 36-task Formal Stage1。
+
+另外，P5 已按 18 个训练 episode + 18 个 validation episode 单独运行并写入 `results/mvr/diagnostics/stage1_p5.json`。它只在 Cut-in 产生正向训练信号，Merge/Roundabout 没有 positive reward 或 valid event，且 trained residual 未在三个 family 中形成相对 base/random 的风险改善；P5 因此失败，P6 按门槛暂不启动。
+
 ## Formal Stage1 验收
 
 只有以下全部成立才能声明通过：
@@ -96,5 +110,6 @@ conda run -n metadrive python -m mvr.scripts.sweep_stage1_actions --config mvr/c
 
 - `mvr/` 是唯一活跃实现；`archives/` 仅保留冻结基线和正向对照。
 - `results/mvr/` 只保存与当前控制契约兼容且可复现的证据。
+- 当前 base demo 已重生成到 `results/mvr/diagnostics/base_visualization/`；旧的 `results/mvr/pilot/base_visualization/`（3D action / 旧 controller schema）已删除，避免误用。
 - 删除失效 checkpoint、旧 GIF、过期计划和缓存；不保留兼容层。
 - 新增 schema、动作接口或事件字段时，必须同步增加公共契约测试和 headless MetaDrive 测试。

@@ -78,8 +78,13 @@ def _summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
                 "valid_near_miss_rate": 0.0,
                 "median_min_ttc": None,
                 "median_min_distance": None,
+                "challenge_phase_rate": 0.0,
+                "positive_reward_transition_fraction": 0.0,
             }
         outcomes = [row["outcome"] for row in group]
+        transitions = sum(int(row.get("transitions", 0)) for row in group)
+        challenge_steps = sum(int(row.get("challenge_steps", 0)) for row in group)
+        positive_rewards = sum(int(row.get("positive_reward_transitions", 0)) for row in group)
         return {
             "episodes": len(group),
             "valid_rate": float(np.mean([bool(row["is_valid_episode"]) for row in outcomes])),
@@ -94,6 +99,8 @@ def _summary(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             "median_min_distance": float(
                 np.median([float(row["min_distance"]) for row in outcomes])
             ),
+            "challenge_phase_rate": float(challenge_steps / max(transitions, 1)),
+            "positive_reward_transition_fraction": float(positive_rewards / max(transitions, 1)),
         }
 
     by_family = {}
@@ -173,6 +180,7 @@ def run(config_path: str | Path, output: str | Path) -> dict[str, Any]:
                         bool(row["info"].get("semantic_challenge_phase_active", False))
                         for row in transitions
                     ),
+                    "transitions": len(transitions),
                     "positive_reward_transitions": sum(
                         float(row["reward_inner"]) > 0.0 for row in transitions
                     ),

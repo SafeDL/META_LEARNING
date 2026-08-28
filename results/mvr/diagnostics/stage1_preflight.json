@@ -1,0 +1,914 @@
+{
+  "stage": "pre_formal_stage1",
+  "requested_phases": [
+    "contracts",
+    "reward",
+    "reachability",
+    "p1",
+    "p4"
+  ],
+  "device": "cpu",
+  "reports": {
+    "P0_engineering": {
+      "pass": true,
+      "checks": {
+        "state_dim": true,
+        "action_dim": true,
+        "action_schema": true,
+        "nominal_controller_schema": true,
+        "scenario_contract_schema": true,
+        "pytest": true,
+        "compileall": true
+      },
+      "commands": {
+        "pytest": {
+          "returncode": 0,
+          "passed": true,
+          "tail": "........................................................................ [ 88%]\n.........                                                                [100%]\n81 passed in 37.70s\n"
+        },
+        "compileall": {
+          "returncode": 0,
+          "passed": true,
+          "tail": ""
+        }
+      }
+    },
+    "P3_reward": {
+      "curve": {
+        "pass": true,
+        "objective": "threshold_proximity",
+        "shape": "threshold_centered_gaussian",
+        "finite": true,
+        "no_event_non_positive": true,
+        "event_bonus_direction": true,
+        "invalid_event_penalized": true,
+        "ttc_grid_s": [
+          0.5,
+          1.0,
+          2.0,
+          3.0,
+          5.0,
+          8.0,
+          12.0
+        ],
+        "ttc_reward": [
+          -0.0034020902958288336,
+          -0.0038067381546165817,
+          -0.0036576805532955417,
+          -0.00301510223551082,
+          -0.0019000000014901266,
+          -0.0038451808428724868,
+          -0.0044573491611259
+        ],
+        "distance_grid_m": [
+          1.0,
+          2.0,
+          5.0,
+          10.0,
+          20.0,
+          40.0
+        ],
+        "distance_reward": [
+          -0.0034312541588184804,
+          -0.0033640428936956997,
+          -0.0028981808225424107,
+          -0.0019000000014901266,
+          -0.003272526551197322,
+          -0.003100000005960473
+        ],
+        "peak_ttc_s": 5.0,
+        "peak_distance_m": 10.0,
+        "threshold_shape": true,
+        "severity_monotonic": false
+      },
+      "event_bonus": {
+        "pass": true,
+        "capture_reward": 2.99809999999851,
+        "latched_rewards": [
+          -0.0019000000014901266,
+          -0.0019000000014901266,
+          -0.0019000000014901266,
+          -0.0019000000014901266,
+          -0.0019000000014901266
+        ],
+        "bonus_steps": 1
+      },
+      "pass": true
+    },
+    "P2_reachability": {
+      "pass": false,
+      "paired_initial_conditions_verified": true,
+      "by_family": {
+        "merge": {
+          "pass": true,
+          "base_legal": true,
+          "challenge_phase_rate": 1.0,
+          "valid_critical_rate": 0.0,
+          "risk_effect": true
+        },
+        "cutin": {
+          "pass": true,
+          "base_legal": true,
+          "challenge_phase_rate": 0.7153716216216216,
+          "valid_critical_rate": 0.5,
+          "risk_effect": true
+        },
+        "roundabout": {
+          "pass": false,
+          "base_legal": true,
+          "challenge_phase_rate": 0.0,
+          "valid_critical_rate": 0.0,
+          "risk_effect": true
+        }
+      },
+      "report": "results\\mvr\\diagnostics\\preflight_reachability.json"
+    },
+    "P1_scenario": {
+      "overall": {
+        "episodes": 6,
+        "valid_rate": 1.0,
+        "valid_critical_rate": 0.0,
+        "violation_rate": 0.0,
+        "median_min_ttc": 9.622170478105545,
+        "median_min_distance": 8.418221399188042,
+        "valid_event_count": 0,
+        "challenge_phase_rate": 0.4262607040913416
+      },
+      "by_family": {
+        "merge": {
+          "episodes": 2,
+          "valid_rate": 1.0,
+          "valid_critical_rate": 0.0,
+          "violation_rate": 0.0,
+          "median_min_ttc": 15.0,
+          "median_min_distance": 16.40704572200775,
+          "valid_event_count": 0,
+          "challenge_phase_rate": 1.0
+        },
+        "cutin": {
+          "episodes": 2,
+          "valid_rate": 1.0,
+          "valid_critical_rate": 0.0,
+          "violation_rate": 0.0,
+          "median_min_ttc": 9.622170478105545,
+          "median_min_distance": 3.4066103398799896,
+          "valid_event_count": 0,
+          "challenge_phase_rate": 0.6467889908256881
+        },
+        "roundabout": {
+          "episodes": 2,
+          "valid_rate": 1.0,
+          "valid_critical_rate": 0.0,
+          "violation_rate": 0.0,
+          "median_min_ttc": 2.503167651593685,
+          "median_min_distance": 8.418221399188042,
+          "valid_event_count": 0,
+          "challenge_phase_rate": 0.0836734693877551
+        }
+      },
+      "rows": [
+        {
+          "family": "merge",
+          "task_id": "merge-g01-normal",
+          "valid": true,
+          "failure": false,
+          "violations": {
+            "non_target_collision": false,
+            "adversary_out_of_road": false,
+            "sut_out_of_road": false,
+            "wrong_route": false,
+            "adversary_traffic_violation": false
+          },
+          "event_kind": null,
+          "min_ttc": 15.0,
+          "min_distance": 17.248836159706116,
+          "termination_reason": "sut_route_completed",
+          "semantic_challenge_steps": 66,
+          "transitions": 66
+        },
+        {
+          "family": "merge",
+          "task_id": "merge-g01-assertive",
+          "valid": true,
+          "failure": false,
+          "violations": {
+            "non_target_collision": false,
+            "adversary_out_of_road": false,
+            "sut_out_of_road": false,
+            "wrong_route": false,
+            "adversary_traffic_violation": false
+          },
+          "event_kind": null,
+          "min_ttc": 15.0,
+          "min_distance": 15.565255284309387,
+          "termination_reason": "sut_route_completed",
+          "semantic_challenge_steps": 59,
+          "transitions": 59
+        },
+        {
+          "family": "cutin",
+          "task_id": "cutin-g01-normal",
+          "valid": true,
+          "failure": false,
+          "violations": {
+            "non_target_collision": false,
+            "adversary_out_of_road": false,
+            "sut_out_of_road": false,
+            "wrong_route": false,
+            "adversary_traffic_violation": false
+          },
+          "event_kind": "near_miss",
+          "min_ttc": 4.24434095621109,
+          "min_distance": 3.313220664858818,
+          "termination_reason": "sut_route_completed",
+          "semantic_challenge_steps": 151,
+          "transitions": 228
+        },
+        {
+          "family": "cutin",
+          "task_id": "cutin-g01-assertive",
+          "valid": true,
+          "failure": false,
+          "violations": {
+            "non_target_collision": false,
+            "adversary_out_of_road": false,
+            "sut_out_of_road": false,
+            "wrong_route": false,
+            "adversary_traffic_violation": false
+          },
+          "event_kind": null,
+          "min_ttc": 15.0,
+          "min_distance": 3.500000014901161,
+          "termination_reason": "sut_route_completed",
+          "semantic_challenge_steps": 131,
+          "transitions": 208
+        },
+        {
+          "family": "roundabout",
+          "task_id": "roundabout-g01-normal",
+          "valid": true,
+          "failure": false,
+          "violations": {
+            "non_target_collision": false,
+            "adversary_out_of_road": false,
+            "sut_out_of_road": false,
+            "wrong_route": false,
+            "adversary_traffic_violation": false
+          },
+          "event_kind": null,
+          "min_ttc": 2.7761366218328476,
+          "min_distance": 10.029386729001999,
+          "termination_reason": "sut_route_completed",
+          "semantic_challenge_steps": 12,
+          "transitions": 266
+        },
+        {
+          "family": "roundabout",
+          "task_id": "roundabout-g01-assertive",
+          "valid": true,
+          "failure": false,
+          "violations": {
+            "non_target_collision": false,
+            "adversary_out_of_road": false,
+            "sut_out_of_road": false,
+            "wrong_route": false,
+            "adversary_traffic_violation": false
+          },
+          "event_kind": "near_miss",
+          "min_ttc": 2.2301986813545227,
+          "min_distance": 6.8070560693740845,
+          "termination_reason": "sut_route_completed",
+          "semantic_challenge_steps": 29,
+          "transitions": 224
+        }
+      ],
+      "pass": true
+    },
+    "P4_sac_plumbing": {
+      "pass": true,
+      "episodes": 6,
+      "metrics": {
+        "simulator_episodes_consumed": 6,
+        "transitions": 1137,
+        "replay_transitions": 1137,
+        "optimizer_updates": 12,
+        "last_loss": {
+          "inner_actor_loss": -0.4625910520553589,
+          "inner_critic_loss": 0.20772245526313782,
+          "inner_alpha_loss": -7.636266231536865
+        },
+        "task_episode_counts": {
+          "merge-g01-normal": 2,
+          "roundabout-g01-normal": 2,
+          "cutin-g01-normal": 2
+        },
+        "family_episode_counts": {
+          "merge": 2,
+          "roundabout": 2,
+          "cutin": 2
+        },
+        "geometry_episode_counts": {
+          "merge-g01": 2,
+          "roundabout-g01": 2,
+          "cutin-g01": 2
+        },
+        "sut_episode_counts": {
+          "idm_normal": 6
+        },
+        "candidate_episode_counts": {
+          "main_conflict": 1,
+          "entry_2_exit_0": 1,
+          "right_target_lane": 1,
+          "entry_0_exit_1": 1,
+          "left_target_lane": 1,
+          "downstream_merge": 1
+        },
+        "option_episode_counts": {
+          "approach_conflict": 2,
+          "gap_close": 2,
+          "yield_then_press": 2
+        },
+        "mean_inner_episode_return": -0.25532950926108006,
+        "mean_valid_rate": 1.0,
+        "mean_failure_rate": 0.16666666666666666,
+        "mean_min_ttc": 6.627836059778929,
+        "mean_min_distance": 13.891115815689167,
+        "mean_max_closing_speed": 5.199034497537384,
+        "actor_loss_mean": -0.32552291452884674,
+        "actor_loss_last": -0.4625910520553589,
+        "critic_loss_mean": 0.14366935721288124,
+        "critic_loss_last": 0.20772245526313782,
+        "alpha_loss_mean": -7.733691414197286,
+        "alpha_loss_last": -7.636266231536865,
+        "action_abs_mean": 0.2464919769925556,
+        "action_saturation_rate": 0.11653474054529464,
+        "training_signal": {
+          "family:cutin": {
+            "episodes": 2,
+            "valid_event_episodes": 1,
+            "valid_target_collision_episodes": 1,
+            "valid_near_miss_episodes": 0,
+            "transitions": 409,
+            "positive_reward_transitions": 1,
+            "event_capture_transitions": 2,
+            "positive_reward_transition_fraction": 0.0024449877750611247
+          },
+          "family:merge": {
+            "episodes": 2,
+            "valid_event_episodes": 0,
+            "valid_target_collision_episodes": 0,
+            "valid_near_miss_episodes": 0,
+            "transitions": 109,
+            "positive_reward_transitions": 0,
+            "event_capture_transitions": 0,
+            "positive_reward_transition_fraction": 0.0
+          },
+          "family:roundabout": {
+            "episodes": 2,
+            "valid_event_episodes": 0,
+            "valid_target_collision_episodes": 0,
+            "valid_near_miss_episodes": 0,
+            "transitions": 619,
+            "positive_reward_transitions": 0,
+            "event_capture_transitions": 1,
+            "positive_reward_transition_fraction": 0.0
+          },
+          "option:approach_conflict": {
+            "episodes": 2,
+            "valid_event_episodes": 0,
+            "valid_target_collision_episodes": 0,
+            "valid_near_miss_episodes": 0,
+            "transitions": 310,
+            "positive_reward_transitions": 0,
+            "event_capture_transitions": 1,
+            "positive_reward_transition_fraction": 0.0
+          },
+          "option:gap_close": {
+            "episodes": 2,
+            "valid_event_episodes": 0,
+            "valid_target_collision_episodes": 0,
+            "valid_near_miss_episodes": 0,
+            "transitions": 657,
+            "positive_reward_transitions": 0,
+            "event_capture_transitions": 0,
+            "positive_reward_transition_fraction": 0.0
+          },
+          "option:yield_then_press": {
+            "episodes": 2,
+            "valid_event_episodes": 1,
+            "valid_target_collision_episodes": 1,
+            "valid_near_miss_episodes": 0,
+            "transitions": 170,
+            "positive_reward_transitions": 1,
+            "event_capture_transitions": 2,
+            "positive_reward_transition_fraction": 0.0058823529411764705
+          },
+          "overall": {
+            "episodes": 6,
+            "valid_event_episodes": 1,
+            "valid_target_collision_episodes": 1,
+            "valid_near_miss_episodes": 0,
+            "transitions": 1137,
+            "positive_reward_transitions": 1,
+            "event_capture_transitions": 3,
+            "positive_reward_transition_fraction": 0.0008795074758135445
+          }
+        },
+        "balanced_sampling_epochs": 2,
+        "updates_per_episode": 2,
+        "requested_optimizer_updates": 12,
+        "warmup_skipped_updates": 0
+      },
+      "replay": {
+        "pass": true,
+        "rows": 1137,
+        "failures": []
+      },
+      "parameter_update": {
+        "pass": true,
+        "finite_losses": true,
+        "parameter_l2_change": 0.7328666148549167,
+        "changed_parameter_tensors": 33,
+        "loss_updates": 1
+      },
+      "training_signal": {
+        "pass": true,
+        "buckets": [
+          "family:cutin",
+          "family:merge",
+          "family:roundabout",
+          "option:approach_conflict",
+          "option:gap_close",
+          "option:yield_then_press",
+          "overall"
+        ]
+      },
+      "action_saturation_rate": 0.11653474054529464
+    }
+  },
+  "decision": {
+    "pre_stage1_pass": false,
+    "pass": false,
+    "failed_gates": [
+      "P2_reachability",
+      "P5_shared_learning",
+      "P6_coverage",
+      "nuisance_invariance",
+      "profile_effect"
+    ],
+    "gates": {
+      "P0_engineering": {
+        "pass": true,
+        "checks": {
+          "state_dim": true,
+          "action_dim": true,
+          "action_schema": true,
+          "nominal_controller_schema": true,
+          "scenario_contract_schema": true,
+          "pytest": true,
+          "compileall": true
+        },
+        "commands": {
+          "pytest": {
+            "returncode": 0,
+            "passed": true,
+            "tail": "........................................................................ [ 88%]\n.........                                                                [100%]\n81 passed in 37.70s\n"
+          },
+          "compileall": {
+            "returncode": 0,
+            "passed": true,
+            "tail": ""
+          }
+        }
+      },
+      "P1_scenario": {
+        "overall": {
+          "episodes": 6,
+          "valid_rate": 1.0,
+          "valid_critical_rate": 0.0,
+          "violation_rate": 0.0,
+          "median_min_ttc": 9.622170478105545,
+          "median_min_distance": 8.418221399188042,
+          "valid_event_count": 0,
+          "challenge_phase_rate": 0.4262607040913416
+        },
+        "by_family": {
+          "merge": {
+            "episodes": 2,
+            "valid_rate": 1.0,
+            "valid_critical_rate": 0.0,
+            "violation_rate": 0.0,
+            "median_min_ttc": 15.0,
+            "median_min_distance": 16.40704572200775,
+            "valid_event_count": 0,
+            "challenge_phase_rate": 1.0
+          },
+          "cutin": {
+            "episodes": 2,
+            "valid_rate": 1.0,
+            "valid_critical_rate": 0.0,
+            "violation_rate": 0.0,
+            "median_min_ttc": 9.622170478105545,
+            "median_min_distance": 3.4066103398799896,
+            "valid_event_count": 0,
+            "challenge_phase_rate": 0.6467889908256881
+          },
+          "roundabout": {
+            "episodes": 2,
+            "valid_rate": 1.0,
+            "valid_critical_rate": 0.0,
+            "violation_rate": 0.0,
+            "median_min_ttc": 2.503167651593685,
+            "median_min_distance": 8.418221399188042,
+            "valid_event_count": 0,
+            "challenge_phase_rate": 0.0836734693877551
+          }
+        },
+        "rows": [
+          {
+            "family": "merge",
+            "task_id": "merge-g01-normal",
+            "valid": true,
+            "failure": false,
+            "violations": {
+              "non_target_collision": false,
+              "adversary_out_of_road": false,
+              "sut_out_of_road": false,
+              "wrong_route": false,
+              "adversary_traffic_violation": false
+            },
+            "event_kind": null,
+            "min_ttc": 15.0,
+            "min_distance": 17.248836159706116,
+            "termination_reason": "sut_route_completed",
+            "semantic_challenge_steps": 66,
+            "transitions": 66
+          },
+          {
+            "family": "merge",
+            "task_id": "merge-g01-assertive",
+            "valid": true,
+            "failure": false,
+            "violations": {
+              "non_target_collision": false,
+              "adversary_out_of_road": false,
+              "sut_out_of_road": false,
+              "wrong_route": false,
+              "adversary_traffic_violation": false
+            },
+            "event_kind": null,
+            "min_ttc": 15.0,
+            "min_distance": 15.565255284309387,
+            "termination_reason": "sut_route_completed",
+            "semantic_challenge_steps": 59,
+            "transitions": 59
+          },
+          {
+            "family": "cutin",
+            "task_id": "cutin-g01-normal",
+            "valid": true,
+            "failure": false,
+            "violations": {
+              "non_target_collision": false,
+              "adversary_out_of_road": false,
+              "sut_out_of_road": false,
+              "wrong_route": false,
+              "adversary_traffic_violation": false
+            },
+            "event_kind": "near_miss",
+            "min_ttc": 4.24434095621109,
+            "min_distance": 3.313220664858818,
+            "termination_reason": "sut_route_completed",
+            "semantic_challenge_steps": 151,
+            "transitions": 228
+          },
+          {
+            "family": "cutin",
+            "task_id": "cutin-g01-assertive",
+            "valid": true,
+            "failure": false,
+            "violations": {
+              "non_target_collision": false,
+              "adversary_out_of_road": false,
+              "sut_out_of_road": false,
+              "wrong_route": false,
+              "adversary_traffic_violation": false
+            },
+            "event_kind": null,
+            "min_ttc": 15.0,
+            "min_distance": 3.500000014901161,
+            "termination_reason": "sut_route_completed",
+            "semantic_challenge_steps": 131,
+            "transitions": 208
+          },
+          {
+            "family": "roundabout",
+            "task_id": "roundabout-g01-normal",
+            "valid": true,
+            "failure": false,
+            "violations": {
+              "non_target_collision": false,
+              "adversary_out_of_road": false,
+              "sut_out_of_road": false,
+              "wrong_route": false,
+              "adversary_traffic_violation": false
+            },
+            "event_kind": null,
+            "min_ttc": 2.7761366218328476,
+            "min_distance": 10.029386729001999,
+            "termination_reason": "sut_route_completed",
+            "semantic_challenge_steps": 12,
+            "transitions": 266
+          },
+          {
+            "family": "roundabout",
+            "task_id": "roundabout-g01-assertive",
+            "valid": true,
+            "failure": false,
+            "violations": {
+              "non_target_collision": false,
+              "adversary_out_of_road": false,
+              "sut_out_of_road": false,
+              "wrong_route": false,
+              "adversary_traffic_violation": false
+            },
+            "event_kind": "near_miss",
+            "min_ttc": 2.2301986813545227,
+            "min_distance": 6.8070560693740845,
+            "termination_reason": "sut_route_completed",
+            "semantic_challenge_steps": 29,
+            "transitions": 224
+          }
+        ],
+        "pass": true
+      },
+      "P2_reachability": {
+        "pass": false,
+        "paired_initial_conditions_verified": true,
+        "by_family": {
+          "merge": {
+            "pass": true,
+            "base_legal": true,
+            "challenge_phase_rate": 1.0,
+            "valid_critical_rate": 0.0,
+            "risk_effect": true
+          },
+          "cutin": {
+            "pass": true,
+            "base_legal": true,
+            "challenge_phase_rate": 0.7153716216216216,
+            "valid_critical_rate": 0.5,
+            "risk_effect": true
+          },
+          "roundabout": {
+            "pass": false,
+            "base_legal": true,
+            "challenge_phase_rate": 0.0,
+            "valid_critical_rate": 0.0,
+            "risk_effect": true
+          }
+        },
+        "report": "results\\mvr\\diagnostics\\preflight_reachability.json"
+      },
+      "P3_reward": {
+        "curve": {
+          "pass": true,
+          "objective": "threshold_proximity",
+          "shape": "threshold_centered_gaussian",
+          "finite": true,
+          "no_event_non_positive": true,
+          "event_bonus_direction": true,
+          "invalid_event_penalized": true,
+          "ttc_grid_s": [
+            0.5,
+            1.0,
+            2.0,
+            3.0,
+            5.0,
+            8.0,
+            12.0
+          ],
+          "ttc_reward": [
+            -0.0034020902958288336,
+            -0.0038067381546165817,
+            -0.0036576805532955417,
+            -0.00301510223551082,
+            -0.0019000000014901266,
+            -0.0038451808428724868,
+            -0.0044573491611259
+          ],
+          "distance_grid_m": [
+            1.0,
+            2.0,
+            5.0,
+            10.0,
+            20.0,
+            40.0
+          ],
+          "distance_reward": [
+            -0.0034312541588184804,
+            -0.0033640428936956997,
+            -0.0028981808225424107,
+            -0.0019000000014901266,
+            -0.003272526551197322,
+            -0.003100000005960473
+          ],
+          "peak_ttc_s": 5.0,
+          "peak_distance_m": 10.0,
+          "threshold_shape": true,
+          "severity_monotonic": false
+        },
+        "event_bonus": {
+          "pass": true,
+          "capture_reward": 2.99809999999851,
+          "latched_rewards": [
+            -0.0019000000014901266,
+            -0.0019000000014901266,
+            -0.0019000000014901266,
+            -0.0019000000014901266,
+            -0.0019000000014901266
+          ],
+          "bonus_steps": 1
+        },
+        "pass": true
+      },
+      "P4_sac_plumbing": {
+        "pass": true,
+        "episodes": 6,
+        "metrics": {
+          "simulator_episodes_consumed": 6,
+          "transitions": 1137,
+          "replay_transitions": 1137,
+          "optimizer_updates": 12,
+          "last_loss": {
+            "inner_actor_loss": -0.4625910520553589,
+            "inner_critic_loss": 0.20772245526313782,
+            "inner_alpha_loss": -7.636266231536865
+          },
+          "task_episode_counts": {
+            "merge-g01-normal": 2,
+            "roundabout-g01-normal": 2,
+            "cutin-g01-normal": 2
+          },
+          "family_episode_counts": {
+            "merge": 2,
+            "roundabout": 2,
+            "cutin": 2
+          },
+          "geometry_episode_counts": {
+            "merge-g01": 2,
+            "roundabout-g01": 2,
+            "cutin-g01": 2
+          },
+          "sut_episode_counts": {
+            "idm_normal": 6
+          },
+          "candidate_episode_counts": {
+            "main_conflict": 1,
+            "entry_2_exit_0": 1,
+            "right_target_lane": 1,
+            "entry_0_exit_1": 1,
+            "left_target_lane": 1,
+            "downstream_merge": 1
+          },
+          "option_episode_counts": {
+            "approach_conflict": 2,
+            "gap_close": 2,
+            "yield_then_press": 2
+          },
+          "mean_inner_episode_return": -0.25532950926108006,
+          "mean_valid_rate": 1.0,
+          "mean_failure_rate": 0.16666666666666666,
+          "mean_min_ttc": 6.627836059778929,
+          "mean_min_distance": 13.891115815689167,
+          "mean_max_closing_speed": 5.199034497537384,
+          "actor_loss_mean": -0.32552291452884674,
+          "actor_loss_last": -0.4625910520553589,
+          "critic_loss_mean": 0.14366935721288124,
+          "critic_loss_last": 0.20772245526313782,
+          "alpha_loss_mean": -7.733691414197286,
+          "alpha_loss_last": -7.636266231536865,
+          "action_abs_mean": 0.2464919769925556,
+          "action_saturation_rate": 0.11653474054529464,
+          "training_signal": {
+            "family:cutin": {
+              "episodes": 2,
+              "valid_event_episodes": 1,
+              "valid_target_collision_episodes": 1,
+              "valid_near_miss_episodes": 0,
+              "transitions": 409,
+              "positive_reward_transitions": 1,
+              "event_capture_transitions": 2,
+              "positive_reward_transition_fraction": 0.0024449877750611247
+            },
+            "family:merge": {
+              "episodes": 2,
+              "valid_event_episodes": 0,
+              "valid_target_collision_episodes": 0,
+              "valid_near_miss_episodes": 0,
+              "transitions": 109,
+              "positive_reward_transitions": 0,
+              "event_capture_transitions": 0,
+              "positive_reward_transition_fraction": 0.0
+            },
+            "family:roundabout": {
+              "episodes": 2,
+              "valid_event_episodes": 0,
+              "valid_target_collision_episodes": 0,
+              "valid_near_miss_episodes": 0,
+              "transitions": 619,
+              "positive_reward_transitions": 0,
+              "event_capture_transitions": 1,
+              "positive_reward_transition_fraction": 0.0
+            },
+            "option:approach_conflict": {
+              "episodes": 2,
+              "valid_event_episodes": 0,
+              "valid_target_collision_episodes": 0,
+              "valid_near_miss_episodes": 0,
+              "transitions": 310,
+              "positive_reward_transitions": 0,
+              "event_capture_transitions": 1,
+              "positive_reward_transition_fraction": 0.0
+            },
+            "option:gap_close": {
+              "episodes": 2,
+              "valid_event_episodes": 0,
+              "valid_target_collision_episodes": 0,
+              "valid_near_miss_episodes": 0,
+              "transitions": 657,
+              "positive_reward_transitions": 0,
+              "event_capture_transitions": 0,
+              "positive_reward_transition_fraction": 0.0
+            },
+            "option:yield_then_press": {
+              "episodes": 2,
+              "valid_event_episodes": 1,
+              "valid_target_collision_episodes": 1,
+              "valid_near_miss_episodes": 0,
+              "transitions": 170,
+              "positive_reward_transitions": 1,
+              "event_capture_transitions": 2,
+              "positive_reward_transition_fraction": 0.0058823529411764705
+            },
+            "overall": {
+              "episodes": 6,
+              "valid_event_episodes": 1,
+              "valid_target_collision_episodes": 1,
+              "valid_near_miss_episodes": 0,
+              "transitions": 1137,
+              "positive_reward_transitions": 1,
+              "event_capture_transitions": 3,
+              "positive_reward_transition_fraction": 0.0008795074758135445
+            }
+          },
+          "balanced_sampling_epochs": 2,
+          "updates_per_episode": 2,
+          "requested_optimizer_updates": 12,
+          "warmup_skipped_updates": 0
+        },
+        "replay": {
+          "pass": true,
+          "rows": 1137,
+          "failures": []
+        },
+        "parameter_update": {
+          "pass": true,
+          "finite_losses": true,
+          "parameter_l2_change": 0.7328666148549167,
+          "changed_parameter_tensors": 33,
+          "loss_updates": 1
+        },
+        "training_signal": {
+          "pass": true,
+          "buckets": [
+            "family:cutin",
+            "family:merge",
+            "family:roundabout",
+            "option:approach_conflict",
+            "option:gap_close",
+            "option:yield_then_press",
+            "overall"
+          ]
+        },
+        "action_saturation_rate": 0.11653474054529464
+      },
+      "P5_shared_learning": {
+        "pass": false,
+        "status": "skipped"
+      },
+      "P6_coverage": {
+        "pass": false,
+        "status": "skipped"
+      },
+      "nuisance_invariance": {
+        "pass": false,
+        "status": "skipped"
+      },
+      "profile_effect": {
+        "pass": false,
+        "status": "skipped"
+      }
+    }
+  }
+}
