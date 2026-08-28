@@ -258,6 +258,7 @@ class ScenarioExecutor:
                 float(config["adversary_distance_to_conflict_m"]),
                 float(config["sut_distance_to_conflict_m"]),
                 float(config["adversary_initial_speed_mps"]), float(config["sut_initial_speed_mps"]),
+                float(config["maneuver_onset_progress"]),
                 layout.candidate, layout.conflict_zone_id, str(config["option"]),
                 layout.adversary_route, layout.sut_route, tuple(float(value) for value in action.continuous),
             )

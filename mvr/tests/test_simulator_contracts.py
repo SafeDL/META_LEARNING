@@ -33,7 +33,7 @@ def test_runtime_geometry_hash_and_sut_attachment(family: str) -> None:
         if row.functional_scenario == family and row.geometry_split == "train"
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
-        task, NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE), episode_seed=999
+            task, NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE), episode_seed=999
     )
     try:
         assert episode.map_tokens.map_hash == task.geometry_hash
@@ -56,7 +56,7 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE),
+            NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
         episode_seed=999,
     )
     lateral_errors: list[float] = []
@@ -74,7 +74,7 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
             episode,
             family,
             AdversarialOption.GAP_CLOSE.value,
-            lambda _state: np.zeros(3, dtype=np.float32),
+            lambda _state: np.zeros(2, dtype=np.float32),
             step_callback=record_sut_tracking,
         )
         assert lateral_errors
@@ -96,7 +96,7 @@ def test_runtime_hash_mismatch_fails_fast() -> None:
     broken = type(task)(**{**task.to_dict(), "geometry_hash": "0" * 64})
     with pytest.raises(RuntimeError, match="map hash mismatch"):
         ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
-            broken, NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE)
+                broken, NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE)
         )
 
 
@@ -115,7 +115,7 @@ def test_static_geometry_cache_avoids_rebuilding_layout_env(monkeypatch) -> None
 
     monkeypatch.setattr(adapter, "build_env", counted_build_env)
     executor = ScenarioExecutor({"merge": adapter}, mvr_parameter_spaces())
-    action = NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE)
+    action = NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE)
 
     executor.enumerate_interactions(task)
     first = executor.reset(task, action)
@@ -139,7 +139,7 @@ def test_merge_always_assigns_branch_entry_to_the_adversary(candidate_index: int
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(candidate_index, (0.0,) * 4, AdversarialOption.GAP_CLOSE),
+            NormalizedScenarioAction(candidate_index, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
         episode_seed=204 + candidate_index,
     )
     try:
@@ -174,7 +174,7 @@ def test_merge_adversary_physically_enters_the_sut_downstream_lane(
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
         NormalizedScenarioAction(
-            candidate_index, (0.0,) * 4, AdversarialOption.APPROACH_CONFLICT
+                candidate_index, (0.0,) * 5, AdversarialOption.APPROACH_CONFLICT
         ),
         episode_seed=204 + candidate_index,
     )
@@ -205,7 +205,7 @@ def test_merge_adversary_physically_enters_the_sut_downstream_lane(
             episode,
             "merge",
             AdversarialOption.APPROACH_CONFLICT.value,
-            lambda _state: np.zeros(3, dtype=np.float32),
+            lambda _state: np.zeros(2, dtype=np.float32),
             step_callback=record_merge_runtime,
         )
         assert adversary_enters_shared_lane
@@ -232,7 +232,7 @@ def test_roundabout_candidate_binds_idm_to_complete_entry_exit_route(
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(candidate_index, (0.0,) * 4, AdversarialOption.GAP_CLOSE),
+            NormalizedScenarioAction(candidate_index, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
         episode_seed=304 + candidate_index,
     )
     try:

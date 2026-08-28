@@ -33,7 +33,7 @@ def _action() -> NormalizedScenarioAction:
     # because MetaDrive requires one default agent; it is not an adversary.
     return NormalizedScenarioAction(
         0,
-        (1.0, -1.0, -1.0, -1.0),
+        (1.0, -1.0, -1.0, -1.0, 0.0),
         AdversarialOption.GAP_CLOSE,
     )
 

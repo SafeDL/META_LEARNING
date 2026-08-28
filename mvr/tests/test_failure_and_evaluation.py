@@ -130,7 +130,7 @@ def test_failure_threshold_config_changes_failure_decision_and_inner_reward() ->
     _, strict_signature = analyze_rollout(strict_transitions, "merge", "zone", "candidate", strict)
     assert broad_signature.is_failure
     assert not strict_signature.is_failure
-    assert InnerRiskReward(broad)(features, {}, "gap_close", 1, 10) > InnerRiskReward(strict)(features, {}, "gap_close", 1, 10)
+    assert InnerRiskReward(broad)(features, {}) > InnerRiskReward(strict)(features, {})
 
 
 def test_inner_reward_prefers_critical_interaction_over_direct_impact() -> None:
@@ -141,7 +141,7 @@ def test_inner_reward_prefers_critical_interaction_over_direct_impact() -> None:
     critical[8], critical[10] = 3.0 / 15.0, 5.0 / 100.0
     impact = np.zeros(12, dtype=np.float32)
     reward = InnerRiskReward(criteria)
-    assert reward(critical, {}, "approach_conflict", 1, 10) > reward(impact, {}, "approach_conflict", 1, 10)
+    assert reward(critical, {}) > reward(impact, {})
 
 
 def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
@@ -157,7 +157,7 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
         "event_kind": "collision",
         "event_semantic_valid": True,
         "event_traffic_valid": True,
-    }, "approach_conflict", 1, 10)
+    })
     invalid_event = reward(
         features,
         {
@@ -167,9 +167,6 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
             "event_traffic_valid": False,
             "adversary_traffic_violation": True,
         },
-        "approach_conflict",
-        1,
-        10,
     )
     assert event > invalid_event
 
@@ -185,12 +182,12 @@ def test_inner_reward_emits_near_miss_bonus_only_on_capture() -> None:
         "event_just_captured": True,
     }
     latched_info = {**event_info, "event_just_captured": False}
-    assert reward(features, event_info, "approach_conflict", 1, 10) > reward(
-        features, latched_info, "approach_conflict", 2, 10
+    assert reward(features, event_info) > reward(
+        features, latched_info
     )
 
 
 def test_inner_reward_has_no_positive_success_signal_without_consequence() -> None:
     reward = InnerRiskReward(FailureCriteria(3.0, 5.0, 20.0, 5))
     features = np.zeros(12, dtype=np.float32)
-    assert reward(features, {}, "approach_conflict", 1, 10) <= 0.0
+    assert reward(features, {}) <= 0.0

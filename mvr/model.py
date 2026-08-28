@@ -13,7 +13,7 @@ from .context.trajectory_encoder import TrajectoryEncoder
 from .map.hptr_encoder import HPTRMapEncoder
 from .map.interaction_encoder import InteractionEncoder, SceneEncoding
 from .map.schema import MapTokens
-from .policy.adversarial_sac import OptionConditionedSAC
+from .policy.adversarial_sac import AdversarialSAC
 from .policy.shared_features import SharedFeatureEncoder
 from .policy.universal_scene_policy import UniversalSceneAction, UniversalScenePolicy
 from .scenario.option import AdversarialOption
@@ -33,9 +33,9 @@ class TransferableScenarioMiner(nn.Module):
         map_dim: int = 128,
         latent_dim: int = 16,
         token_dim: int = 128,
-        continuous_dim: int = 4,
+        continuous_dim: int = 5,
         option_count: int = len(AdversarialOption),
-        inner_action_dim: int = 3,
+        inner_action_dim: int = 2,
         num_experts: int = 4,
         context_kl_weight: float = 1e-3,
     ) -> None:
@@ -63,7 +63,7 @@ class TransferableScenarioMiner(nn.Module):
         self.shared_feature_encoder = SharedFeatureEncoder(
             self.state_dim, map_dim, latent_dim, 16, continuous_dim
         )
-        self.inner_sac = OptionConditionedSAC(256, action_dim=inner_action_dim)
+        self.inner_sac = AdversarialSAC(256, action_dim=inner_action_dim)
 
     @property
     def device(self) -> torch.device:

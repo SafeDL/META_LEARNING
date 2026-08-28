@@ -18,10 +18,7 @@ INNER_STATE_FIELDS = (
     "adversary_route_progress",
     "sut_route_progress",
     "conflict_timing_s",
-    "maneuver_progress",
-    "maneuver_latched",
     "challenge_phase_active",
-    "timing_reference",
 )
 
 
@@ -30,7 +27,7 @@ class PhysicalStateExtractor:
 
     dimension = len(INNER_STATE_FIELDS)
     scales = np.asarray(
-        (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 1.0, 1.0, 1.0),
+        (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0),
         dtype=np.float32,
     )
 
@@ -83,13 +80,7 @@ class PhysicalStateExtractor:
         closing = float(-np.dot(relative, np.asarray(sut.velocity, dtype=float) - np.asarray(adversary.velocity, dtype=float)) / max(distance, 1e-6))
         adversary_projection = self._adversary_route.projection(adversary_position, heading)
         sut_projection = self._sut_route.projection(sut_position, self._heading(sut))
-        schedule_values = (
-            np.zeros(4, dtype=np.float32)
-            if schedule is None
-            else np.asarray(schedule.observation(), dtype=np.float32)
-        )
-        if schedule_values.shape != (4,):
-            raise ValueError("Inner schedule observation must be four-dimensional")
+        challenge_phase = 0.0 if schedule is None else float(schedule.challenge_phase_active)
         values = np.asarray((
             longitudinal,
             lateral,
@@ -102,6 +93,6 @@ class PhysicalStateExtractor:
             sut_projection.s_m / self._sut_route.length_m,
             self._eta(self._adversary_conflict_s - adversary_projection.s_m, adversary_speed)
             - self._eta(self._sut_conflict_s - sut_projection.s_m, sut_speed),
-            *schedule_values.tolist(),
+            challenge_phase,
         ), dtype=np.float32)
         return np.clip(np.nan_to_num(values / self.scales, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)

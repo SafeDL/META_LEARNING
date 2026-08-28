@@ -1,8 +1,8 @@
-schema: transferable_scenario_miner_v3
+schema: transferable_scenario_miner
 seed: 11
 taskbook: mvr/configs/taskbook.json
 model:
-  state_dim: 14
+  state_dim: 11
   latent_dim: 16
   num_experts: 4
 context:
@@ -19,7 +19,7 @@ failure:
   severity_bins: 5
 inner:
   algorithm: option_conditioned_sac
-  action_dim: 3
+  action_dim: 2
   sampling: balanced_interaction_aligned
   episodes_per_task: 5
   updates_per_episode: 8
@@ -30,9 +30,9 @@ inner:
   event_sample_fraction: 0.25
   event_action_weight: 2.0
 control:
-  action_schema: interaction_residual_3d_v1
-  nominal_controller_schema: metadrive_lane_stable_idm_v2
-  scenario_contract_schema: scenario_contract_v4
+  action_schema: vehicle_residual_2d
+  nominal_controller_schema: metadrive_lane_stable_idm
+  scenario_contract_schema: scenario_contract
 inner_latent_calibration:
   simulator_episode_budget: 16
   support_episodes: 1
@@ -52,7 +52,7 @@ outer:
   episodes_per_task: 20
   learning_rate: 0.0003
 map:
-  encoder: hptr_style_v1
+  encoder: hptr_style
   polyline_points: 16
   embedding_dim: 128
   cache_embeddings_only_when_frozen: true

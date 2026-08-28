@@ -20,6 +20,7 @@ class AppliedScenario:
     sut_distance_to_conflict_m: float
     adversary_speed_mps: float
     sut_speed_mps: float
+    maneuver_onset_progress: float
     selected_candidate: str
     conflict_zone_id: str
     selected_option: str

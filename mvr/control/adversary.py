@@ -12,10 +12,8 @@ from ..scenario.semantics import ScenarioActionAdapter
 class NativeAdversaryBaseController:
     """Compute nominal actions without registering a second engine policy."""
 
-    longitudinal_residual_scale = 0.25
-    lateral_residual_scale = 0.15
-    longitudinal_target_speed_scale_kmh = 6.0
-    timing_speed_scale_kmh = 9.0
+    acceleration_residual_scale = 0.25
+    steering_residual_scale = 0.15
 
     _option_speed_bias_kmh = {
         "approach_conflict": 0.0,
@@ -46,7 +44,7 @@ class NativeAdversaryBaseController:
         """Hold the completed adversary route while the SUT finishes its test."""
         self._arrived_destination = self._arrived_destination or bool(dict(info).get("arrive_dest", False))
 
-    def _set_target_speed(self, longitudinal_residual: float) -> None:
+    def _set_target_speed(self) -> None:
         speed_limit = float(self.episode.layout.traffic_contract.speed_limit_mps) * 3.6
         # Zero residual is ordinary, matched-flow traffic.  The timing and
         # longitudinal residuals then create bounded interaction pressure;
@@ -59,8 +57,6 @@ class NativeAdversaryBaseController:
         target = (
             nominal
             + option_bias
-            + self.longitudinal_target_speed_scale_kmh * float(longitudinal_residual)
-            + self.timing_speed_scale_kmh * self.schedule.state.timing_reference
         )
         self.policy.NORMAL_SPEED = float(np.clip(target, 1.0, speed_limit))
         self.policy.target_speed = self.policy.NORMAL_SPEED
@@ -106,18 +102,18 @@ class NativeAdversaryBaseController:
 
     def action(self, residual: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         residual = np.asarray(residual, dtype=np.float32).reshape(-1)
-        if residual.shape != (3,) or not np.isfinite(residual).all():
-            raise ValueError("native adversary controller requires a finite 3-D residual")
+        if residual.shape != (2,) or not np.isfinite(residual).all():
+            raise ValueError("native adversary controller requires a finite 2-D residual")
         if self._arrived_destination:
             stopped = np.asarray((0.0, -1.0), dtype=np.float32)
             return stopped, stopped.copy()
-        self._set_target_speed(float(residual[0]))
+        self._set_target_speed()
         base = self._cutin_action() if self.family == "cutin" else self._route_follow_action()
         base = np.clip(base, -1.0, 1.0)
         candidate = base + np.asarray(
             (
-                self.lateral_residual_scale * float(residual[2]),
-                self.longitudinal_residual_scale * float(residual[0]),
+                self.steering_residual_scale * float(residual[0]),
+                self.acceleration_residual_scale * float(residual[1]),
             ),
             dtype=np.float32,
         )

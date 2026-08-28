@@ -8,7 +8,7 @@ import numpy as np
 
 
 LaneIndex = tuple[Any, Any, int]
-SCENARIO_CONTRACT_SCHEMA = "scenario_contract_v4"
+SCENARIO_CONTRACT_SCHEMA = "scenario_contract"
 
 
 @dataclass(frozen=True)

@@ -109,10 +109,10 @@ def assert_taskbook_compatible(checkpoint: HierarchicalCheckpoint, taskbook: str
 def load_config(path: str | Path) -> tuple[dict[str, Any], Path, torch.device]:
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     control = config.get("control", {})
-    if control.get("action_schema") != "interaction_residual_3d_v1":
-        raise ValueError("config must declare interaction_residual_3d_v1")
-    if control.get("nominal_controller_schema") != "metadrive_lane_stable_idm_v2":
-        raise ValueError("config must declare metadrive_lane_stable_idm_v2")
+    if control.get("action_schema") != "vehicle_residual_2d":
+        raise ValueError("config must declare vehicle_residual_2d")
+    if control.get("nominal_controller_schema") != "metadrive_lane_stable_idm":
+        raise ValueError("config must declare metadrive_lane_stable_idm")
     if control.get("scenario_contract_schema") != SCENARIO_CONTRACT_SCHEMA:
         raise ValueError(f"config must declare {SCENARIO_CONTRACT_SCHEMA}")
     taskbook = Path(config["taskbook"])
@@ -153,7 +153,7 @@ def build_model(config: dict[str, Any], device: torch.device) -> TransferableSce
         continuous_dim=space.continuous_dim,
         option_count=len(space.options),
         num_experts=int(config["model"].get("num_experts", 4)),
-        inner_action_dim=int(config["inner"].get("action_dim", 3)),
+        inner_action_dim=int(config["inner"].get("action_dim", 2)),
         context_kl_weight=float(config.get("context", {}).get("kl_weight", 1e-3)),
     ).to(device)
 

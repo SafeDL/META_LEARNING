@@ -74,15 +74,11 @@ class HierarchicalRunner:
             for step in range(max_steps):
                 state = state_extractor(episode.adversary, episode.sut, schedule.state)
                 raw_action = np.asarray(inner_action(state), dtype=np.float32).reshape(-1)
-                if raw_action.shape != (3,) or not np.isfinite(raw_action).all():
-                    raise ValueError("Inner SAC must emit one finite 3-D interaction residual")
+                if raw_action.shape != (2,) or not np.isfinite(raw_action).all():
+                    raise ValueError("Inner SAC must emit one finite 2-D interaction residual")
                 raw_action = np.clip(raw_action, -1.0, 1.0)
-                schedule.update(float(raw_action[1]), step)
-                effective_action = np.asarray(
-                    (raw_action[0], schedule.state.timing_reference, raw_action[2]),
-                    dtype=np.float32,
-                )
-                base_action, candidate_action = controller.action(effective_action)
+                schedule.update()
+                base_action, candidate_action = controller.action(raw_action)
                 shielded = shield.project(base_action, candidate_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 controller.observe_environment(info)
@@ -177,19 +173,12 @@ class HierarchicalRunner:
                 transitions.append({
                     "state": state,
                     "raw_action": raw_action,
-                    # SAC acts in raw-residual coordinates.  The schedule
-                    # state is part of ``state``; storing its low-pass output
-                    # here would make replay actions differ from policy
-                    # actions for the same state.
+                    # Replay keeps exactly the two continuous SAC residuals.
                     "action": raw_action,
-                    "effective_action": effective_action,
                     "executed_action": shielded.action,
                     "base_action": shielded.base_action,
                     "candidate_action": shielded.candidate_action,
-                    "maneuver_update_mask": schedule.state.maneuver_update_mask,
-                    "reward_inner": reward_fn(
-                        trajectory_row, info, option, len(transitions), max_steps
-                    ),
+                    "reward_inner": reward_fn(trajectory_row, info),
                     "reward_env": float(env_reward),
                     "next_state": state_extractor(episode.adversary, episode.sut, schedule.state),
                     "done": done,

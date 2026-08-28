@@ -13,6 +13,6 @@ def test_framework_pilot_uses_only_validation_sut_and_geometry() -> None:
 
 
 def test_default_model_option_head_matches_the_shared_option_contract() -> None:
-    model = TransferableScenarioMiner(state_dim=14, map_dim=8)
+    model = TransferableScenarioMiner(state_dim=11, map_dim=8)
     option_count = next(iter(mvr_parameter_spaces().values())).options
     assert model.universal_scene_policy.option_head[-1].out_features == len(option_count)

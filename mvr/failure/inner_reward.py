@@ -14,7 +14,7 @@ class InnerRiskReward:
     def __init__(self, criteria: FailureCriteria) -> None:
         self.criteria = criteria
 
-    def __call__(self, features: np.ndarray, info: Mapping[str, object], option: str, step: int, max_steps: int) -> float:
+    def __call__(self, features: np.ndarray, info: Mapping[str, object]) -> float:
         row = np.asarray(features, dtype=float)
         ttc = max(0.0, row[8] * 15.0)
         distance = max(0.0, row[10] * 100.0)
@@ -24,12 +24,6 @@ class InnerRiskReward:
         closing_intensity = min(closing / self.criteria.closing_speed_mps, 1.0)
         criticality = 0.5 * ttc_criticality + 0.3 * distance_criticality + 0.2 * closing_intensity
         conflict = 1.0 - min(abs(row[11]), 1.0)
-        if option == "yield_then_press":
-            intent = 1.0 - conflict if step * 2 < max_steps else conflict
-        elif option == "gap_close":
-            intent = closing_intensity
-        else:
-            intent = conflict
         invalid = any(
             bool(info.get(key, False))
             for key in (
@@ -56,10 +50,8 @@ class InnerRiskReward:
                 event_bonus = 4.0
             elif valid_near_miss:
                 event_bonus = 3.0
-        # Criticality and intent are only non-positive shaping here.  They
-        # can guide SAC toward the conflict, but cannot be mistaken for a
-        # successful attack.  Positive reward is reserved for a lawful
+        # Shaping is non-positive. Positive reward is reserved for a lawful
         # collision or a lawful thresholded near miss.
         shield_penalty = float(info.get("traffic_shield_intervention_l2", 0.0)) ** 2
-        shaping = -0.005 * (1.0 - criticality) - 0.001 * (1.0 - intent)
+        shaping = -0.005 * (1.0 - criticality) - 0.001 * (1.0 - conflict)
         return float(np.clip(shaping + event_bonus - 1.25 * float(invalid) - 0.10 * shield_penalty, -2.0, 4.0))

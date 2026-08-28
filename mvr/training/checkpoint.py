@@ -13,7 +13,7 @@ class HierarchicalCheckpoint:
     config_hash: str
     state: Mapping[str, Any]
 
-    SCHEMA = "hierarchical_checkpoint_v2"
+    SCHEMA = "hierarchical_checkpoint"
 
     def save(self, path: str | Path) -> None:
         if self.schema != self.SCHEMA:

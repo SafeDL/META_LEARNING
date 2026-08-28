@@ -28,7 +28,7 @@ TASK_IDS = (
 def _base_scene_action(*_: Any) -> NormalizedScenarioAction:
     return NormalizedScenarioAction(
         0,
-        (0.0, 0.0, 0.0, 0.0),
+        (0.0, 0.0, 0.0, 0.0, 0.0),
         AdversarialOption.APPROACH_CONFLICT,
     )
 
@@ -66,7 +66,7 @@ def _run(config_path: str | Path, output: str | Path) -> dict[str, Any]:
             deterministic=True,
             posterior_support_limit=0,
             scene_action_provider=_base_scene_action,
-            inner_action_provider=lambda _: np.zeros(3, dtype=np.float32),
+            inner_action_provider=lambda _: np.zeros(2, dtype=np.float32),
         ).episodes[0]
         replay = _capture(
             online,
@@ -90,7 +90,7 @@ def _run(config_path: str | Path, output: str | Path) -> dict[str, Any]:
     report = {
         "mode": "stage1_current_lane_stable_base_visualization",
         "media": "gif",
-        "policy": "base_zero_interaction_residual",
+        "policy": "base_zero_vehicle_residual",
         "trained_checkpoint": None,
         "control_contract": dict(config["control"]),
         "source_provenance": source_tree_provenance(),

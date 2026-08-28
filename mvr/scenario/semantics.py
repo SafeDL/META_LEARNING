@@ -14,26 +14,10 @@ class ManeuverScheduleState:
     maneuver_progress: float = 0.0
     maneuver_latched: bool = False
     challenge_phase_active: bool = False
-    timing_reference: float = 0.0
-    maneuver_update_mask: bool = False
-
-    def observation(self) -> np.ndarray:
-        return np.asarray(
-            (
-                self.maneuver_progress,
-                float(self.maneuver_latched),
-                float(self.challenge_phase_active),
-                self.timing_reference,
-            ),
-            dtype=np.float32,
-        )
 
 
 class ScenarioActionAdapter:
-    """Translate a shared timing residual into a lawful scenario schedule."""
-
-    update_interval_steps = 5
-    low_pass = 0.25
+    """Apply the fixed Logical Scenario maneuver schedule."""
 
     def __init__(self, episode: Any, family: str) -> None:
         self.episode = episode
@@ -48,25 +32,15 @@ class ScenarioActionAdapter:
         )
         return float(np.clip(projection.s_m / max(route.length_m, 1e-6), 0.0, 1.0))
 
-    def update(self, maneuver: float, step: int) -> ManeuverScheduleState:
-        """Sample-and-hold the slow timing reference before nominal control."""
+    def update(self) -> ManeuverScheduleState:
+        """Advance a contract-defined maneuver without Inner action semantics."""
         self.state.maneuver_progress = self._route_progress()
-        update = (
-            not self.state.maneuver_latched
-            and int(step) % self.update_interval_steps == 0
-        )
-        self.state.maneuver_update_mask = update
-        if update:
-            clipped = float(np.clip(maneuver, -1.0, 1.0))
-            self.state.timing_reference = float(
-                (1.0 - self.low_pass) * self.state.timing_reference
-                + self.low_pass * clipped
-            )
         contract = self.episode.layout.traffic_contract
         if self.family == "cutin" and not self.state.maneuver_latched:
             start, end = contract.merge_window_s
-            # Positive timing residual advances the onset, negative delays it.
-            onset = 0.5 * (start + end) - 0.45 * (end - start) * self.state.timing_reference
+            onset = start + (end - start) * float(
+                self.episode.applied_scenario.maneuver_onset_progress
+            )
             route_s = self.state.maneuver_progress * self.episode.adversary_route.length_m
             if route_s >= onset:
                 self.state.maneuver_latched = True

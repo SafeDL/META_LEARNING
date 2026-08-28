@@ -43,6 +43,7 @@ class ConcreteScenario:
                 "sut_distance_to_conflict_m": applied.sut_distance_to_conflict_m,
                 "adversary_initial_speed_mps": applied.adversary_speed_mps,
                 "sut_initial_speed_mps": applied.sut_speed_mps,
+                "maneuver_onset_progress": applied.maneuver_onset_progress,
             },
             inner_policy_hash, applied.normalized_continuous,
             latent_values,

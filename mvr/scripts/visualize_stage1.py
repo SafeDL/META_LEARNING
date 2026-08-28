@@ -115,7 +115,7 @@ def _closest_frame(transitions: Sequence[Mapping[str, Any]]) -> int:
 
 def _policy_provider(name: str) -> Callable[[np.ndarray], np.ndarray] | None:
     if name == "base":
-        return lambda _: np.zeros(3, dtype=np.float32)
+        return lambda _: np.zeros(2, dtype=np.float32)
     if name == "trained_inner":
         return None
     raise ValueError(f"unsupported visualization policy {name!r}")

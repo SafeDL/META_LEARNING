@@ -182,6 +182,8 @@ def _inner_metrics(
             action_values.extend(np.abs(action).tolist())
             saturated.extend((np.abs(action) > 0.95).tolist())
 
+    training_signal = _training_signal_metrics(records)
+
     def mean(values: list[float]) -> float:
         return float(np.mean(values)) if values else 0.0
 
@@ -214,8 +216,63 @@ def _inner_metrics(
         "alpha_loss_last": alpha[-1] if alpha else None,
         "action_abs_mean": mean(action_values),
         "action_saturation_rate": mean([float(value) for value in saturated]),
+        "training_signal": training_signal,
     }
     return metrics
+
+
+def _training_signal_metrics(
+    records: list[tuple[ScenarioMiningTaskSpec, Any]],
+) -> dict[str, Any]:
+    """Expose the event and reward density available to Inner SAC."""
+    buckets: dict[str, dict[str, int]] = {}
+
+    def bucket(name: str) -> dict[str, int]:
+        return buckets.setdefault(name, {
+            "episodes": 0,
+            "valid_event_episodes": 0,
+            "valid_target_collision_episodes": 0,
+            "valid_near_miss_episodes": 0,
+            "transitions": 0,
+            "positive_reward_transitions": 0,
+            "event_capture_transitions": 0,
+        })
+
+    def add(name: str, episode: Any) -> None:
+        values = bucket(name)
+        outcome = episode.rollout.outcome
+        values["episodes"] += 1
+        values["valid_target_collision_episodes"] += int(
+            bool(outcome.get("valid_target_collision", False))
+        )
+        values["valid_near_miss_episodes"] += int(
+            bool(outcome.get("valid_critical_near_miss", False))
+        )
+        values["valid_event_episodes"] += int(
+            bool(outcome.get("valid_target_collision", False))
+            or bool(outcome.get("valid_critical_near_miss", False))
+        )
+        for row in episode.rollout.transitions:
+            values["transitions"] += 1
+            values["positive_reward_transitions"] += int(float(row["reward_inner"]) > 0.0)
+            values["event_capture_transitions"] += int(
+                bool(row["info"].get("event_just_captured", False))
+            )
+
+    for task, episode in records:
+        add("overall", episode)
+        add(f"family:{task.functional_scenario}", episode)
+        add(f"option:{episode.concrete_scenario.option}", episode)
+
+    return {
+        name: {
+            **values,
+            "positive_reward_transition_fraction": float(
+                values["positive_reward_transitions"] / max(values["transitions"], 1)
+            ),
+        }
+        for name, values in sorted(buckets.items())
+    }
 
 
 def train_posterior(

@@ -8,7 +8,7 @@ from .criteria import DEFAULT_FAILURE_CRITERIA, FailureCriteria
 from ..provenance import content_hash
 
 
-FAILURE_SCHEMA = "failure_signature_v3"
+FAILURE_SCHEMA = "failure_signature"
 
 
 @dataclass(frozen=True)

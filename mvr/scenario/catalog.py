@@ -23,6 +23,7 @@ def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
             "sut_distance_to_conflict_m": (0.5, 5.0),
             "adversary_initial_speed_mps": (4.0, initial_speed_limit_mps),
             "sut_initial_speed_mps": (4.0, initial_speed_limit_mps),
+            "maneuver_onset_progress": (0.2, 0.8),
         }
 
     cutin = {

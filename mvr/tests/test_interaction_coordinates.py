@@ -13,7 +13,7 @@ from mvr.scenario.registry import load_adapters
 @pytest.mark.parametrize("geometry_id", ("merge-g01", "merge-g02"))
 def test_distance_to_conflict_is_preserved_on_distinct_geometries(geometry_id: str) -> None:
     task = next(task for task in load_taskbook("mvr/configs/taskbook.json") if task.geometry_id == geometry_id)
-    action = NormalizedScenarioAction(0, (0.0, 0.0, 0.0, 0.0), AdversarialOption.GAP_CLOSE)
+    action = NormalizedScenarioAction(0, (0.0, 0.0, 0.0, 0.0, 0.0), AdversarialOption.GAP_CLOSE)
     executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
     episode = executor.reset(task, action)
     try:

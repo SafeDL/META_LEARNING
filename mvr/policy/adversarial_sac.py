@@ -1,4 +1,4 @@
-"""Universal, option-conditioned SAC building blocks for the inner timescale."""
+"""Continuous SAC building blocks for the Inner controller."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -41,7 +41,7 @@ class SACLosses:
     alpha: torch.Tensor
 
 
-class OptionConditionedSAC(nn.Module):
+class AdversarialSAC(nn.Module):
     action_limit = 0.75
 
     def __init__(self, feature_dim: int, action_dim: int = 2, target_entropy: float | None = None) -> None:
@@ -51,7 +51,7 @@ class OptionConditionedSAC(nn.Module):
         self.target1, self.target2 = _Critic(feature_dim, action_dim), _Critic(feature_dim, action_dim)
         self.target1.load_state_dict(self.critic1.state_dict())
         self.target2.load_state_dict(self.critic2.state_dict())
-        # The 3-D residual is deliberately a small correction to IDM.  A
+        # Two physical residuals are deliberately a small correction to IDM.  A
         # modest initial entropy temperature avoids driving all corrections
         # to their actuator limits before the critic has observed events.
         self.log_alpha = nn.Parameter(torch.tensor(-2.3025851))

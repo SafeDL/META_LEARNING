@@ -22,7 +22,7 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
         task,
         # Keep the nominal adversary behind the SUT at reset; this is a
         # completion-contract test, not an adversarial-success test.
-        NormalizedScenarioAction(0, (1.0, -1.0, -1.0, -1.0), AdversarialOption.GAP_CLOSE),
+        NormalizedScenarioAction(0, (1.0, -1.0, -1.0, -1.0, 0.0), AdversarialOption.GAP_CLOSE),
         episode_seed=711,
         environment_overrides={"horizon": 480},
     )
@@ -31,7 +31,7 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
             episode,
             family,
             AdversarialOption.GAP_CLOSE.value,
-            lambda _state: np.asarray((-1.0, 0.0, 0.0), dtype=np.float32),
+            lambda _state: np.asarray((0.0, -1.0), dtype=np.float32),
         )
     finally:
         episode.env.close()
@@ -50,7 +50,7 @@ def test_every_family_declares_sut_route_completion_as_the_test_endpoint(family:
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(0, (0.0,) * 4, AdversarialOption.GAP_CLOSE),
+        NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
         episode_seed=712,
     )
     try:

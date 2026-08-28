@@ -5,15 +5,16 @@ from types import SimpleNamespace
 import torch
 
 from mvr.model import TransferableScenarioMiner
-from mvr.policy.adversarial_sac import OptionConditionedSAC
+from mvr.policy.adversarial_sac import AdversarialSAC
 from mvr.training.replay import InnerReplay, OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
+from mvr.training.trainers import _training_signal_metrics
 from mvr.training.updates import update_outer_ppo
 from mvr.training.workflow import StagedWorkflow
 
 
 def test_stage_ownership_and_universal_on_policy_ppo() -> None:
-    model = TransferableScenarioMiner(state_dim=14, map_dim=8)
+    model = TransferableScenarioMiner(state_dim=11, map_dim=8)
     workflow = StagedWorkflow(model.training_components())
     workflow.activate(TrainingStage.OUTER)
     assert trainable_components(TrainingStage.OUTER) == {"universal_scene_policy"}
@@ -34,9 +35,9 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
 
 
 def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:
-    sac = OptionConditionedSAC(feature_dim=4, action_dim=3)
+    sac = AdversarialSAC(feature_dim=4, action_dim=2)
     losses = sac.losses(
-        torch.randn(3, 4), torch.randn(3, 3).tanh(), torch.randn(3),
+        torch.randn(3, 4), torch.randn(3, 2).tanh(), torch.randn(3),
         torch.randn(3, 4), torch.zeros(3, dtype=torch.bool),
     )
     losses.actor.backward()
@@ -45,10 +46,10 @@ def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:
 
 
 def test_sac_event_action_anchor_is_finite_and_keeps_critics_frozen() -> None:
-    sac = OptionConditionedSAC(feature_dim=4, action_dim=3)
+    sac = AdversarialSAC(feature_dim=4, action_dim=2)
     actor, _ = sac.actor_alpha_losses(
         torch.randn(4, 4),
-        actions=torch.tensor([[-0.75, -0.75, 0.0]] * 4),
+        actions=torch.tensor([[-0.75, -0.75]] * 4),
         rewards=torch.tensor([4.0, -0.1, -0.1, -0.1]),
         event_action_weight=2.0,
     )
@@ -67,3 +68,24 @@ def test_inner_replay_reserves_positive_event_transitions() -> None:
 
     assert len(rows) == 8
     assert sum(float(row.reward) > 0.0 for row in rows) == 4
+
+
+def test_training_signal_metrics_report_event_and_reward_density() -> None:
+    task = SimpleNamespace(functional_scenario="cutin")
+    episode = SimpleNamespace(
+        concrete_scenario=SimpleNamespace(option="approach_conflict"),
+        rollout=SimpleNamespace(
+            outcome={"valid_target_collision": False, "valid_critical_near_miss": True},
+            transitions=(
+                {"reward_inner": -0.1, "info": {"event_just_captured": False}},
+                {"reward_inner": 3.0, "info": {"event_just_captured": True}},
+            ),
+        ),
+    )
+
+    report = _training_signal_metrics([(task, episode)])
+
+    assert report["overall"]["valid_event_episodes"] == 1
+    assert report["overall"]["positive_reward_transitions"] == 1
+    assert report["overall"]["positive_reward_transition_fraction"] == 0.5
+    assert report["family:cutin"]["event_capture_transitions"] == 1
