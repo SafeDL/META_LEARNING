@@ -24,13 +24,13 @@ def test_pearl_context_has_exact_prior_permutation_invariance_and_sampling() -> 
 def test_posterior_batch_rejects_support_target_overlap() -> None:
     batch = PosteriorTrainingBatch(
         torch.randn(1, 1, 8), torch.ones(1, 1, dtype=torch.bool), torch.randn(1, 4),
-        torch.randn(1, 4), torch.zeros(1, dtype=torch.long), torch.zeros(1, 5),
+        torch.randn(1, 4), torch.zeros(1, 5),
         (("support",),), ("target",),
     )
     batch.validate()
     leaking = PosteriorTrainingBatch(
-        batch.support_tokens, batch.support_mask, batch.target_scene, batch.target_config,
-        batch.target_option, batch.target_outcome, (("target",),), ("target",),
+        batch.support_tokens, batch.support_mask, batch.target_scene, batch.target_concrete,
+        batch.target_outcome, (("target",),), ("target",),
     )
     try:
         leaking.validate()

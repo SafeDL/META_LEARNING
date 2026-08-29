@@ -23,7 +23,7 @@ from ..scenario.taskbook import load_taskbook
 from ..state import PhysicalStateExtractor
 from .checkpoint import HierarchicalCheckpoint
 from .stages import CANONICAL_TRAINING_STAGES, TrainingStage, validate_stage_transition
-from .trainers import train_inner, train_inner_latent_calibration, train_outer, train_posterior
+from .trainers import train_context_meta, train_interaction_prior, train_outer
 from .workflow import StagedWorkflow
 
 
@@ -35,9 +35,8 @@ CHECKPOINT_CONFIG_KEYS = (
     "context",
     "map",
     "failure",
-    "inner",
-    "posterior",
-    "inner_latent_calibration",
+    "interaction_prior",
+    "context_meta",
     "outer",
     "training",
 )
@@ -128,6 +127,7 @@ def selected_tasks(
     taskbook: Path,
     sut_split: str,
     geometry_split: str,
+    logical_split: str = "train",
     functional_split: str = "train",
 ) -> list[ScenarioMiningTaskSpec]:
     family = str(config["training"].get("family_filter", "all"))
@@ -136,6 +136,7 @@ def selected_tasks(
         for task in load_taskbook(taskbook)
         if task.sut_split == sut_split
         and task.geometry_split == geometry_split
+        and task.logical_split == logical_split
         and task.functional_split == functional_split
         and (family == "all" or task.functional_scenario == family)
     ]
@@ -151,9 +152,8 @@ def build_model(config: dict[str, Any], device: torch.device) -> TransferableSce
         map_dim=int(config["map"].get("embedding_dim", 128)),
         latent_dim=int(config["model"].get("latent_dim", 16)),
         continuous_dim=space.continuous_dim,
-        option_count=len(space.options),
         num_experts=int(config["model"].get("num_experts", 4)),
-        inner_action_dim=int(config["inner"].get("action_dim", 2)),
+        inner_action_dim=int(config["interaction_prior"].get("action_dim", 2)),
         context_kl_weight=float(config.get("context", {}).get("kl_weight", 1e-3)),
     ).to(device)
 
@@ -176,9 +176,8 @@ def _optimizer(
 
 def _stage_settings(config: dict[str, Any], stage: TrainingStage) -> dict[str, Any]:
     sections = {
-        TrainingStage.INNER_PRETRAIN: "inner",
-        TrainingStage.POSTERIOR: "posterior",
-        TrainingStage.INNER_LATENT_CALIBRATION: "inner_latent_calibration",
+        TrainingStage.INTERACTION_PRIOR: "interaction_prior",
+        TrainingStage.CONTEXT_META: "context_meta",
         TrainingStage.OUTER: "outer",
     }
     return config[sections[stage]]
@@ -226,7 +225,7 @@ def _save_stage(
         + "\n",
         encoding="utf-8",
     )
-    if stage is TrainingStage.INNER_PRETRAIN:
+    if stage is TrainingStage.INTERACTION_PRIOR:
         coverage = {
             "task_episode_counts": metrics.get("task_episode_counts", {}),
             "family_episode_counts": metrics.get("family_episode_counts", {}),
@@ -272,9 +271,8 @@ class MVRTrainingPipeline:
         optimizer: torch.optim.Optimizer,
     ) -> dict[str, Any]:
         trainers = {
-            TrainingStage.INNER_PRETRAIN: train_inner,
-            TrainingStage.POSTERIOR: train_posterior,
-            TrainingStage.INNER_LATENT_CALIBRATION: train_inner_latent_calibration,
+            TrainingStage.INTERACTION_PRIOR: train_interaction_prior,
+            TrainingStage.CONTEXT_META: train_context_meta,
             TrainingStage.OUTER: train_outer,
         }
         result = trainers[stage](self.model, tasks, self.config, self.criteria, optimizer)
@@ -289,7 +287,7 @@ class MVRTrainingPipeline:
     ) -> Path:
         output_path = Path(output)
         output_path.mkdir(parents=True, exist_ok=True)
-        tasks = selected_tasks(self.config, self.taskbook, "train", "train")
+        tasks = selected_tasks(self.config, self.taskbook, "train", "train", "train")
         start = self._load_resume(resume)
         if start == len(CANONICAL_STAGES):
             raise ValueError("the resume checkpoint already completed the canonical pipeline")

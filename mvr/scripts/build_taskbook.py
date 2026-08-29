@@ -22,6 +22,22 @@ PROFILES = (
     ("idm_late_response", "test"),
 )
 
+LOGICAL_DOMAINS = (
+    ("interaction_core", "train", (-0.55, 0.55)),
+    ("timing_shift", "validation", (-0.85, -0.25)),
+    ("tight_gap", "test", (0.25, 0.85)),
+)
+
+
+def _logical_bounds(interval: tuple[float, float]) -> dict[str, tuple[float, float]]:
+    return {
+        "adversary_distance_to_conflict_m": interval,
+        "sut_distance_to_conflict_m": interval,
+        "adversary_initial_speed_mps": interval,
+        "sut_initial_speed_mps": interval,
+        "maneuver_onset_progress": interval,
+    }
+
 
 def _geometry_hash(geometry_id: str) -> str:
     geometry = load_geometry_catalog()[geometry_id]
@@ -37,6 +53,9 @@ def _geometry_hash(geometry_id: str) -> str:
         interaction_schema_id="two_route_conflict",
         sut_split="train",
         geometry_split=geometry.split,
+        logical_domain_id="hash_probe",
+        logical_domain_bounds=_logical_bounds((-1.0, 1.0)),
+        logical_split="train",
     )
     env = adapters[geometry.functional_scenario].build_env(task, {})
     try:
@@ -46,7 +65,7 @@ def _geometry_hash(geometry_id: str) -> str:
         adapter = adapters[geometry.functional_scenario]
         for index in range(len(space.candidates)):
             action = NormalizedScenarioAction(
-                index, (0.0,) * space.continuous_dim, space.options[0]
+                index, (0.0,) * space.continuous_dim
             )
             layout = adapter.resolve_layout(env, task, space.decode(action), space.candidates)
             InteractionCandidate.from_layout(env, layout)
@@ -65,19 +84,23 @@ def build_taskbook(output: str | Path) -> Path:
     for geometry in geometries:
         geometry_hash = geometry_hashes[geometry.geometry_id]
         for sut_ref, sut_split in PROFILES:
-            task = ScenarioMiningTaskSpec(
-                task_id=f"{geometry.geometry_id}-{sut_ref.removeprefix('idm_')}",
-                sut_ref=sut_ref,
-                functional_scenario=geometry.functional_scenario,
-                geometry_id=geometry.geometry_id,
-                geometry_hash=geometry_hash,
-                geometry_seed=geometry.seed,
-                adapter_id=geometry.functional_scenario,
-                interaction_schema_id="two_route_conflict",
-                sut_split=sut_split,
-                geometry_split=geometry.split,
-            )
-            tasks.append(task.to_dict())
+            for domain_id, logical_split, interval in LOGICAL_DOMAINS:
+                task = ScenarioMiningTaskSpec(
+                    task_id=f"{geometry.geometry_id}-{sut_ref.removeprefix('idm_')}-{domain_id}",
+                    sut_ref=sut_ref,
+                    functional_scenario=geometry.functional_scenario,
+                    geometry_id=geometry.geometry_id,
+                    geometry_hash=geometry_hash,
+                    geometry_seed=geometry.seed,
+                    adapter_id=geometry.functional_scenario,
+                    interaction_schema_id="two_route_conflict",
+                    sut_split=sut_split,
+                    geometry_split=geometry.split,
+                    logical_domain_id=domain_id,
+                    logical_domain_bounds=_logical_bounds(interval),
+                    logical_split=logical_split,
+                )
+                tasks.append(task.to_dict())
     hashes_by_split = {
         split: {row["geometry_hash"] for row in tasks if row["geometry_split"] == split}
         for split in ("train", "validation", "test")

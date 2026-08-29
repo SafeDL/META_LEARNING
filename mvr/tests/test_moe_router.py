@@ -6,7 +6,7 @@ from mvr.policy.universal_scene_policy import UniversalScenePolicy
 
 
 def test_universal_policy_handles_variable_candidate_counts_and_trains_experts() -> None:
-    policy = UniversalScenePolicy(8, 4, 4, 4, 3)
+    policy = UniversalScenePolicy(8, 4, 4, 3)
     for count in (2, 3, 4):
         action = policy.sample(torch.randn(8), torch.randn(count, 8), torch.ones(count, dtype=torch.bool), torch.randn(1, 4))
         assert 0 <= int(action.candidate_index) < count

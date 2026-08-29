@@ -10,7 +10,6 @@ import numpy as np
 
 from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.executor import ScenarioExecutor
-from ..scenario.option import AdversarialOption
 from ..scenario.parameter_space import NormalizedScenarioAction
 from ..scenario.registry import load_adapters
 from ..scenario.taskbook import load_taskbook
@@ -24,7 +23,7 @@ MAX_LATERAL_ERROR_M = 0.60
 
 
 def _task(family: str) -> Any:
-    task_id = f"{family}-g04-fast_small_gap"
+    task_id = f"{family}-g04-fast_small_gap-interaction_core"
     return next(task for task in load_taskbook("mvr/configs/taskbook.json") if task.task_id == task_id)
 
 
@@ -34,7 +33,6 @@ def _action() -> NormalizedScenarioAction:
     return NormalizedScenarioAction(
         0,
         (1.0, -1.0, -1.0, -1.0, 0.0),
-        AdversarialOption.GAP_CLOSE,
     )
 
 

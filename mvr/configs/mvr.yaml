@@ -19,11 +19,19 @@ evaluation:
   support_shots: [0, 1, 2, 4]
   seeds: [11, 22, 33]
   deterministic: false
-  regimes: [R1_seen_sut_seen_geometry, R2_unseen_sut_seen_geometry, R3_seen_sut_unseen_geometry, R4_unseen_sut_unseen_geometry]
+  query_cases: 8
+headroom:
+  cases_per_task: 20
+  candidate_pool_multiplier: 4
+  calibration_sut_split: validation
+  logical_split: test
+  geometry_split: train
+reachability:
+  cases_per_task: 4
 failure:
   severity_thresholds: {ttc_s: 5.0, distance_m: 10.0, closing_speed_mps: 20.0}
   severity_bins: 5
-inner:
+interaction_prior:
   algorithm: adversarial_sac
   action_dim: 2
   batch_size: 64
@@ -31,20 +39,18 @@ inner:
   updates_per_episode: 8
   replay_capacity: 100000
   learning_rate: 0.0003
+  event_action_weight: 0.0
 control:
   action_schema: vehicle_residual_2d
   nominal_controller_schema: metadrive_lane_stable_idm
   scenario_contract_schema: scenario_contract
-inner_latent_calibration:
-  simulator_episode_budget: 16
-  support_episodes: 1
+context_meta:
+  support_shots: [1, 2, 4]
+  groups_per_task: 2
+  queries_per_group: 2
   updates_per_episode: 8
   replay_capacity: 100000
   batch_size: 64
-  learning_rate: 0.0003
-posterior:
-  episode_budget: 20
-  support_episodes: [1, 2, 4]
   learning_rate: 0.0003
 outer:
   algorithm: hybrid_moe_ppo

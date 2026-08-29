@@ -23,6 +23,18 @@ class InnerRiskReward:
         distance_criticality = np.exp(-((distance - self.criteria.distance_m) / max(self.criteria.distance_m * 0.5, 1e-3)) ** 2)
         closing_intensity = min(closing / self.criteria.closing_speed_mps, 1.0)
         criticality = 0.5 * ttc_criticality + 0.3 * distance_criticality + 0.2 * closing_intensity
+        # Unit-level reward probes do not carry monitor metadata; treat those
+        # as an interaction probe.  Simulator rollouts always provide the
+        # explicit semantic flag, which gates shaping outside the corridor.
+        challenge_active = bool(
+            info["semantic_challenge_phase_active"]
+            if "semantic_challenge_phase_active" in info
+            else True
+        )
+        # Risk shaping is only meaningful inside the contract-defined
+        # interaction corridor.  Outside it the controller receives a small
+        # neutral cost, so it cannot farm proximity while approaching.
+        criticality *= float(challenge_active)
         conflict = 1.0 - min(abs(row[11]), 1.0)
         invalid = any(
             bool(info.get(key, False))
@@ -50,8 +62,17 @@ class InnerRiskReward:
                 event_bonus = 4.0
             elif valid_near_miss:
                 event_bonus = 3.0
-        # Shaping is non-positive. Positive reward is reserved for a lawful
-        # collision or a lawful thresholded near miss.
+        # Dense risk shaping is a training signal, not the formal event
+        # score. It is strictly confined to the semantic interaction
+        # corridor, where lowering TTC/distance and increasing closing speed
+        # are meaningful rather than a pre-conflict reward loophole.
+        risk_reward = 0.20 * criticality
         shield_penalty = float(info.get("traffic_shield_intervention_l2", 0.0)) ** 2
-        shaping = -0.005 * (1.0 - criticality) - 0.001 * (1.0 - conflict)
-        return float(np.clip(shaping + event_bonus - 1.25 * float(invalid) - 0.10 * shield_penalty, -2.0, 4.0))
+        action_penalty = 0.02 * float(info.get("inner_raw_action_l2", 0.0))
+        corridor_penalty = 0.002 * (1.0 - float(challenge_active))
+        return float(np.clip(
+            risk_reward + event_bonus - action_penalty - 0.10 * shield_penalty
+            - corridor_penalty - 1.25 * float(invalid),
+            -2.0,
+            4.0,
+        ))

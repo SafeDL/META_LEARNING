@@ -5,7 +5,6 @@ import pytest
 
 from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
-from mvr.scenario.option import AdversarialOption
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.registry import load_adapters
 from mvr.scenario.taskbook import load_taskbook
@@ -22,7 +21,7 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
         task,
         # Keep the nominal adversary behind the SUT at reset; this is a
         # completion-contract test, not an adversarial-success test.
-        NormalizedScenarioAction(0, (1.0, -1.0, -1.0, -1.0, 0.0), AdversarialOption.GAP_CLOSE),
+        NormalizedScenarioAction(0, (1.0, -1.0, -1.0, -1.0, 0.0)),
         episode_seed=711,
         environment_overrides={"horizon": 480},
     )
@@ -30,7 +29,6 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
         rollout = HierarchicalRunner(max_steps=480).rollout(
             episode,
             family,
-            AdversarialOption.GAP_CLOSE.value,
             lambda _state: np.asarray((0.0, -1.0), dtype=np.float32),
         )
     finally:
@@ -50,7 +48,7 @@ def test_every_family_declares_sut_route_completion_as_the_test_endpoint(family:
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
+        NormalizedScenarioAction(0, (0.0,) * 5),
         episode_seed=712,
     )
     try:

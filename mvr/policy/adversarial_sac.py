@@ -67,6 +67,22 @@ class AdversarialSAC(nn.Module):
         return self.action_limit * (distribution.mean if deterministic else distribution.rsample()).tanh()
 
     def critic_loss(self, features: torch.Tensor, action: torch.Tensor, reward: torch.Tensor, next_features: torch.Tensor, done: torch.Tensor, *, gamma: float = 0.99) -> torch.Tensor:
+        target = self.critic_target(reward, next_features, done, gamma=gamma)
+        return (
+            nn.functional.smooth_l1_loss(self.critic1(features, action), target)
+            + nn.functional.smooth_l1_loss(self.critic2(features, action), target)
+        )
+
+    @torch.no_grad()
+    def critic_target(
+        self,
+        reward: torch.Tensor,
+        next_features: torch.Tensor,
+        done: torch.Tensor,
+        *,
+        gamma: float = 0.99,
+    ) -> torch.Tensor:
+        """Return the bounded Bellman target used by both critics."""
         with torch.no_grad():
             next_action, next_logprob = self.actor.sample(next_features)
             next_action = self.action_limit * next_action
@@ -76,10 +92,7 @@ class AdversarialSAC(nn.Module):
             # bounded target prevents an early critic error from exploding
             # through the shared encoder and destroying the actor mean.
             target = target.clamp(-20.0, 20.0)
-        return (
-            nn.functional.smooth_l1_loss(self.critic1(features, action), target)
-            + nn.functional.smooth_l1_loss(self.critic2(features, action), target)
-        )
+        return target
 
     def actor_alpha_losses(
         self,

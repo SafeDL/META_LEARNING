@@ -1,3 +1,3 @@
-from .budget_protocol import BudgetProtocol
+from .fewshot_inner import AdaptationQualityProtocol, BudgetEfficiencyProtocol
 
-__all__ = ("BudgetProtocol",)
+__all__ = ("AdaptationQualityProtocol", "BudgetEfficiencyProtocol")

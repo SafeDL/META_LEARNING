@@ -5,7 +5,6 @@ from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
 from .applied import AppliedScenario
-from .option import AdversarialOption
 from .parameter_space import NormalizedScenarioAction, ParameterSpace
 from .task_spec import ScenarioMiningTaskSpec
 
@@ -17,7 +16,6 @@ class ConcreteScenario:
     geometry_seed: int
     candidate_id: str
     conflict_zone_id: str
-    option: str
     initial_state: Mapping[str, float]
     inner_policy_hash: str
     normalized_continuous: tuple[float, ...]
@@ -37,7 +35,7 @@ class ConcreteScenario:
         latent_values = tuple(float(value) for value in latent)
         return cls(
             task.geometry_id, task.geometry_hash, task.geometry_seed, applied.selected_candidate,
-            applied.conflict_zone_id, applied.selected_option,
+            applied.conflict_zone_id,
             {
                 "adversary_distance_to_conflict_m": applied.adversary_distance_to_conflict_m,
                 "sut_distance_to_conflict_m": applied.sut_distance_to_conflict_m,
@@ -56,7 +54,7 @@ class ConcreteScenario:
         if len(self.normalized_continuous) != space.continuous_dim:
             raise ValueError("concrete scenario lacks its normalized Outer action")
         return NormalizedScenarioAction(
-            space.candidates.index(self.candidate_id), self.normalized_continuous, AdversarialOption(self.option)
+            space.candidates.index(self.candidate_id), self.normalized_continuous
         )
 
     def to_dict(self) -> dict[str, Any]:

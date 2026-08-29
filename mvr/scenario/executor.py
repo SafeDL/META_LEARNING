@@ -163,7 +163,7 @@ class ScenarioExecutor:
             adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario]
         except KeyError as error:
             raise ValueError(f"no executable contract for task {task.task_id}") from error
-        base = space.decode(NormalizedScenarioAction(0, (0.0,) * space.continuous_dim, space.options[0]))
+        base = space.decode(NormalizedScenarioAction(0, (0.0,) * space.continuous_dim))
         env = adapter.build_env(task, base)
         try:
             adapter.reset(env, task, base, task.geometry_seed)
@@ -174,7 +174,7 @@ class ScenarioExecutor:
             layouts: dict[str, _CachedLayout] = {}
             for index in range(len(space.candidates)):
                 config = space.decode(
-                    NormalizedScenarioAction(index, (0.0,) * space.continuous_dim, space.options[0])
+                    NormalizedScenarioAction(index, (0.0,) * space.continuous_dim)
                 )
                 layout = adapter.resolve_layout(env, task, config, space.candidates)
                 adversary_route = RoutePolyline.from_env(
@@ -259,7 +259,7 @@ class ScenarioExecutor:
                 float(config["sut_distance_to_conflict_m"]),
                 float(config["adversary_initial_speed_mps"]), float(config["sut_initial_speed_mps"]),
                 float(config["maneuver_onset_progress"]),
-                layout.candidate, layout.conflict_zone_id, str(config["option"]),
+                layout.candidate, layout.conflict_zone_id,
                 layout.adversary_route, layout.sut_route, tuple(float(value) for value in action.continuous),
             )
             setattr(env, "_mvr_episode", applied)

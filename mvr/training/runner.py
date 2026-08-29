@@ -48,7 +48,6 @@ class HierarchicalRunner:
         self,
         episode: ExecutableEpisode,
         scenario_family: str,
-        option: str,
         inner_action: Callable[[np.ndarray], np.ndarray],
         *,
         trajectory_extractor: TrajectoryFeatureExtractor | None = None,
@@ -61,7 +60,7 @@ class HierarchicalRunner:
         reward_fn = reward_fn or InnerRiskReward(self.criteria)
         state_extractor = PhysicalStateExtractor()
         schedule = ScenarioActionAdapter(episode, scenario_family)
-        controller = NativeAdversaryBaseController(episode, scenario_family, schedule, option)
+        controller = NativeAdversaryBaseController(episode, scenario_family, schedule)
         shield = TrafficActionShield(episode, schedule)
         monitor = ScenarioSemanticMonitor(episode, scenario_family, schedule)
         max_steps = max(
@@ -127,6 +126,7 @@ class HierarchicalRunner:
                     info,
                 )
                 info = {**info, **monitor.info()}
+                info["inner_raw_action_l2"] = float(np.square(raw_action).sum())
                 info["valid_target_collision"] = bool(
                     target_collision
                     and info["event_kind"] == "collision"

@@ -8,8 +8,7 @@ from mvr.scenario.taskbook import load_taskbook
 def test_concrete_scenario_reconstructs_the_outer_action() -> None:
     task = load_taskbook("mvr/configs/taskbook.json")[0]
     scenario = ConcreteScenario(
-        task.geometry_id, task.geometry_hash, task.geometry_seed, "main_conflict", "merge:zone",
-        "gap_close", {
+        task.geometry_id, task.geometry_hash, task.geometry_seed, "main_conflict", "merge:zone", {
             "adversary_distance_to_conflict_m": 2.0,
             "sut_distance_to_conflict_m": 3.0,
             "adversary_initial_speed_mps": 8.0,
@@ -28,7 +27,6 @@ def test_concrete_scenario_replay_preserves_the_normalized_outer_action() -> Non
         task.geometry_seed,
         "main_conflict",
         "merge:zone",
-        "gap_close",
         {
             "adversary_distance_to_conflict_m": 99.0,
             "sut_distance_to_conflict_m": 2.0,
@@ -45,7 +43,7 @@ def test_concrete_scenario_replay_preserves_the_normalized_outer_action() -> Non
 
 def test_concrete_manifest_keeps_inner_condition_and_episode_seed() -> None:
     scenario = ConcreteScenario(
-        "merge-g01", "a" * 64, 101, "main_conflict", "merge:zone", "gap_close",
+        "merge-g01", "a" * 64, 101, "main_conflict", "merge:zone",
         {"adversary_distance_to_conflict_m": 2.0}, "policy-hash", (0.0, 0.0, 0.0, 0.0, 0.0), (0.1, -0.2), 107,
     )
     payload = scenario.to_dict()

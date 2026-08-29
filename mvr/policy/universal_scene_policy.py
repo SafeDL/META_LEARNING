@@ -15,7 +15,6 @@ class UniversalSceneAction:
     expert_index: torch.Tensor
     candidate_index: torch.Tensor
     continuous: torch.Tensor
-    option_index: torch.Tensor
     log_prob: torch.Tensor
     value: torch.Tensor
 
@@ -34,13 +33,12 @@ class _InitialConditionExpert(nn.Module):
 
 
 class UniversalScenePolicy(nn.Module):
-    def __init__(self, scene_dim: int, latent_dim: int, continuous_dim: int, option_count: int, num_experts: int) -> None:
+    def __init__(self, scene_dim: int, latent_dim: int, continuous_dim: int, num_experts: int) -> None:
         super().__init__()
         inputs = scene_dim + latent_dim
         self.router = TaskAwareMoERouter(scene_dim, latent_dim, num_experts)
         self.experts = nn.ModuleList(_InitialConditionExpert(inputs, continuous_dim) for _ in range(num_experts))
         self.candidate_scorer = nn.Sequential(nn.Linear(2 * scene_dim + latent_dim, 256), nn.ReLU(), nn.Linear(256, 1))
-        self.option_head = nn.Sequential(nn.Linear(inputs, 256), nn.ReLU(), nn.Linear(256, option_count))
         self.value_head = nn.Sequential(nn.Linear(inputs, 256), nn.ReLU(), nn.Linear(256, 1))
         self.continuous_dim = continuous_dim
 
@@ -54,7 +52,7 @@ class UniversalScenePolicy(nn.Module):
         candidate_embeddings: torch.Tensor,
         candidate_mask: torch.Tensor,
         latent: torch.Tensor,
-    ) -> tuple[Categorical, Categorical, list[Normal], Categorical, torch.Tensor]:
+    ) -> tuple[Categorical, Categorical, list[Normal], torch.Tensor]:
         scene_embedding = self._batch(scene_embedding, 2)
         latent = self._batch(latent, 2)
         candidate_embeddings = self._batch(candidate_embeddings, 3)
@@ -69,10 +67,9 @@ class UniversalScenePolicy(nn.Module):
             torch.cat((candidate_embeddings, expanded_scene, expanded_latent), dim=-1)
         ).squeeze(-1).masked_fill(~candidate_mask, -torch.inf)
         candidates = Categorical(logits=candidate_logits)
-        options = Categorical(logits=self.option_head(inputs))
         value = self.value_head(inputs).squeeze(-1)
         experts = [Normal(*expert(inputs)) for expert in self.experts]
-        return router, candidates, experts, options, value
+        return router, candidates, experts, value
 
     def sample(
         self,
@@ -82,12 +79,11 @@ class UniversalScenePolicy(nn.Module):
         latent: torch.Tensor,
         deterministic: bool = False,
     ) -> UniversalSceneAction:
-        router, candidates, experts, options, value = self._distributions(
+        router, candidates, experts, value = self._distributions(
             scene_embedding, candidate_embeddings, candidate_mask, latent
         )
         expert_index = router.probs.argmax(-1) if deterministic else router.sample()
         candidate_index = candidates.probs.argmax(-1) if deterministic else candidates.sample()
-        option_index = options.probs.argmax(-1) if deterministic else options.sample()
         means = torch.stack([expert.mean for expert in experts], dim=1)
         scales = torch.stack([expert.stddev for expert in experts], dim=1)
         selected_mean = means[torch.arange(len(expert_index), device=expert_index.device), expert_index]
@@ -96,10 +92,10 @@ class UniversalScenePolicy(nn.Module):
         raw = continuous.mean if deterministic else continuous.rsample()
         controls = raw.tanh()
         log_prob = (
-            router.log_prob(expert_index) + candidates.log_prob(candidate_index) + options.log_prob(option_index)
+            router.log_prob(expert_index) + candidates.log_prob(candidate_index)
             + continuous.log_prob(raw).sum(-1) - torch.log(1 - controls.square() + 1e-6).sum(-1)
         )
-        return UniversalSceneAction(expert_index, candidate_index, controls, option_index, log_prob, value)
+        return UniversalSceneAction(expert_index, candidate_index, controls, log_prob, value)
 
     def evaluate(
         self,
@@ -110,9 +106,8 @@ class UniversalScenePolicy(nn.Module):
         expert_index: torch.Tensor,
         candidate_index: torch.Tensor,
         controls: torch.Tensor,
-        option_index: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        router, candidates, experts, options, value = self._distributions(
+        router, candidates, experts, value = self._distributions(
             scene_embedding, candidate_embeddings, candidate_mask, latent
         )
         means = torch.stack([expert.mean for expert in experts], dim=1)
@@ -123,8 +118,8 @@ class UniversalScenePolicy(nn.Module):
         )
         raw = torch.atanh(controls.clamp(-0.999999, 0.999999))
         log_prob = (
-            router.log_prob(expert_index) + candidates.log_prob(candidate_index) + options.log_prob(option_index)
+            router.log_prob(expert_index) + candidates.log_prob(candidate_index)
             + continuous.log_prob(raw).sum(-1) - torch.log(1 - controls.square() + 1e-6).sum(-1)
         )
-        entropy = router.entropy() + candidates.entropy() + options.entropy() + continuous.entropy().sum(-1)
+        entropy = router.entropy() + candidates.entropy() + continuous.entropy().sum(-1)
         return log_prob, entropy, value

@@ -1,13 +1,10 @@
 """Universal interaction-centric initial-condition search space."""
 from __future__ import annotations
 
-from .option import AdversarialOption
 from .parameter_space import ParameterSpace
 
 
 def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
-    options = tuple(AdversarialOption)
-
     def common(
         speed_limit_mps: float,
         initial_speed_limit_mps: float | None = None,
@@ -33,18 +30,16 @@ def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
     }
     return {
         "merge": ParameterSpace(
-            "merge", ("main_conflict", "downstream_merge"), common(18.0), options
+            "merge", ("main_conflict", "downstream_merge"), common(18.0)
         ),
         "cutin": ParameterSpace(
             "cutin",
             ("left_target_lane", "right_target_lane"),
             cutin,
-            options,
         ),
         "roundabout": ParameterSpace(
             "roundabout",
             ("entry_0_exit_1", "entry_1_exit_2", "entry_2_exit_0"),
             common(12.0, initial_speed_limit_mps=6.5),
-            options,
         ),
     }

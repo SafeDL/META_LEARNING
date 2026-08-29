@@ -19,11 +19,14 @@ def test_inner_scene_embeddings_deduplicate_geometry_without_detaching_gradients
                 global_embedding=self.scale * torch.tensor(map_tokens, dtype=torch.float32)
             )
 
+        def encode_task_structure(self, embedding, _bounds):
+            return embedding
+
     model = StubModel()
     rows = [
-        SimpleNamespace(geometry_hash="geometry-a", map_tokens=(1.0, 2.0), interactions=()),
-        SimpleNamespace(geometry_hash="geometry-a", map_tokens=(1.0, 2.0), interactions=()),
-        SimpleNamespace(geometry_hash="geometry-b", map_tokens=(3.0, 4.0), interactions=()),
+        SimpleNamespace(geometry_hash="geometry-a", map_tokens=(1.0, 2.0), interactions=(), logical_domain_bounds={"x": (-1.0, 1.0)}),
+        SimpleNamespace(geometry_hash="geometry-a", map_tokens=(1.0, 2.0), interactions=(), logical_domain_bounds={"x": (-1.0, 1.0)}),
+        SimpleNamespace(geometry_hash="geometry-b", map_tokens=(3.0, 4.0), interactions=(), logical_domain_bounds={"x": (-1.0, 1.0)}),
     ]
 
     embeddings = _scene_embeddings(model, rows)

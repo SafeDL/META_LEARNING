@@ -1,115 +1,84 @@
-# MVR Stage1 训练与验收计划
+# Few-shot Inner training and acceptance
 
-## 目标与当前状态
+## Objective
 
-Stage1 的目标是在未见 SUT、未见道路几何和少量在线证据条件下，学习可迁移的对抗场景挖掘策略。对抗场景必须同时满足：
+The first acceptance target is not a universal SAC accident rate. It is whether
+few support trajectories let the Inner adversarial controller adapt to an
+unseen SUT and Logical Scenario domain on retained map topology.
 
-- 指定 Functional Scenario 的交通语义确实发生；
-- 事件发生在目标 SUT 与对抗车之间；
-- 交通、路线和动力学约束均未被破坏；
-- 训练与评估遵守固定 simulator episode budget。
+\[
+\tau=(U,F,M,\Theta_F),\qquad
+h_\tau=E(F,M,\Theta_F,\mathcal C_F),\qquad
+z_\tau=q_\phi(D_\tau^{support};h_\tau).
+\]
 
-当前没有通过 Formal Stage1。此前控制接口产生的 pilot checkpoint、GIF 和评估结果均已废弃，不能用于方法性能声明。保留的证据包括：冻结的 `archives/sac_scenario_mining/` 单任务 SAC 正向对照，以及当前二维控制接口的无训练可达性筛查。
+`z` denotes residual response/vulnerability characteristics not explained by
+observable structure; it is not claimed to be an intrinsic SUT label. A task
+contains concrete episodes \(c_j=(candidate_j,x_{0,j})\):
 
-## 当前方法
+\[
+\pi_{Inner}(a_t\mid s_t,h_\tau,c_j,z_\tau).
+\]
 
-```text
-Outer interaction candidate + x0 + Cut-in onset
-        -> Functional / Logical Scenario contract
-        -> native IDM nominal controller
-        -> Inner SAC [delta steering, delta acceleration]
-        -> TrafficActionShield
-        -> ScenarioSemanticMonitor
-        -> valid critical reward and failure analysis
-        -> trajectory/outcome token -> PEARL latent -> MoE Outer policy
-```
+The model never receives SUT identity, controller identity, or profile ID.
 
-Inner SAC 只输出有界连续车辆修正：
+## Controller and semantic contract
 
-```text
-a_exec = Shield(a_nominal + [delta steering, delta acceleration])
-```
+The only Inner action is `[delta steering, delta acceleration]` added to a
+native nominal controller and projected by `TrafficActionShield`. Functional
+and Logical Scenario contracts determine route, candidate, onset and legal
+traffic behavior. There are no learned maneuver options or nominal behavior
+profiles.
 
-Native IDM 负责正常行驶，场景契约负责路线、合法机动、冲突区和 Cut-in onset。Cut-in onset 是 Outer 连续参数 `maneuver_onset_progress`，位于合法 merge window 内；它不是 SAC 动作维度。Inner observation 为 11 维物理交互状态：相对位置/航向、双方速度与闭合速度、距离、双方 route progress、相对 conflict ETA 和 challenge phase。
+Cut-in uses vehicle-footprint lane intrusion, Merge uses the branch/mainline
+conflict corridor, and Roundabout uses route-conflict windows. Collision takes
+precedence over near-miss; an event bonus is captured only once.
 
-Outer 目前仍保留 `approach_conflict`、`yield_then_press` 与 `gap_close` 三个场景 profile。它们不再是 Inner action，但仍影响 nominal intent；在开始正式训练前，应以“移除 profile”的消融确认其是否必要，避免把人为行为语义误当作学习效果。
+## Training
 
-## 合理对抗行为契约
+`interaction_prior` samples the training task distribution and learns a shared
+residual interaction skill with prior latent context. `context_meta` samples
+task-local support/query groups. Support and query use different concrete
+episodes. The group-level context replay stores support episodes once; query
+transitions refer to them by group ID.
 
-### Cut-in
+The critic and posterior/outcome objectives update the context encoder. The
+actor receives a stop-gradient latent, preventing actor optimization from
+arbitrarily distorting the posterior.
 
-- 对抗车从 source lane 合法进入 target lane；
-- intrusion 以 oriented vehicle footprint 与 target-lane corridor 的真实重叠判定；
-- critical event 仅在 target-lane interaction phase 内有效。
+Training uses semantic-gated dense TTC/distance/closing-speed shaping, valid
+event reward, residual energy cost, shield cost and invalidity cost. This is a
+learning signal only.
 
-### Merge
+## Evidence protocol
 
-- 对抗车走 branch entry，SUT 保持 mainline；
-- 只有双方位于收敛冲突区域时的 target collision/near miss 才有效；
-- 对抗车没有切入主车车道时，也可通过收敛几何形成合法交互。
+Reachability uses its own residual probe and is never reused as training or
+evaluation data. The headroom casebook accepts only Base episodes that are
+legal, challenge-active and not already valid-critical.
 
-### Roundabout
+The formal score is fixed before evaluation: valid target collision is `1`,
+valid critical near-miss is `0.5`, otherwise `0`.
 
-- 双方遵守各自 entry-to-exit 路线；
-- 事件需要发生在共享冲突区域；
-- 不能以驶离道路、错误路线或非目标碰撞换取 reward。
+Two independent experiments are required:
 
-`ScenarioSemanticMonitor` 将 collision 置于 near-miss 之上作为 decisive event。near-miss 不终止路线测试；event bonus 只在 `event_just_captured` 时发放一次。
+- Adaptation quality fixes eight paired query cases for every `K=0,1,2,4` and
+  reports the additional support cost `K+8`.
+- Budget efficiency fixes 20 total simulator episodes, charges support to that
+  budget, and reports cumulative valid-critical score.
 
-## 训练协议
+Both compare Base, random residual, shared prior and adapted `h+z` Inner. The
+ablation matrix is state-only, state+`h`, state+`z`, and state+`h+z`; all four
+receive the same concrete scenario input.
 
-1. 在 36 个训练 task 上运行 Inner pretrain，使用确定性、平衡的 candidate/x0 抽样。
-2. 记录每次 rollout 的 raw SAC action、executed action、事件、reward 和训练信号密度。
-3. 运行 PEARL posterior、Inner latent calibration 和 MoE Outer；每一阶段只更新其声明的组件。
-4. 在未见 SUT / 道路几何组合上，以固定 budget 做少样本在线适应和独立评估。
-5. 对每个 checkpoint 保存配置、taskbook hash、控制契约和 source provenance；控制接口改变后不得恢复不兼容 checkpoint。
+Formal claims require paired query provenance, lower invalidity than the
+allowed baseline bound, and a pre-registered positive adaptation gain on
+unseen SUT × unseen Logical domain tasks. This stage does not claim topology
+OOD or Outer-policy benefit.
 
-训练前必须先完成 no-RL action reachability 筛查。其作用是验证动作与 x0 是否能在合法约束下进入 challenge region，不是性能报告。
-
-```powershell
-conda run -n metadrive python -m mvr.scripts.sweep_stage1_actions --config mvr/configs/mvr_stage1.yaml --output results/mvr/diagnostics/s0_action_reachability.json
-```
-
-## 当前筛查证据与解释
-
-当前 S0 使用三个 validation task、每 task 四个固定初始条件、五个常量二维 residual，共 60 个配对 simulator episode。完整记录位于 `results/mvr/diagnostics/s0_action_reachability.json`。
-
-- Cut-in：`acceleration_brake` 相对 base 平均降低 TTC 和距离，且存在合法 target collision；二维物理动作接口可产生有效交互。
-- Merge：当前固定 x0 下未出现 valid critical event；制动能降低 TTC，但仍未进入临界区。
-- Roundabout：当前固定 x0 离交互区过远，未出现 valid critical event。
-
-这说明下一步首先是校准 Merge 与 Roundabout 的 Logical Scenario/x0 分布，而不是重新引入时机状态机或扩大 SAC 预算。
-
-## 可执行的 Pre-Stage1 预实验
-
-门槛文档对应的代码入口是：
+## Commands
 
 ```powershell
-conda run -n metadrive python -m mvr.scripts.preflight_stage1 --config mvr/configs/mvr_stage1_preflight.yaml --output results/mvr/diagnostics/stage1_preflight.json
+conda run -n metadrive python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
+conda run -n metadrive python -m mvr.scripts.build_headroom_casebook --config mvr/configs/mvr.yaml --output results/mvr/headroom_casebook.json
+conda run -n metadrive python -m mvr.scripts.evaluate_inner_fewshot --config mvr/configs/mvr.yaml --checkpoint results/mvr/run/context_meta.pt --casebook results/mvr/headroom_casebook.json --protocol adaptation_quality --output results/mvr/adaptation_quality.json
 ```
-
-该入口将工程契约、reward/event 审计、S0 reachability、P1 base 语义和 6-episode P4 SAC plumbing 写入同一个 JSON。配置中未启用的 P5/P6、onset nuisance 和 profile 消融会明确标记为 `skipped`，并阻止 `pre_stage1_pass`。
-
-当前运行证据：P0、P1、P3、P4 通过；P2 只有 Merge/Cut-in 具备可达 interaction，Roundabout 仍为不可达，因此总决策为 `pre_stage1_pass: false`。本结果支持继续校准 Roundabout x0，不支持启动 36-task Formal Stage1。
-
-另外，P5 已按 18 个训练 episode + 18 个 validation episode 单独运行并写入 `results/mvr/diagnostics/stage1_p5.json`。它只在 Cut-in 产生正向训练信号，Merge/Roundabout 没有 positive reward 或 valid event，且 trained residual 未在三个 family 中形成相对 base/random 的风险改善；P5 因此失败，P6 按门槛暂不启动。
-
-## Formal Stage1 验收
-
-只有以下全部成立才能声明通过：
-
-- 工程：配置、taskbook、checkpoint、评估和可视化可复现；
-- 覆盖：所有训练 family、candidate、SUT 和 geometry 轴按预算覆盖；
-- 语义与交通：有效事件满足目标交互、合法路线和 shield/traffic 约束；
-- 可控性：训练策略在固定 x0 配对实验中优于 base 与随机 residual，并能重复产生合法 critical interaction；
-- 迁移：未见 SUT 和未见道路几何下的固定预算结果满足预先定义的联合迁移门槛。
-
-未满足任一项时，只能报告诊断现象，不得将 collision 或 near-miss rate 表述为方法性能。
-
-## 维护规则
-
-- `mvr/` 是唯一活跃实现；`archives/` 仅保留冻结基线和正向对照。
-- `results/mvr/` 只保存与当前控制契约兼容且可复现的证据。
-- 当前 base demo 已重生成到 `results/mvr/diagnostics/base_visualization/`；旧的 `results/mvr/pilot/base_visualization/`（3D action / 旧 controller schema）已删除，避免误用。
-- 删除失效 checkpoint、旧 GIF、过期计划和缓存；不保留兼容层。
-- 新增 schema、动作接口或事件字段时，必须同步增加公共契约测试和 headless MetaDrive 测试。

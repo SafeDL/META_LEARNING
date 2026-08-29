@@ -23,7 +23,6 @@ class AppliedScenario:
     maneuver_onset_progress: float
     selected_candidate: str
     conflict_zone_id: str
-    selected_option: str
     adversary_route: tuple[LaneIndex, ...]
     sut_route: tuple[LaneIndex, ...]
     normalized_continuous: tuple[float, ...]

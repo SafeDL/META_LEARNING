@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from mvr.training import trainers
 
 
-def test_inner_pretrain_visits_one_task_per_episode_in_balanced_epochs(monkeypatch) -> None:
+def test_interaction_prior_visits_one_task_per_episode_in_balanced_epochs(monkeypatch) -> None:
     tasks = [SimpleNamespace(task_id=f"task-{index}") for index in range(3)]
     calls = []
     updates = []
@@ -23,14 +23,14 @@ def test_inner_pretrain_visits_one_task_per_episode_in_balanced_epochs(monkeypat
     config = {
         "seed": 11,
         "training": {"step_budget": 60},
-        "inner": {
+            "interaction_prior": {
             "episodes_per_task": 2,
             "updates_per_episode": 8,
             "batch_size": 64,
         },
     }
 
-    metrics, _ = trainers.train_inner(None, tasks, config, None, None)
+    metrics, _ = trainers.train_interaction_prior(None, tasks, config, None, None)
 
     assert len(calls) == 6
     assert all(budget == 1 for _, budget, _ in calls)

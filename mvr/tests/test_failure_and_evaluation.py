@@ -187,7 +187,8 @@ def test_inner_reward_emits_near_miss_bonus_only_on_capture() -> None:
     )
 
 
-def test_inner_reward_has_no_positive_success_signal_without_consequence() -> None:
+def test_inner_reward_uses_dense_signal_only_inside_the_challenge_corridor() -> None:
     reward = InnerRiskReward(FailureCriteria(3.0, 5.0, 20.0, 5))
     features = np.zeros(12, dtype=np.float32)
-    assert reward(features, {}) <= 0.0
+    assert reward(features, {"semantic_challenge_phase_active": False}) < 0.0
+    assert reward(features, {"semantic_challenge_phase_active": True}) > 0.0

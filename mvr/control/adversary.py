@@ -15,25 +15,15 @@ class NativeAdversaryBaseController:
     acceleration_residual_scale = 0.25
     steering_residual_scale = 0.15
 
-    _option_speed_bias_kmh = {
-        "approach_conflict": 0.0,
-        "yield_then_press": -3.0,
-        "gap_close": 3.0,
-    }
-
     def __init__(
         self,
         episode: Any,
         family: str,
         schedule: ScenarioActionAdapter,
-        option: str = "approach_conflict",
     ) -> None:
         self.episode = episode
         self.family = str(family)
         self.schedule = schedule
-        self.option = str(option)
-        if self.option not in self._option_speed_bias_kmh:
-            raise ValueError(f"unsupported adversarial option {option!r}")
         self.policy = IDMPolicy(episode.adversary, int(episode.episode_seed or 0))
         self.policy.enable_lane_change = False
         self.policy.NORMAL_SPEED = float(episode.layout.traffic_contract.sut_nominal_speed_mps) * 3.6
@@ -51,13 +41,7 @@ class NativeAdversaryBaseController:
         # a fixed 75%-of-limit base would make the adversary leave short
         # scenario routes long before the SUT completed its test route.
         nominal = float(self.episode.layout.traffic_contract.sut_nominal_speed_mps) * 3.6
-        option_bias = self._option_speed_bias_kmh[self.option]
-        if self.option == "yield_then_press" and self.schedule.state.challenge_phase_active:
-            option_bias = abs(option_bias)
-        target = (
-            nominal
-            + option_bias
-        )
+        target = nominal
         self.policy.NORMAL_SPEED = float(np.clip(target, 1.0, speed_limit))
         self.policy.target_speed = self.policy.NORMAL_SPEED
 

@@ -100,16 +100,6 @@ class ScenarioSemanticMonitor:
             (current[0], current[1], contract.target_lane_number)
         )
 
-    def _shared_conflict_lane(self) -> Any:
-        shared = [
-            lane_index
-            for lane_index in self.episode.layout.adversary_route
-            if lane_index in self.episode.layout.sut_route
-        ]
-        if not shared:
-            raise RuntimeError("shared-conflict scenario has no common lane")
-        return self.episode.env.current_map.road_network.get_lane(shared[0])
-
     def _shared_conflict_active(self) -> bool:
         adv_s = self.episode.adversary_route.projection(
             self.episode.adversary.position, self.episode.adversary.heading_theta
@@ -172,7 +162,6 @@ class ScenarioSemanticMonitor:
                 started, active, self._completed, challenge, intrusion, active
             )
         else:
-            target = self._shared_conflict_lane()
             if self.family == "merge":
                 # Before both vehicles occupy the downstream lane, a lawful
                 # branch/mainline conflict occurs on two converging lanes.
@@ -181,13 +170,12 @@ class ScenarioSemanticMonitor:
                 # distance and low TTC.
                 challenge = self._shared_conflict_active()
             else:
-                challenge = bool(
-                    self._shared_conflict_active()
-                    and self._vehicle_overlaps_lane_corridor(
-                        self.episode.adversary, target
-                    )
-                    and self._vehicle_overlaps_lane_corridor(self.episode.sut, target)
-                )
+                # Roundabout conflicts can occur at the entry mouth, before
+                # either footprint reaches the first shared circulating lane.
+                # The route-relative conflict window is the physical
+                # corridor here; requiring both vehicles to overlap the
+                # downstream lane would label a real entry collision invalid.
+                challenge = self._shared_conflict_active()
             state = SemanticState(
                 challenge, challenge, challenge, challenge, False, challenge
             )

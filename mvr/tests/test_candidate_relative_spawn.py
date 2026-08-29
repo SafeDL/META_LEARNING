@@ -12,10 +12,10 @@ from mvr.scenario.taskbook import load_taskbook
 def test_candidate_relative_spawn_round_trips_the_outer_distance_controls() -> None:
     task = next(
         row for row in load_taskbook("mvr/configs/taskbook.json")
-        if row.task_id == "roundabout-g04-fast_small_gap"
+        if row.task_id == "roundabout-g04-fast_small_gap-interaction_core"
     )
     space = mvr_parameter_spaces()[task.functional_scenario]
-    action = NormalizedScenarioAction(2, (-0.4, 0.6, 0.0, 0.0, 0.0), space.options[0])
+    action = NormalizedScenarioAction(2, (-0.4, 0.6, 0.0, 0.0, 0.0))
     executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
     episode = executor.reset(task, action)
     try:

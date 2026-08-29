@@ -5,17 +5,14 @@ from enum import Enum
 
 
 class TrainingStage(str, Enum):
-    INNER_PRETRAIN = "inner_pretrain"
-    INNER_LATENT_CALIBRATION = "inner_latent_calibration"
-    POSTERIOR = "posterior"
+    INTERACTION_PRIOR = "interaction_prior"
+    CONTEXT_META = "context_meta"
     OUTER = "outer"
-    LIGHT_JOINT = "light_joint"
 
 
 CANONICAL_TRAINING_STAGES = (
-    TrainingStage.INNER_PRETRAIN,
-    TrainingStage.POSTERIOR,
-    TrainingStage.INNER_LATENT_CALIBRATION,
+    TrainingStage.INTERACTION_PRIOR,
+    TrainingStage.CONTEXT_META,
     TrainingStage.OUTER,
 )
 
@@ -31,9 +28,7 @@ def validate_stage_transition(stage: TrainingStage, previous: TrainingStage | No
 
 def trainable_components(stage: TrainingStage) -> frozenset[str]:
     return {
-        TrainingStage.INNER_PRETRAIN: frozenset({"map_encoder", "interaction_encoder", "shared_feature_encoder", "option_embedding", "inner_sac"}),
-        TrainingStage.INNER_LATENT_CALIBRATION: frozenset({"shared_feature_encoder", "option_embedding", "inner_sac"}),
-        TrainingStage.POSTERIOR: frozenset({"episode_token_builder", "context_encoder", "outcome_decoder"}),
-        TrainingStage.OUTER: frozenset({"universal_scene_policy"}),
-        TrainingStage.LIGHT_JOINT: frozenset({"universal_scene_policy", "inner_sac", "context_encoder"}),
+        TrainingStage.INTERACTION_PRIOR: frozenset({"map_encoder", "interaction_encoder", "task_structure_encoder", "shared_feature_encoder", "inner_sac"}),
+        TrainingStage.CONTEXT_META: frozenset({"episode_token_builder", "context_encoder", "outcome_decoder", "task_structure_encoder", "shared_feature_encoder", "inner_sac"}),
+        TrainingStage.OUTER: frozenset({"task_structure_encoder", "universal_scene_policy"}),
     }[stage]

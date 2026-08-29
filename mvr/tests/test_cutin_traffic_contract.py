@@ -6,7 +6,6 @@ import pytest
 from mvr.control import NativeAdversaryBaseController
 from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
-from mvr.scenario.option import AdversarialOption
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.registry import load_adapters
 from mvr.scenario.semantics import ScenarioActionAdapter, ScenarioSemanticMonitor
@@ -20,14 +19,13 @@ def _episode(candidate_index: int = 0):
     task = next(
         task
         for task in load_taskbook("mvr/configs/taskbook.json")
-        if task.task_id == "cutin-g04-fast_small_gap"
+        if task.task_id == "cutin-g04-fast_small_gap-interaction_core"
     )
     return ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
         NormalizedScenarioAction(
             candidate_index,
             (0.0, 0.0, 0.0, 0.0, 0.0),
-            AdversarialOption.APPROACH_CONFLICT,
         ),
         episode_seed=204 + candidate_index,
     )
@@ -50,12 +48,8 @@ def test_cutin_contract_uses_one_long_legal_corridor(candidate_index: int) -> No
         episode.env.close()
 
 
-def test_route_block_is_not_an_adversarial_option() -> None:
-    assert {option.value for option in AdversarialOption} == {
-        "approach_conflict",
-        "yield_then_press",
-        "gap_close",
-    }
+def test_route_block_has_no_adversarial_option() -> None:
+    assert not hasattr(mvr_parameter_spaces()["cutin"], "options")
 
 
 def test_zero_residual_preserves_native_nominal_action() -> None:
@@ -76,19 +70,18 @@ def test_zero_residual_preserves_native_nominal_action() -> None:
         episode.env.close()
 
 
-def test_options_change_nominal_longitudinal_intent_without_changing_route() -> None:
+def test_nominal_longitudinal_intent_is_profile_free() -> None:
     episode = _episode()
     try:
-        targets = []
-        for option in AdversarialOption:
-            schedule = ScenarioActionAdapter(episode, "cutin")
-            controller = NativeAdversaryBaseController(episode, "cutin", schedule, option.value)
-            try:
-                controller.action(np.zeros(2, dtype=np.float32))
-                targets.append(controller.policy.NORMAL_SPEED)
-            finally:
-                controller.destroy()
-        assert targets[1] < targets[0] < targets[2]
+        schedule = ScenarioActionAdapter(episode, "cutin")
+        controller = NativeAdversaryBaseController(episode, "cutin", schedule)
+        try:
+            controller.action(np.zeros(2, dtype=np.float32))
+            assert controller.policy.NORMAL_SPEED == pytest.approx(
+                episode.layout.traffic_contract.sut_nominal_speed_mps * 3.6
+            )
+        finally:
+            controller.destroy()
         assert episode.adversary.navigation.current_lane.index[2] == (
             episode.layout.traffic_contract.source_lane_number
         )
@@ -147,7 +140,6 @@ def test_cutin_event_requires_physical_target_lane_intrusion() -> None:
         rollout = HierarchicalRunner(max_steps=60).rollout(
             episode,
             "cutin",
-            AdversarialOption.APPROACH_CONFLICT.value,
             lambda _: np.asarray((0.0, 0.0), dtype=np.float32),
             step_callback=lambda _episode, _step, info: observed_intrusion.append(
                 bool(info["semantic_target_lane_intrusion"])

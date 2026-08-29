@@ -32,9 +32,9 @@ class OnlineEpisode:
     latent_before: torch.Tensor
     latent_after: torch.Tensor
     map_tokens: Any
-    scene_embedding: torch.Tensor
-    config: torch.Tensor
-    option_index: torch.Tensor
+    interactions: tuple[Any, ...]
+    logical_domain_bounds: Mapping[str, tuple[float, float]]
+    concrete: torch.Tensor
     outcome: Mapping[str, Any]
     concrete_scenario: ConcreteScenario
 
@@ -64,7 +64,7 @@ class OnlineMetaTest:
                 name: value.detach().cpu().tolist()
                 for name, value in self.model.training_components()[component].state_dict().items()
             }
-            for component in ("shared_feature_encoder", "option_embedding", "inner_sac")
+            for component in ("task_structure_encoder", "shared_feature_encoder", "inner_sac")
         })
 
     def _scene_encoding(self, task: ScenarioMiningTaskSpec) -> tuple[Any, Any, Any]:
@@ -91,6 +91,9 @@ class OnlineMetaTest:
         episode_index_offset: int = 0,
         scene_action_provider: Callable[[ScenarioMiningTaskSpec, int, tuple[Any, ...], Any], NormalizedScenarioAction] | None = None,
         inner_action_provider: Callable[[np.ndarray], np.ndarray] | None = None,
+        episode_seed_provider: Callable[[ScenarioMiningTaskSpec, int], int] | None = None,
+        use_scene_context: bool = True,
+        use_latent_context: bool = True,
         rollout_step_callback: Callable[[Any, int, Mapping[str, Any]], None] | None = None,
         environment_overrides: Mapping[str, Any] | None = None,
     ) -> OnlineMetaTestResult:
@@ -104,7 +107,9 @@ class OnlineMetaTest:
             raise ValueError("episode index offset must be non-negative")
         space = mvr_parameter_spaces()[task.functional_scenario]
         tokens, candidates, encoding = self._scene_encoding(task)
-        scene_embedding = encoding.global_embedding
+        scene_embedding = self.model.encode_task_structure(
+            encoding.global_embedding, dict(task.logical_domain_bounds)
+        )
         device = self.model.device
         latent, _ = self.model.context_encoder.prior(device=device)
         inner_policy_hash = self._inner_policy_hash()
@@ -115,7 +120,10 @@ class OnlineMetaTest:
             episode_index = episode_index_offset + index
             if scene_action_provider is None:
                 with torch.no_grad():
-                    scene = self.model.select_scene(encoding, latent, deterministic=deterministic)
+                    scene = self.model.universal_scene_policy.sample(
+                        scene_embedding, encoding.candidate_embeddings,
+                        encoding.candidate_mask, latent, deterministic,
+                    )
             else:
                 provided = scene_action_provider(task, episode_index, candidates, space)
                 provided.validate(space.continuous_dim)
@@ -123,12 +131,18 @@ class OnlineMetaTest:
                     expert_index=torch.zeros(1, dtype=torch.long, device=device),
                     candidate_index=torch.tensor([provided.candidate_index], dtype=torch.long, device=device),
                     continuous=torch.as_tensor(provided.continuous, dtype=torch.float32, device=device).unsqueeze(0),
-                    option_index=torch.tensor([space.options.index(provided.option)], dtype=torch.long, device=device),
                     log_prob=torch.zeros(1, dtype=torch.float32, device=device),
                     value=torch.zeros(1, dtype=torch.float32, device=device),
                 )
-            action = NormalizedScenarioAction(int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), space.options[int(scene.option_index.item())])
-            episode_seed = task.geometry_seed + episode_index
+            action = NormalizedScenarioAction(
+                int(scene.candidate_index.item()),
+                tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),
+            )
+            episode_seed = (
+                task.geometry_seed + episode_index
+                if episode_seed_provider is None
+                else int(episode_seed_provider(task, episode_index))
+            )
             episode = self.executor.reset(
                 task,
                 action,
@@ -142,20 +156,27 @@ class OnlineMetaTest:
                 latent=latent.squeeze(0).detach().cpu().tolist(),
                 episode_seed=episode_seed,
             )
-            option_index = scene.option_index.detach()
+            candidate_embedding = encoding.candidate_embeddings[
+                int(scene.candidate_index.item())
+            ].unsqueeze(0)
+            concrete_input = torch.cat((candidate_embedding, scene.continuous), dim=-1)
             def inner_action(state_values: np.ndarray) -> np.ndarray:
                 if inner_action_provider is not None:
                     return np.asarray(inner_action_provider(state_values), dtype=np.float32)
                 state = torch.as_tensor(state_values, dtype=torch.float32, device=device).reshape(1, -1)
                 with torch.no_grad():
-                    value = self.model.act_inner(state, scene_embedding.unsqueeze(0), latent, option_index, scene.continuous, deterministic=deterministic)
+                    policy_scene = scene_embedding.unsqueeze(0) if use_scene_context else torch.zeros_like(scene_embedding).unsqueeze(0)
+                    policy_latent = latent if use_latent_context else torch.zeros_like(latent)
+                    value = self.model.act_inner(
+                        state, policy_scene, policy_latent, concrete_input,
+                        deterministic=deterministic,
+                    )
                 return value.squeeze(0).cpu().numpy()
 
             try:
                 rollout = self.runner.rollout(
                     episode,
                     task.functional_scenario,
-                    action.option.value,
                     inner_action,
                     step_callback=rollout_step_callback,
                 )
@@ -175,7 +196,10 @@ class OnlineMetaTest:
             trajectory = rollout.trajectory.to(device).unsqueeze(0)
             mask = torch.ones(trajectory.shape[:2], dtype=torch.bool, device=device)
             with torch.no_grad():
-                token = self.model.episode_token_builder(scene_embedding.unsqueeze(0), scene.continuous, option_index, trajectory, mask, outcome_tensor).squeeze(0)
+                token = self.model.episode_token_builder(
+                    scene_embedding.unsqueeze(0), concrete_input, trajectory, mask,
+                    outcome_tensor,
+                ).squeeze(0)
             evidence_tokens.append(token)
             support = torch.stack(evidence_tokens).unsqueeze(0)
             support_mask = torch.ones((1, len(evidence_tokens)), dtype=torch.bool, device=device)
@@ -187,23 +211,26 @@ class OnlineMetaTest:
             result.outer_rollout.add(OuterRolloutStep(
                 scene_embedding.cpu(), encoding.candidate_embeddings.cpu(), encoding.candidate_mask.cpu(),
                 latent.squeeze(0).cpu(), scene.expert_index.cpu(), scene.candidate_index.cpu(),
-                scene.continuous.squeeze(0).cpu(), scene.option_index.cpu(), scene.log_prob.cpu(),
+                scene.continuous.squeeze(0).cpu(), scene.log_prob.cpu(),
                 scene.value.cpu(), reward, index + 1 == budget,
             ))
             episode_id = f"{task.task_id}:{episode_index}"
             result.inner_transitions.extend(
                 InnerTransition(
-                    episode_id, task.geometry_hash, row["state"], row["action"], row["reward_inner"], row["next_state"],
-                    row["done"], tokens, candidates, latent.squeeze(0).detach().cpu(),
-                    option_index.squeeze(0).detach().cpu(), scene.continuous.squeeze(0).detach().cpu(),
+                    episode_id, task.task_id, None, task.geometry_hash,
+                    row["state"], row["action"], row["reward_inner"], row["next_state"],
+                    row["done"], tokens, candidates, dict(task.logical_domain_bounds),
+                    latent.squeeze(0).detach().cpu(),
+                    concrete_input.squeeze(0).detach().cpu(),
                     np.asarray((row["state"][-1],), dtype=np.float32),
                 )
                 for row in rollout.transitions
             )
             result.episodes.append(OnlineEpisode(
                 episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(),
-                latent_after.detach().cpu().clone(), tokens, scene_embedding.detach().cpu(),
-                scene.continuous.squeeze(0).detach().cpu(), option_index.squeeze(0).detach().cpu(), outcome,
+                latent_after.detach().cpu().clone(), tokens, candidates,
+                dict(task.logical_domain_bounds),
+                concrete_input.squeeze(0).detach().cpu(), outcome,
                 concrete,
             ))
             latent = latent_after

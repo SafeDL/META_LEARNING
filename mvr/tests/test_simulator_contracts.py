@@ -6,7 +6,6 @@ from metadrive.policy.idm_policy import IDMPolicy
 
 from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
-from mvr.scenario.option import AdversarialOption
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.semantics import ScenarioSemanticMonitor
 from mvr.scenario.taskbook import load_taskbook
@@ -33,7 +32,7 @@ def test_runtime_geometry_hash_and_sut_attachment(family: str) -> None:
         if row.functional_scenario == family and row.geometry_split == "train"
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
-            task, NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE), episode_seed=999
+            task, NormalizedScenarioAction(0, (0.0,) * 5), episode_seed=999
     )
     try:
         assert episode.map_tokens.map_hash == task.geometry_hash
@@ -56,7 +55,7 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-            NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
+            NormalizedScenarioAction(0, (0.0,) * 5),
         episode_seed=999,
     )
     lateral_errors: list[float] = []
@@ -73,7 +72,6 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
         HierarchicalRunner(max_steps=80).rollout(
             episode,
             family,
-            AdversarialOption.GAP_CLOSE.value,
             lambda _state: np.zeros(2, dtype=np.float32),
             step_callback=record_sut_tracking,
         )
@@ -96,7 +94,7 @@ def test_runtime_hash_mismatch_fails_fast() -> None:
     broken = type(task)(**{**task.to_dict(), "geometry_hash": "0" * 64})
     with pytest.raises(RuntimeError, match="map hash mismatch"):
         ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
-                broken, NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE)
+                broken, NormalizedScenarioAction(0, (0.0,) * 5)
         )
 
 
@@ -115,7 +113,7 @@ def test_static_geometry_cache_avoids_rebuilding_layout_env(monkeypatch) -> None
 
     monkeypatch.setattr(adapter, "build_env", counted_build_env)
     executor = ScenarioExecutor({"merge": adapter}, mvr_parameter_spaces())
-    action = NormalizedScenarioAction(0, (0.0,) * 5, AdversarialOption.GAP_CLOSE)
+    action = NormalizedScenarioAction(0, (0.0,) * 5)
 
     executor.enumerate_interactions(task)
     first = executor.reset(task, action)
@@ -135,11 +133,11 @@ def test_static_geometry_cache_avoids_rebuilding_layout_env(monkeypatch) -> None
 def test_merge_always_assigns_branch_entry_to_the_adversary(candidate_index: int) -> None:
     task = next(
         row for row in load_taskbook("mvr/configs/taskbook.json")
-        if row.task_id == "merge-g04-fast_small_gap"
+        if row.task_id == "merge-g04-fast_small_gap-interaction_core"
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-            NormalizedScenarioAction(candidate_index, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
+            NormalizedScenarioAction(candidate_index, (0.0,) * 5),
         episode_seed=204 + candidate_index,
     )
     try:
@@ -169,13 +167,11 @@ def test_merge_adversary_physically_enters_the_sut_downstream_lane(
 ) -> None:
     task = next(
         row for row in load_taskbook("mvr/configs/taskbook.json")
-        if row.task_id == "merge-g04-fast_small_gap"
+        if row.task_id == "merge-g04-fast_small_gap-interaction_core"
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(
-                candidate_index, (0.0,) * 5, AdversarialOption.APPROACH_CONFLICT
-        ),
+        NormalizedScenarioAction(candidate_index, (0.0,) * 5),
         episode_seed=204 + candidate_index,
     )
     shared_lane = tuple(episode.layout.adversary_route[1])
@@ -204,7 +200,6 @@ def test_merge_adversary_physically_enters_the_sut_downstream_lane(
         rollout = HierarchicalRunner(max_steps=80).rollout(
             episode,
             "merge",
-            AdversarialOption.APPROACH_CONFLICT.value,
             lambda _state: np.zeros(2, dtype=np.float32),
             step_callback=record_merge_runtime,
         )
@@ -228,11 +223,11 @@ def test_roundabout_candidate_binds_idm_to_complete_entry_exit_route(
 ) -> None:
     task = next(
         row for row in load_taskbook("mvr/configs/taskbook.json")
-        if row.task_id == "roundabout-g04-fast_small_gap"
+        if row.task_id == "roundabout-g04-fast_small_gap-interaction_core"
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-            NormalizedScenarioAction(candidate_index, (0.0,) * 5, AdversarialOption.GAP_CLOSE),
+            NormalizedScenarioAction(candidate_index, (0.0,) * 5),
         episode_seed=304 + candidate_index,
     )
     try:
@@ -246,5 +241,41 @@ def test_roundabout_candidate_binds_idm_to_complete_entry_exit_route(
         assert episode.layout.native_navigation.sut_lane_stable
         assert isinstance(episode.env.engine.get_policy(episode.sut.id), LaneStableNativeIDMPolicy)
         assert not episode.env.engine.get_policy(episode.sut.id).enable_lane_change
+    finally:
+        episode.env.close()
+
+
+def test_roundabout_entry_collision_is_inside_route_conflict_window() -> None:
+    """A legal entry-mouth collision must not be invalidated by lane timing."""
+    task = next(
+        row for row in load_taskbook("mvr/configs/taskbook.json")
+        if row.task_id == "roundabout-g04-fast_small_gap-interaction_core"
+    )
+    action = NormalizedScenarioAction(
+        0,
+        (
+            0.9514361619949341,
+            -0.7125153541564941,
+            -0.6000000238418579,
+            -0.6000000238418579,
+            0.962175190448761,
+        ),
+    )
+    episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
+        task, action, episode_seed=task.geometry_seed + 1
+    )
+    try:
+        rollout = HierarchicalRunner().rollout(
+            episode,
+            "roundabout",
+            lambda _state: np.zeros(2, dtype=np.float32),
+        )
+        assert rollout.outcome["target_collision"]
+        assert rollout.outcome["event_kind"] == "collision"
+        assert rollout.outcome["event_semantic_valid"]
+        assert any(
+            row["info"]["semantic_challenge_phase_active"]
+            for row in rollout.transitions
+        )
     finally:
         episode.env.close()

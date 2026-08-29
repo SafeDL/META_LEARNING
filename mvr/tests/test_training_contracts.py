@@ -17,7 +17,7 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
     model = TransferableScenarioMiner(state_dim=11, map_dim=8)
     workflow = StagedWorkflow(model.training_components())
     workflow.activate(TrainingStage.OUTER)
-    assert trainable_components(TrainingStage.OUTER) == {"universal_scene_policy"}
+    assert trainable_components(TrainingStage.OUTER) == {"task_structure_encoder", "universal_scene_policy"}
     assert all(parameter.requires_grad for parameter in model.universal_scene_policy.parameters())
     assert not any(parameter.requires_grad for parameter in model.inner_sac.parameters())
     policy = model.universal_scene_policy
@@ -26,7 +26,7 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
     buffer.add(OuterRolloutStep(
         torch.zeros(8), torch.zeros(2, 8), torch.ones(2, dtype=torch.bool), torch.zeros(16),
         action.expert_index.squeeze(0).detach(), action.candidate_index.squeeze(0).detach(),
-        action.continuous.squeeze(0).detach(), action.option_index.squeeze(0).detach(),
+        action.continuous.squeeze(0).detach(),
         action.log_prob.squeeze(0).detach(), action.value.squeeze(0).detach(), 1.0, True,
     ))
     buffer.finish()
@@ -73,7 +73,7 @@ def test_inner_replay_reserves_positive_event_transitions() -> None:
 def test_training_signal_metrics_report_event_and_reward_density() -> None:
     task = SimpleNamespace(functional_scenario="cutin")
     episode = SimpleNamespace(
-        concrete_scenario=SimpleNamespace(option="approach_conflict"),
+        concrete_scenario=SimpleNamespace(candidate_id="main_conflict"),
         rollout=SimpleNamespace(
             outcome={"valid_target_collision": False, "valid_critical_near_miss": True},
             transitions=(

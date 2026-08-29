@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any, Iterator, Mapping
 import random
 
 import torch
@@ -11,6 +11,8 @@ import torch
 @dataclass(frozen=True)
 class InnerTransition:
     episode_id: str
+    task_id: str
+    support_group_id: str | None
     geometry_hash: str
     state: Any
     action: Any
@@ -19,9 +21,9 @@ class InnerTransition:
     done: bool
     map_tokens: Any
     interactions: tuple[Any, ...]
+    logical_domain_bounds: Mapping[str, tuple[float, float]]
     latent: torch.Tensor
-    option_index: torch.Tensor
-    config: torch.Tensor
+    concrete: torch.Tensor
     schedule_state: Any
 
 
@@ -69,6 +71,43 @@ class InnerReplay:
 
 
 @dataclass(frozen=True)
+class SupportGroup:
+    """One task-local support/query partition used to reconstruct a latent."""
+
+    support_group_id: str
+    task_id: str
+    support_episodes: tuple[Any, ...]
+    query_episodes: Mapping[str, Any]
+
+    def validate(self) -> None:
+        support_ids = {episode.episode_id for episode in self.support_episodes}
+        query_ids = set(self.query_episodes)
+        if not support_ids or not query_ids:
+            raise ValueError("support groups require support and query episodes")
+        if support_ids & query_ids:
+            raise ValueError("support and query episodes must be disjoint")
+
+
+@dataclass
+class ContextReplay:
+    """Group-level support storage; transitions refer to groups by id only."""
+
+    groups: dict[str, SupportGroup] = field(default_factory=dict)
+
+    def add(self, group: SupportGroup) -> None:
+        group.validate()
+        if group.support_group_id in self.groups:
+            raise ValueError(f"duplicate support group {group.support_group_id!r}")
+        self.groups[group.support_group_id] = group
+
+    def get(self, group_id: str) -> SupportGroup:
+        try:
+            return self.groups[group_id]
+        except KeyError as error:
+            raise KeyError(f"missing support group {group_id!r}") from error
+
+
+@dataclass(frozen=True)
 class OuterRolloutStep:
     scene_embedding: torch.Tensor
     candidate_embeddings: torch.Tensor
@@ -77,7 +116,6 @@ class OuterRolloutStep:
     expert_index: torch.Tensor
     candidate: torch.Tensor
     continuous: torch.Tensor
-    option: torch.Tensor
     old_log_prob: torch.Tensor
     value: torch.Tensor
     reward: float
@@ -127,7 +165,6 @@ class OuterRolloutBuffer:
                 "expert": torch.stack([row.expert_index for row in rows]).long().reshape(-1),
                 "candidate": torch.stack([row.candidate for row in rows]).long().reshape(-1),
                 "continuous": torch.stack([row.continuous for row in rows]),
-                "option": torch.stack([row.option for row in rows]).long().reshape(-1),
                 "old_logprob": torch.stack([row.old_log_prob for row in rows]).reshape(-1),
                 "advantage": self.advantages[indices],
                 "return": self.returns[indices],
