@@ -17,6 +17,7 @@ from .policy.adversarial_sac import AdversarialSAC
 from .policy.shared_features import SharedFeatureEncoder
 from .policy.universal_scene_policy import UniversalSceneAction, UniversalScenePolicy
 from .scenario.interaction import InteractionCandidate
+from .scenario.task_spec import LOGICAL_PARAMETER_NAMES
 from .state import PhysicalStateExtractor
 from .training.updates import posterior_elbo
 
@@ -46,11 +47,12 @@ class TransferableScenarioMiner(nn.Module):
         if self.map_encoder.embedding_dim != map_dim:
             raise ValueError("map encoder embedding dimension must equal map_dim")
         self.interaction_encoder = InteractionEncoder(map_dim)
+        self.continuous_dim = continuous_dim
         self.task_structure_encoder = nn.Sequential(
-            nn.Linear(10, map_dim), nn.ReLU(), nn.Linear(map_dim, map_dim)
+            nn.Linear(3 * continuous_dim, map_dim), nn.ReLU(), nn.Linear(map_dim, map_dim)
         )
         trajectory = TrajectoryEncoder(hidden_dim=map_dim)
-        self.concrete_dim = map_dim + continuous_dim
+        self.concrete_dim = map_dim + 2 * continuous_dim
         self.episode_token_builder = EpisodeTokenBuilder(
             map_dim, self.concrete_dim, trajectory, token_dim
         )
@@ -80,15 +82,48 @@ class TransferableScenarioMiner(nn.Module):
         return self.interaction_encoder(local, global_embedding, tokens, candidates)
 
     def encode_task_structure(
-        self, scene_embedding: torch.Tensor, logical_domain_bounds: dict[str, object]
+        self,
+        scene_embedding: torch.Tensor,
+        logical_domain_bounds: dict[str, object],
+        logical_parameter_mask: Sequence[bool],
     ) -> torch.Tensor:
         """Combine map/interaction structure with observable Logical bounds."""
-        values = [float(value) for name in sorted(logical_domain_bounds)
-                  for value in logical_domain_bounds[name]]
-        if len(values) != 10:
-            raise ValueError("task structure requires five normalized logical intervals")
-        domain = torch.tensor(values, dtype=scene_embedding.dtype, device=scene_embedding.device)
+        mask = [bool(value) for value in logical_parameter_mask]
+        values = [
+            float(value) * float(active)
+            for name, active in zip(LOGICAL_PARAMETER_NAMES, mask)
+            for value in logical_domain_bounds[name]
+        ]
+        if len(values) != 2 * self.continuous_dim or len(mask) != self.continuous_dim:
+            raise ValueError("task structure requires padded Logical bounds and a matching mask")
+        domain = torch.tensor(
+            values + [float(value) for value in mask],
+            dtype=scene_embedding.dtype,
+            device=scene_embedding.device,
+        )
         return scene_embedding + self.task_structure_encoder(domain)
+
+    def concrete_features(
+        self,
+        candidate_embedding: torch.Tensor,
+        continuous: torch.Tensor,
+        logical_parameter_mask: Sequence[bool] | torch.Tensor,
+    ) -> torch.Tensor:
+        """Build padded concrete input without leaking inactive Logical values."""
+        if candidate_embedding.ndim == 1:
+            candidate_embedding = candidate_embedding.unsqueeze(0)
+        if continuous.ndim == 1:
+            continuous = continuous.unsqueeze(0)
+        mask = torch.as_tensor(
+            logical_parameter_mask, dtype=continuous.dtype, device=continuous.device
+        )
+        if mask.ndim == 1:
+            mask = mask.unsqueeze(0)
+        if mask.shape[0] == 1:
+            mask = mask.expand(continuous.shape[0], -1)
+        if continuous.shape[-1] != self.continuous_dim or mask.shape != continuous.shape:
+            raise ValueError("concrete Logical controls must match the model continuous dimension")
+        return torch.cat((candidate_embedding, continuous * mask, mask), dim=-1)
 
     def infer_posterior(
         self, support_tokens: torch.Tensor, support_mask: torch.Tensor
@@ -105,11 +140,17 @@ class TransferableScenarioMiner(nn.Module):
         )
 
     def select_scene(
-        self, encoding: SceneEncoding, latent: torch.Tensor, *, deterministic: bool = False
+        self,
+        encoding: SceneEncoding,
+        latent: torch.Tensor,
+        *,
+        deterministic: bool = False,
+        continuous_mask: torch.Tensor | None = None,
+        continuous_bounds: torch.Tensor | None = None,
     ) -> UniversalSceneAction:
         return self.universal_scene_policy.sample(
             encoding.global_embedding, encoding.candidate_embeddings,
-            encoding.candidate_mask, latent, deterministic,
+            encoding.candidate_mask, latent, deterministic, continuous_mask, continuous_bounds,
         )
 
     def inner_features(

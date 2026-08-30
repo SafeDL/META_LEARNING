@@ -7,7 +7,6 @@ from torch.nn import functional as F
 from typing import TYPE_CHECKING
 from ..context.pearl_context import PearlContextEncoder
 from ..context.outcome_schema import encode_outcome, outcome_elbo
-from ..context.outcome_schema import outcome_elbo
 from ..policy.universal_scene_policy import UniversalScenePolicy
 from .replay import ContextReplay, InnerReplay, OuterRolloutBuffer, SupportGroup
 
@@ -46,6 +45,7 @@ def update_outer_ppo(
                 batch["scene_embedding"].to(device), batch["candidate_embeddings"].to(device),
                 batch["candidate_mask"].to(device), batch["latent"].to(device), batch["expert"].to(device),
                 batch["candidate"].to(device), batch["continuous"].to(device),
+                batch["continuous_mask"].to(device), batch["continuous_bounds"].to(device),
             )
             loss = clipped_ppo_loss(
                 logprob, batch["old_logprob"].to(device), batch["advantage"].to(device), value,
@@ -62,32 +62,69 @@ def update_outer_ppo(
     return sum(losses) / len(losses) if losses else 0.0
 
 
-def _scene_embeddings(model: "TransferableScenarioMiner", rows: list[object]) -> torch.Tensor:
-    """Encode each static geometry once while preserving encoder gradients."""
-    unique: dict[tuple[str, tuple[tuple[str, tuple[float, float]], ...]], torch.Tensor] = {}
+def _scene_contexts(
+    model: "TransferableScenarioMiner", rows: list[object]
+) -> tuple[torch.Tensor, list[torch.Tensor]]:
+    """Rebuild current task and candidate encodings without replayed embeddings."""
+    unique: dict[tuple[object, ...], tuple[torch.Tensor, torch.Tensor]] = {}
+    keys = []
     for row in rows:
         domain = tuple(sorted(
             (str(name), tuple(float(value) for value in bounds))
             for name, bounds in row.logical_domain_bounds.items()
         ))
-        key = str(row.geometry_hash), domain
+        key = str(row.geometry_hash), domain, tuple(bool(value) for value in row.logical_parameter_mask)
+        keys.append(key)
         if key not in unique:
-            encoded = model.encode_scene(
-                row.map_tokens, row.interactions
-            ).global_embedding
-            unique[key] = model.encode_task_structure(encoded, dict(row.logical_domain_bounds))
-    return torch.stack([
-        unique[(str(row.geometry_hash), tuple(sorted(
-            (str(name), tuple(float(value) for value in bounds))
-            for name, bounds in row.logical_domain_bounds.items()
-        )))]
-        for row in rows
+            encoded = model.encode_scene(row.map_tokens, row.interactions)
+            unique[key] = (
+                model.encode_task_structure(
+                    encoded.global_embedding,
+                    dict(row.logical_domain_bounds),
+                    row.logical_parameter_mask,
+                ),
+                encoded.candidate_embeddings,
+            )
+    contexts = [unique[key] for key in keys]
+    return torch.stack([value[0] for value in contexts]), [value[1] for value in contexts]
+
+
+def _scene_embeddings(model: "TransferableScenarioMiner", rows: list[object]) -> torch.Tensor:
+    return _scene_contexts(model, rows)[0]
+
+
+def _concrete_inputs(
+    model: "TransferableScenarioMiner", rows: list[object]
+) -> tuple[torch.Tensor, torch.Tensor]:
+    maps, candidate_embeddings = _scene_contexts(model, rows)
+    candidates = torch.stack([
+        embeddings[int(row.candidate_index)]
+        for row, embeddings in zip(rows, candidate_embeddings)
     ])
+    continuous = torch.as_tensor(
+        np.asarray([row.continuous for row in rows]), dtype=torch.float32, device=model.device
+    )
+    masks = torch.as_tensor(
+        np.asarray([row.logical_parameter_mask for row in rows]), dtype=torch.float32, device=model.device
+    )
+    return maps, model.concrete_features(candidates, continuous, masks)
 
 
 def _episode_scene(model: "TransferableScenarioMiner", episode: object) -> torch.Tensor:
     encoded = model.encode_scene(episode.map_tokens, episode.interactions).global_embedding
-    return model.encode_task_structure(encoded, dict(episode.logical_domain_bounds))
+    return model.encode_task_structure(
+        encoded, dict(episode.logical_domain_bounds), episode.logical_parameter_mask
+    )
+
+
+def _episode_concrete(model: "TransferableScenarioMiner", episode: object) -> torch.Tensor:
+    encoding = model.encode_scene(episode.map_tokens, episode.interactions)
+    continuous = torch.as_tensor(episode.continuous, dtype=torch.float32, device=model.device)
+    return model.concrete_features(
+        encoding.candidate_embeddings[int(episode.candidate_index)],
+        continuous,
+        episode.logical_parameter_mask,
+    ).squeeze(0)
 
 
 def _group_latent(
@@ -102,7 +139,7 @@ def _group_latent(
         outcome = encode_outcome(episode.outcome).to(device).unsqueeze(0)
         tokens.append(model.episode_token_builder(
             _episode_scene(model, episode).unsqueeze(0),
-            episode.concrete.to(device).unsqueeze(0), trajectory, mask, outcome,
+            _episode_concrete(model, episode).unsqueeze(0), trajectory, mask, outcome,
         ).squeeze(0))
     support = torch.stack(tokens).unsqueeze(0)
     mean, logvar = model.infer_posterior(
@@ -117,7 +154,7 @@ def _posterior_group_loss(
     target = next(iter(group.query_episodes.values()))
     logits = model.outcome_decoder(
         mean.unsqueeze(0), _episode_scene(model, target).unsqueeze(0),
-        target.concrete.to(model.device).unsqueeze(0),
+        _episode_concrete(model, target).unsqueeze(0),
     )
     return outcome_elbo(
         logits, encode_outcome(target.outcome).to(model.device).unsqueeze(0),
@@ -165,11 +202,10 @@ def update_inner_sac(
             ))
         latent_rows.append(group_latents[group_id][0])
     latent = torch.stack(latent_rows)
-    concrete = torch.stack([row.concrete for row in rows]).to(device)
     action = torch.as_tensor(np.stack([row.action for row in rows]), dtype=torch.float32, device=device)
     reward = torch.as_tensor([row.reward for row in rows], dtype=torch.float32, device=device)
     done = torch.as_tensor([row.done for row in rows], dtype=torch.bool, device=device)
-    maps = _scene_embeddings(model, rows)
+    maps, concrete = _concrete_inputs(model, rows)
     features = model.inner_features(states, maps, latent, concrete)
     next_features = model.inner_features(next_states, maps, latent, concrete)
     td_target = model.inner_sac.critic_target(reward, next_features, done)
@@ -183,7 +219,7 @@ def update_inner_sac(
     )
     optimizer.step()
 
-    maps = _scene_embeddings(model, rows)
+    maps, concrete = _concrete_inputs(model, rows)
     features = model.inner_features(states, maps, latent.detach(), concrete)
     actor, alpha = model.inner_sac.actor_alpha_losses(
         features,

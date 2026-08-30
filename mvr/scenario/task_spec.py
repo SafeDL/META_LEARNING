@@ -9,6 +9,13 @@ from typing import Any, Mapping
 TASK_SCHEMA = "transferable_scenario_task"
 SPLITS = frozenset({"train", "validation", "test"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+LOGICAL_PARAMETER_NAMES = (
+    "adversary_distance_to_conflict_m",
+    "sut_distance_to_conflict_m",
+    "adversary_initial_speed_mps",
+    "sut_initial_speed_mps",
+    "maneuver_onset_progress",
+)
 
 
 @dataclass(frozen=True)
@@ -25,6 +32,7 @@ class ScenarioMiningTaskSpec:
     geometry_split: str
     logical_domain_id: str
     logical_domain_bounds: Mapping[str, tuple[float, float]]
+    logical_parameter_mask: tuple[bool, ...]
     logical_split: str
     functional_split: str = "train"
     schema: str = TASK_SCHEMA
@@ -49,14 +57,26 @@ class ScenarioMiningTaskSpec:
             self.sut_split, self.geometry_split, self.logical_split, self.functional_split,
         )):
             raise ValueError("task split axes must be train, validation, or test")
-        if not self.logical_domain_bounds:
-            raise ValueError("logical_domain_bounds must be non-empty")
-        for name, bounds in self.logical_domain_bounds.items():
-            if not str(name) or len(bounds) != 2:
+        if tuple(self.logical_domain_bounds) != LOGICAL_PARAMETER_NAMES:
+            raise ValueError("logical domain bounds must use the canonical parameter order")
+        if len(self.logical_parameter_mask) != len(LOGICAL_PARAMETER_NAMES):
+            raise ValueError("logical parameter mask must match the canonical parameter count")
+        if not all(isinstance(value, bool) for value in self.logical_parameter_mask):
+            raise ValueError("logical parameter mask must contain booleans")
+        for name in LOGICAL_PARAMETER_NAMES:
+            bounds = self.logical_domain_bounds[name]
+            if len(bounds) != 2:
                 raise ValueError("logical domain bounds must contain named intervals")
             lower, upper = (float(value) for value in bounds)
-            if not lower <= upper or lower < -1.0 or upper > 1.0:
+            if not lower < upper or lower < -1.0 or upper > 1.0:
                 raise ValueError("logical domain bounds must lie in normalized [-1, 1]")
+
+    @property
+    def active_logical_parameter_names(self) -> tuple[str, ...]:
+        return tuple(
+            name for name, active in zip(LOGICAL_PARAMETER_NAMES, self.logical_parameter_mask)
+            if active
+        )
 
     def to_dict(self) -> dict[str, Any]:
         self.validate()
@@ -68,6 +88,8 @@ class ScenarioMiningTaskSpec:
         unknown, missing = set(value) - fields, fields - set(value)
         if unknown or missing:
             raise ValueError(f"task fields mismatch; unknown={sorted(unknown)}, missing={sorted(missing)}")
-        task = cls(**dict(value))
+        payload = dict(value)
+        payload["logical_parameter_mask"] = tuple(payload["logical_parameter_mask"])
+        task = cls(**payload)
         task.validate()
         return task

@@ -10,7 +10,8 @@ from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.interaction import InteractionCandidate
 from ..scenario.parameter_space import NormalizedScenarioAction
 from ..scenario.registry import load_adapters, load_geometry_catalog
-from ..scenario.task_spec import ScenarioMiningTaskSpec
+from ..scenario.task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
+from ..scenario.taskbook import validate_taskbook
 
 
 PROFILES = (
@@ -23,19 +24,26 @@ PROFILES = (
 )
 
 LOGICAL_DOMAINS = (
-    ("interaction_core", "train", (-0.55, 0.55)),
-    ("timing_shift", "validation", (-0.85, -0.25)),
-    ("tight_gap", "test", (0.25, 0.85)),
+    ("interaction_core", "train", (-0.25, 0.25)),
+    ("timing_shift", "validation", (-0.85, -0.35)),
+    ("tight_gap", "test", (0.35, 0.85)),
 )
 
 
-def _logical_bounds(interval: tuple[float, float]) -> dict[str, tuple[float, float]]:
+def _logical_mask(family: str) -> tuple[bool, ...]:
+    if family == "cutin":
+        return (True, True, True, True, True)
+    if family in {"merge", "roundabout"}:
+        return (True, True, True, True, False)
+    raise ValueError(f"unsupported scenario family: {family!r}")
+
+
+def _logical_bounds(
+    interval: tuple[float, float], mask: tuple[bool, ...]
+) -> dict[str, tuple[float, float]]:
     return {
-        "adversary_distance_to_conflict_m": interval,
-        "sut_distance_to_conflict_m": interval,
-        "adversary_initial_speed_mps": interval,
-        "sut_initial_speed_mps": interval,
-        "maneuver_onset_progress": interval,
+        name: interval if active else (-1.0, 1.0)
+        for name, active in zip(LOGICAL_PARAMETER_NAMES, mask)
     }
 
 
@@ -54,7 +62,8 @@ def _geometry_hash(geometry_id: str) -> str:
         sut_split="train",
         geometry_split=geometry.split,
         logical_domain_id="hash_probe",
-        logical_domain_bounds=_logical_bounds((-1.0, 1.0)),
+        logical_domain_bounds=_logical_bounds((-1.0, 1.0), _logical_mask(geometry.functional_scenario)),
+        logical_parameter_mask=_logical_mask(geometry.functional_scenario),
         logical_split="train",
     )
     env = adapters[geometry.functional_scenario].build_env(task, {})
@@ -85,6 +94,7 @@ def build_taskbook(output: str | Path) -> Path:
         geometry_hash = geometry_hashes[geometry.geometry_id]
         for sut_ref, sut_split in PROFILES:
             for domain_id, logical_split, interval in LOGICAL_DOMAINS:
+                mask = _logical_mask(geometry.functional_scenario)
                 task = ScenarioMiningTaskSpec(
                     task_id=f"{geometry.geometry_id}-{sut_ref.removeprefix('idm_')}-{domain_id}",
                     sut_ref=sut_ref,
@@ -97,7 +107,8 @@ def build_taskbook(output: str | Path) -> Path:
                     sut_split=sut_split,
                     geometry_split=geometry.split,
                     logical_domain_id=domain_id,
-                    logical_domain_bounds=_logical_bounds(interval),
+                    logical_domain_bounds=_logical_bounds(interval, mask),
+                    logical_parameter_mask=mask,
                     logical_split=logical_split,
                 )
                 tasks.append(task.to_dict())
@@ -119,6 +130,7 @@ def build_taskbook(output: str | Path) -> Path:
                 raise RuntimeError(
                     f"{family} requires {expected} unique {split} geometries, got {len(actual)}"
                 )
+    validate_taskbook(ScenarioMiningTaskSpec.from_dict(row) for row in tasks)
     path = Path(output)
     path.write_text(json.dumps(tasks, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path

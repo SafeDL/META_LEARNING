@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
@@ -16,6 +18,11 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
     task = next(
         row for row in load_taskbook("mvr/configs/taskbook.json")
         if row.functional_scenario == family and row.geometry_split == "validation"
+    )
+    task = replace(
+        task,
+        logical_domain_id="completion_probe",
+        logical_domain_bounds={name: (-1.0, 1.0) for name in task.logical_domain_bounds},
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,

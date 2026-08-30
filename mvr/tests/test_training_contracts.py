@@ -24,7 +24,7 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
     action = policy.sample(torch.zeros(8), torch.zeros(2, 8), torch.ones(2, dtype=torch.bool), torch.zeros(1, 16))
     buffer = OuterRolloutBuffer()
     buffer.add(OuterRolloutStep(
-        torch.zeros(8), torch.zeros(2, 8), torch.ones(2, dtype=torch.bool), torch.zeros(16),
+        torch.zeros(8), torch.zeros(2, 8), torch.ones(2, dtype=torch.bool), torch.ones(5, dtype=torch.bool), torch.tensor([[-1.0, 1.0]] * 5), torch.zeros(16),
         action.expert_index.squeeze(0).detach(), action.candidate_index.squeeze(0).detach(),
         action.continuous.squeeze(0).detach(),
         action.log_prob.squeeze(0).detach(), action.value.squeeze(0).detach(), 1.0, True,
@@ -32,6 +32,16 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
     buffer.finish()
     loss = update_outer_ppo(policy, buffer, torch.optim.Adam(policy.parameters(), lr=1e-3), epochs=1, batch_size=1)
     assert torch.isfinite(torch.tensor(loss))
+
+
+def test_outer_action_masks_inactive_logical_dimensions() -> None:
+    policy = TransferableScenarioMiner(state_dim=11, map_dim=8).universal_scene_policy
+    action = policy.sample(
+        torch.zeros(8), torch.zeros(2, 8), torch.ones(2, dtype=torch.bool), torch.zeros(1, 16),
+        continuous_mask=torch.tensor([True, True, True, True, False]),
+    )
+    assert action.continuous.shape == (1, 5)
+    assert action.continuous[0, -1].item() == 0.0
 
 
 def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:

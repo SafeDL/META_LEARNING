@@ -8,12 +8,12 @@ import numpy as np
 
 from ..evaluation.baselines import low_discrepancy_samples
 from ..scenario.parameter_space import NormalizedScenarioAction, ParameterSpace
-from ..scenario.task_spec import ScenarioMiningTaskSpec
+from ..scenario.task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
 
 
 @dataclass(frozen=True)
 class PretrainSceneSampler:
-    """Cover candidates/options in a near-conflict arrival-time band.
+    """Cover task-local candidates in a near-conflict arrival-time band.
 
     The sampler is deliberately independent of the frozen Outer policy.  Task
     rank is used only to choose a reproducible point in the coverage sequence;
@@ -68,8 +68,8 @@ class PretrainSceneSampler:
         )
         controls = np.asarray(rows[sequence_index], dtype=np.float32)
         candidate = candidates[candidate_index]
-        controls = self._interaction_aligned_controls(task, candidate, space, controls)
         controls = self._domain_controls(task, controls)
+        controls = self._interaction_aligned_controls(task, candidate, space, controls)
         # The first two controls remain candidate-relative spawn fractions.
         # The executor maps them into the selected route's exact feasible
         # interval; re-encoding through global metre bounds would silently
@@ -82,10 +82,23 @@ class PretrainSceneSampler:
         controls: np.ndarray,
     ) -> np.ndarray:
         values = np.asarray(controls, dtype=np.float32).copy()
-        for index, bounds in enumerate(getattr(task, "logical_domain_bounds", {}).values()):
-            lower, upper = (float(value) for value in bounds)
+        bounds = getattr(task, "logical_domain_bounds", {})
+        mask = getattr(task, "logical_parameter_mask", (True,) * len(values))
+        for index in range(len(values)):
+            if not bool(mask[index]):
+                values[index] = 0.0
+                continue
+            lower, upper = (float(value) for value in bounds.get(LOGICAL_PARAMETER_NAMES[index], (-1.0, 1.0)))
             values[index] = lower + 0.5 * (float(values[index]) + 1.0) * (upper - lower)
         return values
+
+    @staticmethod
+    def _allowed_controls(task: ScenarioMiningTaskSpec, index: int) -> tuple[float, float]:
+        mask = getattr(task, "logical_parameter_mask", (True,) * len(LOGICAL_PARAMETER_NAMES))
+        if not bool(mask[index]):
+            return 0.0, 0.0
+        bounds = getattr(task, "logical_domain_bounds", {})
+        return tuple(float(value) for value in bounds.get(LOGICAL_PARAMETER_NAMES[index], (-1.0, 1.0)))
 
     def _interaction_aligned_controls(
         self,
@@ -108,28 +121,44 @@ class PretrainSceneSampler:
             or any(not hasattr(candidate, name) for name in required)
         ):
             return tuple(float(value) for value in controls)
-        speed = float(self.nominal_speed_mps[family])
         speed_bounds = (
             space.bounds["adversary_initial_speed_mps"],
             space.bounds["sut_initial_speed_mps"],
         )
-        if any(not lower <= speed <= upper for lower, upper in speed_bounds):
+        speed_controls = (float(controls[2]), float(controls[3]))
+        speeds = tuple(
+            lower + 0.5 * (control + 1.0) * (upper - lower)
+            for control, (lower, upper) in zip(speed_controls, speed_bounds)
+        )
+        if any(speed <= 0.0 for speed in speeds):
             return tuple(float(value) for value in controls)
         adv_min = float(getattr(candidate, "adversary_distance_min_m"))
         adv_max = float(getattr(candidate, "adversary_distance_available_m"))
         sut_min = float(getattr(candidate, "sut_distance_min_m"))
         sut_max = float(getattr(candidate, "sut_distance_available_m"))
+        distance_ranges = []
+        for index, (lower, upper) in enumerate(((adv_min, adv_max), (sut_min, sut_max))):
+            action_lower, action_upper = self._allowed_controls(task, index)
+            distance_ranges.append((
+                lower + 0.5 * (action_lower + 1.0) * (upper - lower),
+                lower + 0.5 * (action_upper + 1.0) * (upper - lower),
+            ))
         offset = float(self.eta_offsets_s.get(family, self.interaction_eta_offset_s))
-        eta_lower = max(adv_min / speed, sut_min / speed - offset)
-        eta_upper = min(adv_max / speed, sut_max / speed - offset)
+        eta_lower = max(distance_ranges[0][0] / speeds[0], distance_ranges[1][0] / speeds[1] - offset)
+        eta_upper = min(distance_ranges[0][1] / speeds[0], distance_ranges[1][1] / speeds[1] - offset)
         if eta_lower > eta_upper:
             return tuple(float(value) for value in controls)
-        eta = eta_lower + 0.5 * (float(controls[0]) + 1.0) * (eta_upper - eta_lower)
-        distances = (speed * eta, speed * (eta + offset))
+        domain_lower, domain_upper = self._allowed_controls(task, 0)
+        fraction = (float(controls[0]) - domain_lower) / max(domain_upper - domain_lower, 1e-6)
+        eta = eta_lower + fraction * (eta_upper - eta_lower)
+        distances = (speeds[0] * eta, speeds[1] * (eta + offset))
         ranges = ((adv_min, adv_max), (sut_min, sut_max))
         result = controls.copy()
         for index, (distance, (lower, upper)) in enumerate(zip(distances, ranges)):
             result[index] = 2.0 * (distance - lower) / max(upper - lower, 1e-6) - 1.0
         for index, (lower, upper) in enumerate(speed_bounds, start=2):
-            result[index] = 2.0 * (speed - lower) / (upper - lower) - 1.0
-        return tuple(float(value) for value in np.clip(result, -1.0, 1.0))
+            result[index] = 2.0 * (speeds[index - 2] - lower) / (upper - lower) - 1.0
+        for index in range(len(result)):
+            lower, upper = self._allowed_controls(task, index)
+            result[index] = float(np.clip(result[index], lower, upper))
+        return tuple(float(value) for value in result)

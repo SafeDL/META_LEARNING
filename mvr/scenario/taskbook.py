@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from .task_spec import ScenarioMiningTaskSpec
+from .task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
 
 
 def validate_taskbook(tasks: Iterable[ScenarioMiningTaskSpec]) -> list[ScenarioMiningTaskSpec]:
@@ -14,6 +14,23 @@ def validate_taskbook(tasks: Iterable[ScenarioMiningTaskSpec]) -> list[ScenarioM
         raise ValueError("task ids must be unique")
     for task in rows:
         task.validate()
+    domains_by_split = {
+        split: {
+            (task.functional_scenario, task.logical_domain_id): task
+            for task in rows if task.logical_split == split
+        }
+        for split in ("train", "validation", "test")
+    }
+    for left, right in (("train", "validation"), ("train", "test"), ("validation", "test")):
+        for left_domain in domains_by_split[left].values():
+            for right_domain in domains_by_split[right].values():
+                for index, name in enumerate(LOGICAL_PARAMETER_NAMES):
+                    if not (left_domain.logical_parameter_mask[index] and right_domain.logical_parameter_mask[index]):
+                        continue
+                    left_bounds = left_domain.logical_domain_bounds[name]
+                    right_bounds = right_domain.logical_domain_bounds[name]
+                    if max(left_bounds[0], right_bounds[0]) <= min(left_bounds[1], right_bounds[1]):
+                        raise ValueError(f"{left}/{right} logical domains overlap on {name}")
     hashes_by_split = {
         split: {task.geometry_hash for task in rows if task.geometry_split == split}
         for split in ("train", "validation", "test")

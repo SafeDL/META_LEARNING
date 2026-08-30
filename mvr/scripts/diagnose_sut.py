@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 import json
 from pathlib import Path
 from typing import Any
@@ -24,7 +25,12 @@ MAX_LATERAL_ERROR_M = 0.60
 
 def _task(family: str) -> Any:
     task_id = f"{family}-g04-fast_small_gap-interaction_core"
-    return next(task for task in load_taskbook("mvr/configs/taskbook.json") if task.task_id == task_id)
+    task = next(task for task in load_taskbook("mvr/configs/taskbook.json") if task.task_id == task_id)
+    return replace(
+        task,
+        logical_domain_id="sut_diagnostic_probe",
+        logical_domain_bounds={name: (-1.0, 1.0) for name in task.logical_domain_bounds},
+    )
 
 
 def _action() -> NormalizedScenarioAction:

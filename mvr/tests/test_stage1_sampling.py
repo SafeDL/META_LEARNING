@@ -51,7 +51,15 @@ def test_pretrain_scene_sampler_balances_candidate_and_controls() -> None:
 
 
 def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
-    task = SimpleNamespace(task_id="merge-task", functional_scenario="merge")
+    names = (
+        "adversary_distance_to_conflict_m", "sut_distance_to_conflict_m",
+        "adversary_initial_speed_mps", "sut_initial_speed_mps", "maneuver_onset_progress",
+    )
+    task = SimpleNamespace(
+        task_id="merge-task", functional_scenario="merge",
+        logical_domain_bounds={name: (-0.25, 0.25) for name in names},
+        logical_parameter_mask=(True, True, True, True, False),
+    )
     space = ParameterSpace(
         "sampling-test",
         ("candidate-0",),
@@ -60,6 +68,7 @@ def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
             "sut_distance_to_conflict_m": (0.5, 5.0),
             "adversary_initial_speed_mps": (4.0, 18.0),
             "sut_initial_speed_mps": (4.0, 18.0),
+            "maneuver_onset_progress": (0.2, 0.8),
         },
     )
     candidate = SimpleNamespace(
@@ -79,6 +88,11 @@ def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
     sut_distance = candidate.sut_distance_min_m + 0.5 * (action.continuous[1] + 1.0) * (
         candidate.sut_distance_available_m - candidate.sut_distance_min_m
     )
-    assert config["adversary_initial_speed_mps"] == pytest.approx(8.3)
-    assert config["sut_initial_speed_mps"] == pytest.approx(8.3)
-    assert sut_distance / 8.3 - adversary_distance / 8.3 == pytest.approx(1.5)
+    for index, name in enumerate(names[:4]):
+        lower, upper = task.logical_domain_bounds[name]
+        assert lower <= action.continuous[index] <= upper
+    assert action.continuous[4] == 0.0
+    assert (
+        sut_distance / config["sut_initial_speed_mps"]
+        - adversary_distance / config["adversary_initial_speed_mps"]
+    ) == pytest.approx(1.5)

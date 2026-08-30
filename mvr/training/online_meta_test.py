@@ -34,7 +34,9 @@ class OnlineEpisode:
     map_tokens: Any
     interactions: tuple[Any, ...]
     logical_domain_bounds: Mapping[str, tuple[float, float]]
-    concrete: torch.Tensor
+    logical_parameter_mask: tuple[bool, ...]
+    candidate_index: int
+    continuous: tuple[float, ...]
     outcome: Mapping[str, Any]
     concrete_scenario: ConcreteScenario
 
@@ -108,7 +110,12 @@ class OnlineMetaTest:
         space = mvr_parameter_spaces()[task.functional_scenario]
         tokens, candidates, encoding = self._scene_encoding(task)
         scene_embedding = self.model.encode_task_structure(
-            encoding.global_embedding, dict(task.logical_domain_bounds)
+            encoding.global_embedding, dict(task.logical_domain_bounds), task.logical_parameter_mask
+        )
+        continuous_bounds = torch.as_tensor(
+            [task.logical_domain_bounds[name] for name in task.logical_domain_bounds],
+            dtype=torch.float32,
+            device=self.model.device,
         )
         device = self.model.device
         latent, _ = self.model.context_encoder.prior(device=device)
@@ -123,6 +130,8 @@ class OnlineMetaTest:
                     scene = self.model.universal_scene_policy.sample(
                         scene_embedding, encoding.candidate_embeddings,
                         encoding.candidate_mask, latent, deterministic,
+                        continuous_mask=torch.as_tensor(task.logical_parameter_mask, device=device),
+                        continuous_bounds=continuous_bounds,
                     )
             else:
                 provided = scene_action_provider(task, episode_index, candidates, space)
@@ -159,7 +168,9 @@ class OnlineMetaTest:
             candidate_embedding = encoding.candidate_embeddings[
                 int(scene.candidate_index.item())
             ].unsqueeze(0)
-            concrete_input = torch.cat((candidate_embedding, scene.continuous), dim=-1)
+            concrete_input = self.model.concrete_features(
+                candidate_embedding, scene.continuous, task.logical_parameter_mask
+            )
             def inner_action(state_values: np.ndarray) -> np.ndarray:
                 if inner_action_provider is not None:
                     return np.asarray(inner_action_provider(state_values), dtype=np.float32)
@@ -210,6 +221,8 @@ class OnlineMetaTest:
             reward = outer_reward(signature, novel=novelty.observe(signature))
             result.outer_rollout.add(OuterRolloutStep(
                 scene_embedding.cpu(), encoding.candidate_embeddings.cpu(), encoding.candidate_mask.cpu(),
+                torch.as_tensor(task.logical_parameter_mask, dtype=torch.bool),
+                continuous_bounds.cpu(),
                 latent.squeeze(0).cpu(), scene.expert_index.cpu(), scene.candidate_index.cpu(),
                 scene.continuous.squeeze(0).cpu(), scene.log_prob.cpu(),
                 scene.value.cpu(), reward, index + 1 == budget,
@@ -220,8 +233,8 @@ class OnlineMetaTest:
                     episode_id, task.task_id, None, task.geometry_hash,
                     row["state"], row["action"], row["reward_inner"], row["next_state"],
                     row["done"], tokens, candidates, dict(task.logical_domain_bounds),
-                    latent.squeeze(0).detach().cpu(),
-                    concrete_input.squeeze(0).detach().cpu(),
+                    task.logical_parameter_mask, latent.squeeze(0).detach().cpu(),
+                    int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),
                     np.asarray((row["state"][-1],), dtype=np.float32),
                 )
                 for row in rollout.transitions
@@ -229,8 +242,8 @@ class OnlineMetaTest:
             result.episodes.append(OnlineEpisode(
                 episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(),
                 latent_after.detach().cpu().clone(), tokens, candidates,
-                dict(task.logical_domain_bounds),
-                concrete_input.squeeze(0).detach().cpu(), outcome,
+                dict(task.logical_domain_bounds), task.logical_parameter_mask,
+                int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), outcome,
                 concrete,
             ))
             latent = latent_after

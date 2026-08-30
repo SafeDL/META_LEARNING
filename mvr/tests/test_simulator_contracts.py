@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 import numpy as np
 from metadrive.policy.idm_policy import IDMPolicy
@@ -251,6 +253,11 @@ def test_roundabout_entry_collision_is_inside_route_conflict_window() -> None:
         row for row in load_taskbook("mvr/configs/taskbook.json")
         if row.task_id == "roundabout-g04-fast_small_gap-interaction_core"
     )
+    task = replace(
+        task,
+        logical_domain_id="semantic_probe",
+        logical_domain_bounds={name: (-1.0, 1.0) for name in task.logical_domain_bounds},
+    )
     action = NormalizedScenarioAction(
         0,
         (
@@ -258,7 +265,7 @@ def test_roundabout_entry_collision_is_inside_route_conflict_window() -> None:
             -0.7125153541564941,
             -0.6000000238418579,
             -0.6000000238418579,
-            0.962175190448761,
+            0.0,
         ),
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(

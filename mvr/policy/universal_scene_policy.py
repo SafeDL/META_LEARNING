@@ -71,6 +71,38 @@ class UniversalScenePolicy(nn.Module):
         experts = [Normal(*expert(inputs)) for expert in self.experts]
         return router, candidates, experts, value
 
+    def _continuous_mask(
+        self, mask: torch.Tensor | None, batch_size: int, device: torch.device
+    ) -> torch.Tensor:
+        if mask is None:
+            return torch.ones((batch_size, self.continuous_dim), dtype=torch.bool, device=device)
+        value = torch.as_tensor(mask, dtype=torch.bool, device=device)
+        if value.ndim == 1:
+            value = value.unsqueeze(0)
+        if value.shape == (1, self.continuous_dim):
+            value = value.expand(batch_size, -1)
+        if value.shape != (batch_size, self.continuous_dim):
+            raise ValueError("continuous action mask must align with the policy batch")
+        return value
+
+    def _continuous_bounds(
+        self, bounds: torch.Tensor | None, batch_size: int, device: torch.device
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        if bounds is None:
+            value = torch.tensor([[-1.0, 1.0]] * self.continuous_dim, device=device)
+        else:
+            value = torch.as_tensor(bounds, dtype=torch.float32, device=device)
+        if value.ndim == 2:
+            value = value.unsqueeze(0)
+        if value.shape[0] == 1:
+            value = value.expand(batch_size, -1, -1)
+        if value.shape != (batch_size, self.continuous_dim, 2):
+            raise ValueError("continuous action bounds must align with the policy batch")
+        lower, upper = value[..., 0], value[..., 1]
+        if not torch.all(lower < upper):
+            raise ValueError("continuous action bounds must be ordered")
+        return lower, upper
+
     def sample(
         self,
         scene_embedding: torch.Tensor,
@@ -78,6 +110,8 @@ class UniversalScenePolicy(nn.Module):
         candidate_mask: torch.Tensor,
         latent: torch.Tensor,
         deterministic: bool = False,
+        continuous_mask: torch.Tensor | None = None,
+        continuous_bounds: torch.Tensor | None = None,
     ) -> UniversalSceneAction:
         router, candidates, experts, value = self._distributions(
             scene_embedding, candidate_embeddings, candidate_mask, latent
@@ -90,10 +124,15 @@ class UniversalScenePolicy(nn.Module):
         selected_scale = scales[torch.arange(len(expert_index), device=expert_index.device), expert_index]
         continuous = Normal(selected_mean, selected_scale)
         raw = continuous.mean if deterministic else continuous.rsample()
-        controls = raw.tanh()
+        mask = self._continuous_mask(continuous_mask, len(expert_index), raw.device)
+        lower, upper = self._continuous_bounds(continuous_bounds, len(expert_index), raw.device)
+        unit = raw.tanh()
+        controls = (lower + 0.5 * (unit + 1.0) * (upper - lower)) * mask
         log_prob = (
             router.log_prob(expert_index) + candidates.log_prob(candidate_index)
-            + continuous.log_prob(raw).sum(-1) - torch.log(1 - controls.square() + 1e-6).sum(-1)
+            + (continuous.log_prob(raw) * mask).sum(-1)
+            - (torch.log(1 - unit.square() + 1e-6) * mask).sum(-1)
+            - (torch.log(0.5 * (upper - lower)) * mask).sum(-1)
         )
         return UniversalSceneAction(expert_index, candidate_index, controls, log_prob, value)
 
@@ -106,6 +145,8 @@ class UniversalScenePolicy(nn.Module):
         expert_index: torch.Tensor,
         candidate_index: torch.Tensor,
         controls: torch.Tensor,
+        continuous_mask: torch.Tensor | None = None,
+        continuous_bounds: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         router, candidates, experts, value = self._distributions(
             scene_embedding, candidate_embeddings, candidate_mask, latent
@@ -116,10 +157,19 @@ class UniversalScenePolicy(nn.Module):
             means[torch.arange(len(expert_index), device=expert_index.device), expert_index],
             scales[torch.arange(len(expert_index), device=expert_index.device), expert_index],
         )
-        raw = torch.atanh(controls.clamp(-0.999999, 0.999999))
+        mask = self._continuous_mask(continuous_mask, len(expert_index), controls.device)
+        lower, upper = self._continuous_bounds(continuous_bounds, len(expert_index), controls.device)
+        unit = 2.0 * (controls - lower) / (upper - lower) - 1.0
+        raw = torch.atanh(unit.clamp(-0.999999, 0.999999))
         log_prob = (
             router.log_prob(expert_index) + candidates.log_prob(candidate_index)
-            + continuous.log_prob(raw).sum(-1) - torch.log(1 - controls.square() + 1e-6).sum(-1)
+            + (continuous.log_prob(raw) * mask).sum(-1)
+            - (torch.log(1 - unit.square() + 1e-6) * mask).sum(-1)
+            - (torch.log(0.5 * (upper - lower)) * mask).sum(-1)
         )
-        entropy = router.entropy() + candidates.entropy() + continuous.entropy().sum(-1)
+        entropy = (
+            router.entropy() + candidates.entropy()
+            + (continuous.entropy() * mask).sum(-1)
+            + (torch.log(0.5 * (upper - lower)) * mask).sum(-1)
+        )
         return log_prob, entropy, value

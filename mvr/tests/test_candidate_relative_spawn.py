@@ -15,7 +15,7 @@ def test_candidate_relative_spawn_round_trips_the_outer_distance_controls() -> N
         if row.task_id == "roundabout-g04-fast_small_gap-interaction_core"
     )
     space = mvr_parameter_spaces()[task.functional_scenario]
-    action = NormalizedScenarioAction(2, (-0.4, 0.6, 0.0, 0.0, 0.0))
+    action = NormalizedScenarioAction(2, (0.1, 0.2, 0.0, 0.0, 0.0))
     executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
     episode = executor.reset(task, action)
     try:
@@ -24,12 +24,12 @@ def test_candidate_relative_spawn_round_trips_the_outer_distance_controls() -> N
         candidate = candidates[action.candidate_index]
         assert scenario.normalized_continuous == action.continuous
         assert scenario.adversary_distance_to_conflict_m == pytest.approx(
-            candidate.adversary_distance_min_m + 0.3 * (
+            candidate.adversary_distance_min_m + 0.55 * (
                 candidate.adversary_distance_available_m - candidate.adversary_distance_min_m
             )
         )
         assert scenario.sut_distance_to_conflict_m == pytest.approx(
-            candidate.sut_distance_min_m + 0.8 * (
+            candidate.sut_distance_min_m + 0.6 * (
                 candidate.sut_distance_available_m - candidate.sut_distance_min_m
             )
         )

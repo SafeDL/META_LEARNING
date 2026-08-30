@@ -53,8 +53,9 @@ learning signal only.
 ## Evidence protocol
 
 Reachability uses its own residual probe and is never reused as training or
-evaluation data. The headroom casebook accepts only Base episodes that are
-legal, challenge-active and not already valid-critical.
+evaluation data. The calibration-SUT casebook accepts validation-SUT Base
+episodes that are legal, challenge-active and not already valid-critical. Its
+provenance is retained, but it is not a Base-safe claim about test SUTs.
 
 The formal score is fixed before evaluation: valid target collision is `1`,
 valid critical near-miss is `0.5`, otherwise `0`.
@@ -70,15 +71,17 @@ Both compare Base, random residual, shared prior and adapted `h+z` Inner. The
 ablation matrix is state-only, state+`h`, state+`z`, and state+`h+z`; all four
 receive the same concrete scenario input.
 
-Formal claims require paired query provenance, lower invalidity than the
-allowed baseline bound, and a pre-registered positive adaptation gain on
-unseen SUT × unseen Logical domain tasks. This stage does not claim topology
+Formal claims require three paired simulator seeds, query-level provenance,
+paired-bootstrap confidence intervals for adapted-minus-prior and
+adapted-minus-Base deltas, lower invalidity than the allowed baseline bound,
+and a pre-registered positive adaptation gain on unseen SUT × unseen Logical
+domain tasks. This stage does not claim topology
 OOD or Outer-policy benefit.
 
 ## Commands
 
 ```powershell
 conda run -n metadrive python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
-conda run -n metadrive python -m mvr.scripts.build_headroom_casebook --config mvr/configs/mvr.yaml --output results/mvr/headroom_casebook.json
-conda run -n metadrive python -m mvr.scripts.evaluate_inner_fewshot --config mvr/configs/mvr.yaml --checkpoint results/mvr/run/context_meta.pt --casebook results/mvr/headroom_casebook.json --protocol adaptation_quality --output results/mvr/adaptation_quality.json
+conda run -n metadrive python -m mvr.scripts.build_calibration_casebook --config mvr/configs/mvr.yaml --output results/mvr/calibration_casebook.json
+conda run -n metadrive python -m mvr.scripts.evaluate_inner_fewshot --config mvr/configs/mvr.yaml --checkpoint results/mvr/run/context_meta.pt --casebook results/mvr/calibration_casebook.json --protocol adaptation_quality --output results/mvr/adaptation_quality.json
 ```

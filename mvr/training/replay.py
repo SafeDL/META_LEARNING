@@ -22,8 +22,10 @@ class InnerTransition:
     map_tokens: Any
     interactions: tuple[Any, ...]
     logical_domain_bounds: Mapping[str, tuple[float, float]]
+    logical_parameter_mask: tuple[bool, ...]
     latent: torch.Tensor
-    concrete: torch.Tensor
+    candidate_index: int
+    continuous: tuple[float, ...]
     schedule_state: Any
 
 
@@ -112,6 +114,8 @@ class OuterRolloutStep:
     scene_embedding: torch.Tensor
     candidate_embeddings: torch.Tensor
     candidate_mask: torch.Tensor
+    continuous_mask: torch.Tensor
+    continuous_bounds: torch.Tensor
     latent: torch.Tensor
     expert_index: torch.Tensor
     candidate: torch.Tensor
@@ -161,6 +165,8 @@ class OuterRolloutBuffer:
                 "candidate_mask": torch.nn.utils.rnn.pad_sequence(
                     [row.candidate_mask for row in rows], batch_first=True, padding_value=False
                 ),
+                "continuous_mask": torch.stack([row.continuous_mask for row in rows]),
+                "continuous_bounds": torch.stack([row.continuous_bounds for row in rows]),
                 "latent": torch.stack([row.latent for row in rows]),
                 "expert": torch.stack([row.expert_index for row in rows]).long().reshape(-1),
                 "candidate": torch.stack([row.candidate for row in rows]).long().reshape(-1),

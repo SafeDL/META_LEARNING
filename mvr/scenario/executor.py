@@ -14,7 +14,7 @@ from .interaction import InteractionCandidate
 from .parameter_space import NormalizedScenarioAction, ParameterSpace
 from .roles import spawn_sut
 from .route_geometry import RoutePolyline
-from .task_spec import ScenarioMiningTaskSpec
+from .task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
 
 
 class ScenarioAdapter(Protocol):
@@ -123,6 +123,27 @@ class ScenarioExecutor:
         return task.adapter_id, task.geometry_hash
 
     @staticmethod
+    def _assert_task_domain(
+        task: ScenarioMiningTaskSpec,
+        action: NormalizedScenarioAction,
+        space: ParameterSpace,
+    ) -> None:
+        """Make task-local Logical bounds the final execution authority."""
+        action.validate(space.continuous_dim)
+        if space.continuous_dim != len(LOGICAL_PARAMETER_NAMES):
+            raise RuntimeError("scenario parameter space no longer matches task Logical schema")
+        for name, active, value in zip(
+            LOGICAL_PARAMETER_NAMES, task.logical_parameter_mask, action.continuous
+        ):
+            if not active:
+                if not np.isclose(float(value), 0.0, atol=1e-6):
+                    raise ValueError(f"inactive Logical parameter {name!r} must be zero")
+                continue
+            lower, upper = task.logical_domain_bounds[name]
+            if not float(lower) <= float(value) <= float(upper):
+                raise ValueError(f"{name} is outside task Logical domain")
+
+    @staticmethod
     def _resolve_spawn_config(
         adapter: ScenarioAdapter,
         cached: _CachedLayout,
@@ -205,6 +226,7 @@ class ScenarioExecutor:
             adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario]
         except KeyError as error:
             raise ValueError(f"no executable contract for task {task.task_id}") from error
+        self._assert_task_domain(task, action, space)
         config = space.decode(action)
         static = self._static_scene(task)
         candidate = str(config["route_or_conflict_candidate"])

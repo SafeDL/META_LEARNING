@@ -1,4 +1,4 @@
-"""No-learning residual reachability probe, separate from headroom evaluation."""
+"""No-learning residual reachability probe, separate from calibration-casebook evaluation."""
 from __future__ import annotations
 
 import argparse
