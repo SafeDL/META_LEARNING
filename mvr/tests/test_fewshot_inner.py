@@ -12,6 +12,7 @@ from mvr.evaluation.fewshot_inner import (
     valid_critical_score,
 )
 from mvr.model import TransferableScenarioMiner
+from mvr.state import PhysicalStateExtractor
 from mvr.training.calibration_casebook import (
     CalibrationCase,
     CalibrationCasebook,
@@ -46,11 +47,11 @@ def test_support_groups_are_episode_level_and_disjoint() -> None:
 
 
 def test_actor_stops_context_gradient_but_critic_keeps_it() -> None:
-    model = TransferableScenarioMiner(state_dim=11, map_dim=8, latent_dim=4)
+    model = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8, latent_dim=4)
     support = torch.randn(1, 2, 128)
     mask = torch.ones(1, 2, dtype=torch.bool)
     latent, _ = model.infer_posterior(support, mask)
-    state = torch.randn(1, 11)
+    state = torch.randn(1, PhysicalStateExtractor.dimension)
     scene = torch.randn(1, 8)
     concrete = torch.randn(1, 18)
 
@@ -70,8 +71,8 @@ def test_actor_stops_context_gradient_but_critic_keeps_it() -> None:
 
 
 def test_concrete_candidate_changes_inner_features() -> None:
-    model = TransferableScenarioMiner(state_dim=11, map_dim=8, latent_dim=4)
-    state, scene, latent = torch.zeros(1, 11), torch.zeros(1, 8), torch.zeros(1, 4)
+    model = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8, latent_dim=4)
+    state, scene, latent = torch.zeros(1, PhysicalStateExtractor.dimension), torch.zeros(1, 8), torch.zeros(1, 4)
     left = torch.cat((torch.tensor([[1.0] + [0.0] * 7]), torch.zeros(1, 10)), dim=-1)
     right = torch.cat((torch.tensor([[0.0, 1.0] + [0.0] * 6]), torch.zeros(1, 10)), dim=-1)
     assert not torch.allclose(
@@ -81,7 +82,7 @@ def test_concrete_candidate_changes_inner_features() -> None:
 
 
 def test_logical_domain_bounds_are_part_of_observable_task_structure() -> None:
-    model = TransferableScenarioMiner(state_dim=11, map_dim=8, latent_dim=4)
+    model = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8, latent_dim=4)
     scene = torch.zeros(8)
     narrow = {name: (-0.2, 0.2) for name in (
         "adversary_distance_to_conflict_m", "sut_distance_to_conflict_m",

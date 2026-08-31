@@ -19,6 +19,7 @@ def spawn_sut(
     seed: int,
     speed_limit_mps: float,
     nominal_speed_mps: float,
+    vehicle_config: dict[str, float] | None = None,
 ) -> Any:
     from metadrive.component.vehicle.vehicle_type import TrafficDefaultVehicle
 
@@ -29,6 +30,7 @@ def spawn_sut(
     vehicle = manager.spawn_object(TrafficDefaultVehicle, vehicle_config={
         "spawn_lane_index": lane_index, "spawn_longitude": float(longitudinal_m), "spawn_lateral": 0.0,
         "destination": destination, "enable_reverse": False,
+        **(vehicle_config or {}),
     })
     manager._traffic_vehicles.append(vehicle)
     adapter.attach(

@@ -32,4 +32,4 @@ def test_logical_domain_intervals_are_numerically_disjoint_on_active_dimensions(
                     left_bounds = left.logical_domain_bounds[name]
                     right_bounds = right.logical_domain_bounds[name]
                     assert max(left_bounds[0], right_bounds[0]) > min(left_bounds[1], right_bounds[1])
-        assert train.logical_parameter_mask[-1] is (family == "cutin")
+        assert len(train.logical_parameter_mask) == (4 if family == "cutin" else 5)

@@ -19,6 +19,9 @@ INNER_STATE_FIELDS = (
     "sut_route_progress",
     "conflict_timing_s",
     "challenge_phase_active",
+    "adversary_route_lateral_m",
+    "adversary_route_heading_error_rad",
+    "maneuver_started",
 )
 
 
@@ -27,7 +30,7 @@ class PhysicalStateExtractor:
 
     dimension = len(INNER_STATE_FIELDS)
     scales = np.asarray(
-        (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0),
+        (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 8.0, np.pi, 1.0),
         dtype=np.float32,
     )
 
@@ -94,5 +97,8 @@ class PhysicalStateExtractor:
             self._eta(self._adversary_conflict_s - adversary_projection.s_m, adversary_speed)
             - self._eta(self._sut_conflict_s - sut_projection.s_m, sut_speed),
             challenge_phase,
+            adversary_projection.lateral_m,
+            adversary_projection.heading_error,
+            0.0 if schedule is None else float(schedule.maneuver_latched),
         ), dtype=np.float32)
         return np.clip(np.nan_to_num(values / self.scales, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)

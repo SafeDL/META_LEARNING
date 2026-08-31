@@ -36,13 +36,7 @@ class ConcreteScenario:
         return cls(
             task.geometry_id, task.geometry_hash, task.geometry_seed, applied.selected_candidate,
             applied.conflict_zone_id,
-            {
-                "adversary_distance_to_conflict_m": applied.adversary_distance_to_conflict_m,
-                "sut_distance_to_conflict_m": applied.sut_distance_to_conflict_m,
-                "adversary_initial_speed_mps": applied.adversary_speed_mps,
-                "sut_initial_speed_mps": applied.sut_speed_mps,
-                "maneuver_onset_progress": applied.maneuver_onset_progress,
-            },
+            dict(applied.logical_parameters),
             inner_policy_hash, applied.normalized_continuous,
             latent_values,
             episode_seed,

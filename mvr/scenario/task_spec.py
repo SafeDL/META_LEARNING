@@ -9,13 +9,31 @@ from typing import Any, Mapping
 TASK_SCHEMA = "transferable_scenario_task"
 SPLITS = frozenset({"train", "validation", "test"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
-LOGICAL_PARAMETER_NAMES = (
+INTERACTION_LOGICAL_PARAMETER_NAMES = (
     "adversary_distance_to_conflict_m",
     "sut_distance_to_conflict_m",
     "adversary_initial_speed_mps",
     "sut_initial_speed_mps",
     "maneuver_onset_progress",
 )
+CUTIN_LOGICAL_PARAMETER_NAMES = (
+    "initial_gap_m",
+    "sut_initial_speed_mps",
+    "relative_speed_mps",
+    "cutin_onset_time_s",
+)
+# Kept as the public default for Merge and Roundabout callers.  Cut-in must
+# explicitly request its own schema rather than silently borrowing conflict
+# point coordinates.
+LOGICAL_PARAMETER_NAMES = INTERACTION_LOGICAL_PARAMETER_NAMES
+
+
+def logical_parameter_names(family: str) -> tuple[str, ...]:
+    if family == "cutin":
+        return CUTIN_LOGICAL_PARAMETER_NAMES
+    if family in {"merge", "roundabout"}:
+        return INTERACTION_LOGICAL_PARAMETER_NAMES
+    raise ValueError(f"unsupported scenario family: {family!r}")
 
 
 @dataclass(frozen=True)
@@ -57,13 +75,14 @@ class ScenarioMiningTaskSpec:
             self.sut_split, self.geometry_split, self.logical_split, self.functional_split,
         )):
             raise ValueError("task split axes must be train, validation, or test")
-        if tuple(self.logical_domain_bounds) != LOGICAL_PARAMETER_NAMES:
+        names = logical_parameter_names(self.functional_scenario)
+        if tuple(self.logical_domain_bounds) != names:
             raise ValueError("logical domain bounds must use the canonical parameter order")
-        if len(self.logical_parameter_mask) != len(LOGICAL_PARAMETER_NAMES):
+        if len(self.logical_parameter_mask) != len(names):
             raise ValueError("logical parameter mask must match the canonical parameter count")
         if not all(isinstance(value, bool) for value in self.logical_parameter_mask):
             raise ValueError("logical parameter mask must contain booleans")
-        for name in LOGICAL_PARAMETER_NAMES:
+        for name in names:
             bounds = self.logical_domain_bounds[name]
             if len(bounds) != 2:
                 raise ValueError("logical domain bounds must contain named intervals")
@@ -74,7 +93,9 @@ class ScenarioMiningTaskSpec:
     @property
     def active_logical_parameter_names(self) -> tuple[str, ...]:
         return tuple(
-            name for name, active in zip(LOGICAL_PARAMETER_NAMES, self.logical_parameter_mask)
+            name for name, active in zip(
+                logical_parameter_names(self.functional_scenario), self.logical_parameter_mask
+            )
             if active
         )
 

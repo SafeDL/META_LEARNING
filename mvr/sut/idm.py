@@ -7,6 +7,7 @@ from typing import Any, Mapping
 import numpy as np
 from metadrive.policy.idm_policy import FrontBackObjects, IDMPolicy
 
+from ..safety.dynamics import VehicleActionProjector
 from .base import ControllerProfile
 
 
@@ -21,6 +22,9 @@ class LaneStableNativeIDMPolicy(IDMPolicy):
 
     NOMINAL_SPEED_MPS = IDMPolicy.NORMAL_SPEED / 3.6
     COMFORTABLE_LATERAL_ACCELERATION_MPS2 = 1.5
+
+    def configure_dynamics(self, projector: VehicleActionProjector | None) -> None:
+        self.action_projector = projector
 
     def configure_speed(
         self,
@@ -84,10 +88,14 @@ class LaneStableNativeIDMPolicy(IDMPolicy):
             self.control_object.position,
             max_distance=self.MAX_LONG_DIST,
         )
-        action = [
+        raw_action = [
             self.steering_control(target_lane),
             self.acceleration(surrounding.front_object(), surrounding.front_min_distance()),
         ]
+        projector = getattr(self, "action_projector", None)
+        action = raw_action if projector is None else projector.project(raw_action).tolist()
+        self.action_info["raw_action"] = raw_action
+        self.action_info["executed_action"] = action
         self.action_info["action"] = action
         return action
 
@@ -116,6 +124,10 @@ class IDMSUTAdapter:
         )
         policy = env.engine.get_policy(vehicle.id)
         policy.configure_speed(profile.speed_ratio, speed_limit_mps, nominal_speed_mps)
+        policy.configure_dynamics(
+            VehicleActionProjector(vehicle, speed_limit_mps)
+            if float(vehicle.config.get("max_engine_force", 0.0)) == 825.0 else None
+        )
         # Stage 1 uses lane-stable SUT routes.  Keep the tested controller
         # longitudinal-only so its response remains interpretable.
         policy.enable_lane_change = False

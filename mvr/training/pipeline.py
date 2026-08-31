@@ -13,6 +13,7 @@ import numpy as np
 import torch
 import yaml
 
+from ..experiments.cutin_inner import expand_cutin_training_domains
 from ..failure.criteria import FailureCriteria
 from ..model import TransferableScenarioMiner
 from ..provenance import content_hash
@@ -39,6 +40,8 @@ CHECKPOINT_CONFIG_KEYS = (
     "context_meta",
     "outer",
     "training",
+    "cutin_inner",
+    "evaluation",
 )
 CANONICAL_STAGES = CANONICAL_TRAINING_STAGES
 
@@ -108,10 +111,10 @@ def assert_taskbook_compatible(checkpoint: HierarchicalCheckpoint, taskbook: str
 def load_config(path: str | Path) -> tuple[dict[str, Any], Path, torch.device]:
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     control = config.get("control", {})
-    if control.get("action_schema") != "vehicle_residual_2d":
-        raise ValueError("config must declare vehicle_residual_2d")
-    if control.get("nominal_controller_schema") != "metadrive_lane_stable_idm":
-        raise ValueError("config must declare metadrive_lane_stable_idm")
+    if control.get("action_schema") != "vehicle_direct_2d":
+        raise ValueError("config must declare vehicle_direct_2d")
+    if control.get("nominal_controller_schema") != "none":
+        raise ValueError("config must declare nominal_controller_schema: none")
     if control.get("scenario_contract_schema") != SCENARIO_CONTRACT_SCHEMA:
         raise ValueError(f"config must declare {SCENARIO_CONTRACT_SCHEMA}")
     taskbook = Path(config["taskbook"])
@@ -146,7 +149,9 @@ def selected_tasks(
 
 
 def build_model(config: dict[str, Any], device: torch.device) -> TransferableScenarioMiner:
-    space = next(iter(mvr_parameter_spaces().values()))
+    spaces = mvr_parameter_spaces()
+    family = str(config["training"].get("family_filter", "all"))
+    space = spaces[family] if family in spaces else next(iter(spaces.values()))
     return TransferableScenarioMiner(
         state_dim=int(config["model"].get("state_dim", PhysicalStateExtractor.dimension)),
         map_dim=int(config["map"].get("embedding_dim", 128)),
@@ -288,6 +293,19 @@ class MVRTrainingPipeline:
         output_path = Path(output)
         output_path.mkdir(parents=True, exist_ok=True)
         tasks = selected_tasks(self.config, self.taskbook, "train", "train", "train")
+        cutin_inner = self.config.get("cutin_inner")
+        if cutin_inner is not None:
+            training_suts = tuple(str(value) for value in cutin_inner.get("training_sut_refs", ()))
+            training_geometries = tuple(
+                str(value) for value in cutin_inner.get("training_geometry_ids", ())
+            )
+            if training_suts:
+                tasks = [task for task in tasks if task.sut_ref in training_suts]
+            if training_geometries:
+                tasks = [task for task in tasks if task.geometry_id in training_geometries]
+            tasks = expand_cutin_training_domains(
+                tasks, cutin_inner["training_logical_domains"],
+            )
         start = self._load_resume(resume)
         if start == len(CANONICAL_STAGES):
             raise ValueError("the resume checkpoint already completed the canonical pipeline")
@@ -301,6 +319,10 @@ class MVRTrainingPipeline:
             stop_index = CANONICAL_STAGES.index(stop_stage)
             if stop_index < start:
                 raise ValueError("stop-after stage precedes the resume checkpoint")
+        if cutin_inner is not None and not bool(cutin_inner.get("allow_outer", False)):
+            outer_index = CANONICAL_STAGES.index(TrainingStage.OUTER)
+            if stop_index >= outer_index:
+                raise ValueError("Cut-in Inner experiment forbids Outer training")
         records = []
         predecessor = Path(resume) if resume is not None else None
         for index, stage in enumerate(CANONICAL_STAGES[start:stop_index + 1], start=start):

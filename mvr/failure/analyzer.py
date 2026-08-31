@@ -53,18 +53,18 @@ def analyze_rollout(
     outcome["event_kind"] = event_info.get("event_kind")
     outcome["event_semantic_valid"] = bool(event_info.get("event_semantic_valid", False))
     outcome["event_traffic_valid"] = bool(event_info.get("event_traffic_valid", False))
-    traffic_infos = [info for info in infos if "traffic_base_action" in info]
+    traffic_infos = [info for info in infos if "traffic_requested_action" in info]
     if traffic_infos:
         final_traffic = traffic_infos[-1]
         outcome["traffic_telemetry"] = {
-            "base_actions": [list(info["traffic_base_action"]) for info in traffic_infos],
-            "candidate_actions": [list(info["traffic_candidate_action"]) for info in traffic_infos],
+            "requested_actions": [list(info["traffic_requested_action"]) for info in traffic_infos],
             "executed_actions": [list(info["traffic_executed_action"]) for info in traffic_infos],
             "shield_intervention_l2": [
                 float(info["traffic_shield_intervention_l2"]) for info in traffic_infos
             ],
             "rejection_counts": dict(final_traffic["traffic_rejection_counts"]),
             "violation_counts": dict(final_traffic["traffic_violation_counts"]),
+            "warning_counts": dict(final_traffic.get("traffic_warning_counts", {})),
             "max_speed_mps": float(final_traffic["traffic_max_speed_mps"]),
             "max_abs_acceleration_mps2": float(final_traffic["traffic_max_abs_acceleration_mps2"]),
             "max_abs_jerk_mps3": float(final_traffic["traffic_max_abs_jerk_mps3"]),

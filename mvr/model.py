@@ -17,7 +17,6 @@ from .policy.adversarial_sac import AdversarialSAC
 from .policy.shared_features import SharedFeatureEncoder
 from .policy.universal_scene_policy import UniversalSceneAction, UniversalScenePolicy
 from .scenario.interaction import InteractionCandidate
-from .scenario.task_spec import LOGICAL_PARAMETER_NAMES
 from .state import PhysicalStateExtractor
 from .training.updates import posterior_elbo
 
@@ -91,7 +90,7 @@ class TransferableScenarioMiner(nn.Module):
         mask = [bool(value) for value in logical_parameter_mask]
         values = [
             float(value) * float(active)
-            for name, active in zip(LOGICAL_PARAMETER_NAMES, mask)
+            for name, active in zip(logical_domain_bounds, mask)
             for value in logical_domain_bounds[name]
         ]
         if len(values) != 2 * self.continuous_dim or len(mask) != self.continuous_dim:

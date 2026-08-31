@@ -32,17 +32,19 @@ class ScenarioActionAdapter:
         )
         return float(np.clip(projection.s_m / max(route.length_m, 1e-6), 0.0, 1.0))
 
+    def _elapsed_seconds(self) -> float:
+        seconds_per_step = float(self.episode.env.config["physics_world_step_size"])
+        seconds_per_step *= int(self.episode.env.config["decision_repeat"])
+        return float(self.episode.env.episode_step) * seconds_per_step
+
     def update(self) -> ManeuverScheduleState:
         """Advance a contract-defined maneuver without Inner action semantics."""
         self.state.maneuver_progress = self._route_progress()
-        contract = self.episode.layout.traffic_contract
         if self.family == "cutin" and not self.state.maneuver_latched:
-            start, end = contract.merge_window_s
-            onset = start + (end - start) * float(
-                self.episode.applied_scenario.maneuver_onset_progress
+            onset = float(
+                self.episode.applied_scenario.logical_parameters["cutin_onset_time_s"]
             )
-            route_s = self.state.maneuver_progress * self.episode.adversary_route.length_m
-            if route_s >= onset:
+            if self._elapsed_seconds() >= onset:
                 self.state.maneuver_latched = True
         return self.state
 

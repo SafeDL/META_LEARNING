@@ -24,9 +24,13 @@ def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
         }
 
     cutin = {
-        **common(20.0),
-        "adversary_distance_to_conflict_m": (20.0, 80.0),
-        "sut_distance_to_conflict_m": (20.0, 80.0),
+        # A Cut-in is specified in the two vehicles' shared longitudinal
+        # frame.  It has no fixed conflict point: the route merely provides
+        # a legal lane-change corridor.
+        "initial_gap_m": (6.0, 28.0),
+        "sut_initial_speed_mps": (7.0, 13.0),
+        "relative_speed_mps": (-3.0, 5.0),
+        "cutin_onset_time_s": (0.8, 2.8),
     }
     return {
         "merge": ParameterSpace(

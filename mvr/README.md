@@ -15,11 +15,11 @@ by `h`. A task then contains many concrete scenarios
 
 ```text
 support trajectories -> z
-h + c + physical interaction state + z -> Inner SAC residual
-native nominal controller -> traffic shield -> semantic monitor
+h + c + physical interaction state + z -> Inner SAC direct vehicle action
+physical traffic shield -> semantic monitor
 ```
 
-The Inner action is always `[delta steering, delta acceleration]`. Candidate
+The Inner action is always `[steering, throttle/brake]`. Candidate
 and Logical parameters define the concrete scenario; no artificial behavior
 option or profile is part of the policy interface.
 

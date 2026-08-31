@@ -8,7 +8,7 @@ import numpy as np
 
 from ..evaluation.baselines import low_discrepancy_samples
 from ..scenario.parameter_space import NormalizedScenarioAction, ParameterSpace
-from ..scenario.task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
+from ..scenario.task_spec import logical_parameter_names, ScenarioMiningTaskSpec
 
 
 @dataclass(frozen=True)
@@ -69,7 +69,8 @@ class PretrainSceneSampler:
         controls = np.asarray(rows[sequence_index], dtype=np.float32)
         candidate = candidates[candidate_index]
         controls = self._domain_controls(task, controls)
-        controls = self._interaction_aligned_controls(task, candidate, space, controls)
+        if task.functional_scenario != "cutin":
+            controls = self._interaction_aligned_controls(task, candidate, space, controls)
         # The first two controls remain candidate-relative spawn fractions.
         # The executor maps them into the selected route's exact feasible
         # interval; re-encoding through global metre bounds would silently
@@ -83,22 +84,24 @@ class PretrainSceneSampler:
     ) -> np.ndarray:
         values = np.asarray(controls, dtype=np.float32).copy()
         bounds = getattr(task, "logical_domain_bounds", {})
+        names = logical_parameter_names(task.functional_scenario)
         mask = getattr(task, "logical_parameter_mask", (True,) * len(values))
         for index in range(len(values)):
             if not bool(mask[index]):
                 values[index] = 0.0
                 continue
-            lower, upper = (float(value) for value in bounds.get(LOGICAL_PARAMETER_NAMES[index], (-1.0, 1.0)))
+            lower, upper = (float(value) for value in bounds.get(names[index], (-1.0, 1.0)))
             values[index] = lower + 0.5 * (float(values[index]) + 1.0) * (upper - lower)
         return values
 
     @staticmethod
     def _allowed_controls(task: ScenarioMiningTaskSpec, index: int) -> tuple[float, float]:
-        mask = getattr(task, "logical_parameter_mask", (True,) * len(LOGICAL_PARAMETER_NAMES))
+        names = logical_parameter_names(task.functional_scenario)
+        mask = getattr(task, "logical_parameter_mask", (True,) * len(names))
         if not bool(mask[index]):
             return 0.0, 0.0
         bounds = getattr(task, "logical_domain_bounds", {})
-        return tuple(float(value) for value in bounds.get(LOGICAL_PARAMETER_NAMES[index], (-1.0, 1.0)))
+        return tuple(float(value) for value in bounds.get(names[index], (-1.0, 1.0)))
 
     def _interaction_aligned_controls(
         self,

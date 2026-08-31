@@ -96,3 +96,43 @@ def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
         sut_distance / config["sut_initial_speed_mps"]
         - adversary_distance / config["adversary_initial_speed_mps"]
     ) == pytest.approx(1.5)
+
+
+def test_pretrain_scene_sampler_accepts_cutin_accident_search_eta_offset() -> None:
+    names = (
+        "adversary_distance_to_conflict_m", "sut_distance_to_conflict_m",
+        "adversary_initial_speed_mps", "sut_initial_speed_mps",
+        "maneuver_onset_progress",
+    )
+    task = SimpleNamespace(
+        task_id="cutin-task", functional_scenario="cutin",
+        logical_domain_bounds={name: (-0.25, 0.25) for name in names},
+        logical_parameter_mask=(True, True, True, True, False),
+    )
+    space = ParameterSpace(
+        "sampling-test", ("candidate-0",),
+        {
+            "adversary_distance_to_conflict_m": (0.5, 5.0),
+            "sut_distance_to_conflict_m": (0.5, 5.0),
+            "adversary_initial_speed_mps": (4.0, 18.0),
+            "sut_initial_speed_mps": (4.0, 18.0),
+            "maneuver_onset_progress": (0.2, 0.8),
+        },
+    )
+    candidate = SimpleNamespace(
+        adversary_distance_min_m=0.0,
+        adversary_distance_available_m=26.0,
+        sut_distance_min_m=0.0,
+        sut_distance_available_m=26.0,
+    )
+    action = PretrainSceneSampler(
+        (task,), episodes_per_task=1, seed=11,
+        eta_offsets_s={"cutin": 0.0},
+    )(task, 0, (candidate,), space)
+    config = space.decode(action)
+    adversary_distance = 0.5 * (action.continuous[0] + 1.0) * 26.0
+    sut_distance = 0.5 * (action.continuous[1] + 1.0) * 26.0
+    assert (
+        sut_distance / config["sut_initial_speed_mps"]
+        - adversary_distance / config["adversary_initial_speed_mps"]
+    ) == pytest.approx(0.0, abs=1e-6)

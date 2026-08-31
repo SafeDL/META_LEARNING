@@ -19,9 +19,12 @@ from mvr.sut.idm import LaneStableNativeIDMPolicy
 def test_initial_speed_bounds_follow_family_traffic_contract() -> None:
     spaces = mvr_parameter_spaces()
     assert spaces["merge"].bounds["adversary_initial_speed_mps"][1] == 18.0
-    assert spaces["cutin"].bounds["adversary_initial_speed_mps"][1] == 20.0
+    assert spaces["cutin"].bounds["sut_initial_speed_mps"] == (7.0, 13.0)
+    assert spaces["cutin"].bounds["relative_speed_mps"] == (-3.0, 5.0)
     assert spaces["roundabout"].bounds["adversary_initial_speed_mps"][1] == 6.5
-    for space in spaces.values():
+    for family, space in spaces.items():
+        if family == "cutin":
+            continue
         assert space.bounds["sut_initial_speed_mps"][1] == space.bounds[
             "adversary_initial_speed_mps"
         ][1]
@@ -33,8 +36,9 @@ def test_runtime_geometry_hash_and_sut_attachment(family: str) -> None:
         row for row in load_taskbook("mvr/configs/taskbook.json")
         if row.functional_scenario == family and row.geometry_split == "train"
     )
+    space = mvr_parameter_spaces()[family]
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
-            task, NormalizedScenarioAction(0, (0.0,) * 5), episode_seed=999
+        task, NormalizedScenarioAction(0, (0.0,) * space.continuous_dim), episode_seed=999
     )
     try:
         assert episode.map_tokens.map_hash == task.geometry_hash
@@ -55,9 +59,10 @@ def test_idm_sut_stays_on_its_declared_route_centerline(family: str) -> None:
         row for row in load_taskbook("mvr/configs/taskbook.json")
         if row.functional_scenario == family and row.geometry_split == "train"
     )
+    space = mvr_parameter_spaces()[family]
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-            NormalizedScenarioAction(0, (0.0,) * 5),
+        NormalizedScenarioAction(0, (0.0,) * space.continuous_dim),
         episode_seed=999,
     )
     lateral_errors: list[float] = []

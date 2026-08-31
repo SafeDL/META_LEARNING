@@ -133,15 +133,33 @@ def test_failure_threshold_config_changes_failure_decision_and_inner_reward() ->
     assert InnerRiskReward(broad)(features, {}) > InnerRiskReward(strict)(features, {})
 
 
-def test_inner_reward_prefers_critical_interaction_over_direct_impact() -> None:
+def test_inner_reward_prefers_a_valid_target_collision_over_dense_criticality() -> None:
     criteria = FailureCriteria.from_config(
         {"severity_thresholds": {"ttc_s": 3.0, "distance_m": 5.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
     )
     critical = np.zeros(12, dtype=np.float32)
     critical[8], critical[10] = 3.0 / 15.0, 5.0 / 100.0
     impact = np.zeros(12, dtype=np.float32)
+    impact[8], impact[10] = 1.0 / 15.0, 1.0 / 100.0
     reward = InnerRiskReward(criteria)
-    assert reward(critical, {}) > reward(impact, {})
+    collision = reward(impact, {
+        "valid_target_collision": True,
+        "event_just_captured": True,
+        "event_kind": "collision",
+        "event_semantic_valid": True,
+        "event_traffic_valid": True,
+    })
+    assert collision > reward(critical, {})
+
+
+def test_inner_reward_is_monotone_toward_contact_inside_challenge_corridor() -> None:
+    reward = InnerRiskReward(FailureCriteria(5.0, 10.0, 20.0, 5))
+    far = np.zeros(12, dtype=np.float32)
+    far[8], far[10] = 4.0 / 15.0, 8.0 / 100.0
+    close = np.zeros(12, dtype=np.float32)
+    close[8], close[10] = 1.0 / 15.0, 2.0 / 100.0
+    info = {"semantic_challenge_phase_active": True}
+    assert reward(close, info) > reward(far, info)
 
 
 def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
@@ -192,3 +210,25 @@ def test_inner_reward_uses_dense_signal_only_inside_the_challenge_corridor() -> 
     features = np.zeros(12, dtype=np.float32)
     assert reward(features, {"semantic_challenge_phase_active": False}) < 0.0
     assert reward(features, {"semantic_challenge_phase_active": True}) > 0.0
+
+
+def test_inner_reward_preserves_pre_onset_forward_motion_without_event_bonus() -> None:
+    reward = InnerRiskReward(FailureCriteria(5.0, 10.0, 20.0, 5))
+    features = np.ones(12, dtype=np.float32)
+    stopped = reward(
+        features,
+        {
+            "semantic_challenge_phase_active": False,
+            "adversary_speed_mps": 0.0,
+            "speed_limit_mps": 20.0,
+        },
+    )
+    moving = reward(
+        features,
+        {
+            "semantic_challenge_phase_active": False,
+            "adversary_speed_mps": 10.0,
+            "speed_limit_mps": 20.0,
+        },
+    )
+    assert moving > stopped

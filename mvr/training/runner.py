@@ -6,7 +6,7 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
-from ..control import NativeAdversaryBaseController
+from ..control import DirectSACAdversaryController, NativeAdversaryBaseController
 from ..failure.analyzer import analyze_rollout
 from ..failure.criteria import DEFAULT_FAILURE_CRITERIA, FailureCriteria
 from ..failure.inner_reward import InnerRiskReward
@@ -60,7 +60,11 @@ class HierarchicalRunner:
         reward_fn = reward_fn or InnerRiskReward(self.criteria)
         state_extractor = PhysicalStateExtractor()
         schedule = ScenarioActionAdapter(episode, scenario_family)
-        controller = NativeAdversaryBaseController(episode, scenario_family, schedule)
+        controller = (
+            DirectSACAdversaryController(episode, scenario_family, schedule)
+            if scenario_family == "cutin"
+            else NativeAdversaryBaseController(episode, scenario_family, schedule)
+        )
         shield = TrafficActionShield(episode, schedule)
         monitor = ScenarioSemanticMonitor(episode, scenario_family, schedule)
         max_steps = max(
@@ -71,14 +75,18 @@ class HierarchicalRunner:
         state_extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         try:
             for step in range(max_steps):
+                schedule.update()
                 state = state_extractor(episode.adversary, episode.sut, schedule.state)
                 raw_action = np.asarray(inner_action(state), dtype=np.float32).reshape(-1)
                 if raw_action.shape != (2,) or not np.isfinite(raw_action).all():
-                    raise ValueError("Inner SAC must emit one finite 2-D interaction residual")
+                    raise ValueError("Inner SAC must emit one finite 2-D direct control action")
                 raw_action = np.clip(raw_action, -1.0, 1.0)
-                schedule.update()
-                base_action, candidate_action = controller.action(raw_action)
-                shielded = shield.project(base_action, candidate_action)
+                if scenario_family == "cutin":
+                    requested_action = controller.action(raw_action)
+                    shielded = shield.project(requested_action)
+                else:
+                    base_action, requested_action = controller.action(raw_action)
+                    shielded = shield.project(base_action, requested_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 controller.observe_environment(info)
                 info = {**dict(info), **shield.observe(shielded, info)}
@@ -92,6 +100,15 @@ class HierarchicalRunner:
                 )
                 info.update(ScenarioExecutor.sut_lane_status(episode, require_routing_target=True))
                 info.update({
+                    "adversary_speed_mps": float(episode.adversary.speed_km_h) / 3.6,
+                    "speed_limit_mps": float(
+                        episode.layout.traffic_contract.speed_limit_mps
+                    ),
+                    "adversary_route_progress": float(
+                        episode.adversary_route.projection(
+                            episode.adversary.position, episode.adversary.heading_theta
+                        ).s_m
+                    ) / max(float(episode.adversary_route.length_m), 1e-6),
                     "sut_steering": float(sut_action[0]),
                     "sut_acceleration": float(sut_action[1]),
                     "sut_lateral_error_m": float(sut_projection.lateral_m),
@@ -173,11 +190,10 @@ class HierarchicalRunner:
                 transitions.append({
                     "state": state,
                     "raw_action": raw_action,
-                    # Replay keeps exactly the two continuous SAC residuals.
+                    # Replay keeps exactly the two direct SAC controls.
                     "action": raw_action,
                     "executed_action": shielded.action,
-                    "base_action": shielded.base_action,
-                    "candidate_action": shielded.candidate_action,
+                    "requested_action": shielded.requested_action,
                     "reward_inner": reward_fn(trajectory_row, info),
                     "reward_env": float(env_reward),
                     "next_state": state_extractor(episode.adversary, episode.sut, schedule.state),

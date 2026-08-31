@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import torch
 
 from mvr.model import TransferableScenarioMiner
+from mvr.state import PhysicalStateExtractor
 from mvr.policy.adversarial_sac import AdversarialSAC
 from mvr.training.replay import InnerReplay, OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
@@ -14,7 +15,7 @@ from mvr.training.workflow import StagedWorkflow
 
 
 def test_stage_ownership_and_universal_on_policy_ppo() -> None:
-    model = TransferableScenarioMiner(state_dim=11, map_dim=8)
+    model = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8)
     workflow = StagedWorkflow(model.training_components())
     workflow.activate(TrainingStage.OUTER)
     assert trainable_components(TrainingStage.OUTER) == {"task_structure_encoder", "universal_scene_policy"}
@@ -35,7 +36,7 @@ def test_stage_ownership_and_universal_on_policy_ppo() -> None:
 
 
 def test_outer_action_masks_inactive_logical_dimensions() -> None:
-    policy = TransferableScenarioMiner(state_dim=11, map_dim=8).universal_scene_policy
+    policy = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8).universal_scene_policy
     action = policy.sample(
         torch.zeros(8), torch.zeros(2, 8), torch.ones(2, dtype=torch.bool), torch.zeros(1, 16),
         continuous_mask=torch.tensor([True, True, True, True, False]),

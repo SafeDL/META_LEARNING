@@ -10,7 +10,7 @@ from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.interaction import InteractionCandidate
 from ..scenario.parameter_space import NormalizedScenarioAction
 from ..scenario.registry import load_adapters, load_geometry_catalog
-from ..scenario.task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
+from ..scenario.task_spec import logical_parameter_names, ScenarioMiningTaskSpec
 from ..scenario.taskbook import validate_taskbook
 
 
@@ -29,6 +29,21 @@ LOGICAL_DOMAINS = (
     ("tight_gap", "test", (0.35, 0.85)),
 )
 
+CUTIN_LOGICAL_DOMAINS = (
+    ("cutin_interaction_core", "train", {
+        "initial_gap_m": (-0.15, 0.15), "sut_initial_speed_mps": (-0.15, 0.15),
+        "relative_speed_mps": (-0.15, 0.15), "cutin_onset_time_s": (-0.15, 0.15),
+    }),
+    ("cutin_late_fast", "validation", {
+        "initial_gap_m": (-0.65, -0.25), "sut_initial_speed_mps": (0.25, 0.65),
+        "relative_speed_mps": (0.25, 0.75), "cutin_onset_time_s": (0.25, 0.65),
+    }),
+    ("cutin_tight_gap", "test", {
+        "initial_gap_m": (0.35, 0.85), "sut_initial_speed_mps": (-0.85, -0.35),
+        "relative_speed_mps": (-0.85, -0.35), "cutin_onset_time_s": (-0.85, -0.35),
+    }),
+)
+
 
 def _logical_mask(family: str) -> tuple[bool, ...]:
     if family == "cutin":
@@ -39,11 +54,11 @@ def _logical_mask(family: str) -> tuple[bool, ...]:
 
 
 def _logical_bounds(
-    interval: tuple[float, float], mask: tuple[bool, ...]
+    family: str, interval: tuple[float, float], mask: tuple[bool, ...]
 ) -> dict[str, tuple[float, float]]:
     return {
         name: interval if active else (-1.0, 1.0)
-        for name, active in zip(LOGICAL_PARAMETER_NAMES, mask)
+        for name, active in zip(logical_parameter_names(family), mask)
     }
 
 
@@ -62,7 +77,10 @@ def _geometry_hash(geometry_id: str) -> str:
         sut_split="train",
         geometry_split=geometry.split,
         logical_domain_id="hash_probe",
-        logical_domain_bounds=_logical_bounds((-1.0, 1.0), _logical_mask(geometry.functional_scenario)),
+        logical_domain_bounds=_logical_bounds(
+            geometry.functional_scenario, (-1.0, 1.0),
+            _logical_mask(geometry.functional_scenario),
+        ),
         logical_parameter_mask=_logical_mask(geometry.functional_scenario),
         logical_split="train",
     )
@@ -93,8 +111,16 @@ def build_taskbook(output: str | Path) -> Path:
     for geometry in geometries:
         geometry_hash = geometry_hashes[geometry.geometry_id]
         for sut_ref, sut_split in PROFILES:
-            for domain_id, logical_split, interval in LOGICAL_DOMAINS:
+            domains = (
+                CUTIN_LOGICAL_DOMAINS
+                if geometry.functional_scenario == "cutin" else LOGICAL_DOMAINS
+            )
+            for domain_id, logical_split, interval in domains:
                 mask = _logical_mask(geometry.functional_scenario)
+                bounds = (
+                    interval if geometry.functional_scenario == "cutin"
+                    else _logical_bounds(geometry.functional_scenario, interval, mask)
+                )
                 task = ScenarioMiningTaskSpec(
                     task_id=f"{geometry.geometry_id}-{sut_ref.removeprefix('idm_')}-{domain_id}",
                     sut_ref=sut_ref,
@@ -107,7 +133,7 @@ def build_taskbook(output: str | Path) -> Path:
                     sut_split=sut_split,
                     geometry_split=geometry.split,
                     logical_domain_id=domain_id,
-                    logical_domain_bounds=_logical_bounds(interval, mask),
+                    logical_domain_bounds=bounds,
                     logical_parameter_mask=mask,
                     logical_split=logical_split,
                 )

@@ -81,8 +81,11 @@ def train_interaction_prior(
     max_steps = int(config["training"]["step_budget"])
     replay, losses = _replay(settings, None), []
     sampler = MetaTaskSampler(tasks)
+    cutin_inner = config.get("cutin_inner", {})
+    accident_search = cutin_inner.get("accident_search", {})
     scene_sampler = scene_action_provider or PretrainSceneSampler(
-        tuple(tasks), episodes_per_task, int(config["seed"])
+        tuple(tasks), episodes_per_task, int(config["seed"]),
+        eta_offsets_s=accident_search.get("eta_offsets_s"),
     )
     executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
     online = build_online(model, tasks[0], max_steps, criteria, executor)
@@ -134,7 +137,12 @@ def train_context_meta(
     if not support_choices or min(support_choices) < 1 or groups_per_task < 1 or queries_per_group < 1:
         raise ValueError("context meta-training requires positive support and query budgets")
     max_episodes = groups_per_task * (max(support_choices) + queries_per_group)
-    sampler = PretrainSceneSampler(tuple(tasks), max_episodes, int(config["seed"]))
+    cutin_inner = config.get("cutin_inner", {})
+    accident_search = cutin_inner.get("accident_search", {})
+    sampler = PretrainSceneSampler(
+        tuple(tasks), max_episodes, int(config["seed"]),
+        eta_offsets_s=accident_search.get("eta_offsets_s"),
+    )
     replay, context, losses, episodes = _replay(settings, None), ContextReplay(), [], []
     online = build_online(model, tasks[0], int(config["training"]["step_budget"]), criteria)
     for task_index, task in enumerate(MetaTaskSampler(tasks).shuffled_epoch()):
@@ -202,6 +210,21 @@ def _inner_metrics(
             saturated.extend((np.abs(action) > 0.95).tolist())
 
     training_signal = _training_signal_metrics(records)
+    episode_return_curve = [
+        {
+            "episode": index + 1,
+            "task_id": task.task_id,
+            "sut_ref": task.sut_ref,
+            "geometry_id": task.geometry_id,
+            "logical_domain_id": task.logical_domain_id,
+            "inner_return": float(sum(
+                float(row["reward_inner"]) for row in episode.rollout.transitions
+            )),
+            "valid": bool(episode.rollout.signature.is_valid_episode),
+            "failure": bool(episode.rollout.signature.is_failure),
+        }
+        for index, (task, episode) in enumerate(records)
+    ]
 
     def mean(values: list[float]) -> float:
         return float(np.mean(values)) if values else 0.0
@@ -238,6 +261,7 @@ def _inner_metrics(
         "action_abs_mean": mean(action_values),
         "action_saturation_rate": mean([float(value) for value in saturated]),
         "training_signal": training_signal,
+        "episode_return_curve": episode_return_curve,
     }
     return metrics
 

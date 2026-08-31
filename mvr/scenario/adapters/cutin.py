@@ -72,10 +72,9 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
             raise ValueError(f"invalid cut-in candidate {candidate!r}") from error
         road_network = env.current_map.road_network
         corridor = self._corridor(road_network)
-        adversary_route = tuple(
-            (start, end, source_lane if index == 0 else target_lane)
-            for index, (start, end, _) in enumerate(corridor)
-        )
+        # The direct SAC steering action, rather than native navigation, is
+        # the only mechanism that may cross from source to target lane.
+        adversary_route = tuple((start, end, source_lane) for start, end, _ in corridor)
         sut_route = tuple((start, end, target_lane) for start, end, _ in corridor)
         lengths = [float(road_network.get_lane(lane).length) for lane in corridor]
         first_end = lengths[0]
@@ -138,6 +137,15 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
         }
         if layout is not None:
             result["agent_configs"] = {
-                "default_agent": self.adversary_agent_config(layout, config)
+                "default_agent": {
+                    **self.adversary_agent_config(layout, config),
+                    # MetaDrive applies this force at all four wheels. These
+                    # values bound full direct action at +3 / -6 m/s^2.
+                    "max_engine_force": 825.0,
+            # MetaDrive's ``max_brake_force`` is applied as a wheel brake
+            # torque.  33.0 calibrates a full negative low-level action to
+            # the Cut-in contract's 6 m/s² deceleration bound.
+            "max_brake_force": 33.0,
+                }
             }
         return result

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from .task_spec import LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
+from .task_spec import logical_parameter_names, ScenarioMiningTaskSpec
 
 
 def validate_taskbook(tasks: Iterable[ScenarioMiningTaskSpec]) -> list[ScenarioMiningTaskSpec]:
@@ -24,7 +24,11 @@ def validate_taskbook(tasks: Iterable[ScenarioMiningTaskSpec]) -> list[ScenarioM
     for left, right in (("train", "validation"), ("train", "test"), ("validation", "test")):
         for left_domain in domains_by_split[left].values():
             for right_domain in domains_by_split[right].values():
-                for index, name in enumerate(LOGICAL_PARAMETER_NAMES):
+                if left_domain.functional_scenario != right_domain.functional_scenario:
+                    continue
+                for index, name in enumerate(
+                    logical_parameter_names(left_domain.functional_scenario)
+                ):
                     if not (left_domain.logical_parameter_mask[index] and right_domain.logical_parameter_mask[index]):
                         continue
                     left_bounds = left_domain.logical_domain_bounds[name]

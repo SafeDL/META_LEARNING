@@ -1,0 +1,97 @@
+schema: transferable_scenario_miner
+seed: 11
+taskbook: mvr/configs/taskbook.json
+model:
+  state_dim: 14
+  latent_dim: 16
+  num_experts: 4
+context:
+  type: pearl_product
+  kl_weight: 0.001
+  support_shots: [1, 2, 4]
+training:
+  device: cuda
+  family_filter: cutin
+  step_budget: 240
+  learning_rate: 0.0003
+failure:
+  severity_thresholds: {ttc_s: 5.0, distance_m: 10.0, closing_speed_mps: 20.0}
+  severity_bins: 5
+interaction_prior:
+  algorithm: adversarial_sac
+  action_dim: 2
+  batch_size: 64
+  # Scene coverage comes directly from the declared Cut-in Logical domains.
+  episodes_per_task: 2
+  updates_per_episode: 8
+  replay_capacity: 100000
+  learning_rate: 0.0003
+  event_sample_fraction: 0.5
+  event_action_weight: 0.5
+context_meta:
+  support_shots: [1, 2, 4]
+  groups_per_task: 1
+  queries_per_group: 1
+  updates_per_episode: 8
+  replay_capacity: 100000
+  batch_size: 64
+  learning_rate: 0.0003
+  event_sample_fraction: 0.5
+  event_action_weight: 0.5
+control:
+  action_schema: vehicle_direct_2d
+  nominal_controller_schema: none
+  scenario_contract_schema: scenario_contract
+map:
+  encoder: hptr_style
+  polyline_points: 16
+  embedding_dim: 128
+  cache_embeddings_only_when_frozen: true
+outer:
+  algorithm: hybrid_moe_ppo
+  router_balance_weight: 0.01
+  ppo_epochs: 4
+  batch_size: 64
+  episodes_per_task: 20
+  learning_rate: 0.0003
+cutin_inner:
+  allow_outer: false
+  # Keep both SUT and road-topology variation while making the validation
+  # artifact bounded enough to finish in a single reproducible run.
+  training_sut_refs: [idm_assertive, idm_normal]
+  training_geometry_ids: [cutin-g01, cutin-g02]
+  training_logical_domains:
+    - id: close_fast_early
+      bounds:
+        initial_gap_m: [-0.75, -0.35]
+        sut_initial_speed_mps: [-0.30, 0.30]
+        relative_speed_mps: [0.25, 0.75]
+        cutin_onset_time_s: [-0.65, -0.25]
+    - id: balanced_interaction
+      bounds:
+        initial_gap_m: [-0.30, 0.30]
+        sut_initial_speed_mps: [-0.30, 0.30]
+        relative_speed_mps: [-0.30, 0.30]
+        cutin_onset_time_s: [-0.30, 0.30]
+    - id: late_slow_cutin
+      bounds:
+        initial_gap_m: [0.35, 0.75]
+        sut_initial_speed_mps: [-0.30, 0.30]
+        relative_speed_mps: [-0.75, -0.25]
+        cutin_onset_time_s: [0.25, 0.65]
+evaluation:
+  support_shots: [0, 1, 2, 4]
+  query_cases: 8
+  seeds: [11, 22, 33]
+  paired_bootstrap_samples: 10000
+  paired_bootstrap_seed: 11
+  fixed_query_x0:
+    candidate_index: 0
+    # (gap, SUT speed, relative speed, onset time), all in the
+    # validation Logical domain.  This tuple alone, plus task/candidate/seed,
+    # reconstructs the scene without a fixed conflict-point coordinate.
+    continuous: [-0.45, 0.45, 0.45, 0.45]
+  failure_rate:
+    query_cases: 8
+    support_shots: 4
+    seeds: [11, 22, 33]
