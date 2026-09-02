@@ -57,6 +57,8 @@ class TrafficBehaviorContract:
         start, end = self.merge_window_m
         if not 0.0 <= start < end:
             raise ValueError("traffic contract merge window must be ordered and non-negative")
+        if self.adversary_intent == "cut_in_to_sut_lane" and end - start < 60.0:
+            raise ValueError("cut-in contract requires a 60 m legal dashed corridor")
 
 
 @dataclass(frozen=True)

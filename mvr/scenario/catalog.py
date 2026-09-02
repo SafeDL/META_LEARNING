@@ -27,10 +27,15 @@ def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
         # A Cut-in is specified in the two vehicles' shared longitudinal
         # frame.  It has no fixed conflict point: the route merely provides
         # a legal lane-change corridor.
-        "initial_gap_m": (6.0, 28.0),
+        # This is the reset gap. Restrict its independent range together
+        # with relative speed so every Logical-domain box retains a real
+        # post-onset interaction opportunity.
+        "cutin_gap_at_start_m": (7.0, 16.0),
         "sut_initial_speed_mps": (7.0, 13.0),
-        "relative_speed_mps": (-3.0, 5.0),
-        "cutin_onset_time_s": (0.8, 2.8),
+        "relative_speed_mps": (-3.0, 1.0),
+        "cutin_start_progress": (0.0, 1.0),
+        "cutin_start_time_s": (0.8, 2.8),
+        "lane_change_length_m": (30.0, 60.0),
     }
     return {
         "merge": ParameterSpace(

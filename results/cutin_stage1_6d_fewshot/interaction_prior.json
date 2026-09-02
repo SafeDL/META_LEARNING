@@ -1,0 +1,1287 @@
+{
+  "stage": "interaction_prior",
+  "device": "cuda",
+  "seed": 11,
+  "compatibility_hash": "dcaf0914bacaeee202d945a39d9aab7f93be834b112ece24505a41bc4b114918",
+  "config_hash": "dcaf0914bacaeee202d945a39d9aab7f93be834b112ece24505a41bc4b114918",
+  "taskbook_hash": "e4b3a13d4b48e66265b6cb07f7efa356e183d8056de448d7b6a395b5dfe8525d",
+  "control_contract": {
+    "action_schema": "vehicle_direct_2d",
+    "nominal_controller_schema": "none",
+    "scenario_contract_schema": "scenario_contract"
+  },
+  "checkpoint_hash": "02e09ecf3db9b3d7e5c54c3014ac8a2861070e8ea27a1d9dde00c9e1e811dcbe",
+  "git_commit": "487bfa9a83eb509e3acfefd987c1a69a01c59293",
+  "working_tree_clean": false,
+  "source_tree_hash": "96d8240fdb8ab354536f8938f3404481fb180e729a2f94215b1b65282e3922ff",
+  "config": {
+    "schema": "transferable_scenario_miner",
+    "seed": 11,
+    "taskbook": "mvr/configs/taskbook.json",
+    "model": {
+      "state_dim": 23,
+      "latent_dim": 16,
+      "num_experts": 4
+    },
+    "context": {
+      "type": "pearl_product",
+      "kl_weight": 0.001,
+      "support_shots": [
+        1,
+        2,
+        4
+      ]
+    },
+    "training": {
+      "device": "cuda",
+      "family_filter": "cutin",
+      "step_budget": 240,
+      "learning_rate": 0.0003
+    },
+    "failure": {
+      "severity_thresholds": {
+        "ttc_s": 5.0,
+        "distance_m": 10.0,
+        "closing_speed_mps": 20.0
+      },
+      "severity_bins": 5
+    },
+    "interaction_prior": {
+      "algorithm": "adversarial_sac",
+      "action_dim": 2,
+      "batch_size": 64,
+      "episodes_per_task": 8,
+      "updates_per_episode": 12,
+      "replay_capacity": 100000,
+      "learning_rate": 0.0003,
+      "event_sample_fraction": 0.5,
+      "event_action_weight": 2.0
+    },
+    "context_meta": {
+      "support_shots": [
+        1,
+        2,
+        4
+      ],
+      "groups_per_task": 3,
+      "queries_per_group": 1,
+      "updates_per_episode": 12,
+      "replay_capacity": 100000,
+      "batch_size": 64,
+      "learning_rate": 0.0003,
+      "event_sample_fraction": 0.5,
+      "event_action_weight": 0.5
+    },
+    "control": {
+      "action_schema": "vehicle_direct_2d",
+      "nominal_controller_schema": "none",
+      "scenario_contract_schema": "scenario_contract"
+    },
+    "map": {
+      "encoder": "hptr_style",
+      "polyline_points": 16,
+      "embedding_dim": 128,
+      "cache_embeddings_only_when_frozen": true
+    },
+    "outer": {
+      "algorithm": "hybrid_moe_ppo",
+      "router_balance_weight": 0.01,
+      "ppo_epochs": 4,
+      "batch_size": 64,
+      "episodes_per_task": 20,
+      "learning_rate": 0.0003
+    },
+    "cutin_inner": {
+      "allow_outer": false,
+      "training_sut_refs": [
+        "idm_assertive",
+        "idm_normal"
+      ],
+      "training_geometry_ids": [
+        "cutin-g01",
+        "cutin-g02"
+      ],
+      "training_logical_domains": [
+        {
+          "id": "close_closing_early",
+          "bounds": {
+            "cutin_gap_at_start_m": [
+              -0.75,
+              -0.35
+            ],
+            "sut_initial_speed_mps": [
+              -0.3,
+              0.3
+            ],
+            "relative_speed_mps": [
+              -0.25,
+              0.25
+            ],
+            "cutin_start_progress": [
+              -0.65,
+              -0.25
+            ],
+            "cutin_start_time_s": [
+              -0.65,
+              -0.25
+            ],
+            "lane_change_length_m": [
+              -0.65,
+              -0.25
+            ]
+          }
+        },
+        {
+          "id": "balanced_interaction",
+          "bounds": {
+            "cutin_gap_at_start_m": [
+              -0.3,
+              0.3
+            ],
+            "sut_initial_speed_mps": [
+              -0.3,
+              0.3
+            ],
+            "relative_speed_mps": [
+              -0.4,
+              0.1
+            ],
+            "cutin_start_progress": [
+              -0.3,
+              0.3
+            ],
+            "cutin_start_time_s": [
+              -0.3,
+              0.3
+            ],
+            "lane_change_length_m": [
+              -0.3,
+              0.3
+            ]
+          }
+        },
+        {
+          "id": "late_tight_cutin",
+          "bounds": {
+            "cutin_gap_at_start_m": [
+              0.35,
+              0.75
+            ],
+            "sut_initial_speed_mps": [
+              -0.3,
+              0.3
+            ],
+            "relative_speed_mps": [
+              -0.8,
+              -0.4
+            ],
+            "cutin_start_progress": [
+              0.15,
+              0.28
+            ],
+            "cutin_start_time_s": [
+              0.25,
+              0.65
+            ],
+            "lane_change_length_m": [
+              0.35,
+              0.75
+            ]
+          }
+        }
+      ]
+    },
+    "evaluation": {
+      "support_shots": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "query_cases": 8,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "paired_bootstrap_samples": 10000,
+      "paired_bootstrap_seed": 11,
+      "fixed_query_x0": {
+        "candidate_index": 0,
+        "continuous": [
+          -0.65,
+          0.25,
+          0.75,
+          0.25,
+          0.65,
+          -0.25
+        ]
+      },
+      "failure_rate": {
+        "query_cases": 8,
+        "support_shots": 4,
+        "seeds": [
+          11,
+          22,
+          33
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "simulator_episodes_consumed": 96,
+    "transitions": 23133,
+    "replay_transitions": 23133,
+    "optimizer_updates": 1140,
+    "last_loss": {
+      "inner_actor_loss": -17.749513626098633,
+      "inner_critic_loss": 9.935225486755371,
+      "inner_alpha_loss": -5.8249640464782715,
+      "inner_td_target_variance": 12.484375,
+      "posterior_loss": 0.0
+    },
+    "task_episode_counts": {
+      "cutin-g02-normal-interaction_core:close_closing_early": 8,
+      "cutin-g01-assertive-interaction_core:balanced_interaction": 8,
+      "cutin-g01-normal-interaction_core:close_closing_early": 8,
+      "cutin-g02-normal-interaction_core:balanced_interaction": 8,
+      "cutin-g02-normal-interaction_core:late_tight_cutin": 8,
+      "cutin-g01-normal-interaction_core:balanced_interaction": 8,
+      "cutin-g01-assertive-interaction_core:close_closing_early": 8,
+      "cutin-g02-assertive-interaction_core:close_closing_early": 8,
+      "cutin-g01-assertive-interaction_core:late_tight_cutin": 8,
+      "cutin-g02-assertive-interaction_core:late_tight_cutin": 8,
+      "cutin-g01-normal-interaction_core:late_tight_cutin": 8,
+      "cutin-g02-assertive-interaction_core:balanced_interaction": 8
+    },
+    "family_episode_counts": {
+      "cutin": 96
+    },
+    "geometry_episode_counts": {
+      "cutin-g02": 48,
+      "cutin-g01": 48
+    },
+    "sut_episode_counts": {
+      "idm_normal": 48,
+      "idm_assertive": 48
+    },
+    "candidate_episode_counts": {
+      "left_target_lane": 48,
+      "right_target_lane": 48
+    },
+    "mean_inner_episode_return": 9.91146640484998,
+    "mean_valid_rate": 0.9895833333333334,
+    "mean_failure_rate": 0.3958333333333333,
+    "mean_min_ttc": 4.1777437657583505,
+    "mean_min_distance": 7.363626900284241,
+    "mean_max_closing_speed": 3.5694092484861404,
+    "actor_loss_mean": -9.782190706344778,
+    "actor_loss_last": -17.749513626098633,
+    "critic_loss_mean": 12.924346408247947,
+    "critic_loss_last": 9.935225486755371,
+    "alpha_loss_mean": -0.9136734324850534,
+    "alpha_loss_last": -5.8249640464782715,
+    "td_target_variance_mean": 11.435731009224005,
+    "td_target_variance_last": 12.484375,
+    "action_abs_mean": 0.09593305532766484,
+    "action_saturation_rate": 0.0013616910906497212,
+    "training_signal": {
+      "family:cutin": {
+        "episodes": 96,
+        "valid_event_episodes": 38,
+        "valid_target_collision_episodes": 22,
+        "valid_near_miss_episodes": 16,
+        "transitions": 23133,
+        "positive_reward_transitions": 14548,
+        "event_capture_transitions": 86,
+        "challenge_transitions": 14408,
+        "positive_reward_transition_fraction": 0.6288851424372109,
+        "challenge_transition_fraction": 0.6228331820343233,
+        "reward_mean": 0.041131750091453693,
+        "reward_variance": 0.2683963363476521,
+        "reward_range": 13.895029772148343
+      },
+      "overall": {
+        "episodes": 96,
+        "valid_event_episodes": 38,
+        "valid_target_collision_episodes": 22,
+        "valid_near_miss_episodes": 16,
+        "transitions": 23133,
+        "positive_reward_transitions": 14548,
+        "event_capture_transitions": 86,
+        "challenge_transitions": 14408,
+        "positive_reward_transition_fraction": 0.6288851424372109,
+        "challenge_transition_fraction": 0.6228331820343233,
+        "reward_mean": 0.041131750091453693,
+        "reward_variance": 0.2683963363476521,
+        "reward_range": 13.895029772148343
+      }
+    },
+    "episode_return_curve": [
+      {
+        "episode": 1,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 27.402734987596197,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 2,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 27.134871972853645,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 3,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.598350213020339,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 4,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 17.927750987064,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 5,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 7.608600631991105,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 6,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.003834307158577,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 7,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 1.8076281103081793,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 8,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 4.887525009117956,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 9,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 6.420207663527621,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 10,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 0.523155193182181,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 11,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 20.278394213017123,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 12,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 17.343770326588583,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 13,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 0.17159657911710838,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 14,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 12.06231706317577,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 15,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 12.527074457344975,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 16,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.145405772411755,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 17,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 28.055700281422155,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 18,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": -0.14461256454447055,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 19,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 0.8315218693651945,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 20,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 1.2364600698514678,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 21,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 6.5672790548877344,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 22,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 1.6430169896450506,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 23,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 6.339582763036725,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 24,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 2.118928747136018,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 25,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 6.2141130790778725,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 26,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 17.467692922881113,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 27,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 2.892996771431649,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 28,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 20.34435667510378,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 29,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 4.179554074154772,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 30,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": -0.2913929655117085,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 31,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 0.4911929633140463,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 32,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 17.879869310173753,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 33,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 12.498572633017986,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 34,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 14.889611732262406,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 35,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 4.783484207456843,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 36,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 3.185586183536188,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 37,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 4.60237937760253,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 38,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 0.3689941930619705,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 39,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 4.807199756700529,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 40,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 18.453100395516174,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 41,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 13.669264346736727,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 42,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 5.491422907262679,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 43,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 1.2345388757296425,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 44,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 27.330623381540022,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 45,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 7.897826358348897,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 46,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 3.4471760978392725,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 47,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.317546368409266,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 48,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.279352972636424,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 49,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 20.720537169285944,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 50,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 27.28277681078147,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 51,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 16.961392064431,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 52,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 26.953519591307483,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 53,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 13.48178986899021,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 54,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 16.271354930059132,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 55,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": -0.17225906044316258,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 56,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 1.718445494695877,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 57,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 6.4101632549161165,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 58,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.21630282241274,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 59,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 8.118632766837637,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 60,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 2.7877181715252766,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 61,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 7.79370044270659,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 62,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 1.619928465265247,
+        "valid": false,
+        "failure": false
+      },
+      {
+        "episode": 63,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.056454471433764,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 64,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.064435371364812,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 65,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.130497022717208,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 66,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 5.161814450770382,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 67,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 8.015573461507003,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 68,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 10.510679504025175,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 69,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 14.322471087586166,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 70,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 5.241577624200409,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 71,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 2.856033530954767,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 72,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 3.422615886833975,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 73,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.767710281845458,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 74,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 13.001962019146633,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 75,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 5.592441099666674,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 76,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 10.200149228381495,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 77,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 14.879965624902404,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 78,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 20.248113158515494,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 79,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 20.835873173480238,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 80,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.131560188689086,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 81,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 7.451226123256081,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 82,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 4.522344011608768,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 83,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 4.186165233535347,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 84,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.219970099955519,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 85,
+        "task_id": "cutin-g01-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 4.262606299815498,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 86,
+        "task_id": "cutin-g02-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 3.8798917122464758,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 87,
+        "task_id": "cutin-g01-normal-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 2.877685876444897,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 88,
+        "task_id": "cutin-g02-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 9.283909288709955,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 89,
+        "task_id": "cutin-g01-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 15.01332805462992,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 90,
+        "task_id": "cutin-g01-normal-interaction_core:close_closing_early",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 0.15697881794483257,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 91,
+        "task_id": "cutin-g01-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 20.072670309409922,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 92,
+        "task_id": "cutin-g02-normal-interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 5.709086295343639,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 93,
+        "task_id": "cutin-g02-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 18.992691073576236,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 94,
+        "task_id": "cutin-g02-assertive-interaction_core:late_tight_cutin",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "late_tight_cutin",
+        "inner_return": 5.913261327036692,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 95,
+        "task_id": "cutin-g02-assertive-interaction_core:close_closing_early",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g02",
+        "logical_domain_id": "close_closing_early",
+        "inner_return": 1.1507548903249085,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 96,
+        "task_id": "cutin-g01-assertive-interaction_core:balanced_interaction",
+        "sut_ref": "idm_assertive",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 12.278118156408974,
+        "valid": true,
+        "failure": true
+      }
+    ],
+    "balanced_sampling_epochs": 8,
+    "updates_per_episode": 12,
+    "requested_optimizer_updates": 1152,
+    "warmup_skipped_updates": 12
+  }
+}

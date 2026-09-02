@@ -65,7 +65,9 @@ class TransferableScenarioMiner(nn.Module):
         self.shared_feature_encoder = SharedFeatureEncoder(
             self.state_dim, map_dim, latent_dim, self.concrete_dim
         )
-        self.inner_sac = AdversarialSAC(256, action_dim=inner_action_dim)
+        self.inner_sac = AdversarialSAC(
+            256, action_dim=inner_action_dim, context_dim=latent_dim
+        )
 
     @property
     def device(self) -> torch.device:
@@ -173,7 +175,9 @@ class TransferableScenarioMiner(nn.Module):
         deterministic: bool = False,
     ) -> torch.Tensor:
         return self.inner_sac.act(
-            self.inner_features(state, scene_embedding, latent, concrete), deterministic
+            self.inner_features(state, scene_embedding, latent, concrete),
+            deterministic,
+            context=latent,
         )
 
     def training_components(self) -> dict[str, nn.Module]:

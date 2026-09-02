@@ -55,6 +55,18 @@ class ScenarioExecutor:
     _static_scenes: dict[tuple[str, str], _StaticScene] = field(default_factory=dict, init=False, repr=False)
 
     @staticmethod
+    def _route_spawn_lane(route: RoutePolyline, route_s_m: float) -> tuple[tuple[Any, Any, int], float]:
+        """Map a global route coordinate to one concrete lane-local spawn."""
+        if not 0.0 <= float(route_s_m) <= route.length_m:
+            raise ValueError("Cut-in spawn lies outside its declared route")
+        previous_end = 0.0
+        for lane_index, end in zip(route.lane_indices, route.lane_end_s_m):
+            if float(route_s_m) <= float(end) + 1e-6:
+                return lane_index, max(0.0, float(route_s_m) - previous_end)
+            previous_end = float(end)
+        return route.lane_indices[-1], max(0.0, float(route_s_m) - previous_end)
+
+    @staticmethod
     def _adversary(env: Any) -> Any:
         agents = env.engine.agent_manager.active_agents
         if "default_agent" not in agents:
@@ -157,17 +169,31 @@ class ScenarioExecutor:
         if cached.layout.traffic_contract.adversary_intent == "cut_in_to_sut_lane":
             sut_speed = float(resolved["sut_initial_speed_mps"])
             adversary_speed = sut_speed + float(resolved["relative_speed_mps"])
-            onset = float(resolved["cutin_onset_time_s"])
-            gap = float(resolved["initial_gap_m"])
-            merge_start, _ = cached.layout.traffic_contract.merge_window_m
-            adversary_spawn = float(merge_start - adversary_speed * onset)
-            sut_spawn = float(adversary_spawn - gap)
-            if min(adversary_speed, adversary_spawn, sut_spawn) <= 0.0:
+            onset = float(resolved["cutin_start_time_s"])
+            gap = float(resolved["cutin_gap_at_start_m"])
+            merge_start, merge_end = cached.layout.traffic_contract.merge_window_m
+            length = float(resolved["lane_change_length_m"])
+            if length > merge_end - merge_start:
+                raise ValueError("Cut-in path length exceeds legal dashed corridor")
+            start = merge_start + float(resolved["cutin_start_progress"]) * (merge_end - merge_start - length)
+            initial_gap = gap - float(resolved["relative_speed_mps"]) * onset
+            adversary_spawn = float(start - adversary_speed * onset)
+            sut_spawn = float(adversary_spawn - initial_gap)
+            if adversary_speed <= 0.0 or min(adversary_spawn, sut_spawn) < 0.0:
                 raise ValueError("Cut-in Logical parameters cannot produce a positive executable spawn")
+            adversary_lane, adversary_local = ScenarioExecutor._route_spawn_lane(
+                cached.adversary_route, adversary_spawn
+            )
+            sut_lane, sut_local = ScenarioExecutor._route_spawn_lane(
+                cached.sut_route, sut_spawn
+            )
             resolved.update({
                 "adversary_initial_speed_mps": adversary_speed,
-                "adversary_spawn_m": adversary_spawn,
-                "sut_spawn_m": sut_spawn,
+                "cutin_start_s_m": start,
+                "adversary_spawn_m": adversary_local,
+                "sut_spawn_m": sut_local,
+                "adversary_spawn_lane": adversary_lane,
+                "sut_spawn_lane": sut_lane,
             })
             return resolved
         for index, (name, route) in enumerate((("adversary", cached.adversary_route), ("sut", cached.sut_route))):
@@ -271,7 +297,7 @@ class ScenarioExecutor:
             layout = cached.layout
             sut = spawn_sut(
                 env,
-                lane_index=layout.sut_lane,
+                lane_index=tuple(config.get("sut_spawn_lane", layout.sut_lane)),
                 longitudinal_m=float(config["sut_spawn_m"]),
                 speed_mps=float(config["sut_initial_speed_mps"]),
                 destination=layout.sut_destination,
@@ -284,21 +310,26 @@ class ScenarioExecutor:
                     CUTIN_VEHICLE_CONFIG if task.functional_scenario == "cutin" else None
                 ),
             )
-            self._assert_vehicle_applied(adversary, layout.adversary_lane, float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
-            self._assert_vehicle_applied(sut, layout.sut_lane, float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
+            self._assert_vehicle_applied(adversary, tuple(config.get("adversary_spawn_lane", layout.adversary_lane)), float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
+            self._assert_vehicle_applied(sut, tuple(config.get("sut_spawn_lane", layout.sut_lane)), float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
             navigation = layout.native_navigation
             if navigation is None:
                 raise RuntimeError("scenario layout has no native navigation contract")
-            self._assert_vehicle_route(
-                adversary, navigation.adversary_checkpoints
-            )
-            self._assert_vehicle_route(
-                sut, navigation.sut_checkpoints, lane_stable=navigation.sut_lane_stable
-            )
+            if task.functional_scenario != "cutin":
+                self._assert_vehicle_route(adversary, navigation.adversary_checkpoints)
+                self._assert_vehicle_route(
+                    sut, navigation.sut_checkpoints,
+                    lane_stable=navigation.sut_lane_stable,
+                )
             logical_parameters = {
                 name: float(config[name])
                 for name in logical_parameter_names(task.functional_scenario)
             }
+            if task.functional_scenario == "cutin":
+                # This value is derived only from the declared 6-D Logical
+                # scene and the audited legal corridor; retaining it makes a
+                # reset independently reconstructible in artifacts.
+                logical_parameters["cutin_start_s_m"] = float(config["cutin_start_s_m"])
             applied = AppliedScenario(
                 str(adversary.id), str(sut.id), layout.adversary_lane, layout.sut_lane,
                 float(config["adversary_spawn_m"]), float(config["sut_spawn_m"]),

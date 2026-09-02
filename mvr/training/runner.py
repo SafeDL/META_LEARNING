@@ -58,6 +58,7 @@ class HierarchicalRunner:
         env = episode.env
         extractor = trajectory_extractor or TrajectoryFeatureExtractor()
         reward_fn = reward_fn or InnerRiskReward(self.criteria)
+        reward_fn.reset()
         state_extractor = PhysicalStateExtractor()
         schedule = ScenarioActionAdapter(episode, scenario_family)
         controller = (
@@ -76,7 +77,7 @@ class HierarchicalRunner:
         try:
             for step in range(max_steps):
                 schedule.update()
-                state = state_extractor(episode.adversary, episode.sut, schedule.state)
+                state = state_extractor(episode.adversary, episode.sut, schedule)
                 raw_action = np.asarray(inner_action(state), dtype=np.float32).reshape(-1)
                 if raw_action.shape != (2,) or not np.isfinite(raw_action).all():
                     raise ValueError("Inner SAC must emit one finite 2-D direct control action")
@@ -90,6 +91,25 @@ class HierarchicalRunner:
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 controller.observe_environment(info)
                 info = {**dict(info), **shield.observe(shielded, info)}
+                if scenario_family == "cutin":
+                    reference = schedule.cutin_reference()
+                    info.update({
+                        "cutin_reference_progress": reference.progress,
+                        "cutin_reference_lateral_error_m": reference.lateral_error_m,
+                        "cutin_reference_heading_error_rad": reference.heading_error_rad,
+                        "cutin_reference_desired_lateral_m": reference.desired_lateral_m,
+                        "cutin_reference_length_m": reference.length_m,
+                        "cutin_reference_curvature_m_inv": reference.curvature_m_inv,
+                        "cutin_reference_speed_limit_mps": reference.speed_limit_mps,
+                        "cutin_start_remaining_m": reference.start_remaining_m,
+                        "cutin_reference_start_s_m": (
+                            reference.start_remaining_m
+                            + episode.adversary_route.projection(
+                                episode.adversary.position,
+                                episode.adversary.heading_theta,
+                            ).s_m
+                        ),
+                    })
                 sut_policy = env.engine.get_policy(episode.sut.id)
                 sut_action = np.asarray(
                     getattr(sut_policy, "action_info", {}).get("action", (0.0, 0.0)),
@@ -144,6 +164,7 @@ class HierarchicalRunner:
                 )
                 info = {**info, **monitor.info()}
                 info["inner_raw_action_l2"] = float(np.square(raw_action).sum())
+                info["inner_executed_action_l2"] = float(np.square(shielded.action).sum())
                 info["valid_target_collision"] = bool(
                     target_collision
                     and info["event_kind"] == "collision"
@@ -190,13 +211,16 @@ class HierarchicalRunner:
                 transitions.append({
                     "state": state,
                     "raw_action": raw_action,
-                    # Replay keeps exactly the two direct SAC controls.
+                    # ``raw_action`` is the SAC target in its declared
+                    # actuator-target space.  The controller's deterministic
+                    # conversion is state-observable; executed action remains
+                    # separately logged for physical audit.
                     "action": raw_action,
                     "executed_action": shielded.action,
                     "requested_action": shielded.requested_action,
                     "reward_inner": reward_fn(trajectory_row, info),
                     "reward_env": float(env_reward),
-                    "next_state": state_extractor(episode.adversary, episode.sut, schedule.state),
+                    "next_state": state_extractor(episode.adversary, episode.sut, schedule),
                     "done": done,
                     "info": info,
                     "sut_observation": sut_observation,

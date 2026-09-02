@@ -11,7 +11,9 @@ from mvr.evaluation.fewshot_inner import (
     summarize_outcomes,
     valid_critical_score,
 )
+from mvr.evaluation.support_schedule import FixedQuerySupportSchedule
 from mvr.model import TransferableScenarioMiner
+from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.state import PhysicalStateExtractor
 from mvr.training.calibration_casebook import (
     CalibrationCase,
@@ -44,6 +46,36 @@ def test_support_groups_are_episode_level_and_disjoint() -> None:
     assert replay.get("group").task_id == "task"
     with pytest.raises(ValueError, match="disjoint"):
         SupportGroup("bad", "task", (support,), {"support": support}).validate()
+
+
+def test_fixed_query_support_schedule_uses_distinct_nested_domain_points() -> None:
+    names = (
+        "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
+        "cutin_start_progress", "cutin_start_time_s", "lane_change_length_m",
+    )
+    task = SimpleNamespace(
+        task_id="cutin-validation", functional_scenario="cutin",
+        logical_domain_bounds={name: (-0.8, 0.8) for name in names},
+        logical_parameter_mask=(True,) * len(names),
+    )
+    query = NormalizedScenarioAction(0, tuple(-0.65 for _ in names))
+    space = mvr_parameter_spaces()["cutin"]
+    candidates = (object(), object())
+    schedule4 = FixedQuerySupportSchedule(task, query, 4, 4, 11)
+    actions4 = [schedule4(task, index, candidates, space) for index in range(4)]
+    assert schedule4(task, 4, candidates, space) == query
+    assert all(
+        action.candidate_index != query.candidate_index
+        or not torch.allclose(torch.as_tensor(action.continuous), torch.as_tensor(query.continuous))
+        for action in actions4
+    )
+    assert len(schedule4.provenance()) == 4
+
+    schedule2 = FixedQuerySupportSchedule(task, query, 2, 4, 11)
+    actions2 = [schedule2(task, index, candidates, space) for index in range(2)]
+    for left, right in zip(actions2, actions4[:2]):
+        assert left.candidate_index == right.candidate_index
+        assert torch.allclose(torch.as_tensor(left.continuous), torch.as_tensor(right.continuous))
 
 
 def test_actor_stops_context_gradient_but_critic_keeps_it() -> None:

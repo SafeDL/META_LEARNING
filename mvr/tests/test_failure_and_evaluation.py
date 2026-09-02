@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from mvr.failure.analyzer import analyze_rollout
 from mvr.failure.criteria import FailureCriteria
@@ -152,6 +153,21 @@ def test_inner_reward_prefers_a_valid_target_collision_over_dense_criticality() 
     assert collision > reward(critical, {})
 
 
+def test_cutin_reward_does_not_reward_absolute_adversary_speed() -> None:
+    criteria = FailureCriteria(5.0, 10.0, 20.0, 5)
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 0.2, 0.05
+    shared = {
+        "semantic_challenge_phase_active": True,
+        "cutin_reference_progress": 0.5,
+        "cutin_reference_lateral_error_m": 0.0,
+        "cutin_reference_heading_error_rad": 0.0,
+    }
+    slow = InnerRiskReward(criteria)(features, {**shared, "adversary_speed_mps": 2.0})
+    fast = InnerRiskReward(criteria)(features, {**shared, "adversary_speed_mps": 19.0})
+    assert slow == pytest.approx(fast)
+
+
 def test_inner_reward_is_monotone_toward_contact_inside_challenge_corridor() -> None:
     reward = InnerRiskReward(FailureCriteria(5.0, 10.0, 20.0, 5))
     far = np.zeros(12, dtype=np.float32)
@@ -205,14 +221,34 @@ def test_inner_reward_emits_near_miss_bonus_only_on_capture() -> None:
     )
 
 
+def test_inner_reward_uses_one_terminal_bonus_for_collision_and_near_miss() -> None:
+    criteria = FailureCriteria(3.0, 5.0, 20.0, 5)
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
+    collision = InnerRiskReward(criteria)(features, {
+        "event_kind": "collision",
+        "event_just_captured": True,
+        "valid_target_collision": True,
+        "event_semantic_valid": True,
+        "event_traffic_valid": True,
+    })
+    near_miss = InnerRiskReward(criteria)(features, {
+        "event_kind": "near_miss",
+        "event_just_captured": True,
+        "event_semantic_valid": True,
+        "event_traffic_valid": True,
+    })
+    assert near_miss == pytest.approx(collision)
+
+
 def test_inner_reward_uses_dense_signal_only_inside_the_challenge_corridor() -> None:
     reward = InnerRiskReward(FailureCriteria(3.0, 5.0, 20.0, 5))
     features = np.zeros(12, dtype=np.float32)
-    assert reward(features, {"semantic_challenge_phase_active": False}) < 0.0
+    assert reward(features, {"semantic_challenge_phase_active": False}) == pytest.approx(0.0)
     assert reward(features, {"semantic_challenge_phase_active": True}) > 0.0
 
 
-def test_inner_reward_preserves_pre_onset_forward_motion_without_event_bonus() -> None:
+def test_inner_reward_does_not_reward_absolute_adversary_speed_before_interaction() -> None:
     reward = InnerRiskReward(FailureCriteria(5.0, 10.0, 20.0, 5))
     features = np.ones(12, dtype=np.float32)
     stopped = reward(
@@ -231,4 +267,4 @@ def test_inner_reward_preserves_pre_onset_forward_motion_without_event_bonus() -
             "speed_limit_mps": 20.0,
         },
     )
-    assert moving > stopped
+    assert moving == pytest.approx(stopped)

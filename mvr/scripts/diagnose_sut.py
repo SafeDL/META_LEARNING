@@ -33,12 +33,14 @@ def _task(family: str) -> Any:
     )
 
 
-def _action() -> NormalizedScenarioAction:
+def _action(family: str) -> NormalizedScenarioAction:
     # Keep the default agent far upstream and braking.  It is retained only
     # because MetaDrive requires one default agent; it is not an adversary.
     return NormalizedScenarioAction(
         0,
-        (1.0, -1.0, -1.0, -1.0, 0.0),
+        (1.0, -1.0, -1.0, -1.0, -1.0, -1.0)
+        if family == "cutin"
+        else (1.0, -1.0, -1.0, -1.0, 0.0),
     )
 
 
@@ -79,7 +81,7 @@ def collect(seed: int = 204, max_steps: int = MAX_STEPS) -> dict[str, Any]:
     for family in FAMILIES:
         episode = executor.reset(
             _task(family),
-            _action(),
+            _action(family),
             episode_seed=seed,
             environment_overrides={"horizon": int(max_steps)},
         )

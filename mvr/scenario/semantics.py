@@ -7,6 +7,27 @@ from typing import Any, Mapping
 import numpy as np
 
 
+CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2 = 0.6
+
+
+def quintic_smoothstep(progress: float | np.ndarray) -> float | np.ndarray:
+    """Return the C2 lane-change interpolation on the unit interval."""
+    q = np.asarray(progress, dtype=float)
+    return q**3 * (10.0 - 15.0 * q + 6.0 * q**2)
+
+
+def quintic_smoothstep_derivative(progress: float | np.ndarray) -> float | np.ndarray:
+    """First spatial derivative of :func:`quintic_smoothstep`."""
+    q = np.asarray(progress, dtype=float)
+    return 30.0 * q**2 * (1.0 - q) ** 2
+
+
+def quintic_smoothstep_second_derivative(progress: float | np.ndarray) -> float | np.ndarray:
+    """Second spatial derivative of :func:`quintic_smoothstep`."""
+    q = np.asarray(progress, dtype=float)
+    return 60.0 * q * (1.0 - q) * (1.0 - 2.0 * q)
+
+
 @dataclass
 class ManeuverScheduleState:
     """Markov state shared by Cut-in, Merge, and Roundabout controllers."""
@@ -14,6 +35,20 @@ class ManeuverScheduleState:
     maneuver_progress: float = 0.0
     maneuver_latched: bool = False
     challenge_phase_active: bool = False
+
+
+@dataclass(frozen=True)
+class CutInReferenceState:
+    """Spatial reference state for a legal Cut-in lane transition."""
+
+    progress: float
+    lateral_error_m: float
+    heading_error_rad: float
+    desired_lateral_m: float
+    length_m: float
+    curvature_m_inv: float
+    speed_limit_mps: float
+    start_remaining_m: float
 
 
 class ScenarioActionAdapter:
@@ -42,7 +77,7 @@ class ScenarioActionAdapter:
         self.state.maneuver_progress = self._route_progress()
         if self.family == "cutin" and not self.state.maneuver_latched:
             onset = float(
-                self.episode.applied_scenario.logical_parameters["cutin_onset_time_s"]
+                self.episode.applied_scenario.logical_parameters["cutin_start_time_s"]
             )
             if self._elapsed_seconds() >= onset:
                 self.state.maneuver_latched = True
@@ -58,6 +93,88 @@ class ScenarioActionAdapter:
         current = self.episode.adversary.navigation.current_lane.index
         return self.episode.env.current_map.road_network.get_lane(
             (current[0], current[1], number)
+        )
+
+    def cutin_reference(self) -> CutInReferenceState:
+        """Evaluate the fixed spatial lane-change curve at the vehicle pose."""
+        if self.family != "cutin":
+            raise RuntimeError("Cut-in reference is unavailable outside Cut-in")
+        contract = self.episode.layout.traffic_contract
+        if contract.merge_window_m is None:
+            raise RuntimeError("Cut-in contract has no reference-path definition")
+        vehicle = self.episode.adversary
+        route_projection = self.episode.adversary_route.projection(
+            vehicle.position, vehicle.heading_theta
+        )
+        parameters = self.episode.applied_scenario.logical_parameters
+        start_s = float(parameters["cutin_start_s_m"])
+        path_length = float(parameters["lane_change_length_m"])
+        progress = float(np.clip((route_projection.s_m - start_s) / path_length, 0.0, 1.0))
+        smoothstep = float(quintic_smoothstep(progress))
+        smoothstep_derivative = float(quintic_smoothstep_derivative(progress))
+        smoothstep_second_derivative = float(
+            quintic_smoothstep_second_derivative(progress)
+        )
+        current = vehicle.navigation.current_lane.index
+        source_lane = self.episode.env.current_map.road_network.get_lane(
+            (current[0], current[1], contract.source_lane_number)
+        )
+        target_lane = self.episode.env.current_map.road_network.get_lane(
+            (current[0], current[1], contract.target_lane_number)
+        )
+        source_s, _ = source_lane.local_coordinates(vehicle.position)
+        source_center = source_lane.position(
+            float(np.clip(source_s, 0.0, float(source_lane.length))), 0.0
+        )
+        _, source_lateral_in_target = target_lane.local_coordinates(source_center)
+        target_s, target_lateral = target_lane.local_coordinates(vehicle.position)
+        desired_lateral = float(source_lateral_in_target) * (1.0 - smoothstep)
+        desired_slope = -float(source_lateral_in_target) * smoothstep_derivative / path_length
+        curvature = abs(
+            float(source_lateral_in_target) * smoothstep_second_derivative / path_length**2
+        ) / max((1.0 + desired_slope**2) ** 1.5, 1e-6)
+        # Apply the path speed envelope before and after the spatial onset.
+        # Using only instantaneous curvature reports a straight-road limit
+        # while approaching a short lane-change curve, or immediately after
+        # it when residual yaw still needs to settle.  The complete quintic
+        # path supplies one 0.6 m/s² physical cap and reserves headroom for
+        # the simulator's steering transient beneath the 3.0 m/s² limit.
+        preview = np.linspace(0.0, 1.0, num=33, dtype=float)
+        preview_second = quintic_smoothstep_second_derivative(preview)
+        preview_curvature = np.abs(
+            float(source_lateral_in_target) * preview_second / path_length**2
+        ) / np.maximum(
+            (1.0 + (
+                -float(source_lateral_in_target)
+                * quintic_smoothstep_derivative(preview) / path_length
+            )**2) ** 1.5,
+            1e-6,
+        )
+        max_path_curvature = float(np.max(preview_curvature))
+        speed_limit = min(
+            float(contract.speed_limit_mps),
+            float(np.sqrt(
+                CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2
+                / max(max_path_curvature, 1e-5)
+            )),
+        )
+        target_heading = target_lane.heading_theta_at(
+            float(np.clip(target_s, 0.0, float(target_lane.length)))
+        )
+        desired_heading = target_heading + float(np.arctan(desired_slope))
+        heading_error = float(np.arctan2(
+            np.sin(float(vehicle.heading_theta) - desired_heading),
+            np.cos(float(vehicle.heading_theta) - desired_heading),
+        ))
+        return CutInReferenceState(
+            progress,
+            float(target_lateral) - desired_lateral,
+            heading_error,
+            desired_lateral,
+            path_length,
+            curvature,
+            speed_limit,
+            start_s - float(route_projection.s_m),
         )
 
     def observe_semantics(self, challenge_phase_active: bool) -> None:

@@ -8,8 +8,14 @@ from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.registry import load_adapters
-from mvr.scenario.semantics import ScenarioActionAdapter, ScenarioSemanticMonitor
-from mvr.state import PhysicalStateExtractor
+from mvr.scenario.semantics import (
+    ScenarioActionAdapter,
+    ScenarioSemanticMonitor,
+    quintic_smoothstep,
+    quintic_smoothstep_derivative,
+    quintic_smoothstep_second_derivative,
+)
+from mvr.state import INNER_STATE_FIELDS, PhysicalStateExtractor
 from mvr.scenario.taskbook import load_taskbook
 from mvr.safety.dynamics import CUTIN_VEHICLE_CONFIG
 from mvr.safety import TrafficActionShield
@@ -26,7 +32,7 @@ def _episode(candidate_index: int = 0):
         task,
         NormalizedScenarioAction(
             candidate_index,
-            (0.0, 0.0, 0.0, 0.0),
+            (0.0,) * 6,
         ),
         episode_seed=204 + candidate_index,
     )
@@ -42,9 +48,9 @@ def test_cutin_contract_uses_one_long_legal_corridor(candidate_index: int) -> No
         assert episode.sut_route.length_m >= 200.0
         assert abs(contract.target_lane_number - contract.source_lane_number) == 1
         assert contract.crossing_boundary == "broken"
-        assert merge_start >= 40.0
-        assert episode.adversary_route.length_m - merge_end >= 40.0
-        assert merge_end - merge_start >= 20.0
+        assert merge_start >= 0.0
+        assert merge_end <= episode.adversary_route.length_m
+        assert merge_end - merge_start >= 60.0
     finally:
         episode.env.close()
 
@@ -53,18 +59,19 @@ def test_route_block_has_no_adversarial_option() -> None:
     assert not hasattr(mvr_parameter_spaces()["cutin"], "options")
 
 
-def test_direct_sac_action_is_not_composed_with_a_nominal_controller() -> None:
+def test_direct_sac_action_uses_full_jerk_limited_longitudinal_control() -> None:
     episode = _episode()
     try:
         schedule = ScenarioActionAdapter(episode, "cutin")
         schedule.update()
         controller = DirectSACAdversaryController(episode, "cutin", schedule)
         try:
-            requested = np.asarray((0.25, -0.5), dtype=np.float32)
-            action = controller.action(requested)
+            target = np.asarray((0.25, -0.5), dtype=np.float32)
+            action = controller.action(target)
         finally:
             controller.destroy()
-        assert np.allclose(action, requested)
+        assert action[0] == pytest.approx(0.0)
+        assert action[1] == pytest.approx(-0.15 / 6.0)
     finally:
         episode.env.close()
 
@@ -95,8 +102,24 @@ def test_before_onset_shield_releases_no_lateral_action() -> None:
             np.asarray((1.0, -1.0), dtype=np.float32)
         )
         assert shielded.action[0] == pytest.approx(0.0)
-        assert shielded.action[1] == pytest.approx(-2.0 / 60.0)
+        assert shielded.action[1] == pytest.approx(-1.0)
         assert shielded.rejection_reason == "before_cutin_onset"
+    finally:
+        episode.env.close()
+
+
+def test_replay_action_is_the_declared_sac_actuator_target() -> None:
+    episode = _episode()
+    try:
+        rollout = HierarchicalRunner(max_steps=1).rollout(
+            episode,
+            "cutin",
+            lambda _: np.asarray((1.0, -1.0), dtype=np.float32),
+        )
+        transition = rollout.transitions[0]
+        np.testing.assert_allclose(transition["raw_action"], (1.0, -1.0))
+        np.testing.assert_allclose(transition["action"], transition["raw_action"])
+        assert not np.allclose(transition["raw_action"], transition["executed_action"])
     finally:
         episode.env.close()
 
@@ -104,7 +127,7 @@ def test_before_onset_shield_releases_no_lateral_action() -> None:
 def test_maximum_direct_braking_stays_within_physical_envelope() -> None:
     episode = _episode()
     try:
-        rollout = HierarchicalRunner(max_steps=60).rollout(
+        rollout = HierarchicalRunner(max_steps=130).rollout(
             episode,
             "cutin",
             lambda _: np.asarray((0.0, -1.0), dtype=np.float32),
@@ -156,19 +179,42 @@ def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
         )
         state = extractor(episode.adversary, episode.sut, schedule.state)
         assert state.shape == (PhysicalStateExtractor.dimension,)
-        assert state[-1] == 1.0
+        assert state[INNER_STATE_FIELDS.index("maneuver_started")] == 1.0
     finally:
         episode.env.close()
 
 
-def test_zero_direct_action_does_not_create_an_implicit_cutin() -> None:
+def test_cutin_reference_previews_curve_speed_before_spatial_onset() -> None:
+    episode = _episode()
+    try:
+        schedule = ScenarioActionAdapter(episode, "cutin")
+        schedule._elapsed_seconds = lambda: 100.0
+        schedule.update()
+
+        reference = schedule.cutin_reference()
+
+        assert reference.progress == pytest.approx(0.0)
+        assert reference.speed_limit_mps < episode.layout.traffic_contract.speed_limit_mps
+    finally:
+        episode.env.close()
+
+
+def test_quintic_reference_has_zero_endpoint_slope_and_acceleration() -> None:
+    assert float(quintic_smoothstep(0.0)) == pytest.approx(0.0)
+    assert float(quintic_smoothstep(1.0)) == pytest.approx(1.0)
+    for endpoint in (0.0, 1.0):
+        assert float(quintic_smoothstep_derivative(endpoint)) == pytest.approx(0.0)
+        assert float(quintic_smoothstep_second_derivative(endpoint)) == pytest.approx(0.0)
+
+
+def test_reference_path_tracks_with_bounded_direct_longitudinal_command() -> None:
     episode = _episode()
     observed_actions = []
     try:
-        rollout = HierarchicalRunner(max_steps=60).rollout(
+        rollout = HierarchicalRunner(max_steps=120).rollout(
             episode,
             "cutin",
-            lambda _: np.asarray((0.0, 0.0), dtype=np.float32),
+            lambda _: np.asarray((0.0, 0.35), dtype=np.float32),
             step_callback=lambda _episode, _step, info: observed_actions.append(
                 (
                     np.asarray(info["traffic_requested_action"], dtype=float),
@@ -179,26 +225,17 @@ def test_zero_direct_action_does_not_create_an_implicit_cutin() -> None:
         )
     finally:
         episode.env.close()
-    # Direct control makes a zero SAC action a true coasting/no-steering
-    # command.  In particular, no nominal IDM lane-change may be hidden
-    # underneath the policy output.
+    # The declared spatial reference, not native IDM, supplies legal lateral
+    # geometry. The direct longitudinal command keeps the adversary moving;
+    # it may steer only after onset.
     assert observed_actions
-    for requested, executed, reason in observed_actions:
-        np.testing.assert_allclose(requested, (0.0, 0.0), atol=1e-7)
-        # A non-zero steering command is permitted only when the physical
-        # shield is actively preventing a lane-corridor excursion; it cannot
-        # come from a hidden nominal IDM controller.
-        if not np.isclose(executed[0], 0.0, atol=1e-7):
-            assert reason in {"lateral_corridor", "steering_rate"}
-    np.testing.assert_allclose(
-        rollout.transitions[0]["action"],
-        np.asarray((0.0, 0.0), dtype=np.float32),
+    assert all(np.isclose(requested[0], 0.0) for requested, _, _ in observed_actions[:15])
+    assert any(not np.isclose(requested[0], 0.0) for requested, _, _ in observed_actions[40:])
+    assert all(
+        abs(float(row["info"].get("cutin_reference_lateral_error_m", 0.0))) < 3.5
+        for row in rollout.transitions
     )
-    # A fixed SUT can still enter the geometric near-miss band while the
-    # adversary coasts; that evidence must not be mistaken for an implicit
-    # Cut-in maneuver.
-    assert rollout.outcome["event_kind"] in {None, "near_miss"}
-    assert not rollout.outcome["event_semantic_valid"]
+    assert rollout.transitions[-1]["info"]["semantic_maneuver_completed"]
 
 
 def test_cutin_intrusion_requires_vehicle_footprint_overlap() -> None:

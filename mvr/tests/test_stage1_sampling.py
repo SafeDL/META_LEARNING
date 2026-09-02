@@ -98,41 +98,31 @@ def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
     ) == pytest.approx(1.5)
 
 
-def test_pretrain_scene_sampler_accepts_cutin_accident_search_eta_offset() -> None:
+def test_pretrain_scene_sampler_uses_cutin_logical_domain_controls() -> None:
     names = (
-        "adversary_distance_to_conflict_m", "sut_distance_to_conflict_m",
-        "adversary_initial_speed_mps", "sut_initial_speed_mps",
-        "maneuver_onset_progress",
+        "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
+        "cutin_start_progress", "cutin_start_time_s", "lane_change_length_m",
     )
     task = SimpleNamespace(
         task_id="cutin-task", functional_scenario="cutin",
         logical_domain_bounds={name: (-0.25, 0.25) for name in names},
-        logical_parameter_mask=(True, True, True, True, False),
+        logical_parameter_mask=(True,) * 6,
     )
     space = ParameterSpace(
         "sampling-test", ("candidate-0",),
         {
-            "adversary_distance_to_conflict_m": (0.5, 5.0),
-            "sut_distance_to_conflict_m": (0.5, 5.0),
-            "adversary_initial_speed_mps": (4.0, 18.0),
+            "cutin_gap_at_start_m": (7.0, 16.0),
             "sut_initial_speed_mps": (4.0, 18.0),
-            "maneuver_onset_progress": (0.2, 0.8),
+            "relative_speed_mps": (-3.0, 1.0),
+            "cutin_start_progress": (0.0, 1.0),
+            "cutin_start_time_s": (0.8, 2.8),
+            "lane_change_length_m": (30.0, 60.0),
         },
-    )
-    candidate = SimpleNamespace(
-        adversary_distance_min_m=0.0,
-        adversary_distance_available_m=26.0,
-        sut_distance_min_m=0.0,
-        sut_distance_available_m=26.0,
     )
     action = PretrainSceneSampler(
         (task,), episodes_per_task=1, seed=11,
         eta_offsets_s={"cutin": 0.0},
-    )(task, 0, (candidate,), space)
-    config = space.decode(action)
-    adversary_distance = 0.5 * (action.continuous[0] + 1.0) * 26.0
-    sut_distance = 0.5 * (action.continuous[1] + 1.0) * 26.0
-    assert (
-        sut_distance / config["sut_initial_speed_mps"]
-        - adversary_distance / config["adversary_initial_speed_mps"]
-    ) == pytest.approx(0.0, abs=1e-6)
+    )(task, 0, (SimpleNamespace(),), space)
+    for index, name in enumerate(names):
+        lower, upper = task.logical_domain_bounds[name]
+        assert lower <= action.continuous[index] <= upper

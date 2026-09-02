@@ -17,10 +17,12 @@ INTERACTION_LOGICAL_PARAMETER_NAMES = (
     "maneuver_onset_progress",
 )
 CUTIN_LOGICAL_PARAMETER_NAMES = (
-    "initial_gap_m",
+    "cutin_gap_at_start_m",
     "sut_initial_speed_mps",
     "relative_speed_mps",
-    "cutin_onset_time_s",
+    "cutin_start_progress",
+    "cutin_start_time_s",
+    "lane_change_length_m",
 )
 # Kept as the public default for Merge and Roundabout callers.  Cut-in must
 # explicitly request its own schema rather than silently borrowing conflict

@@ -28,12 +28,17 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
         task,
         # Keep the nominal adversary behind the SUT at reset; this is a
         # completion-contract test, not an adversarial-success test.
-        NormalizedScenarioAction(0, (1.0, -1.0, -1.0, -1.0, 0.0)),
+            NormalizedScenarioAction(
+                0,
+                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                if family == "cutin"
+                else (1.0, -1.0, -1.0, -1.0, 0.0),
+            ),
         episode_seed=711,
-        environment_overrides={"horizon": 480},
+        environment_overrides={"horizon": 900},
     )
     try:
-        rollout = HierarchicalRunner(max_steps=480).rollout(
+        rollout = HierarchicalRunner(max_steps=900).rollout(
             episode,
             family,
             lambda _state: np.asarray((0.0, -1.0), dtype=np.float32),
@@ -55,7 +60,9 @@ def test_every_family_declares_sut_route_completion_as_the_test_endpoint(family:
     )
     episode = ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
-        NormalizedScenarioAction(0, (0.0,) * 5),
+            NormalizedScenarioAction(
+                0, (0.0,) * mvr_parameter_spaces()[family].continuous_dim,
+            ),
         episode_seed=712,
     )
     try:

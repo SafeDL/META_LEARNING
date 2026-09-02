@@ -52,22 +52,27 @@ class InnerReplay:
         if len(eligible) < count:
             raise ValueError("not enough leakage-free inner transitions")
         sampler = rng or random
+        # Dense legal-risk shaping is deliberately below one.  Event replay
+        # must contain only the terminal near-miss/collision bonus, rather
+        # than relabelling every mildly risky in-corridor transition as an
+        # expert action.
+        event_threshold = 1.0
         positive_count = min(
             int(round(count * positive_fraction)),
-            sum(float(row.reward) > 0.0 for row in eligible),
+            sum(float(row.reward) >= event_threshold for row in eligible),
         )
         if positive_count == 0:
             return sampler.sample(eligible, count)
-        positives = [row for row in eligible if float(row.reward) > 0.0]
+        positives = [row for row in eligible if float(row.reward) >= event_threshold]
         selected = sampler.sample(positives, positive_count)
         selected_ids = {id(row) for row in selected}
         remaining = [row for row in eligible if id(row) not in selected_ids]
         needed = count - positive_count
-        non_positive = [row for row in remaining if float(row.reward) <= 0.0]
+        non_positive = [row for row in remaining if float(row.reward) < event_threshold]
         if len(non_positive) >= needed:
             return selected + sampler.sample(non_positive, needed)
         return selected + non_positive + sampler.sample(
-            [row for row in remaining if float(row.reward) > 0.0],
+            [row for row in remaining if float(row.reward) >= event_threshold],
             needed - len(non_positive),
         )
 

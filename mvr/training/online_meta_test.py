@@ -94,6 +94,7 @@ class OnlineMetaTest:
         scene_action_provider: Callable[[ScenarioMiningTaskSpec, int, tuple[Any, ...], Any], NormalizedScenarioAction] | None = None,
         inner_action_provider: Callable[[np.ndarray], np.ndarray] | None = None,
         episode_seed_provider: Callable[[ScenarioMiningTaskSpec, int], int] | None = None,
+        initial_latent: torch.Tensor | None = None,
         use_scene_context: bool = True,
         use_latent_context: bool = True,
         rollout_step_callback: Callable[[Any, int, Mapping[str, Any]], None] | None = None,
@@ -119,6 +120,10 @@ class OnlineMetaTest:
         )
         device = self.model.device
         latent, _ = self.model.context_encoder.prior(device=device)
+        if initial_latent is not None:
+            latent = torch.as_tensor(initial_latent, dtype=torch.float32, device=device).reshape(1, -1)
+            if latent.shape[1] != self.model.context_encoder.latent_dim:
+                raise ValueError("initial latent dimension does not match the model")
         inner_policy_hash = self._inner_policy_hash()
         evidence_tokens: list[torch.Tensor] = []
         result = OnlineMetaTestResult([], [], OuterRolloutBuffer())

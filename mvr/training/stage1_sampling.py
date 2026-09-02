@@ -69,7 +69,7 @@ class PretrainSceneSampler:
         controls = np.asarray(rows[sequence_index], dtype=np.float32)
         candidate = candidates[candidate_index]
         controls = self._domain_controls(task, controls)
-        if task.functional_scenario != "cutin":
+        if getattr(task, "functional_scenario", None) != "cutin":
             controls = self._interaction_aligned_controls(task, candidate, space, controls)
         # The first two controls remain candidate-relative spawn fractions.
         # The executor maps them into the selected route's exact feasible
@@ -84,7 +84,10 @@ class PretrainSceneSampler:
     ) -> np.ndarray:
         values = np.asarray(controls, dtype=np.float32).copy()
         bounds = getattr(task, "logical_domain_bounds", {})
-        names = logical_parameter_names(task.functional_scenario)
+        family = getattr(task, "functional_scenario", None)
+        if family is None:
+            return values
+        names = logical_parameter_names(family)
         mask = getattr(task, "logical_parameter_mask", (True,) * len(values))
         for index in range(len(values)):
             if not bool(mask[index]):

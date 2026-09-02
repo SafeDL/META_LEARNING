@@ -4,17 +4,15 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+
 from metadrive.policy.idm_policy import FrontBackObjects, IDMPolicy
+
+from ..safety.dynamics import VehicleActionProjector
 from ..scenario.semantics import ScenarioActionAdapter
 
 
 class DirectSACAdversaryController:
-    """Expose SAC's two commands without an IDM nominal-action path.
-
-    The Logical Scenario fixes when a Cut-in may begin. It does not generate
-    steering or longitudinal commands: both values originate with the Inner
-    SAC and are subsequently projected only by the physical traffic shield.
-    """
+    """Track Cut-in reference geometry with SAC longitudinal risk control."""
 
     def __init__(
         self,
@@ -25,14 +23,58 @@ class DirectSACAdversaryController:
         self.episode = episode
         self.family = str(family)
         self.schedule = schedule
-    def observe_environment(self, _info: Any) -> None:
+        self.projector = VehicleActionProjector(
+            episode.adversary,
+            float(episode.layout.traffic_contract.speed_limit_mps),
+            max_jerk_mps3=1.5,
+        )
+        self._arrived_destination = False
+
+    def observe_environment(self, info: Any) -> None:
         """Keep the controller interface symmetric with rollout consumers."""
+        self._arrived_destination = self._arrived_destination or bool(
+            dict(info).get("arrive_dest", False)
+        )
 
     def action(self, sac_action: np.ndarray) -> np.ndarray:
         action = np.asarray(sac_action, dtype=np.float32).reshape(-1)
         if action.shape != (2,) or not np.isfinite(action).all():
             raise ValueError("direct SAC controller requires one finite 2-D action")
-        return np.clip(action, -1.0, 1.0)
+        action = np.clip(action, -1.0, 1.0)
+        if self._arrived_destination:
+            return self.projector.project((0.0, -1.0))
+        steering = 0.0
+        longitudinal = float(action[1])
+        reference = self.schedule.cutin_reference()
+        if self.schedule.state.maneuver_latched:
+            vehicle = self.episode.adversary
+            max_steering = np.deg2rad(float(vehicle.config["max_steering"]))
+            heading_term = reference.heading_error_rad / max(max_steering, 1e-6)
+            # The feasibility probe establishes 0.25 * lateral error as the
+            # stable reference feedback gain for this actuator.  The former
+            # weaker term let a saturated learned residual leave the target
+            # lane after q reached one.  Heading only damps that feedback;
+            # it must not dominate the geometric lane-centering term.
+            tracking = 0.25 * reference.lateral_error_m - 0.05 * heading_term
+            # The planned quintic supplies the complete lane transition.
+            # SAC may only make a small correction while the curve is still
+            # developing; freeze it before the exit so a risk-seeking action
+            # cannot turn a completed legal lane change into road departure.
+            residual = 0.0 if reference.progress >= 0.85 else 0.005 * action[0]
+            steering = float(tracking + residual)
+        speed = float(self.episode.adversary.speed_km_h) / 3.6
+        if speed > reference.speed_limit_mps:
+            # The cap is geometry-derived, never a learned reward cue.  It
+            # applies before temporal onset too: lane motion remains locked,
+            # but braking must begin early enough to enter a short spatial
+            # curve within its lateral-acceleration envelope.
+            longitudinal = min(longitudinal, -min(
+                1.0, (speed - reference.speed_limit_mps) / 2.0
+            ))
+        # The spatial reference supplies legal lateral geometry. SAC retains
+        # a bounded lateral correction and directly selects full bounded
+        # longitudinal acceleration or braking through this projector.
+        return self.projector.project((steering, longitudinal))
 
     def destroy(self) -> None:
         """Direct actions allocate no native policy resources."""

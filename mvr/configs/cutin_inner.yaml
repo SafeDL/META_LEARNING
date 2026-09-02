@@ -2,7 +2,7 @@ schema: transferable_scenario_miner
 seed: 11
 taskbook: mvr/configs/taskbook.json
 model:
-  state_dim: 14
+  state_dim: 23
   latent_dim: 16
   num_experts: 4
 context:
@@ -22,17 +22,17 @@ interaction_prior:
   action_dim: 2
   batch_size: 64
   # Scene coverage comes directly from the declared Cut-in Logical domains.
-  episodes_per_task: 2
-  updates_per_episode: 8
+  episodes_per_task: 8
+  updates_per_episode: 12
   replay_capacity: 100000
   learning_rate: 0.0003
   event_sample_fraction: 0.5
-  event_action_weight: 0.5
+  event_action_weight: 2.0
 context_meta:
   support_shots: [1, 2, 4]
-  groups_per_task: 1
+  groups_per_task: 3
   queries_per_group: 1
-  updates_per_episode: 8
+  updates_per_episode: 12
   replay_capacity: 100000
   batch_size: 64
   learning_rate: 0.0003
@@ -61,24 +61,32 @@ cutin_inner:
   training_sut_refs: [idm_assertive, idm_normal]
   training_geometry_ids: [cutin-g01, cutin-g02]
   training_logical_domains:
-    - id: close_fast_early
+    - id: close_closing_early
       bounds:
-        initial_gap_m: [-0.75, -0.35]
+        cutin_gap_at_start_m: [-0.75, -0.35]
         sut_initial_speed_mps: [-0.30, 0.30]
-        relative_speed_mps: [0.25, 0.75]
-        cutin_onset_time_s: [-0.65, -0.25]
+        relative_speed_mps: [-0.25, 0.25]
+        cutin_start_progress: [-0.65, -0.25]
+        cutin_start_time_s: [-0.65, -0.25]
+        lane_change_length_m: [-0.65, -0.25]
     - id: balanced_interaction
       bounds:
-        initial_gap_m: [-0.30, 0.30]
+        cutin_gap_at_start_m: [-0.30, 0.30]
         sut_initial_speed_mps: [-0.30, 0.30]
-        relative_speed_mps: [-0.30, 0.30]
-        cutin_onset_time_s: [-0.30, 0.30]
-    - id: late_slow_cutin
+        relative_speed_mps: [-0.40, 0.10]
+        cutin_start_progress: [-0.30, 0.30]
+        cutin_start_time_s: [-0.30, 0.30]
+        lane_change_length_m: [-0.30, 0.30]
+    - id: late_tight_cutin
       bounds:
-        initial_gap_m: [0.35, 0.75]
+        cutin_gap_at_start_m: [0.35, 0.75]
         sut_initial_speed_mps: [-0.30, 0.30]
-        relative_speed_mps: [-0.75, -0.25]
-        cutin_onset_time_s: [0.25, 0.65]
+        relative_speed_mps: [-0.80, -0.40]
+        # Late within the executable corridor, while leaving enough route
+        # for a full SUT-completion test at the declared step budget.
+        cutin_start_progress: [0.15, 0.28]
+        cutin_start_time_s: [0.25, 0.65]
+        lane_change_length_m: [0.35, 0.75]
 evaluation:
   support_shots: [0, 1, 2, 4]
   query_cases: 8
@@ -87,10 +95,14 @@ evaluation:
   paired_bootstrap_seed: 11
   fixed_query_x0:
     candidate_index: 0
-    # (gap, SUT speed, relative speed, onset time), all in the
+    # (gap at spatial start, SUT speed, relative speed, path start progress,
+    #  start time, lane-change length), all in the
     # validation Logical domain.  This tuple alone, plus task/candidate/seed,
     # reconstructs the scene without a fixed conflict-point coordinate.
-    continuous: [-0.45, 0.45, 0.45, 0.45]
+    # Fixed validation query inside the fast-small-gap Logical domain.
+    # For K>0, posterior inference uses a deterministic, task-local set of
+    # distinct low-discrepancy support scenes; it never reuses this query.
+    continuous: [-0.65, 0.25, 0.75, 0.25, 0.65, -0.25]
   failure_rate:
     query_cases: 8
     support_shots: 4

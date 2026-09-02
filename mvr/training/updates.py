@@ -208,8 +208,10 @@ def update_inner_sac(
     maps, concrete = _concrete_inputs(model, rows)
     features = model.inner_features(states, maps, latent, concrete)
     next_features = model.inner_features(next_states, maps, latent, concrete)
-    td_target = model.inner_sac.critic_target(reward, next_features, done)
-    critic = model.inner_sac.critic_loss(features, action, reward, next_features, done)
+    td_target = model.inner_sac.critic_target(reward, next_features, done, context=latent)
+    critic = model.inner_sac.critic_loss(
+        features, action, reward, next_features, done, context=latent
+    )
     posterior = torch.stack(posterior_losses).mean() if posterior_losses else torch.zeros((), device=device)
     optimizer.zero_grad(set_to_none=True)
     (critic + posterior).backward()
@@ -226,6 +228,7 @@ def update_inner_sac(
         actions=action,
         rewards=reward,
         event_action_weight=event_action_weight,
+        context=latent.detach(),
     )
     optimizer.zero_grad(set_to_none=True)
     (actor + alpha).backward()

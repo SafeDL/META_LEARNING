@@ -22,6 +22,15 @@ INNER_STATE_FIELDS = (
     "adversary_route_lateral_m",
     "adversary_route_heading_error_rad",
     "maneuver_started",
+    "cutin_reference_lateral_error_m",
+    "cutin_reference_heading_error_rad",
+    "cutin_reference_progress",
+    "cutin_reference_length_m",
+    "cutin_reference_curvature_m_inv",
+    "cutin_reference_speed_limit_mps",
+    "cutin_start_remaining_m",
+    "cutin_start_time_remaining_s",
+    "cutin_corridor_margin_m",
 )
 
 
@@ -30,7 +39,8 @@ class PhysicalStateExtractor:
 
     dimension = len(INNER_STATE_FIELDS)
     scales = np.asarray(
-        (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 8.0, np.pi, 1.0),
+        (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 8.0, np.pi, 1.0,
+         8.0, np.pi, 1.0, 60.0, 0.2, 20.0, 100.0, 5.0, 4.0),
         dtype=np.float32,
     )
 
@@ -83,7 +93,39 @@ class PhysicalStateExtractor:
         closing = float(-np.dot(relative, np.asarray(sut.velocity, dtype=float) - np.asarray(adversary.velocity, dtype=float)) / max(distance, 1e-6))
         adversary_projection = self._adversary_route.projection(adversary_position, heading)
         sut_projection = self._sut_route.projection(sut_position, self._heading(sut))
-        challenge_phase = 0.0 if schedule is None else float(schedule.challenge_phase_active)
+        schedule_state = getattr(schedule, "state", schedule)
+        challenge_phase = 0.0 if schedule is None else float(
+            schedule_state.challenge_phase_active
+        )
+        reference_lateral_error = 0.0
+        reference_heading_error = 0.0
+        reference_progress = 0.0
+        reference_length = 0.0
+        reference_curvature = 0.0
+        reference_speed_limit = 0.0
+        start_remaining = 0.0
+        onset_remaining = 0.0
+        corridor_margin = 0.0
+        if getattr(schedule, "family", None) == "cutin":
+            reference = schedule.cutin_reference()
+            reference_lateral_error = reference.lateral_error_m
+            reference_heading_error = reference.heading_error_rad
+            reference_progress = reference.progress
+            reference_length = reference.length_m
+            reference_curvature = reference.curvature_m_inv
+            reference_speed_limit = reference.speed_limit_mps
+            start_remaining = reference.start_remaining_m
+            contract = schedule.episode.layout.traffic_contract
+            current = adversary.navigation.current_lane.index
+            target_lane = schedule.episode.env.current_map.road_network.get_lane(
+                (current[0], current[1], contract.target_lane_number)
+            )
+            _, target_lateral = target_lane.local_coordinates(adversary_position)
+            onset = float(schedule.episode.applied_scenario.logical_parameters["cutin_start_time_s"])
+            onset_remaining = max(0.0, onset - schedule._elapsed_seconds())
+            corridor_margin = max(
+                0.0, 0.5 * float(target_lane.width) - abs(target_lateral)
+            )
         values = np.asarray((
             longitudinal,
             lateral,
@@ -99,6 +141,15 @@ class PhysicalStateExtractor:
             challenge_phase,
             adversary_projection.lateral_m,
             adversary_projection.heading_error,
-            0.0 if schedule is None else float(schedule.maneuver_latched),
+            0.0 if schedule is None else float(schedule_state.maneuver_latched),
+            reference_lateral_error,
+            reference_heading_error,
+            reference_progress,
+            reference_length,
+            reference_curvature,
+            reference_speed_limit,
+            start_remaining,
+            onset_remaining,
+            corridor_margin,
         ), dtype=np.float32)
         return np.clip(np.nan_to_num(values / self.scales, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)

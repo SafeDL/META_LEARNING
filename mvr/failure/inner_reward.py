@@ -13,6 +13,10 @@ class InnerRiskReward:
 
     def __init__(self, criteria: FailureCriteria) -> None:
         self.criteria = criteria
+        self._previous_progress = 0.0
+
+    def reset(self) -> None:
+        self._previous_progress = 0.0
 
     def __call__(self, features: np.ndarray, info: Mapping[str, object]) -> float:
         row = np.asarray(features, dtype=float)
@@ -23,15 +27,9 @@ class InnerRiskReward:
         # contract threshold toward contact must never reduce the shaping
         # reward.  A Gaussian around the threshold would peak at a near miss
         # and then fall again as the vehicles approach impact.
-        ttc_criticality = np.clip(
-            (self.criteria.ttc_s - ttc) / max(self.criteria.ttc_s, 1e-3),
-            0.0,
-            1.0,
-        )
-        distance_criticality = np.clip(
-            (self.criteria.distance_m - distance) / max(self.criteria.distance_m, 1e-3),
-            0.0,
-            1.0,
+        ttc_criticality = np.exp(-ttc / max(self.criteria.ttc_s, 1e-3))
+        distance_criticality = np.exp(
+            -distance / max(self.criteria.distance_m, 1e-3)
         )
         closing_intensity = min(closing / self.criteria.closing_speed_mps, 1.0)
         criticality = 0.5 * ttc_criticality + 0.3 * distance_criticality + 0.2 * closing_intensity
@@ -43,11 +41,9 @@ class InnerRiskReward:
             if "semantic_challenge_phase_active" in info
             else True
         )
-        # Risk shaping is only meaningful inside the contract-defined
-        # interaction corridor.  Outside it the controller receives a small
-        # neutral cost, so it cannot farm proximity while approaching.
+        # The reward remains continuous before the formal failure threshold;
+        # those criteria still decide events and never become trainable rules.
         criticality *= float(challenge_active)
-        conflict = 1.0 - min(abs(row[11]), 1.0)
         invalid = any(
             bool(info.get(key, False))
             for key in (
@@ -70,34 +66,34 @@ class InnerRiskReward:
         )
         event_bonus = 0.0
         if not invalid:
-            if target_collision:
+            # Collision and critical near-miss are both terminal safety
+            # evidence for the Inner objective.  They therefore receive the
+            # same large event return; the formal failure/semantic criteria
+            # still decide which event is valid.
+            if target_collision or valid_near_miss:
                 event_bonus = 12.0
-            elif valid_near_miss:
-                event_bonus = 2.0
         # Dense risk shaping is a training signal, not the formal event
         # score. It is strictly confined to the semantic interaction
         # corridor, where lowering TTC/distance and increasing closing speed
         # are meaningful rather than a pre-conflict reward loophole.
-        risk_reward = 0.25 * criticality
-        # Before the declared Cut-in onset, preserve enough forward motion to
-        # reach the conflict window.  Without this small, progress-gated term
-        # a direct SAC can learn the degenerate full-brake policy: it avoids
-        # every event simply by never entering the maneuver corridor.
-        approach_reward = 0.0
-        if not challenge_active and not invalid:
-            speed_limit = max(float(info.get("speed_limit_mps", 20.0)), 1e-3)
-            speed_fraction = np.clip(
-                float(info.get("adversary_speed_mps", 0.0)) / speed_limit,
-                0.0,
-                1.0,
+        risk_reward = 0.50 * criticality
+        tracking_penalty = 0.0
+        progress = float(info.get("cutin_reference_progress", 0.0))
+        if progress > 0.0:
+            lateral_error = abs(float(info.get("cutin_reference_lateral_error_m", 0.0)))
+            heading_error = abs(float(info.get("cutin_reference_heading_error_rad", 0.0)))
+            tracking_penalty = 0.03 * min(1.0, lateral_error / 3.5) + 0.01 * min(
+                1.0, heading_error / (0.5 * np.pi)
             )
-            approach_reward = 0.03 * speed_fraction
+        # This is a bounded path-completion potential, not an absolute-speed
+        # incentive.  It makes legal lateral completion preferable to simply
+        # remaining in the source lane while risk is accumulated.
+        progress_reward = 0.10 * max(0.0, progress - self._previous_progress)
+        self._previous_progress = max(self._previous_progress, progress)
         shield_penalty = float(info.get("traffic_shield_intervention_l2", 0.0)) ** 2
-        action_penalty = 0.005 * float(info.get("inner_raw_action_l2", 0.0))
-        corridor_penalty = 0.005 * (1.0 - float(challenge_active))
         return float(np.clip(
-            risk_reward + approach_reward + event_bonus - action_penalty - 0.25 * shield_penalty
-            - corridor_penalty - 2.0 * float(invalid),
+            risk_reward + event_bonus + progress_reward - tracking_penalty
+            - 0.10 * shield_penalty - 2.0 * float(invalid),
             -3.0,
             12.0,
         ))

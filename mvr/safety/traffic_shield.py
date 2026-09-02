@@ -181,20 +181,49 @@ class TrafficActionShield:
                 return ShieldedAction(requested.copy(), candidate.copy(), None)
             requested = candidate
         action = np.clip(requested, -1.0, 1.0)
-        # The direct physical envelope below is specific to Cut-in.  Keep the
-        # legacy families' zero-action contract intact: their existing tests
-        # and semantics use an unmodified SAC command except for the shared
-        # lateral-acceleration and speed-limit projections.
+        # The direct physical envelope below is specific to Cut-in.  Preserve
+        # the legacy longitudinal projection for Merge/Roundabout so this
+        # Cut-in repair cannot change their simulator contracts.
         if self.schedule.family != "cutin":
             steering_limit = self._steering_limit()
             reasons: list[str] = []
             if abs(float(action[0])) > steering_limit:
                 action[0] = np.clip(action[0], -steering_limit, steering_limit)
                 reasons.append("lateral_acceleration")
-            if self._speed_mps(self.episode.adversary) >= self.contract.speed_limit_mps:
-                if action[1] > 0.0:
-                    action[1] = 0.0
-                    reasons.append("speed_limit")
+            available_acceleration, available_deceleration = self._longitudinal_capabilities()
+            acceleration = min(available_acceleration, self.max_acceleration_mps2)
+            deceleration = min(available_deceleration, self.max_deceleration_mps2)
+            requested_acceleration = self._command_acceleration(
+                float(action[1]), available_acceleration, available_deceleration
+            )
+            jerk_delta = self.max_jerk_mps3 * self._step_seconds(self.episode.env)
+            jerk_reference = (
+                self._previous_acceleration_mps2
+                if self._previous_acceleration_mps2 is not None
+                else self._previous_command_acceleration_mps2
+            )
+            command_acceleration = float(np.clip(
+                requested_acceleration,
+                jerk_reference - jerk_delta,
+                jerk_reference + jerk_delta,
+            ))
+            if not np.isclose(command_acceleration, requested_acceleration):
+                reasons.append("longitudinal_jerk")
+            speed = self._speed_mps(self.episode.adversary)
+            if command_acceleration < 0.0:
+                stop_safe_deceleration = np.sqrt(
+                    2.0 * self.max_jerk_mps3 * max(speed, 0.0)
+                )
+                if -command_acceleration > stop_safe_deceleration:
+                    command_acceleration = -float(stop_safe_deceleration)
+                    reasons.append("low_speed_jerk")
+            if speed >= self.contract.speed_limit_mps and command_acceleration > 0.0:
+                command_acceleration = 0.0
+                reasons.append("speed_limit")
+            action[1] = self._acceleration_action(
+                command_acceleration, available_acceleration, available_deceleration
+            )
+            self._previous_command_acceleration_mps2 = command_acceleration
             reason = reasons[0] if reasons else None
             for item in set(reasons):
                 self._rejections[item] += 1
@@ -205,7 +234,10 @@ class TrafficActionShield:
         # A Cut-in's onset is a Logical Scenario parameter. Before it, the
         # lateral actuator is unavailable; the policy cannot create an early
         # lane excursion while waiting for the declared maneuver window.
-        if self.schedule.family == "cutin" and not self.schedule.state.maneuver_latched:
+        if self.schedule.family == "cutin" and (
+            not self.schedule.state.maneuver_latched
+            or self.schedule.cutin_reference().start_remaining_m > 0.0
+        ):
             if not np.isclose(action[0], 0.0):
                 action[0] = 0.0
                 reasons.append("before_cutin_onset")
@@ -255,49 +287,14 @@ class TrafficActionShield:
                 action[0] = float(-steering_limit)
                 reasons.append("lateral_corridor")
 
-        available_acceleration, available_deceleration = self._longitudinal_capabilities()
-        acceleration = min(available_acceleration, self.max_acceleration_mps2)
-        deceleration = min(available_deceleration, self.max_deceleration_mps2)
-        requested_acceleration = self._command_acceleration(
-            float(action[1]), available_acceleration, available_deceleration
-        )
-        jerk_delta = self.max_jerk_mps3 * dt
-        # The simulator's brake/engine response has a small lag.  Bounding a
-        # new command only against the previous *requested* acceleration can
-        # therefore create a sign flip in the measured acceleration.  Once a
-        # sample is available, use that measured acceleration as the jerk
-        # reference; this keeps the realised motion inside the same envelope.
-        jerk_reference = (
-            self._previous_acceleration_mps2
-            if self._previous_acceleration_mps2 is not None
-            else self._previous_command_acceleration_mps2
-        )
-        command_acceleration = float(np.clip(
-            requested_acceleration,
-            jerk_reference - jerk_delta,
-            jerk_reference + jerk_delta,
-        ))
-        if not np.isclose(command_acceleration, requested_acceleration):
-            reasons.append("longitudinal_jerk")
-        # Do not let a maximum-brake command drive the vehicle to rest before
-        # its acceleration can be released at the allowed jerk.  The bound is
-        # the speed consumed while unwinding a negative acceleration at J.
-        # It removes the simulator's discontinuous "brake to zero" impulse.
+        # The Cut-in direct controller already maps SAC's normalized command
+        # into a jerk-safe longitudinal envelope.  A second stateful brake
+        # projection here previously changed a zero SAC command into braking
+        # and made replay disagree with the policy's own action semantics.
         speed = self._speed_mps(self.episode.adversary)
-        if command_acceleration < 0.0:
-            stop_safe_deceleration = np.sqrt(
-                2.0 * self.max_jerk_mps3 * max(speed, 0.0)
-            )
-            if -command_acceleration > stop_safe_deceleration:
-                command_acceleration = -float(stop_safe_deceleration)
-                reasons.append("low_speed_jerk")
-        if speed >= self.contract.speed_limit_mps and command_acceleration > 0.0:
-            command_acceleration = 0.0
+        if speed >= self.contract.speed_limit_mps and action[1] > 0.0:
+            action[1] = 0.0
             reasons.append("speed_limit")
-        action[1] = self._acceleration_action(
-            command_acceleration, available_acceleration, available_deceleration
-        )
-        self._previous_command_acceleration_mps2 = command_acceleration
         reason = reasons[0] if reasons else None
         for item in set(reasons):
             self._rejections[item] += 1

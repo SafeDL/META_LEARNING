@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import torch
@@ -7,6 +9,7 @@ import torch
 from mvr.model import TransferableScenarioMiner
 from mvr.state import PhysicalStateExtractor
 from mvr.policy.adversarial_sac import AdversarialSAC
+from mvr.scripts.plot_inner_sac_training import _recorded_stages
 from mvr.training.replay import InnerReplay, OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
 from mvr.training.trainers import _training_signal_metrics
@@ -81,6 +84,18 @@ def test_inner_replay_reserves_positive_event_transitions() -> None:
     assert sum(float(row.reward) > 0.0 for row in rows) == 4
 
 
+def test_inner_replay_does_not_treat_dense_risk_shaping_as_an_event() -> None:
+    replay = InnerReplay()
+    for index in range(12):
+        replay.add(SimpleNamespace(
+            episode_id=str(index), reward=2.0 if index < 2 else 0.5
+        ))
+
+    rows = replay.sample(8, positive_fraction=0.5)
+
+    assert sum(float(row.reward) >= 1.0 for row in rows) == 2
+
+
 def test_training_signal_metrics_report_event_and_reward_density() -> None:
     task = SimpleNamespace(functional_scenario="cutin")
     episode = SimpleNamespace(
@@ -100,3 +115,17 @@ def test_training_signal_metrics_report_event_and_reward_density() -> None:
     assert report["overall"]["positive_reward_transitions"] == 1
     assert report["overall"]["positive_reward_transition_fraction"] == 0.5
     assert report["family:cutin"]["event_capture_transitions"] == 1
+
+
+def test_training_curve_loader_recovers_prior_stage_after_resume(tmp_path: Path) -> None:
+    metrics = {"episode_return_curve": [{"inner_return": 1.0}]}
+    (tmp_path / "manifest.json").write_text(json.dumps({
+        "stages": [{"stage": "context_meta", "metrics": metrics}],
+    }), encoding="utf-8")
+    (tmp_path / "interaction_prior.json").write_text(json.dumps({
+        "metrics": metrics,
+    }), encoding="utf-8")
+
+    stages = _recorded_stages(str(tmp_path / "manifest.json"))
+
+    assert set(stages) == {"interaction_prior", "context_meta"}

@@ -52,7 +52,7 @@ class MetaDriveFamilyAdapter:
     @staticmethod
     def adversary_agent_config(layout: ScenarioLayout, config: Mapping[str, float | str]) -> dict[str, Any]:
         return {
-            "spawn_lane_index": layout.adversary_lane,
+            "spawn_lane_index": config.get("adversary_spawn_lane", layout.adversary_lane),
             "spawn_longitude": float(config["adversary_spawn_m"]),
             "spawn_lateral": 0.0,
             "spawn_velocity": [float(config["adversary_initial_speed_mps"]), 0.0],

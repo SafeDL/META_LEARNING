@@ -54,6 +54,31 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
         line_types = tuple(str(value) for value in getattr(lane, "line_types", ()))
         return len(line_types) == 2 and "BROKEN" in line_types[boundary_index]
 
+    def _legal_merge_windows(
+        self,
+        road_network: Any,
+        corridor: tuple[LaneIndex, ...],
+        source_lane: int,
+        target_lane: int,
+    ) -> tuple[tuple[float, float], ...]:
+        """Return every continuous dashed boundary interval in route metres."""
+        windows: list[tuple[float, float]] = []
+        offset = 0.0
+        start: float | None = None
+        for base in corridor:
+            lane = road_network.get_lane((base[0], base[1], source_lane))
+            length = float(lane.length)
+            if self._boundary_is_broken(lane, source_lane, target_lane):
+                if start is None:
+                    start = offset
+            elif start is not None:
+                windows.append((start, offset))
+                start = None
+            offset += length
+        if start is not None:
+            windows.append((start, offset))
+        return tuple(windows)
+
     def resolve_layout(
         self,
         env: Any,
@@ -76,13 +101,23 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
         # the only mechanism that may cross from source to target lane.
         adversary_route = tuple((start, end, source_lane) for start, end, _ in corridor)
         sut_route = tuple((start, end, target_lane) for start, end, _ in corridor)
-        lengths = [float(road_network.get_lane(lane).length) for lane in corridor]
-        first_end = lengths[0]
-        merge_start = max(40.0, first_end + 0.25 * lengths[1])
-        merge_end = min(first_end + 0.75 * lengths[1], sum(lengths) - 40.0)
-        if merge_end - merge_start < 20.0:
-            raise RuntimeError("cut-in corridor cannot provide a legal merge window")
-        target_index = corridor[1]
+        windows = self._legal_merge_windows(
+            road_network, corridor, source_lane, target_lane
+        )
+        valid_windows = [window for window in windows if window[1] - window[0] >= 60.0]
+        if not valid_windows:
+            raise RuntimeError(
+                "cut-in geometry has no continuous 60 m dashed lane-change corridor"
+            )
+        merge_start, merge_end = max(valid_windows, key=lambda row: row[1] - row[0])
+        cumulative = 0.0
+        target_index = corridor[0]
+        for lane_index in corridor:
+            length = float(road_network.get_lane(lane_index).length)
+            if cumulative <= 0.5 * (merge_start + merge_end) <= cumulative + length:
+                target_index = lane_index
+                break
+            cumulative += length
         target_runtime_lane = road_network.get_lane(
             (target_index[0], target_index[1], target_lane)
         )
@@ -91,7 +126,7 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
         )
         if not self._boundary_is_broken(source_runtime_lane, source_lane, target_lane):
             raise RuntimeError("cut-in source/target boundary is not a broken lane line")
-        conflict_longitudinal = 0.5 * (merge_start + merge_end) - first_end
+        conflict_longitudinal = 0.5 * (merge_start + merge_end) - cumulative
         conflict = np.asarray(
             target_runtime_lane.position(conflict_longitudinal, 0.0), dtype=float
         )

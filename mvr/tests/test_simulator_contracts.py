@@ -20,7 +20,7 @@ def test_initial_speed_bounds_follow_family_traffic_contract() -> None:
     spaces = mvr_parameter_spaces()
     assert spaces["merge"].bounds["adversary_initial_speed_mps"][1] == 18.0
     assert spaces["cutin"].bounds["sut_initial_speed_mps"] == (7.0, 13.0)
-    assert spaces["cutin"].bounds["relative_speed_mps"] == (-3.0, 5.0)
+    assert spaces["cutin"].bounds["relative_speed_mps"] == (-3.0, 1.0)
     assert spaces["roundabout"].bounds["adversary_initial_speed_mps"][1] == 6.5
     for family, space in spaces.items():
         if family == "cutin":
