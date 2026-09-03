@@ -6,6 +6,15 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from .frenet import (
+    FrenetManeuverContract,
+    FrenetPathPlanner,
+    FrenetReferenceState,
+    MAX_PATH_LENGTH_M,
+    MIN_PATH_LENGTH_M,
+)
+from .route_geometry import RoutePolyline
+
 
 CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2 = 0.6
 
@@ -35,20 +44,7 @@ class ManeuverScheduleState:
     maneuver_progress: float = 0.0
     maneuver_latched: bool = False
     challenge_phase_active: bool = False
-
-
-@dataclass(frozen=True)
-class CutInReferenceState:
-    """Spatial reference state for a legal Cut-in lane transition."""
-
-    progress: float
-    lateral_error_m: float
-    heading_error_rad: float
-    desired_lateral_m: float
-    length_m: float
-    curvature_m_inv: float
-    speed_limit_mps: float
-    start_remaining_m: float
+    maneuver_completed: bool = False
 
 
 class ScenarioActionAdapter:
@@ -58,6 +54,61 @@ class ScenarioActionAdapter:
         self.episode = episode
         self.family = str(family)
         self.state = ManeuverScheduleState()
+        self.contract = self._frenet_contract()
+        self.planner = FrenetPathPlanner(self.contract)
+
+    def _frenet_contract(self) -> FrenetManeuverContract:
+        episode = self.episode
+        route = episode.adversary_route
+        parameters = episode.applied_scenario.logical_parameters
+        if self.family == "cutin":
+            traffic = episode.layout.traffic_contract
+            target_indices = tuple(
+                (start, end, traffic.target_lane_number)
+                for start, end, _ in episode.layout.adversary_route
+            )
+            route = RoutePolyline.from_env(
+                episode.env,
+                {"route_id": "maneuver-spine", "lane_sequence": target_indices},
+            )
+            start_s = float(parameters["cutin_start_s_m"])
+            start_lateral = route.projection(
+                episode.adversary.position, episode.adversary.heading_theta
+            ).lateral_m
+            _, merge_end = traffic.merge_window_m
+            maximum = min(
+                MAX_PATH_LENGTH_M,
+                float(merge_end) - start_s,
+                route.length_m - start_s,
+            )
+            minimum = min(MIN_PATH_LENGTH_M, maximum)
+            corridor_lower = min(start_lateral, 0.0) - 0.5
+            corridor_upper = max(start_lateral, 0.0) + 0.5
+            monotonic = True
+        else:
+            approach_end_s = route.conflict_s(episode.layout.conflict_xy)
+            start_s = float(parameters["maneuver_onset_progress"]) * approach_end_s
+            remaining = max(route.length_m - start_s, 1.0)
+            maximum = min(MAX_PATH_LENGTH_M, remaining)
+            minimum = min(MIN_PATH_LENGTH_M, maximum)
+            lane_width = float(episode.adversary.navigation.get_current_lane_width())
+            vehicle_width = float(getattr(episode.adversary, "WIDTH", 2.0))
+            margin = max(0.1, 0.5 * (lane_width - vehicle_width) - 0.25)
+            start_lateral = 0.0
+            corridor_lower, corridor_upper = -margin, margin
+            monotonic = False
+        return FrenetManeuverContract(
+            route,
+            float(start_s),
+            float(start_lateral),
+            0.0,
+            float(minimum),
+            float(maximum),
+            float(corridor_lower),
+            float(corridor_upper),
+            float(episode.layout.traffic_contract.speed_limit_mps),
+            monotonic,
+        )
 
     def _route_progress(self) -> float:
         route = self.episode.adversary_route
@@ -73,15 +124,35 @@ class ScenarioActionAdapter:
         return float(self.episode.env.episode_step) * seconds_per_step
 
     def update(self) -> ManeuverScheduleState:
-        """Advance a contract-defined maneuver without Inner action semantics."""
+        """Advance the Logical onset independently of learned path shape."""
         self.state.maneuver_progress = self._route_progress()
-        if self.family == "cutin" and not self.state.maneuver_latched:
-            onset = float(
-                self.episode.applied_scenario.logical_parameters["cutin_start_time_s"]
-            )
-            if self._elapsed_seconds() >= onset:
-                self.state.maneuver_latched = True
+        if not self.state.maneuver_latched:
+            parameters = self.episode.applied_scenario.logical_parameters
+            if self.family == "cutin":
+                ready = self._elapsed_seconds() >= float(
+                    parameters["cutin_start_time_s"]
+                )
+            else:
+                projection = self.contract.spine.projection(
+                    self.episode.adversary.position,
+                    self.episode.adversary.heading_theta,
+                )
+                ready = projection.s_m >= self.contract.start_s_m
+            self.state.maneuver_latched = bool(ready)
         return self.state
+
+    def apply_planner_action(self, action: np.ndarray) -> np.ndarray:
+        reference = self.maneuver_reference()
+        active = bool(
+            self.state.maneuver_latched
+            and not self.state.maneuver_completed
+            and reference.start_remaining_m <= 0.0
+        )
+        projection = self.contract.spine.projection(
+            self.episode.adversary.position,
+            self.episode.adversary.heading_theta,
+        )
+        return self.planner.apply(action, active, projection.s_m)
 
     def target_lane(self) -> Any:
         contract = self.episode.layout.traffic_contract
@@ -95,90 +166,25 @@ class ScenarioActionAdapter:
             (current[0], current[1], number)
         )
 
-    def cutin_reference(self) -> CutInReferenceState:
-        """Evaluate the fixed spatial lane-change curve at the vehicle pose."""
-        if self.family != "cutin":
-            raise RuntimeError("Cut-in reference is unavailable outside Cut-in")
-        contract = self.episode.layout.traffic_contract
-        if contract.merge_window_m is None:
-            raise RuntimeError("Cut-in contract has no reference-path definition")
+    def maneuver_reference(self) -> FrenetReferenceState:
+        """Evaluate the active scenario-neutral Frenet reference."""
         vehicle = self.episode.adversary
-        route_projection = self.episode.adversary_route.projection(
-            vehicle.position, vehicle.heading_theta
-        )
-        parameters = self.episode.applied_scenario.logical_parameters
-        start_s = float(parameters["cutin_start_s_m"])
-        path_length = float(parameters["lane_change_length_m"])
-        progress = float(np.clip((route_projection.s_m - start_s) / path_length, 0.0, 1.0))
-        smoothstep = float(quintic_smoothstep(progress))
-        smoothstep_derivative = float(quintic_smoothstep_derivative(progress))
-        smoothstep_second_derivative = float(
-            quintic_smoothstep_second_derivative(progress)
-        )
-        current = vehicle.navigation.current_lane.index
-        source_lane = self.episode.env.current_map.road_network.get_lane(
-            (current[0], current[1], contract.source_lane_number)
-        )
-        target_lane = self.episode.env.current_map.road_network.get_lane(
-            (current[0], current[1], contract.target_lane_number)
-        )
-        source_s, _ = source_lane.local_coordinates(vehicle.position)
-        source_center = source_lane.position(
-            float(np.clip(source_s, 0.0, float(source_lane.length))), 0.0
-        )
-        _, source_lateral_in_target = target_lane.local_coordinates(source_center)
-        target_s, target_lateral = target_lane.local_coordinates(vehicle.position)
-        desired_lateral = float(source_lateral_in_target) * (1.0 - smoothstep)
-        desired_slope = -float(source_lateral_in_target) * smoothstep_derivative / path_length
-        curvature = abs(
-            float(source_lateral_in_target) * smoothstep_second_derivative / path_length**2
-        ) / max((1.0 + desired_slope**2) ** 1.5, 1e-6)
+        return self.planner.reference(vehicle.position, vehicle.heading_theta)
+
         # Apply the path speed envelope before and after the spatial onset.
         # Using only instantaneous curvature reports a straight-road limit
         # while approaching a short lane-change curve, or immediately after
         # it when residual yaw still needs to settle.  The complete quintic
         # path supplies one 0.6 m/s² physical cap and reserves headroom for
         # the simulator's steering transient beneath the 3.0 m/s² limit.
-        preview = np.linspace(0.0, 1.0, num=33, dtype=float)
-        preview_second = quintic_smoothstep_second_derivative(preview)
-        preview_curvature = np.abs(
-            float(source_lateral_in_target) * preview_second / path_length**2
-        ) / np.maximum(
-            (1.0 + (
-                -float(source_lateral_in_target)
-                * quintic_smoothstep_derivative(preview) / path_length
-            )**2) ** 1.5,
-            1e-6,
-        )
-        max_path_curvature = float(np.max(preview_curvature))
-        speed_limit = min(
-            float(contract.speed_limit_mps),
-            float(np.sqrt(
-                CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2
-                / max(max_path_curvature, 1e-5)
-            )),
-        )
-        target_heading = target_lane.heading_theta_at(
-            float(np.clip(target_s, 0.0, float(target_lane.length)))
-        )
-        desired_heading = target_heading + float(np.arctan(desired_slope))
-        heading_error = float(np.arctan2(
-            np.sin(float(vehicle.heading_theta) - desired_heading),
-            np.cos(float(vehicle.heading_theta) - desired_heading),
-        ))
-        return CutInReferenceState(
-            progress,
-            float(target_lateral) - desired_lateral,
-            heading_error,
-            desired_lateral,
-            path_length,
-            curvature,
-            speed_limit,
-            start_s - float(route_projection.s_m),
-        )
 
-    def observe_semantics(self, challenge_phase_active: bool) -> None:
+    def observe_semantics(
+        self, challenge_phase_active: bool, maneuver_completed: bool
+    ) -> None:
         self.state.challenge_phase_active = bool(challenge_phase_active)
+        self.state.maneuver_completed = bool(maneuver_completed)
+        if self.state.maneuver_completed:
+            self.planner.lock()
         if self.family != "cutin" and self.state.challenge_phase_active:
             self.state.maneuver_latched = True
 
@@ -299,7 +305,9 @@ class ScenarioSemanticMonitor:
                 challenge, challenge, challenge, challenge, False, challenge
             )
         self._state = state
-        self.schedule.observe_semantics(state.challenge_phase_active)
+        self.schedule.observe_semantics(
+            state.challenge_phase_active, state.maneuver_completed
+        )
         return state
 
     @staticmethod

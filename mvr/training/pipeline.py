@@ -111,10 +111,10 @@ def assert_taskbook_compatible(checkpoint: HierarchicalCheckpoint, taskbook: str
 def load_config(path: str | Path) -> tuple[dict[str, Any], Path, torch.device]:
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     control = config.get("control", {})
-    if control.get("action_schema") != "vehicle_direct_2d":
-        raise ValueError("config must declare vehicle_direct_2d")
-    if control.get("nominal_controller_schema") != "none":
-        raise ValueError("config must declare nominal_controller_schema: none")
+    if control.get("action_schema") != "frenet_path_longitudinal_v1":
+        raise ValueError("config must declare frenet_path_longitudinal_v1")
+    if control.get("nominal_controller_schema") != "stanley_feedforward_v1":
+        raise ValueError("config must declare stanley_feedforward_v1")
     if control.get("scenario_contract_schema") != SCENARIO_CONTRACT_SCHEMA:
         raise ValueError(f"config must declare {SCENARIO_CONTRACT_SCHEMA}")
     taskbook = Path(config["taskbook"])
@@ -158,7 +158,7 @@ def build_model(config: dict[str, Any], device: torch.device) -> TransferableSce
         latent_dim=int(config["model"].get("latent_dim", 16)),
         continuous_dim=space.continuous_dim,
         num_experts=int(config["model"].get("num_experts", 4)),
-        inner_action_dim=int(config["interaction_prior"].get("action_dim", 2)),
+        inner_action_dim=int(config["interaction_prior"].get("action_dim", 4)),
         context_kl_weight=float(config.get("context", {}).get("kl_weight", 1e-3)),
     ).to(device)
 

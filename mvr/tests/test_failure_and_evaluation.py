@@ -159,9 +159,9 @@ def test_cutin_reward_does_not_reward_absolute_adversary_speed() -> None:
     features[8], features[10] = 0.2, 0.05
     shared = {
         "semantic_challenge_phase_active": True,
-        "cutin_reference_progress": 0.5,
-        "cutin_reference_lateral_error_m": 0.0,
-        "cutin_reference_heading_error_rad": 0.0,
+        "maneuver_reference_progress": 0.5,
+        "maneuver_reference_lateral_error_m": 0.0,
+        "maneuver_reference_heading_error_rad": 0.0,
     }
     slow = InnerRiskReward(criteria)(features, {**shared, "adversary_speed_mps": 2.0})
     fast = InnerRiskReward(criteria)(features, {**shared, "adversary_speed_mps": 19.0})

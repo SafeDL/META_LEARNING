@@ -22,15 +22,20 @@ INNER_STATE_FIELDS = (
     "adversary_route_lateral_m",
     "adversary_route_heading_error_rad",
     "maneuver_started",
-    "cutin_reference_lateral_error_m",
-    "cutin_reference_heading_error_rad",
-    "cutin_reference_progress",
-    "cutin_reference_length_m",
-    "cutin_reference_curvature_m_inv",
-    "cutin_reference_speed_limit_mps",
-    "cutin_start_remaining_m",
-    "cutin_start_time_remaining_s",
-    "cutin_corridor_margin_m",
+    "maneuver_reference_lateral_error_m",
+    "maneuver_reference_heading_error_rad",
+    "maneuver_reference_progress",
+    "maneuver_reference_length_m",
+    "maneuver_reference_curvature_m_inv",
+    "maneuver_reference_speed_limit_mps",
+    "maneuver_start_remaining_m",
+    "maneuver_onset_remaining_s",
+    "maneuver_corridor_margin_m",
+    "maneuver_active_lambda_length",
+    "maneuver_active_beta_early",
+    "maneuver_active_beta_late",
+    "maneuver_reference_blend_progress",
+    "maneuver_replan_due",
 )
 
 
@@ -40,7 +45,8 @@ class PhysicalStateExtractor:
     dimension = len(INNER_STATE_FIELDS)
     scales = np.asarray(
         (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 8.0, np.pi, 1.0,
-         8.0, np.pi, 1.0, 60.0, 0.2, 20.0, 100.0, 5.0, 4.0),
+         8.0, np.pi, 1.0, 60.0, 0.2, 20.0, 100.0, 5.0, 4.0,
+         1.0, 1.0, 1.0, 1.0, 1.0),
         dtype=np.float32,
     )
 
@@ -106,8 +112,13 @@ class PhysicalStateExtractor:
         start_remaining = 0.0
         onset_remaining = 0.0
         corridor_margin = 0.0
-        if getattr(schedule, "family", None) == "cutin":
-            reference = schedule.cutin_reference()
+        active_lambda = 0.0
+        active_beta_early = 0.0
+        active_beta_late = 0.0
+        blend_progress = 1.0
+        replan_due = 0.0
+        if schedule is not None:
+            reference = schedule.maneuver_reference()
             reference_lateral_error = reference.lateral_error_m
             reference_heading_error = reference.heading_error_rad
             reference_progress = reference.progress
@@ -115,16 +126,31 @@ class PhysicalStateExtractor:
             reference_curvature = reference.curvature_m_inv
             reference_speed_limit = reference.speed_limit_mps
             start_remaining = reference.start_remaining_m
-            contract = schedule.episode.layout.traffic_contract
-            current = adversary.navigation.current_lane.index
-            target_lane = schedule.episode.env.current_map.road_network.get_lane(
-                (current[0], current[1], contract.target_lane_number)
+            active_lambda = reference.active_lambda_length
+            active_beta_early = reference.active_beta_early
+            active_beta_late = reference.active_beta_late
+            blend_progress = reference.blend_progress
+            replan_due = float(reference.replan_due)
+            parameters = schedule.episode.applied_scenario.logical_parameters
+            if schedule.family == "cutin":
+                onset = float(parameters["cutin_start_time_s"])
+                onset_remaining = max(0.0, onset - schedule._elapsed_seconds())
+            else:
+                projection = schedule.contract.spine.projection(
+                    adversary_position, heading
+                )
+                onset_remaining = max(
+                    0.0, schedule.contract.start_s_m - projection.s_m
+                ) / max(adversary_speed, 0.25)
+            projection = schedule.contract.spine.projection(
+                adversary_position, heading
             )
-            _, target_lateral = target_lane.local_coordinates(adversary_position)
-            onset = float(schedule.episode.applied_scenario.logical_parameters["cutin_start_time_s"])
-            onset_remaining = max(0.0, onset - schedule._elapsed_seconds())
             corridor_margin = max(
-                0.0, 0.5 * float(target_lane.width) - abs(target_lateral)
+                0.0,
+                min(
+                    projection.lateral_m - schedule.contract.corridor_lower_m,
+                    schedule.contract.corridor_upper_m - projection.lateral_m,
+                ),
             )
         values = np.asarray((
             longitudinal,
@@ -151,5 +177,10 @@ class PhysicalStateExtractor:
             start_remaining,
             onset_remaining,
             corridor_margin,
+            active_lambda,
+            active_beta_early,
+            active_beta_late,
+            blend_progress,
+            replan_due,
         ), dtype=np.float32)
         return np.clip(np.nan_to_num(values / self.scales, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)

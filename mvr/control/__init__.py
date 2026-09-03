@@ -1,5 +1,5 @@
-"""Direct Inner-SAC driving controller contracts."""
+"""Inner-SAC Frenet planning and vehicle-control contracts."""
 
-from .adversary import DirectSACAdversaryController, NativeAdversaryBaseController
+from .adversary import FrenetSACAdversaryController
 
-__all__ = ("DirectSACAdversaryController", "NativeAdversaryBaseController")
+__all__ = ("FrenetSACAdversaryController",)

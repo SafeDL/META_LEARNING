@@ -33,24 +33,24 @@ CUTIN_LOGICAL_DOMAINS = (
     ("cutin_interaction_core", "train", {
         "cutin_gap_at_start_m": (-0.15, 0.15), "sut_initial_speed_mps": (-0.15, 0.15),
         "relative_speed_mps": (-0.15, 0.15), "cutin_start_progress": (-0.15, 0.15),
-        "cutin_start_time_s": (-0.15, 0.15), "lane_change_length_m": (-0.15, 0.15),
+        "cutin_start_time_s": (-0.15, 0.15),
     }),
     ("cutin_late_fast", "validation", {
         "cutin_gap_at_start_m": (-0.65, -0.25), "sut_initial_speed_mps": (0.25, 0.65),
         "relative_speed_mps": (0.25, 0.75), "cutin_start_progress": (-0.65, -0.25),
-        "cutin_start_time_s": (0.25, 0.65), "lane_change_length_m": (-0.65, -0.25),
+        "cutin_start_time_s": (0.25, 0.65),
     }),
     ("cutin_tight_gap", "test", {
         "cutin_gap_at_start_m": (0.35, 0.85), "sut_initial_speed_mps": (-0.85, -0.35),
         "relative_speed_mps": (-0.85, -0.35), "cutin_start_progress": (0.35, 0.85),
-        "cutin_start_time_s": (-0.85, -0.35), "lane_change_length_m": (0.35, 0.85),
+        "cutin_start_time_s": (-0.85, -0.35),
     }),
 )
 
 
 def _logical_mask(family: str) -> tuple[bool, ...]:
     if family == "cutin":
-        return (True, True, True, True, True, True)
+        return (True, True, True, True, True)
     if family in {"merge", "roundabout"}:
         return (True, True, True, True, False)
     raise ValueError(f"unsupported scenario family: {family!r}")

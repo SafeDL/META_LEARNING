@@ -35,7 +35,6 @@ def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
         "relative_speed_mps": (-3.0, 1.0),
         "cutin_start_progress": (0.0, 1.0),
         "cutin_start_time_s": (0.8, 2.8),
-        "lane_change_length_m": (30.0, 60.0),
     }
     return {
         "merge": ParameterSpace(

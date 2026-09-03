@@ -62,7 +62,7 @@ def select_cutin_validation_tasks(
         if task.functional_scenario == "cutin"
         and task.functional_split == "train"
         and task.sut_split == "validation"
-        and task.geometry_split == "train"
+        and task.geometry_split == "validation"
         and task.logical_split == "validation"
         and (not allowed_geometries or task.geometry_id in allowed_geometries)
     ]

@@ -78,10 +78,14 @@ class InnerRiskReward:
         # are meaningful rather than a pre-conflict reward loophole.
         risk_reward = 0.50 * criticality
         tracking_penalty = 0.0
-        progress = float(info.get("cutin_reference_progress", 0.0))
+        progress = float(info.get("maneuver_reference_progress", 0.0))
         if progress > 0.0:
-            lateral_error = abs(float(info.get("cutin_reference_lateral_error_m", 0.0)))
-            heading_error = abs(float(info.get("cutin_reference_heading_error_rad", 0.0)))
+            lateral_error = abs(float(
+                info.get("maneuver_reference_lateral_error_m", 0.0)
+            ))
+            heading_error = abs(float(
+                info.get("maneuver_reference_heading_error_rad", 0.0)
+            ))
             tracking_penalty = 0.03 * min(1.0, lateral_error / 3.5) + 0.01 * min(
                 1.0, heading_error / (0.5 * np.pi)
             )

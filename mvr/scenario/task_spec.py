@@ -22,7 +22,6 @@ CUTIN_LOGICAL_PARAMETER_NAMES = (
     "relative_speed_mps",
     "cutin_start_progress",
     "cutin_start_time_s",
-    "lane_change_length_m",
 )
 # Kept as the public default for Merge and Roundabout callers.  Cut-in must
 # explicitly request its own schema rather than silently borrowing conflict

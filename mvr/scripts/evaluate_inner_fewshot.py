@@ -86,7 +86,7 @@ def _evaluate_task(
     zero = online.run(
         task, queries, deterministic=True, posterior_support_limit=0,
         scene_action_provider=fixed_provider,
-        inner_action_provider=lambda _: np.zeros(2, dtype=np.float32),
+        inner_action_provider=lambda _: np.zeros(4, dtype=np.float32),
         episode_seed_provider=fixed_seed,
     ).episodes
     prior = online.run(

@@ -30,7 +30,7 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
         # completion-contract test, not an adversarial-success test.
             NormalizedScenarioAction(
                 0,
-                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                (0.0, 0.0, 0.0, 0.0, 0.0)
                 if family == "cutin"
                 else (1.0, -1.0, -1.0, -1.0, 0.0),
             ),
@@ -41,7 +41,7 @@ def test_non_collision_rollout_ends_only_after_sut_route_completion(family: str)
         rollout = HierarchicalRunner(max_steps=900).rollout(
             episode,
             family,
-            lambda _state: np.asarray((0.0, -1.0), dtype=np.float32),
+            lambda _state: np.asarray((0.0, 0.0, 0.0, -1.0), dtype=np.float32),
         )
     finally:
         episode.env.close()

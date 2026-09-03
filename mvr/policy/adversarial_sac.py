@@ -66,7 +66,7 @@ class AdversarialSAC(nn.Module):
     def __init__(
         self,
         feature_dim: int,
-        action_dim: int = 2,
+        action_dim: int = 4,
         target_entropy: float | None = None,
         context_dim: int = 16,
     ) -> None:

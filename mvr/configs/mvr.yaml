@@ -2,7 +2,7 @@ schema: transferable_scenario_miner
 seed: 11
 taskbook: mvr/configs/taskbook.json
 model:
-  state_dim: 14
+  state_dim: 28
   latent_dim: 16
   num_experts: 4
 context:
@@ -35,7 +35,7 @@ failure:
   severity_bins: 5
 interaction_prior:
   algorithm: adversarial_sac
-  action_dim: 2
+  action_dim: 4
   batch_size: 64
   episodes_per_task: 5
   updates_per_episode: 8
@@ -43,8 +43,8 @@ interaction_prior:
   learning_rate: 0.0003
   event_action_weight: 0.0
 control:
-  action_schema: vehicle_direct_2d
-  nominal_controller_schema: none
+  action_schema: frenet_path_longitudinal_v1
+  nominal_controller_schema: stanley_feedforward_v1
   scenario_contract_schema: scenario_contract
 context_meta:
   support_shots: [1, 2, 4]

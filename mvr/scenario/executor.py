@@ -172,10 +172,14 @@ class ScenarioExecutor:
             onset = float(resolved["cutin_start_time_s"])
             gap = float(resolved["cutin_gap_at_start_m"])
             merge_start, merge_end = cached.layout.traffic_contract.merge_window_m
-            length = float(resolved["lane_change_length_m"])
-            if length > merge_end - merge_start:
-                raise ValueError("Cut-in path length exceeds legal dashed corridor")
-            start = merge_start + float(resolved["cutin_start_progress"]) * (merge_end - merge_start - length)
+            # Reserve the maximum planner horizon so every reset leaves the
+            # four-dimensional Inner action a legal 30--60 m path interval.
+            max_path_length = min(60.0, merge_end - merge_start)
+            if max_path_length < 30.0:
+                raise ValueError("Cut-in corridor cannot support the planner length interval")
+            start = merge_start + float(resolved["cutin_start_progress"]) * (
+                merge_end - merge_start - max_path_length
+            )
             initial_gap = gap - float(resolved["relative_speed_mps"]) * onset
             adversary_spawn = float(start - adversary_speed * onset)
             sut_spawn = float(adversary_spawn - initial_gap)
@@ -326,7 +330,7 @@ class ScenarioExecutor:
                 for name in logical_parameter_names(task.functional_scenario)
             }
             if task.functional_scenario == "cutin":
-                # This value is derived only from the declared 6-D Logical
+                # This value is derived only from the declared 5-D Logical
                 # scene and the audited legal corridor; retaining it makes a
                 # reset independently reconstructible in artifacts.
                 logical_parameters["cutin_start_s_m"] = float(config["cutin_start_s_m"])

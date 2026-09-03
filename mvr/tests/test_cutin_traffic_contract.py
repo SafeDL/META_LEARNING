@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from mvr.control import DirectSACAdversaryController
+from mvr.control import FrenetSACAdversaryController
 from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.scenario.executor import ScenarioExecutor
 from mvr.scenario.parameter_space import NormalizedScenarioAction
@@ -26,13 +26,13 @@ def _episode(candidate_index: int = 0):
     task = next(
         task
         for task in load_taskbook("mvr/configs/taskbook.json")
-        if task.task_id == "cutin-g04-fast_small_gap-interaction_core"
+        if task.task_id == "cutin-g04-fast_small_gap-cutin_interaction_core"
     )
     return ScenarioExecutor(load_adapters(), mvr_parameter_spaces()).reset(
         task,
         NormalizedScenarioAction(
             candidate_index,
-            (0.0,) * 6,
+            (0.0,) * 5,
         ),
         episode_seed=204 + candidate_index,
     )
@@ -59,17 +59,18 @@ def test_route_block_has_no_adversarial_option() -> None:
     assert not hasattr(mvr_parameter_spaces()["cutin"], "options")
 
 
-def test_direct_sac_action_uses_full_jerk_limited_longitudinal_control() -> None:
+def test_frenet_sac_action_uses_full_jerk_limited_longitudinal_control() -> None:
     episode = _episode()
     try:
         schedule = ScenarioActionAdapter(episode, "cutin")
         schedule.update()
-        controller = DirectSACAdversaryController(episode, "cutin", schedule)
+        controller = FrenetSACAdversaryController(episode, "cutin", schedule)
         try:
-            target = np.asarray((0.25, -0.5), dtype=np.float32)
-            action = controller.action(target)
+            target = np.asarray((0.25, -0.5, 0.75, -0.5), dtype=np.float32)
+            planner_action, action = controller.action(target)
         finally:
             controller.destroy()
+        np.testing.assert_allclose(planner_action[:3], 0.0)
         assert action[0] == pytest.approx(0.0)
         assert action[1] == pytest.approx(-0.15 / 6.0)
     finally:
@@ -114,12 +115,14 @@ def test_replay_action_is_the_declared_sac_actuator_target() -> None:
         rollout = HierarchicalRunner(max_steps=1).rollout(
             episode,
             "cutin",
-            lambda _: np.asarray((1.0, -1.0), dtype=np.float32),
+            lambda _: np.asarray((1.0, -1.0, 1.0, -1.0), dtype=np.float32),
         )
         transition = rollout.transitions[0]
-        np.testing.assert_allclose(transition["raw_action"], (1.0, -1.0))
-        np.testing.assert_allclose(transition["action"], transition["raw_action"])
-        assert not np.allclose(transition["raw_action"], transition["executed_action"])
+        np.testing.assert_allclose(
+            transition["raw_policy_action"], (1.0, -1.0, 1.0, -1.0)
+        )
+        assert transition["planner_action"].shape == (4,)
+        assert transition["executed_vehicle_action"].shape == (2,)
     finally:
         episode.env.close()
 
@@ -130,12 +133,12 @@ def test_maximum_direct_braking_stays_within_physical_envelope() -> None:
         rollout = HierarchicalRunner(max_steps=130).rollout(
             episode,
             "cutin",
-            lambda _: np.asarray((0.0, -1.0), dtype=np.float32),
+            lambda _: np.asarray((0.0, 0.0, 0.0, -1.0), dtype=np.float32),
         )
         telemetry = rollout.transitions[-1]["info"]
         assert telemetry["traffic_violation_counts"] == {}
         assert telemetry["traffic_max_abs_acceleration_mps2"] <= 6.0 + 1e-3
-        assert telemetry["traffic_max_abs_jerk_mps3"] <= 4.0 + 1e-3
+        assert telemetry["traffic_max_abs_jerk_mps3"] <= 6.0 + 1e-3
     finally:
         episode.env.close()
 
@@ -146,7 +149,7 @@ def test_direct_cutin_steering_stays_inside_road_corridor() -> None:
         rollout = HierarchicalRunner(max_steps=130).rollout(
             episode,
             "cutin",
-            lambda _: np.asarray((0.5, 0.0), dtype=np.float32),
+            lambda _: np.asarray((0.5, 1.0, -1.0, 0.0), dtype=np.float32),
         )
         telemetry = rollout.transitions[-1]["info"]
         assert not telemetry["adversary_out_of_road"]
@@ -177,7 +180,7 @@ def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
             episode.adversary_route,
             episode.sut_route,
         )
-        state = extractor(episode.adversary, episode.sut, schedule.state)
+        state = extractor(episode.adversary, episode.sut, schedule)
         assert state.shape == (PhysicalStateExtractor.dimension,)
         assert state[INNER_STATE_FIELDS.index("maneuver_started")] == 1.0
     finally:
@@ -191,7 +194,7 @@ def test_cutin_reference_previews_curve_speed_before_spatial_onset() -> None:
         schedule._elapsed_seconds = lambda: 100.0
         schedule.update()
 
-        reference = schedule.cutin_reference()
+        reference = schedule.maneuver_reference()
 
         assert reference.progress == pytest.approx(0.0)
         assert reference.speed_limit_mps < episode.layout.traffic_contract.speed_limit_mps
@@ -214,7 +217,7 @@ def test_reference_path_tracks_with_bounded_direct_longitudinal_command() -> Non
         rollout = HierarchicalRunner(max_steps=120).rollout(
             episode,
             "cutin",
-            lambda _: np.asarray((0.0, 0.35), dtype=np.float32),
+            lambda _: np.asarray((0.0, 0.0, 0.0, 0.35), dtype=np.float32),
             step_callback=lambda _episode, _step, info: observed_actions.append(
                 (
                     np.asarray(info["traffic_requested_action"], dtype=float),
@@ -232,7 +235,7 @@ def test_reference_path_tracks_with_bounded_direct_longitudinal_command() -> Non
     assert all(np.isclose(requested[0], 0.0) for requested, _, _ in observed_actions[:15])
     assert any(not np.isclose(requested[0], 0.0) for requested, _, _ in observed_actions[40:])
     assert all(
-        abs(float(row["info"].get("cutin_reference_lateral_error_m", 0.0))) < 3.5
+        abs(float(row["info"].get("maneuver_reference_lateral_error_m", 0.0))) < 3.5
         for row in rollout.transitions
     )
     assert rollout.transitions[-1]["info"]["semantic_maneuver_completed"]

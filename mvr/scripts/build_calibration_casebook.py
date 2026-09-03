@@ -44,7 +44,7 @@ def run(config_path: str, output: str) -> CalibrationCasebook:
         result = online.run(
             task, candidate_pool, deterministic=True, posterior_support_limit=0,
             scene_action_provider=sampler,
-            inner_action_provider=lambda _: np.zeros(2, dtype=np.float32),
+            inner_action_provider=lambda _: np.zeros(4, dtype=np.float32),
         )
         accepted = []
         for case_id, episode in enumerate(result.episodes):

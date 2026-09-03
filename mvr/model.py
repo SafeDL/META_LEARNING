@@ -33,7 +33,7 @@ class TransferableScenarioMiner(nn.Module):
         latent_dim: int = 16,
         token_dim: int = 128,
         continuous_dim: int = 5,
-        inner_action_dim: int = 2,
+        inner_action_dim: int = 4,
         num_experts: int = 4,
         context_kl_weight: float = 1e-3,
     ) -> None:

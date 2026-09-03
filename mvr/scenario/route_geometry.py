@@ -118,6 +118,35 @@ class RoutePolyline:
         delta = self.points[index + 1] - self.points[index]
         return delta / max(float(np.linalg.norm(delta)), 1e-12)
 
+    def position_at_s(self, s_m: float, lateral_m: float = 0.0) -> np.ndarray:
+        """Interpolate one route-relative point without consulting lane IDs."""
+        value = float(np.clip(s_m, 0.0, self.length_m))
+        index = int(np.clip(
+            np.searchsorted(self.arc_lengths_m, value, side="right") - 1,
+            0,
+            len(self.points) - 2,
+        ))
+        start_s, end_s = self.arc_lengths_m[index:index + 2]
+        fraction = (value - float(start_s)) / max(float(end_s - start_s), 1e-12)
+        center = self.points[index] + fraction * (
+            self.points[index + 1] - self.points[index]
+        )
+        tangent = self.tangent_at_s(value)
+        normal = np.asarray((-tangent[1], tangent[0]), dtype=float)
+        return np.asarray(center + float(lateral_m) * normal, dtype=float)
+
+    def curvature_at_s(self, s_m: float, preview_m: float = 1.0) -> float:
+        """Return signed route curvature from two nearby sampled tangents."""
+        lower = max(0.0, float(s_m) - float(preview_m))
+        upper = min(self.length_m, float(s_m) + float(preview_m))
+        if upper - lower <= 1e-6:
+            return 0.0
+        left = self.tangent_at_s(lower)
+        right = self.tangent_at_s(upper)
+        cross = float(left[0] * right[1] - left[1] * right[0])
+        dot = float(np.clip(np.dot(left, right), -1.0, 1.0))
+        return float(np.arctan2(cross, dot) / (upper - lower))
+
 
 def route_hash_payload(route: Mapping[str, Any]) -> dict[str, Any]:
     return {"route_id": route["route_id"], "lane_sequence": [list(lane_index(x)) for x in route["lane_sequence"]]}

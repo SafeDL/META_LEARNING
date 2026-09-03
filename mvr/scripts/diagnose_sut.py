@@ -24,7 +24,10 @@ MAX_LATERAL_ERROR_M = 0.60
 
 
 def _task(family: str) -> Any:
-    task_id = f"{family}-g04-fast_small_gap-interaction_core"
+    logical_domain = (
+        "cutin_interaction_core" if family == "cutin" else "interaction_core"
+    )
+    task_id = f"{family}-g04-fast_small_gap-{logical_domain}"
     task = next(task for task in load_taskbook("mvr/configs/taskbook.json") if task.task_id == task_id)
     return replace(
         task,
@@ -38,7 +41,7 @@ def _action(family: str) -> NormalizedScenarioAction:
     # because MetaDrive requires one default agent; it is not an adversary.
     return NormalizedScenarioAction(
         0,
-        (1.0, -1.0, -1.0, -1.0, -1.0, -1.0)
+        (0.0, 0.0, 0.0, 0.0, 0.0)
         if family == "cutin"
         else (1.0, -1.0, -1.0, -1.0, 0.0),
     )

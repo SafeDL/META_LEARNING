@@ -2,7 +2,7 @@ schema: transferable_scenario_miner
 seed: 11
 taskbook: mvr/configs/taskbook.json
 model:
-  state_dim: 23
+  state_dim: 28
   latent_dim: 16
   num_experts: 4
 context:
@@ -19,7 +19,7 @@ failure:
   severity_bins: 5
 interaction_prior:
   algorithm: adversarial_sac
-  action_dim: 2
+  action_dim: 4
   batch_size: 64
   # Scene coverage comes directly from the declared Cut-in Logical domains.
   episodes_per_task: 8
@@ -39,8 +39,8 @@ context_meta:
   event_sample_fraction: 0.5
   event_action_weight: 0.5
 control:
-  action_schema: vehicle_direct_2d
-  nominal_controller_schema: none
+  action_schema: frenet_path_longitudinal_v1
+  nominal_controller_schema: stanley_feedforward_v1
   scenario_contract_schema: scenario_contract
 map:
   encoder: hptr_style
@@ -68,7 +68,6 @@ cutin_inner:
         relative_speed_mps: [-0.25, 0.25]
         cutin_start_progress: [-0.65, -0.25]
         cutin_start_time_s: [-0.65, -0.25]
-        lane_change_length_m: [-0.65, -0.25]
     - id: balanced_interaction
       bounds:
         cutin_gap_at_start_m: [-0.30, 0.30]
@@ -76,7 +75,6 @@ cutin_inner:
         relative_speed_mps: [-0.40, 0.10]
         cutin_start_progress: [-0.30, 0.30]
         cutin_start_time_s: [-0.30, 0.30]
-        lane_change_length_m: [-0.30, 0.30]
     - id: late_tight_cutin
       bounds:
         cutin_gap_at_start_m: [0.35, 0.75]
@@ -86,23 +84,15 @@ cutin_inner:
         # for a full SUT-completion test at the declared step budget.
         cutin_start_progress: [0.15, 0.28]
         cutin_start_time_s: [0.25, 0.65]
-        lane_change_length_m: [0.35, 0.75]
 evaluation:
   support_shots: [0, 1, 2, 4]
   query_cases: 8
   seeds: [11, 22, 33]
   paired_bootstrap_samples: 10000
   paired_bootstrap_seed: 11
-  fixed_query_x0:
-    candidate_index: 0
-    # (gap at spatial start, SUT speed, relative speed, path start progress,
-    #  start time, lane-change length), all in the
-    # validation Logical domain.  This tuple alone, plus task/candidate/seed,
-    # reconstructs the scene without a fixed conflict-point coordinate.
-    # Fixed validation query inside the fast-small-gap Logical domain.
-    # For K>0, posterior inference uses a deterministic, task-local set of
-    # distinct low-discrepancy support scenes; it never reuses this query.
-    continuous: [-0.65, 0.25, 0.75, 0.25, 0.65, -0.25]
+  query_design:
+    sobol_interior_per_candidate: 24
+    boundary_per_candidate: 8
   failure_rate:
     query_cases: 8
     support_shots: 4

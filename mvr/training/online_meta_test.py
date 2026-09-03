@@ -236,7 +236,7 @@ class OnlineMetaTest:
             result.inner_transitions.extend(
                 InnerTransition(
                     episode_id, task.task_id, None, task.geometry_hash,
-                    row["state"], row["action"], row["reward_inner"], row["next_state"],
+                    row["state"], row["planner_action"], row["reward_inner"], row["next_state"],
                     row["done"], tokens, candidates, dict(task.logical_domain_bounds),
                     task.logical_parameter_mask, latent.squeeze(0).detach().cpu(),
                     int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),

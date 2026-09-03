@@ -146,8 +146,8 @@ class TrafficActionShield:
         # Keep the complete vehicle footprint inside the outer edges while
         # allowing either the source lane or target lane to be occupied.
         return (
-            min(source_lateral, target_lateral) - half_width + vehicle_half_width + 0.5,
-            max(source_lateral, target_lateral) + half_width - vehicle_half_width - 0.5,
+            min(source_lateral, target_lateral) - half_width + vehicle_half_width,
+            max(source_lateral, target_lateral) + half_width - vehicle_half_width,
         )
 
     def _longitudinal_limits(self) -> tuple[float, float]:
@@ -236,7 +236,7 @@ class TrafficActionShield:
         # lane excursion while waiting for the declared maneuver window.
         if self.schedule.family == "cutin" and (
             not self.schedule.state.maneuver_latched
-            or self.schedule.cutin_reference().start_remaining_m > 0.0
+            or self.schedule.maneuver_reference().start_remaining_m > 0.0
         ):
             if not np.isclose(action[0], 0.0):
                 action[0] = 0.0

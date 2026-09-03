@@ -11,7 +11,8 @@ from mvr.evaluation.fewshot_inner import (
     summarize_outcomes,
     valid_critical_score,
 )
-from mvr.evaluation.support_schedule import FixedQuerySupportSchedule
+from mvr.evaluation.cutin_query_design import build_cutin_validation_queries
+from mvr.evaluation.support_schedule import NestedSupportSchedule
 from mvr.model import TransferableScenarioMiner
 from mvr.scenario.catalog import mvr_parameter_spaces
 from mvr.state import PhysicalStateExtractor
@@ -23,6 +24,24 @@ from mvr.training.calibration_casebook import (
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.training.replay import ContextReplay, SupportGroup
 from mvr.scripts.evaluate_inner_fewshot import _query_records
+
+
+def test_cutin_validation_query_design_covers_both_candidates_without_duplicates() -> None:
+    names = (
+        "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
+        "cutin_start_progress", "cutin_start_time_s",
+    )
+    task = SimpleNamespace(
+        geometry_seed=204,
+        logical_domain_bounds={name: (-0.8, 0.8) for name in names},
+    )
+    rows = build_cutin_validation_queries(
+        task, candidates=2, sobol_interior=24, boundary=8, seed=11
+    )
+    assert len(rows) == 64
+    assert {row.candidate_index for row in rows} == {0, 1}
+    assert sum(row.design_kind == "boundary" for row in rows) == 16
+    assert len({(row.candidate_index, row.action.continuous) for row in rows}) == 64
 
 
 def test_calibration_casebook_keeps_validation_provenance_without_test_safety_claim(tmp_path) -> None:
@@ -48,10 +67,10 @@ def test_support_groups_are_episode_level_and_disjoint() -> None:
         SupportGroup("bad", "task", (support,), {"support": support}).validate()
 
 
-def test_fixed_query_support_schedule_uses_distinct_nested_domain_points() -> None:
+def test_support_schedule_uses_distinct_nested_points_outside_query_pool() -> None:
     names = (
         "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
-        "cutin_start_progress", "cutin_start_time_s", "lane_change_length_m",
+        "cutin_start_progress", "cutin_start_time_s",
     )
     task = SimpleNamespace(
         task_id="cutin-validation", functional_scenario="cutin",
@@ -61,9 +80,8 @@ def test_fixed_query_support_schedule_uses_distinct_nested_domain_points() -> No
     query = NormalizedScenarioAction(0, tuple(-0.65 for _ in names))
     space = mvr_parameter_spaces()["cutin"]
     candidates = (object(), object())
-    schedule4 = FixedQuerySupportSchedule(task, query, 4, 4, 11)
+    schedule4 = NestedSupportSchedule(task, 4, 11, (query,))
     actions4 = [schedule4(task, index, candidates, space) for index in range(4)]
-    assert schedule4(task, 4, candidates, space) == query
     assert all(
         action.candidate_index != query.candidate_index
         or not torch.allclose(torch.as_tensor(action.continuous), torch.as_tensor(query.continuous))
@@ -71,7 +89,7 @@ def test_fixed_query_support_schedule_uses_distinct_nested_domain_points() -> No
     )
     assert len(schedule4.provenance()) == 4
 
-    schedule2 = FixedQuerySupportSchedule(task, query, 2, 4, 11)
+    schedule2 = NestedSupportSchedule(task, 2, 11, (query,))
     actions2 = [schedule2(task, index, candidates, space) for index in range(2)]
     for left, right in zip(actions2, actions4[:2]):
         assert left.candidate_index == right.candidate_index
@@ -95,7 +113,7 @@ def test_actor_stops_context_gradient_but_critic_keeps_it() -> None:
     model.zero_grad(set_to_none=True)
     critic_features = model.inner_features(state, scene, latent, concrete)
     critic = model.inner_sac.critic_loss(
-        critic_features, torch.zeros(1, 2), torch.zeros(1), critic_features.detach(),
+        critic_features, torch.zeros(1, 4), torch.zeros(1), critic_features.detach(),
         torch.ones(1, dtype=torch.bool),
     )
     critic.backward()

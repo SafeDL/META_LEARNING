@@ -6,7 +6,7 @@ from typing import Any, Callable, Mapping
 
 import numpy as np
 
-from ..control import DirectSACAdversaryController, NativeAdversaryBaseController
+from ..control import FrenetSACAdversaryController
 from ..failure.analyzer import analyze_rollout
 from ..failure.criteria import DEFAULT_FAILURE_CRITERIA, FailureCriteria
 from ..failure.inner_reward import InnerRiskReward
@@ -61,10 +61,8 @@ class HierarchicalRunner:
         reward_fn.reset()
         state_extractor = PhysicalStateExtractor()
         schedule = ScenarioActionAdapter(episode, scenario_family)
-        controller = (
-            DirectSACAdversaryController(episode, scenario_family, schedule)
-            if scenario_family == "cutin"
-            else NativeAdversaryBaseController(episode, scenario_family, schedule)
+        controller = FrenetSACAdversaryController(
+            episode, scenario_family, schedule
         )
         shield = TrafficActionShield(episode, schedule)
         monitor = ScenarioSemanticMonitor(episode, scenario_family, schedule)
@@ -78,38 +76,35 @@ class HierarchicalRunner:
             for step in range(max_steps):
                 schedule.update()
                 state = state_extractor(episode.adversary, episode.sut, schedule)
-                raw_action = np.asarray(inner_action(state), dtype=np.float32).reshape(-1)
-                if raw_action.shape != (2,) or not np.isfinite(raw_action).all():
-                    raise ValueError("Inner SAC must emit one finite 2-D direct control action")
+                raw_action = np.asarray(
+                    inner_action(state), dtype=np.float32
+                ).reshape(-1)
+                if raw_action.shape != (4,) or not np.isfinite(raw_action).all():
+                    raise ValueError("Inner SAC must emit one finite 4-D planner action")
                 raw_action = np.clip(raw_action, -1.0, 1.0)
-                if scenario_family == "cutin":
-                    requested_action = controller.action(raw_action)
-                    shielded = shield.project(requested_action)
-                else:
-                    base_action, requested_action = controller.action(raw_action)
-                    shielded = shield.project(base_action, requested_action)
+                planner_action, requested_action = controller.action(raw_action)
+                shielded = shield.project(requested_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 controller.observe_environment(info)
                 info = {**dict(info), **shield.observe(shielded, info)}
-                if scenario_family == "cutin":
-                    reference = schedule.cutin_reference()
-                    info.update({
-                        "cutin_reference_progress": reference.progress,
-                        "cutin_reference_lateral_error_m": reference.lateral_error_m,
-                        "cutin_reference_heading_error_rad": reference.heading_error_rad,
-                        "cutin_reference_desired_lateral_m": reference.desired_lateral_m,
-                        "cutin_reference_length_m": reference.length_m,
-                        "cutin_reference_curvature_m_inv": reference.curvature_m_inv,
-                        "cutin_reference_speed_limit_mps": reference.speed_limit_mps,
-                        "cutin_start_remaining_m": reference.start_remaining_m,
-                        "cutin_reference_start_s_m": (
-                            reference.start_remaining_m
-                            + episode.adversary_route.projection(
-                                episode.adversary.position,
-                                episode.adversary.heading_theta,
-                            ).s_m
-                        ),
-                    })
+                reference = schedule.maneuver_reference()
+                info.update({
+                    "maneuver_reference_progress": reference.progress,
+                    "maneuver_reference_lateral_error_m": reference.lateral_error_m,
+                    "maneuver_reference_heading_error_rad": reference.heading_error_rad,
+                    "maneuver_reference_desired_lateral_m": reference.desired_lateral_m,
+                    "maneuver_reference_length_m": reference.length_m,
+                    "maneuver_reference_curvature_m_inv": reference.curvature_m_inv,
+                    "maneuver_reference_speed_limit_mps": reference.speed_limit_mps,
+                    "maneuver_start_remaining_m": reference.start_remaining_m,
+                    "maneuver_active_lambda_length": reference.active_lambda_length,
+                    "maneuver_active_beta_early": reference.active_beta_early,
+                    "maneuver_active_beta_late": reference.active_beta_late,
+                    "maneuver_reference_blend_progress": reference.blend_progress,
+                    "maneuver_replan_due": reference.replan_due,
+                    "maneuver_reference_start_s_m": schedule.contract.start_s_m,
+                    "maneuver_reference_points_xy": schedule.planner.reference_points(),
+                })
                 sut_policy = env.engine.get_policy(episode.sut.id)
                 sut_action = np.asarray(
                     getattr(sut_policy, "action_info", {}).get("action", (0.0, 0.0)),
@@ -163,8 +158,21 @@ class HierarchicalRunner:
                     info,
                 )
                 info = {**info, **monitor.info()}
-                info["inner_raw_action_l2"] = float(np.square(raw_action).sum())
-                info["inner_executed_action_l2"] = float(np.square(shielded.action).sum())
+                info["inner_raw_policy_action_l2"] = float(
+                    np.square(raw_action).sum()
+                )
+                info["inner_planner_action_l2"] = float(
+                    np.square(planner_action).sum()
+                )
+                info["inner_executed_vehicle_action_l2"] = float(
+                    np.square(shielded.action).sum()
+                )
+                info["raw_policy_action"] = raw_action.tolist()
+                info["planner_action"] = planner_action.tolist()
+                info["requested_vehicle_action"] = (
+                    shielded.requested_action.tolist()
+                )
+                info["executed_vehicle_action"] = shielded.action.tolist()
                 info["valid_target_collision"] = bool(
                     target_collision
                     and info["event_kind"] == "collision"
@@ -210,14 +218,10 @@ class HierarchicalRunner:
                 done = termination_reason is not None
                 transitions.append({
                     "state": state,
-                    "raw_action": raw_action,
-                    # ``raw_action`` is the SAC target in its declared
-                    # actuator-target space.  The controller's deterministic
-                    # conversion is state-observable; executed action remains
-                    # separately logged for physical audit.
-                    "action": raw_action,
-                    "executed_action": shielded.action,
-                    "requested_action": shielded.requested_action,
+                    "raw_policy_action": raw_action,
+                    "planner_action": planner_action,
+                    "requested_vehicle_action": shielded.requested_action,
+                    "executed_vehicle_action": shielded.action,
                     "reward_inner": reward_fn(trajectory_row, info),
                     "reward_env": float(env_reward),
                     "next_state": state_extractor(episode.adversary, episode.sut, schedule),
