@@ -70,23 +70,48 @@ class HierarchicalRunner:
             self.max_steps,
             int(episode.layout.traffic_contract.min_completion_steps),
         )
+        held_policy_action: np.ndarray | None = None
         extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         state_extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         try:
             for step in range(max_steps):
                 schedule.update()
                 state = state_extractor(episode.adversary, episode.sut, schedule)
-                raw_action = np.asarray(
-                    inner_action(state), dtype=np.float32
-                ).reshape(-1)
-                if raw_action.shape != (4,) or not np.isfinite(raw_action).all():
-                    raise ValueError("Inner SAC must emit one finite 4-D planner action")
-                raw_action = np.clip(raw_action, -1.0, 1.0)
+                reference_before = schedule.maneuver_reference()
+                planner_active = bool(
+                    schedule.state.maneuver_latched
+                    and not schedule.state.maneuver_completed
+                    and reference_before.start_remaining_m <= 0.0
+                )
+                if planner_active:
+                    policy_decision = (
+                        held_policy_action is None or schedule.planner.replan_due
+                    )
+                else:
+                    policy_decision = (
+                        held_policy_action is None
+                        or step % schedule.planner.replan_interval_steps == 0
+                    )
+                if policy_decision:
+                    held_policy_action = np.asarray(
+                        inner_action(state), dtype=np.float32
+                    ).reshape(-1)
+                    if (
+                        held_policy_action.shape != (4,)
+                        or not np.isfinite(held_policy_action).all()
+                    ):
+                        raise ValueError(
+                            "Inner SAC must emit one finite 4-D planner action"
+                        )
+                    held_policy_action = np.clip(
+                        held_policy_action, -1.0, 1.0
+                    )
+                raw_action = held_policy_action.copy()
                 planner_action, requested_action = controller.action(raw_action)
                 shielded = shield.project(requested_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 controller.observe_environment(info)
-                info = {**dict(info), **shield.observe(shielded, info)}
+                info = {**dict(info), **shield.observe(shielded)}
                 reference = schedule.maneuver_reference()
                 info.update({
                     "maneuver_reference_progress": reference.progress,
@@ -169,6 +194,7 @@ class HierarchicalRunner:
                 )
                 info["raw_policy_action"] = raw_action.tolist()
                 info["planner_action"] = planner_action.tolist()
+                info["inner_policy_decision"] = bool(policy_decision)
                 info["requested_vehicle_action"] = (
                     shielded.requested_action.tolist()
                 )
@@ -177,21 +203,18 @@ class HierarchicalRunner:
                     target_collision
                     and info["event_kind"] == "collision"
                     and info["event_semantic_valid"]
-                    and info["event_traffic_valid"]
+                    and info["event_execution_valid"]
                 )
                 info["valid_critical_near_miss"] = bool(
                     near_miss
                     and info["event_kind"] == "near_miss"
                     and info["event_semantic_valid"]
-                    and info["event_traffic_valid"]
+                    and info["event_execution_valid"]
                 )
                 sut_arrived = self._sut_arrived_destination(episode)
                 info["sut_arrived_destination"] = sut_arrived
-                hard_violation = bool(info["adversary_traffic_violation"])
                 if target_collision:
                     termination_reason = "target_collision"
-                elif hard_violation:
-                    termination_reason = "hard_traffic_violation"
                 elif sut_arrived:
                     termination_reason = "sut_route_completed"
                 # MetaDrive's sole controllable agent is the adversary.  Its
@@ -200,6 +223,8 @@ class HierarchicalRunner:
                 # the SUT completes or a real terminal event occurs.
                 elif terminated and not bool(info.get("arrive_dest", False)):
                     termination_reason = "simulator_terminated"
+                elif truncated:
+                    termination_reason = "simulator_truncated"
                 elif step + 1 >= max_steps:
                     termination_reason = "runner_step_budget"
                 else:

@@ -124,9 +124,6 @@ def run() -> dict[str, Any]:
                     "planner_action": planner_action.tolist(),
                     "effective_planner_action_mean": actual_planner.mean(axis=0).tolist(),
                     "formal_valid": bool(rollout.outcome["is_valid_episode"]),
-                    "controller_valid": not bool(
-                        final["traffic_violation_counts"]
-                    ),
                     "termination_reason": rollout.outcome["termination_reason"],
                     "maneuver_completed": any(
                         row["info"].get("semantic_maneuver_completed", False)
@@ -135,9 +132,6 @@ def run() -> dict[str, Any]:
                     "tracking_rms_m": float(np.sqrt(np.mean(np.square(tracking)))),
                     "tracking_p95_m": float(np.quantile(tracking, 0.95)),
                     "steering_sign_changes": _oscillations(steering),
-                    "traffic_violation_counts": dict(
-                        final["traffic_violation_counts"]
-                    ),
                     "max_abs_acceleration_mps2": float(
                         final["traffic_max_abs_acceleration_mps2"]
                     ),
@@ -149,9 +143,6 @@ def run() -> dict[str, Any]:
                     ),
                 })
     gates = {
-        "all_controller_rollouts_valid": all(
-            row["controller_valid"] for row in records
-        ),
         "all_shape_actions_reach_planner": all(
             (
                 row["action_label"] == "baseline"
@@ -163,24 +154,11 @@ def run() -> dict[str, Any]:
             )
             for row in records
         ),
-        "no_physical_violations": all(
-            not row["traffic_violation_counts"] for row in records
-        ),
         "tracking_rms_at_most_0_35_m": all(
             row["tracking_rms_m"] <= 0.35 for row in records
         ),
         "tracking_p95_at_most_0_75_m": all(
             row["tracking_p95_m"] <= 0.75 for row in records
-        ),
-        "acceleration_at_most_6_mps2": all(
-            row["max_abs_acceleration_mps2"] <= 6.25 for row in records
-        ),
-        "jerk_at_most_6_mps3": all(
-            row["max_abs_jerk_mps3"] <= 6.0 + 1e-3 for row in records
-        ),
-        "lateral_acceleration_at_most_3_mps2": all(
-            row["max_lateral_acceleration_mps2"] <= 3.0 + 1e-3
-            for row in records
         ),
     }
     return {

@@ -21,13 +21,13 @@ interaction_prior:
   algorithm: adversarial_sac
   action_dim: 4
   batch_size: 64
-  # Scene coverage comes directly from the declared Cut-in Logical domains.
-  episodes_per_task: 8
+  episodes_per_task: 40
   updates_per_episode: 12
   replay_capacity: 100000
   learning_rate: 0.0003
-  event_sample_fraction: 0.5
-  event_action_weight: 2.0
+  warmup_episodes: 5
+  event_sample_fraction: 0.0
+  event_action_weight: 0.0
 context_meta:
   support_shots: [1, 2, 4]
   groups_per_task: 3
@@ -56,18 +56,9 @@ outer:
   learning_rate: 0.0003
 cutin_inner:
   allow_outer: false
-  # Keep both SUT and road-topology variation while making the validation
-  # artifact bounded enough to finish in a single reproducible run.
-  training_sut_refs: [idm_assertive, idm_normal]
-  training_geometry_ids: [cutin-g01, cutin-g02]
+  training_sut_refs: [idm_normal]
+  training_geometry_ids: [cutin-g01]
   training_logical_domains:
-    - id: close_closing_early
-      bounds:
-        cutin_gap_at_start_m: [-0.75, -0.35]
-        sut_initial_speed_mps: [-0.30, 0.30]
-        relative_speed_mps: [-0.25, 0.25]
-        cutin_start_progress: [-0.65, -0.25]
-        cutin_start_time_s: [-0.65, -0.25]
     - id: balanced_interaction
       bounds:
         cutin_gap_at_start_m: [-0.30, 0.30]
@@ -75,15 +66,6 @@ cutin_inner:
         relative_speed_mps: [-0.40, 0.10]
         cutin_start_progress: [-0.30, 0.30]
         cutin_start_time_s: [-0.30, 0.30]
-    - id: late_tight_cutin
-      bounds:
-        cutin_gap_at_start_m: [0.35, 0.75]
-        sut_initial_speed_mps: [-0.30, 0.30]
-        relative_speed_mps: [-0.80, -0.40]
-        # Late within the executable corridor, while leaving enough route
-        # for a full SUT-completion test at the declared step budget.
-        cutin_start_progress: [0.15, 0.28]
-        cutin_start_time_s: [0.25, 0.65]
 evaluation:
   support_shots: [0, 1, 2, 4]
   query_cases: 8

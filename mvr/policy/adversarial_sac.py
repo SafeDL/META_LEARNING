@@ -8,11 +8,6 @@ from torch.distributions import Normal
 
 
 class _Actor(nn.Module):
-    # SAC's normalized action is a standard tanh-squashed Gaussian action.
-    # Keeping the physical envelope in the controller/projector means that a
-    # learned command is not silently attenuated before it reaches MetaDrive.
-    action_logit_scale = 8.0
-
     def __init__(self, feature_dim: int, action_dim: int) -> None:
         super().__init__()
         self.body = nn.Sequential(nn.Linear(feature_dim, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU())
@@ -24,7 +19,7 @@ class _Actor(nn.Module):
 
     @classmethod
     def squash(cls, raw: torch.Tensor) -> torch.Tensor:
-        return (raw / cls.action_logit_scale).tanh()
+        return raw.tanh()
 
     def sample(
         self, features: torch.Tensor, raw_shift: torch.Tensor | None = None
@@ -33,12 +28,8 @@ class _Actor(nn.Module):
         base_raw = normal.rsample()
         raw = base_raw if raw_shift is None else base_raw + raw_shift
         action = self.squash(raw)
-        # Change-of-variables correction for tanh(raw / scale).  The scale
-        # keeps deterministic means in the useful interior of the actuator
-        # range while preserving a proper squashed-Gaussian SAC objective.
         log_prob = (
             normal.log_prob(base_raw).sum(-1)
-            + raw.new_tensor(self.action_logit_scale).log() * raw.shape[-1]
             - torch.log(1 - action.square() + 1e-6).sum(-1)
         )
         return action, log_prob
@@ -141,7 +132,7 @@ class AdversarialSAC(nn.Module):
         gamma: float = 0.99,
         context: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        """Return the bounded Bellman target used by both critics."""
+        """Return the Bellman target used by both critics."""
         with torch.no_grad():
             next_action, next_logprob = self.actor.sample(
                 next_features, self._context_shift(context)
@@ -149,10 +140,6 @@ class AdversarialSAC(nn.Module):
             next_action = self.action_limit * next_action
             next_q = torch.minimum(self.target1(next_features, next_action), self.target2(next_features, next_action)) - self.alpha.detach() * next_logprob
             target = reward + gamma * (1.0 - done.float()) * next_q
-            # The bounded inner reward has a finite discounted return.  A
-            # bounded target prevents an early critic error from exploding
-            # through the shared encoder and destroying the actor mean.
-            target = target.clamp(-20.0, 20.0)
         return target
 
     def actor_alpha_losses(
@@ -171,21 +158,18 @@ class AdversarialSAC(nn.Module):
             context_shift = self._context_shift(context)
             sampled, logprob = self.actor.sample(features, context_shift)
             sampled = self.action_limit * sampled
-            q_value = torch.minimum(self.critic1(features, sampled), self.critic2(features, sampled)).clamp(-20.0, 20.0)
-            action_energy = 0.01 * sampled.square().sum(dim=-1)
-            mean = self.actor.distribution(features).mean
-            if context_shift is not None:
-                mean = mean + context_shift
-            # Keep the Gaussian logits in a numerically useful range.  The
-            # penalty is independent of the physical action envelope and
-            # prevents every context from collapsing to the same tanh pole.
-            mean_energy = 0.005 * mean.square().mean(dim=-1)
-            actor = (self.alpha.detach() * logprob - q_value + action_energy + mean_energy).mean()
+            q_value = torch.minimum(
+                self.critic1(features, sampled), self.critic2(features, sampled)
+            )
+            actor = (self.alpha.detach() * logprob - q_value).mean()
             if event_action_weight > 0.0 and actions is not None and rewards is not None:
                 # Shaping is capped below one; only captured valid events
                 # include the shared terminal bonus above this threshold.
                 event_mask = rewards >= 1.0
                 if bool(event_mask.any()):
+                    mean = self.actor.distribution(features).mean
+                    if context_shift is not None:
+                        mean = mean + context_shift
                     mean_action = self.action_limit * self.actor.squash(mean)
                     event_target = actions[event_mask].clamp(-self.action_limit, self.action_limit)
                     actor = actor + float(event_action_weight) * nn.functional.smooth_l1_loss(

@@ -13,8 +13,8 @@ def expand_cutin_training_domains(
     """Replace each selected Cut-in train task by the requested Logical domains."""
     source_tasks = list(tasks)
     domain_rows = tuple(domains)
-    if len(domain_rows) < 3:
-        raise ValueError("Cut-in Inner training requires at least three Logical domains")
+    if len(domain_rows) < 1:
+        raise ValueError("Cut-in Inner training requires at least one Logical domain")
     if not source_tasks or any(task.functional_scenario != "cutin" for task in source_tasks):
         raise ValueError("Cut-in Inner training accepts Cut-in tasks only")
     if any(

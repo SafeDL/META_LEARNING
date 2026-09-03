@@ -30,11 +30,11 @@ def test_signature_distinguishes_candidate_and_conflict_zone() -> None:
     assert left.signature_id != right.signature_id
 
 
-def test_traffic_violation_invalidates_an_otherwise_critical_outcome() -> None:
+def test_control_telemetry_does_not_invalidate_an_otherwise_critical_outcome() -> None:
     signature = FailureSignatureBuilder().from_outcome(
         {
             "target_collision": True,
-            "adversary_traffic_violation": True,
+            "traffic_max_abs_acceleration_mps2": 100.0,
             "min_ttc": 1.0,
             "min_distance": 0.5,
             "max_closing_speed": 12.0,
@@ -42,32 +42,38 @@ def test_traffic_violation_invalidates_an_otherwise_critical_outcome() -> None:
         "cutin",
         "merge_window",
     )
-    assert not signature.is_valid_episode
-    assert not signature.is_failure
+    assert signature.is_valid_episode
+    assert signature.is_failure
 
 
-def test_traffic_violation_cannot_be_a_valid_target_collision() -> None:
+def test_control_telemetry_does_not_invalidate_a_semantically_valid_collision() -> None:
     criteria = FailureCriteria(5.0, 10.0, 20.0, 5)
     features = np.zeros(12, dtype=np.float32)
     features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
     outcome, signature = analyze_rollout(
-        [{"info": {"target_collision": True, "adversary_traffic_violation": True},
+        [{"info": {
+            "target_collision": True,
+            "event_kind": "collision",
+            "event_semantic_valid": True,
+            "event_execution_valid": True,
+            "traffic_max_abs_acceleration_mps2": 100.0,
+        },
           "trajectory_features": features}],
         "cutin", "zone", "candidate", criteria,
     )
     assert outcome["target_collision"]
-    assert not outcome["valid_target_collision"]
-    assert not signature.is_failure
+    assert outcome["valid_target_collision"]
+    assert signature.is_failure
 
 
-def test_event_time_traffic_validity_survives_post_impact_transient() -> None:
+def test_event_time_execution_validity_survives_post_impact_transient() -> None:
     signature = FailureSignatureBuilder().from_outcome(
         {
             "target_collision": True,
             "adversary_out_of_road": True,
             "event_kind": "collision",
             "event_semantic_valid": True,
-            "event_traffic_valid": True,
+            "event_execution_valid": True,
             "valid_target_collision": True,
             "is_valid_episode": True,
             "min_ttc": 1.0,
@@ -89,7 +95,7 @@ def test_analyzer_prefers_a_later_collision_over_an_earlier_near_miss() -> None:
             "info": {
                 "event_kind": "near_miss",
                 "event_semantic_valid": True,
-                "event_traffic_valid": True,
+                "event_execution_valid": True,
             },
             "trajectory_features": features,
         },
@@ -98,7 +104,7 @@ def test_analyzer_prefers_a_later_collision_over_an_earlier_near_miss() -> None:
                 "target_collision": True,
                 "event_kind": "collision",
                 "event_semantic_valid": True,
-                "event_traffic_valid": True,
+                "event_execution_valid": True,
             },
             "trajectory_features": features,
         },
@@ -124,7 +130,7 @@ def test_failure_threshold_config_changes_failure_decision_and_inner_reward() ->
     broad_transitions = [{"info": {
         "event_kind": "near_miss",
         "event_semantic_valid": True,
-        "event_traffic_valid": True,
+        "event_execution_valid": True,
     }, "trajectory_features": features}]
     strict_transitions = [{"info": {}, "trajectory_features": features}]
     _, broad_signature = analyze_rollout(broad_transitions, "merge", "zone", "candidate", broad)
@@ -148,7 +154,7 @@ def test_inner_reward_prefers_a_valid_target_collision_over_dense_criticality() 
         "event_just_captured": True,
         "event_kind": "collision",
         "event_semantic_valid": True,
-        "event_traffic_valid": True,
+        "event_execution_valid": True,
     })
     assert collision > reward(critical, {})
 
@@ -190,7 +196,7 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
         "event_just_captured": True,
         "event_kind": "collision",
         "event_semantic_valid": True,
-        "event_traffic_valid": True,
+        "event_execution_valid": True,
     })
     invalid_event = reward(
         features,
@@ -198,8 +204,8 @@ def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
             "valid_target_collision": False,
             "event_kind": "collision",
             "event_semantic_valid": True,
-            "event_traffic_valid": False,
-            "adversary_traffic_violation": True,
+            "event_execution_valid": False,
+            "wrong_route": True,
         },
     )
     assert event > invalid_event
@@ -212,7 +218,7 @@ def test_inner_reward_emits_near_miss_bonus_only_on_capture() -> None:
     event_info = {
         "event_kind": "near_miss",
         "event_semantic_valid": True,
-        "event_traffic_valid": True,
+        "event_execution_valid": True,
         "event_just_captured": True,
     }
     latched_info = {**event_info, "event_just_captured": False}
@@ -230,13 +236,13 @@ def test_inner_reward_uses_one_terminal_bonus_for_collision_and_near_miss() -> N
         "event_just_captured": True,
         "valid_target_collision": True,
         "event_semantic_valid": True,
-        "event_traffic_valid": True,
+        "event_execution_valid": True,
     })
     near_miss = InnerRiskReward(criteria)(features, {
         "event_kind": "near_miss",
         "event_just_captured": True,
         "event_semantic_valid": True,
-        "event_traffic_valid": True,
+        "event_execution_valid": True,
     })
     assert near_miss == pytest.approx(collision)
 

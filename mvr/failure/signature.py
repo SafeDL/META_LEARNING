@@ -65,14 +65,13 @@ class FailureSignatureBuilder:
                 "adversary_out_of_road",
                 "sut_out_of_road",
                 "wrong_route",
-                "adversary_traffic_violation",
             )
         )
         event_frozen = outcome.get("event_kind") in {"collision", "near_miss"}
-        event_traffic_valid = bool(outcome.get("event_traffic_valid", False))
-        # At a target event the semantic monitor latches traffic validity
+        event_execution_valid = bool(outcome.get("event_execution_valid", False))
+        # At a target event the semantic monitor latches execution validity
         # before collision dynamics can emit a later out-of-road flag.
-        invalid = (not event_traffic_valid) if event_frozen else raw_invalid
+        invalid = (not event_execution_valid) if event_frozen else raw_invalid
         is_valid_episode = bool(outcome.get("is_valid_episode", not invalid)) and not invalid
         collision = bool(
             outcome.get(

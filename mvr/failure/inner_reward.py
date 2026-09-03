@@ -51,7 +51,6 @@ class InnerRiskReward:
                 "adversary_out_of_road",
                 "sut_out_of_road",
                 "wrong_route",
-                "adversary_traffic_violation",
             )
         )
         event_just_captured = bool(info.get("event_just_captured", False))
@@ -62,7 +61,7 @@ class InnerRiskReward:
             event_just_captured
             and info.get("event_kind") == "near_miss"
             and info.get("event_semantic_valid", False)
-            and info.get("event_traffic_valid", False)
+            and info.get("event_execution_valid", False)
         )
         event_bonus = 0.0
         if not invalid:

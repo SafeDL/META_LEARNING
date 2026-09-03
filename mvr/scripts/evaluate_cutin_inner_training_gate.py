@@ -93,11 +93,6 @@ def run(config_path: str, checkpoint_path: str) -> dict[str, Any]:
                 "min_ttc": float(episode.outcome["min_ttc"]),
                 "min_distance": float(episode.outcome["min_distance"]),
                 "termination_reason": episode.outcome["termination_reason"],
-                "traffic_violation_counts": dict(
-                    episode.outcome.get("traffic_telemetry", {}).get(
-                        "violation_counts", {}
-                    )
-                ),
             })
 
     for row in rows:

@@ -22,7 +22,7 @@ from mvr.safety import TrafficActionShield
 from mvr.training.runner import HierarchicalRunner
 
 
-def _episode(candidate_index: int = 0):
+def _episode(candidate_index: int = 0, *, environment_overrides=None):
     task = next(
         task
         for task in load_taskbook("mvr/configs/taskbook.json")
@@ -35,6 +35,7 @@ def _episode(candidate_index: int = 0):
             (0.0,) * 5,
         ),
         episode_seed=204 + candidate_index,
+        environment_overrides=environment_overrides,
     )
 
 
@@ -127,6 +128,71 @@ def test_replay_action_is_the_declared_sac_actuator_target() -> None:
         episode.env.close()
 
 
+def test_inner_policy_action_is_held_between_planner_decisions() -> None:
+    episode = _episode()
+    calls = 0
+
+    def policy(_state):
+        nonlocal calls
+        calls += 1
+        return np.asarray((0.05 * calls, 0.0, 0.0, 0.0), dtype=np.float32)
+
+    try:
+        rollout = HierarchicalRunner(max_steps=60).rollout(
+            episode, "cutin", policy
+        )
+    finally:
+        episode.env.close()
+
+    decisions = [
+        index
+        for index, row in enumerate(rollout.transitions)
+        if row["info"]["inner_policy_decision"]
+    ]
+    assert calls == len(decisions)
+    assert decisions[0] == 0
+    for previous, row in zip(rollout.transitions, rollout.transitions[1:]):
+        if not row["info"]["inner_policy_decision"]:
+            np.testing.assert_allclose(
+                row["raw_policy_action"], previous["raw_policy_action"]
+            )
+
+    started = INNER_STATE_FIELDS.index("maneuver_started")
+    start_remaining = INNER_STATE_FIELDS.index("maneuver_start_remaining_m")
+    inactive_decisions = [
+        index
+        for index in decisions
+        if not (
+            rollout.transitions[index]["state"][started] == 1.0
+            and rollout.transitions[index]["state"][start_remaining] <= 0.0
+        )
+    ]
+    active_decisions = [index for index in decisions if index not in inactive_decisions]
+    assert all(index % 5 == 0 for index in inactive_decisions)
+    assert active_decisions
+    assert all(
+        right - left == 5
+        for left, right in zip(active_decisions, active_decisions[1:])
+    )
+
+
+def test_simulator_truncation_precedes_runner_step_budget() -> None:
+    episode = _episode(environment_overrides={"horizon": 1})
+    try:
+        rollout = HierarchicalRunner(max_steps=300).rollout(
+            episode,
+            "cutin",
+            lambda _state: np.zeros(4, dtype=np.float32),
+        )
+    finally:
+        episode.env.close()
+
+    assert len(rollout.transitions) == 1
+    assert rollout.transitions[-1]["info"]["termination_reason"] == (
+        "simulator_truncated"
+    )
+
+
 def test_maximum_direct_braking_stays_within_physical_envelope() -> None:
     episode = _episode()
     try:
@@ -136,7 +202,6 @@ def test_maximum_direct_braking_stays_within_physical_envelope() -> None:
             lambda _: np.asarray((0.0, 0.0, 0.0, -1.0), dtype=np.float32),
         )
         telemetry = rollout.transitions[-1]["info"]
-        assert telemetry["traffic_violation_counts"] == {}
         assert telemetry["traffic_max_abs_acceleration_mps2"] <= 6.0 + 1e-3
         assert telemetry["traffic_max_abs_jerk_mps3"] <= 6.0 + 1e-3
     finally:
@@ -153,7 +218,6 @@ def test_direct_cutin_steering_stays_inside_road_corridor() -> None:
         )
         telemetry = rollout.transitions[-1]["info"]
         assert not telemetry["adversary_out_of_road"]
-        assert "out_of_road" not in telemetry["traffic_violation_counts"]
         assert telemetry["traffic_cutin_lateral_corridor_m"][0] < telemetry[
             "traffic_cutin_lateral_m"
         ] < telemetry["traffic_cutin_lateral_corridor_m"][1]

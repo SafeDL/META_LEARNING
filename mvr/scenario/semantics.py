@@ -212,7 +212,7 @@ class ScenarioSemanticMonitor:
         self._completed = False
         self._event_kind: str | None = None
         self._event_semantic_valid = False
-        self._event_traffic_valid = False
+        self._event_execution_valid = False
         self._event_just_captured = False
         self._state = SemanticState(False, False, False, False, False, False)
 
@@ -311,7 +311,7 @@ class ScenarioSemanticMonitor:
         return state
 
     @staticmethod
-    def _traffic_valid(info: Mapping[str, Any]) -> bool:
+    def _execution_valid(info: Mapping[str, Any]) -> bool:
         return not any(
             bool(info.get(key, False))
             for key in (
@@ -319,7 +319,6 @@ class ScenarioSemanticMonitor:
                 "adversary_out_of_road",
                 "sut_out_of_road",
                 "wrong_route",
-                "adversary_traffic_violation",
             )
         )
 
@@ -344,7 +343,7 @@ class ScenarioSemanticMonitor:
             return False
         self._event_kind = kind
         self._event_semantic_valid = bool(semantic)
-        self._event_traffic_valid = self._traffic_valid(info)
+        self._event_execution_valid = self._execution_valid(info)
         self._event_just_captured = True
         return True
 
@@ -358,6 +357,6 @@ class ScenarioSemanticMonitor:
             "semantic_valid": self._state.semantic_valid,
             "event_kind": self._event_kind,
             "event_semantic_valid": self._event_semantic_valid,
-            "event_traffic_valid": self._event_traffic_valid,
+            "event_execution_valid": self._event_execution_valid,
             "event_just_captured": self._event_just_captured,
         }

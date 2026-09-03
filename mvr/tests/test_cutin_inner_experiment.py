@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+import yaml
+
 from mvr.experiments.cutin_inner import (
     expand_cutin_training_domains,
     select_cutin_validation_tasks,
 )
+from mvr.scenario.registry import load_geometry_catalog
 from mvr.scripts.evaluate_cutin_inner_validation import _support_effects
 from mvr.scenario.task_spec import CUTIN_LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
+from mvr.scenario.taskbook import load_taskbook
 
 
 def _task(
@@ -40,6 +46,53 @@ def test_cutin_training_expansion_constructs_three_train_domains() -> None:
     expanded = expand_cutin_training_domains([_task()], domains)
     assert {task.logical_domain_id for task in expanded} == {"early", "middle", "late"}
     assert all(task.sut_split == task.geometry_split == task.logical_split == "train" for task in expanded)
+
+
+def test_cutin_training_expansion_accepts_one_domain() -> None:
+    bounds = {key: (-0.25, 0.25) for key in CUTIN_LOGICAL_PARAMETER_NAMES}
+    expanded = expand_cutin_training_domains(
+        [_task()], [{"id": "balanced", "bounds": bounds}]
+    )
+
+    assert len(expanded) == 1
+    assert expanded[0].logical_domain_id == "balanced"
+
+
+def test_cutin_inner_config_selects_one_training_task() -> None:
+    config = yaml.safe_load(
+        Path("mvr/configs/cutin_inner.yaml").read_text(encoding="utf-8")
+    )
+    settings = config["cutin_inner"]
+    prior = config["interaction_prior"]
+    source = [
+        task
+        for task in load_taskbook(config["taskbook"])
+        if task.functional_scenario == "cutin"
+        and task.sut_split == task.geometry_split == task.logical_split == "train"
+        and task.sut_ref in settings["training_sut_refs"]
+        and task.geometry_id in settings["training_geometry_ids"]
+    ]
+    expanded = expand_cutin_training_domains(
+        source, settings["training_logical_domains"]
+    )
+
+    assert len(expanded) == 1
+    assert expanded[0].sut_ref == "idm_normal"
+    assert expanded[0].geometry_id == "cutin-g01"
+    assert expanded[0].logical_domain_id == "balanced_interaction"
+    assert prior["episodes_per_task"] == 40
+    assert prior["warmup_episodes"] == 5
+    assert prior["event_sample_fraction"] == 0.0
+    assert prior["event_action_weight"] == 0.0
+
+
+def test_all_cutin_geometries_allow_the_completion_budget() -> None:
+    geometries = load_geometry_catalog()
+
+    assert all(
+        geometries[f"cutin-g{index:02d}"].horizon == 360
+        for index in range(1, 6)
+    )
 
 
 def test_cutin_validation_selector_keeps_validation_sut_and_domain_only() -> None:

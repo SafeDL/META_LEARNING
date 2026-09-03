@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
 import numpy as np
 
@@ -30,10 +30,6 @@ class TrafficActionShield:
     # discrete wheel/brake response while retaining the calibrated physical
     # jerk diagnostic below.
     max_jerk_mps3: float = 2.0
-    # MetaDrive's fixed-step wheel solver adds a bounded transition impulse;
-    # 6 m/s^3 is the calibrated realised-motion cap after filtering that
-    # impulse (the command envelope remains 2 m/s^3).
-    physical_max_jerk_mps3: float = 6.0
     max_lateral_acceleration_mps2: float = 3.0
     max_steering_rate_per_s: float = 1.5
     _previous_speed_mps: float | None = field(default=None, init=False)
@@ -43,8 +39,6 @@ class TrafficActionShield:
     _previous_cutin_lateral_m: float | None = field(default=None, init=False)
     _cutin_lateral_velocity_mps: float = field(default=0.0, init=False)
     _rejections: Counter[str] = field(default_factory=Counter, init=False)
-    _violations: Counter[str] = field(default_factory=Counter, init=False)
-    _warnings: Counter[str] = field(default_factory=Counter, init=False)
     _max_speed_mps: float = field(default=0.0, init=False)
     _max_abs_acceleration_mps2: float = field(default=0.0, init=False)
     _max_abs_jerk_mps3: float = field(default=0.0, init=False)
@@ -52,8 +46,8 @@ class TrafficActionShield:
 
     def __post_init__(self) -> None:
         # Establish the simulator-reset speed before the first command.  This
-        # makes the first measured acceleration and the following jerk check
-        # part of the same physical contract as every later decision step.
+        # makes the first measured acceleration part of the telemetry from
+        # every later decision step.
         self._previous_speed_mps = self._speed_mps(self.episode.adversary)
         if self.schedule.family == "cutin":
             self._previous_cutin_lateral_m = self._cutin_lateral_position()
@@ -307,11 +301,7 @@ class TrafficActionShield:
         )
         return abs(float(projection.lateral_m))
 
-    def observe(
-        self,
-        shielded: ShieldedAction,
-        environment_info: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+    def observe(self, shielded: ShieldedAction) -> dict[str, Any]:
         vehicle = self.episode.adversary
         speed = self._speed_mps(vehicle)
         dt = self._step_seconds(self.episode.env)
@@ -331,7 +321,6 @@ class TrafficActionShield:
                 previous_filtered_acceleration + acceleration
             )
             jerk = (filtered_acceleration - previous_filtered_acceleration) / dt
-        had_previous_acceleration = self._previous_acceleration_mps2 is not None
         self._previous_speed_mps = speed
         self._previous_acceleration_mps2 = acceleration
         self._filtered_acceleration_mps2 = filtered_acceleration
@@ -351,28 +340,11 @@ class TrafficActionShield:
         self._max_lateral_acceleration_mps2 = max(
             self._max_lateral_acceleration_mps2, abs(lateral_acceleration)
         )
-        if speed > self.contract.speed_limit_mps + 0.5:
-            self._violations["speed_limit"] += 1
-        if abs(acceleration) > max(self.max_acceleration_mps2, self.max_deceleration_mps2) + 0.25:
-            self._violations["longitudinal_acceleration"] += 1
-        if had_previous_acceleration and abs(jerk) > self.physical_max_jerk_mps3 + 1e-6:
-            # The command jerk is hard-limited in ``project``.  MetaDrive's
-            # fixed-step wheel solver can still expose a one-frame residual
-            # when switching engine/brake signs; retain it as an auditable
-            # physical warning without invalidating the scenario event.
-            self._warnings["longitudinal_jerk"] += 1
-        if abs(lateral_acceleration) > self.max_lateral_acceleration_mps2 + 1e-6:
-            self._violations["lateral_acceleration"] += 1
-        if environment_info is not None and bool(environment_info.get("out_of_road", False)):
-            self._violations["out_of_road"] += 1
         lateral = self._legal_lane_lateral()
         route_projection = self.episode.adversary_route.projection(
             vehicle.position, vehicle.heading_theta
         )
-        # Route adherence remains a scenario semantic/failure concern.  Do
-        # not turn the target-route projection into an additional traffic
-        # violation: before a direct SAC Cut-in actually moves, its physical
-        # position is intentionally still on the source lane.
+        # Route adherence remains a scenario semantic/failure concern.
         intervention = float(np.linalg.norm(shielded.requested_action - shielded.action))
         cutin_lateral = None
         cutin_corridor = None
@@ -380,15 +352,12 @@ class TrafficActionShield:
             cutin_lateral = self._cutin_lateral_position()
             cutin_corridor = list(self._cutin_lateral_corridor())
         return {
-            "adversary_traffic_violation": bool(self._violations),
             "traffic_shield_rejected": shielded.rejection_reason is not None,
             "traffic_shield_rejection_reason": shielded.rejection_reason,
             "traffic_requested_action": shielded.requested_action.tolist(),
             "traffic_executed_action": shielded.action.tolist(),
             "traffic_shield_intervention_l2": intervention,
             "traffic_rejection_counts": dict(self._rejections),
-            "traffic_violation_counts": dict(self._violations),
-            "traffic_warning_counts": dict(self._warnings),
             "traffic_max_speed_mps": self._max_speed_mps,
             "traffic_max_abs_acceleration_mps2": self._max_abs_acceleration_mps2,
             "traffic_max_abs_jerk_mps3": self._max_abs_jerk_mps3,

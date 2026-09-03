@@ -91,14 +91,31 @@ def train_interaction_prior(
     online = build_online(model, tasks[0], max_steps, criteria, executor)
     episodes = []
     transitions_collected = 0
+    warmup_episodes = int(settings.get("warmup_episodes", 0))
     for episode_index in range(episodes_per_task):
         for task in sampler.shuffled_epoch():
+            inner_action_provider = None
+            if episode_index < warmup_episodes:
+                rng = np.random.default_rng(
+                    int(config["seed"]) + 1000 * episode_index
+                )
+
+                def random_inner_action(
+                    _state: np.ndarray,
+                    generator: np.random.Generator = rng,
+                ) -> np.ndarray:
+                    return generator.uniform(-1.0, 1.0, size=(4,)).astype(
+                        np.float32
+                    )
+
+                inner_action_provider = random_inner_action
             result = online.run(
                 task,
                 1,
                 posterior_support_limit=0,
                 episode_index_offset=episode_index,
                 scene_action_provider=scene_sampler,
+                inner_action_provider=inner_action_provider,
             )
             print(
                 f"inner episode {len(episodes) + 1}/{len(tasks) * episodes_per_task}: "
@@ -109,7 +126,8 @@ def train_interaction_prior(
                 replay.add(row)
             transitions_collected += len(result.inner_transitions)
             episodes.extend((task, episode) for episode in result.episodes)
-            _update_inner(model, replay, optimizer, settings, losses)
+            if episode_index >= warmup_episodes:
+                _update_inner(model, replay, optimizer, settings, losses)
     metrics = _inner_metrics(
         len(episodes), replay, losses, episodes, transitions_collected,
     )

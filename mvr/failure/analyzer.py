@@ -23,9 +23,6 @@ def analyze_rollout(
         "adversary_out_of_road": any(bool(info.get("adversary_out_of_road", False)) for info in infos),
         "sut_out_of_road": any(bool(info.get("sut_out_of_road", False)) for info in infos),
         "wrong_route": any(bool(info.get("wrong_route", False)) for info in infos),
-        "adversary_traffic_violation": any(
-            bool(info.get("adversary_traffic_violation", False)) for info in infos
-        ),
         "target_collision": any(bool(info.get("target_collision", info.get("crash_vehicle", False))) for info in infos),
         "min_ttc": min(float(row[8]) * 15.0 for row in features),
         "min_distance": min(float(row[10]) * 100.0 for row in features),
@@ -52,19 +49,19 @@ def analyze_rollout(
         event_info = {}
     outcome["event_kind"] = event_info.get("event_kind")
     outcome["event_semantic_valid"] = bool(event_info.get("event_semantic_valid", False))
-    outcome["event_traffic_valid"] = bool(event_info.get("event_traffic_valid", False))
+    outcome["event_execution_valid"] = bool(
+        event_info.get("event_execution_valid", False)
+    )
     traffic_infos = [info for info in infos if "traffic_requested_action" in info]
     if traffic_infos:
         final_traffic = traffic_infos[-1]
-        outcome["traffic_telemetry"] = {
+        outcome["control_telemetry"] = {
             "requested_actions": [list(info["traffic_requested_action"]) for info in traffic_infos],
             "executed_actions": [list(info["traffic_executed_action"]) for info in traffic_infos],
             "shield_intervention_l2": [
                 float(info["traffic_shield_intervention_l2"]) for info in traffic_infos
             ],
             "rejection_counts": dict(final_traffic["traffic_rejection_counts"]),
-            "violation_counts": dict(final_traffic["traffic_violation_counts"]),
-            "warning_counts": dict(final_traffic.get("traffic_warning_counts", {})),
             "max_speed_mps": float(final_traffic["traffic_max_speed_mps"]),
             "max_abs_acceleration_mps2": float(final_traffic["traffic_max_abs_acceleration_mps2"]),
             "max_abs_jerk_mps3": float(final_traffic["traffic_max_abs_jerk_mps3"]),
@@ -100,11 +97,10 @@ def analyze_rollout(
             "adversary_out_of_road",
             "sut_out_of_road",
             "wrong_route",
-            "adversary_traffic_violation",
         )
     )
     event_valid = bool(
-        outcome["event_semantic_valid"] and outcome["event_traffic_valid"]
+        outcome["event_semantic_valid"] and outcome["event_execution_valid"]
     )
     outcome["valid_target_collision"] = bool(
         outcome["target_collision"]
@@ -115,7 +111,7 @@ def analyze_rollout(
         outcome["event_kind"] == "near_miss" and event_valid
     )
     # A valid event is frozen before post-impact simulator transients.  For
-    # episodes without an event, ordinary traffic validity remains decisive.
+    # episodes without an event, execution semantics remain decisive.
     invalid = invalid and not (
         outcome["valid_target_collision"] or outcome["valid_critical_near_miss"]
     )

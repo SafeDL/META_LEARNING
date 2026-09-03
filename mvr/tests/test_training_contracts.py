@@ -8,7 +8,7 @@ import torch
 
 from mvr.model import TransferableScenarioMiner
 from mvr.state import PhysicalStateExtractor
-from mvr.policy.adversarial_sac import AdversarialSAC
+from mvr.policy.adversarial_sac import AdversarialSAC, _Actor
 from mvr.scripts.plot_inner_sac_training import _recorded_stages
 from mvr.training.replay import InnerReplay, OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
@@ -57,6 +57,51 @@ def test_sac_actor_objective_does_not_backpropagate_into_critics() -> None:
     losses.actor.backward()
     assert all(parameter.grad is None for parameter in sac.critic1.parameters())
     assert all(parameter.grad is None for parameter in sac.critic2.parameters())
+
+
+def test_sac_actor_uses_standard_tanh_change_of_variables() -> None:
+    actor = _Actor(feature_dim=3, action_dim=2)
+    features = torch.zeros(4, 3)
+    torch.manual_seed(17)
+    action, log_prob = actor.sample(features)
+    torch.manual_seed(17)
+    normal = actor.distribution(features)
+    raw = normal.rsample()
+    expected_action = raw.tanh()
+    expected_log_prob = (
+        normal.log_prob(raw).sum(-1)
+        - torch.log(1.0 - expected_action.square() + 1e-6).sum(-1)
+    )
+
+    torch.testing.assert_close(action, expected_action)
+    torch.testing.assert_close(log_prob, expected_log_prob)
+
+
+def test_sac_bellman_target_is_not_clamped() -> None:
+    sac = AdversarialSAC(feature_dim=4, action_dim=2)
+    target = sac.critic_target(
+        torch.tensor([50.0]),
+        torch.zeros(1, 4),
+        torch.ones(1, dtype=torch.bool),
+    )
+
+    torch.testing.assert_close(target, torch.tensor([50.0]))
+
+
+def test_sac_actor_uses_unclamped_critic_value() -> None:
+    class ConstantCritic(torch.nn.Module):
+        def forward(self, _features, action):
+            return action.sum(dim=-1) * 0.0 + 50.0
+
+    sac = AdversarialSAC(feature_dim=4, action_dim=2)
+    sac.critic1 = ConstantCritic()
+    sac.critic2 = ConstantCritic()
+    with torch.no_grad():
+        sac.log_alpha.fill_(-20.0)
+
+    actor, _ = sac.actor_alpha_losses(torch.zeros(8, 4))
+
+    assert actor.item() < -40.0
 
 
 def test_sac_event_action_anchor_is_finite_and_keeps_critics_frozen() -> None:

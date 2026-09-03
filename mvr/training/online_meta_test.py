@@ -48,6 +48,21 @@ class OnlineMetaTestResult:
     outer_rollout: OuterRolloutBuffer
 
 
+def _inner_learning_blocks(
+    transitions: list[dict[str, Any]],
+) -> list[list[dict[str, Any]]]:
+    blocks: list[list[dict[str, Any]]] = []
+    current: list[dict[str, Any]] = []
+    for row in transitions:
+        if bool(row["info"].get("inner_policy_decision", False)) and current:
+            blocks.append(current)
+            current = []
+        current.append(row)
+    if current:
+        blocks.append(current)
+    return blocks
+
+
 class OnlineMetaTest:
     """Execute a fixed testing budget without exposing SUT identity to the model."""
 
@@ -233,17 +248,19 @@ class OnlineMetaTest:
                 scene.value.cpu(), reward, index + 1 == budget,
             ))
             episode_id = f"{task.task_id}:{episode_index}"
-            result.inner_transitions.extend(
-                InnerTransition(
+            for block in _inner_learning_blocks(rollout.transitions):
+                first = block[0]
+                last = block[-1]
+                result.inner_transitions.append(InnerTransition(
                     episode_id, task.task_id, None, task.geometry_hash,
-                    row["state"], row["planner_action"], row["reward_inner"], row["next_state"],
-                    row["done"], tokens, candidates, dict(task.logical_domain_bounds),
+                    first["state"], first["raw_policy_action"],
+                    float(sum(float(row["reward_inner"]) for row in block)),
+                    last["next_state"], last["done"],
+                    tokens, candidates, dict(task.logical_domain_bounds),
                     task.logical_parameter_mask, latent.squeeze(0).detach().cpu(),
                     int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),
-                    np.asarray((row["state"][-1],), dtype=np.float32),
-                )
-                for row in rollout.transitions
-            )
+                    np.asarray((first["state"][-1],), dtype=np.float32),
+                ))
             result.episodes.append(OnlineEpisode(
                 episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(),
                 latent_after.detach().cpu().clone(), tokens, candidates,

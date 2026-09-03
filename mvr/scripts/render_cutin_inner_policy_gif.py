@@ -161,7 +161,7 @@ def _draw_reference_overlay(
 
 
 def _capture_frames(
-    label: str, every: int = 2
+    label: str, every: int = 2, action_key: str = "planner_action"
 ) -> tuple[list[np.ndarray], Callable[..., None]]:
     frames: list[np.ndarray] = []
 
@@ -202,7 +202,7 @@ def _capture_frames(
             episode.layout.candidate,
             step,
             status,
-            [float(value) for value in info.get("planner_action", ())],
+            [float(value) for value in info.get(action_key, ())],
         ))
 
     return frames, capture
