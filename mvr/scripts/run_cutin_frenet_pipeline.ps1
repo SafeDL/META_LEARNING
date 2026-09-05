@@ -1,5 +1,5 @@
 param(
-    [string]$ResultRoot = "results/cutin_stage1"
+    [string]$ResultRoot = "results/cutin_shared_inner_prior"
 )
 
 $ErrorActionPreference = "Stop"
@@ -58,7 +58,7 @@ if ($LASTEXITCODE -ne 0) { throw "GIF rendering failed" }
 
 conda run -n metadrive python -m mvr.scripts.plot_inner_sac_training `
     --manifest (Join-Path $ResultRoot "manifest.json") `
-    --output (Join-Path $ResultRoot "training_curve.png")
+    --output-prefix (Join-Path $ResultRoot "shared_inner_sac_training")
 if ($LASTEXITCODE -ne 0) { throw "Training-curve plotting failed" }
 
 conda run -n metadrive python -m pytest mvr/tests -q

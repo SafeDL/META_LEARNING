@@ -184,6 +184,34 @@ def test_inner_reward_is_monotone_toward_contact_inside_challenge_corridor() -> 
     assert reward(close, info) > reward(far, info)
 
 
+def test_inner_reward_uses_criticality_increments_and_resets_between_episodes() -> None:
+    reward = InnerRiskReward(FailureCriteria(5.0, 10.0, 20.0, 5))
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
+    info = {"semantic_challenge_phase_active": True}
+
+    first = reward(features, info)
+    repeated = reward(features, info)
+    reward.reset()
+    after_reset = reward(features, info)
+
+    assert first > 0.0
+    assert repeated == pytest.approx(0.0)
+    assert after_reset == pytest.approx(first)
+
+
+def test_inner_reward_penalizes_declining_unrealized_criticality() -> None:
+    reward = InnerRiskReward(FailureCriteria(5.0, 10.0, 20.0, 5))
+    far = np.zeros(12, dtype=np.float32)
+    far[8], far[10] = 4.0 / 15.0, 8.0 / 100.0
+    close = np.zeros(12, dtype=np.float32)
+    close[8], close[10] = 1.0 / 15.0, 2.0 / 100.0
+    info = {"semantic_challenge_phase_active": True}
+
+    assert reward(close, info) > 0.0
+    assert reward(far, info) < 0.0
+
+
 def test_inner_reward_bonus_requires_a_valid_critical_event() -> None:
     criteria = FailureCriteria.from_config(
         {"severity_thresholds": {"ttc_s": 3.0, "distance_m": 5.0, "closing_speed_mps": 20.0}, "severity_bins": 5}
@@ -227,24 +255,27 @@ def test_inner_reward_emits_near_miss_bonus_only_on_capture() -> None:
     )
 
 
-def test_inner_reward_uses_one_terminal_bonus_for_collision_and_near_miss() -> None:
+def test_inner_reward_distinguishes_collision_and_near_miss_bonuses() -> None:
     criteria = FailureCriteria(3.0, 5.0, 20.0, 5)
     features = np.zeros(12, dtype=np.float32)
     features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
-    collision = InnerRiskReward(criteria)(features, {
-        "event_kind": "collision",
+    event_info = {
+        "semantic_challenge_phase_active": False,
         "event_just_captured": True,
-        "valid_target_collision": True,
         "event_semantic_valid": True,
         "event_execution_valid": True,
+    }
+    collision = InnerRiskReward(criteria)(features, {
+        **event_info,
+        "event_kind": "collision",
+        "valid_target_collision": True,
     })
     near_miss = InnerRiskReward(criteria)(features, {
+        **event_info,
         "event_kind": "near_miss",
-        "event_just_captured": True,
-        "event_semantic_valid": True,
-        "event_execution_valid": True,
     })
-    assert near_miss == pytest.approx(collision)
+    assert collision == pytest.approx(12.0)
+    assert near_miss == pytest.approx(6.0)
 
 
 def test_inner_reward_uses_dense_signal_only_inside_the_challenge_corridor() -> None:

@@ -102,7 +102,11 @@ class TransferableScenarioMiner(nn.Module):
             dtype=scene_embedding.dtype,
             device=scene_embedding.device,
         )
-        return scene_embedding + self.task_structure_encoder(domain)
+        # Logical-domain conditioning is trainable during the shared Inner
+        # prior stage.  Keep its residual bounded so replayed SAC gradients
+        # cannot inflate the task embedding and swamp the frozen scene map.
+        domain_residual = 0.25 * torch.tanh(self.task_structure_encoder(domain))
+        return scene_embedding + domain_residual
 
     def concrete_features(
         self,

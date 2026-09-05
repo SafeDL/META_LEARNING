@@ -4,12 +4,17 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import torch
 
 from mvr.model import TransferableScenarioMiner
 from mvr.state import PhysicalStateExtractor
 from mvr.policy.adversarial_sac import AdversarialSAC, _Actor
-from mvr.scripts.plot_inner_sac_training import _recorded_stages
+from mvr.scripts.plot_inner_sac_training import (
+    _recorded_stages,
+    _trailing_mean,
+    run as plot_training_curve,
+)
 from mvr.training.replay import InnerReplay, OuterRolloutBuffer, OuterRolloutStep
 from mvr.training.stages import TrainingStage, trainable_components
 from mvr.training.trainers import _training_signal_metrics
@@ -120,9 +125,12 @@ def test_interaction_prior_freeze_is_opt_in_and_cutin_scoped() -> None:
         TrainingStage.INTERACTION_PRIOR, freeze_static_representation=True
     )
 
-    assert frozen == {"shared_feature_encoder", "inner_sac"}
+    assert frozen == {"task_structure_encoder", "shared_feature_encoder", "inner_sac"}
     for name in ("map_encoder", "interaction_encoder", "task_structure_encoder"):
-        assert not any(parameter.requires_grad for parameter in model.training_components()[name].parameters())
+        if name == "task_structure_encoder":
+            assert all(parameter.requires_grad for parameter in model.training_components()[name].parameters())
+        else:
+            assert not any(parameter.requires_grad for parameter in model.training_components()[name].parameters())
     for name in frozen:
         assert all(parameter.requires_grad for parameter in model.training_components()[name].parameters())
 
@@ -216,3 +224,38 @@ def test_training_curve_loader_recovers_prior_stage_after_resume(tmp_path: Path)
     stages = _recorded_stages(str(tmp_path / "manifest.json"))
 
     assert set(stages) == {"interaction_prior", "context_meta"}
+
+
+def test_publication_curve_uses_domain_groups_and_trailing_mean(tmp_path: Path) -> None:
+    np.testing.assert_allclose(
+        _trailing_mean(np.asarray([1.0, 3.0, 5.0]), window=2),
+        np.asarray([1.0, 2.0, 4.0]),
+    )
+    domains = (
+        "close_closing_early",
+        "balanced_interaction",
+        "late_tight_cutin",
+    )
+    curve = [
+        {
+            "logical_domain_id": domain,
+            "inner_return": float(index),
+        }
+        for index, domain in enumerate(domains * 2, start=1)
+    ]
+    metrics = {"episode_return_curve": curve}
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({
+        "stages": [
+            {"stage": "interaction_prior", "metrics": metrics},
+            {"stage": "context_meta", "metrics": {
+                "episode_return_curve": [{"logical_domain_id": "ignored", "inner_return": 999.0}],
+            }},
+        ],
+    }), encoding="utf-8")
+
+    prefix = tmp_path / "shared_inner_sac_training"
+    plot_training_curve(str(manifest), str(prefix))
+
+    assert (tmp_path / "shared_inner_sac_training.pdf").stat().st_size > 0
+    assert (tmp_path / "shared_inner_sac_training.png").stat().st_size > 0

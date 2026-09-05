@@ -14,9 +14,11 @@ class InnerRiskReward:
     def __init__(self, criteria: FailureCriteria) -> None:
         self.criteria = criteria
         self._previous_progress = 0.0
+        self._previous_criticality = 0.0
 
     def reset(self) -> None:
         self._previous_progress = 0.0
+        self._previous_criticality = 0.0
 
     def __call__(self, features: np.ndarray, info: Mapping[str, object]) -> float:
         row = np.asarray(features, dtype=float)
@@ -65,17 +67,16 @@ class InnerRiskReward:
         )
         event_bonus = 0.0
         if not invalid:
-            # Collision and critical near-miss are both terminal safety
-            # evidence for the Inner objective.  They therefore receive the
-            # same large event return; the formal failure/semantic criteria
-            # still decide which event is valid.
-            if target_collision or valid_near_miss:
+            if target_collision:
                 event_bonus = 12.0
+            elif valid_near_miss:
+                event_bonus = 6.0
         # Dense risk shaping is a training signal, not the formal event
         # score. It is strictly confined to the semantic interaction
         # corridor, where lowering TTC/distance and increasing closing speed
         # are meaningful rather than a pre-conflict reward loophole.
-        risk_reward = 0.50 * criticality
+        risk_reward = 2.0 * (criticality - self._previous_criticality)
+        self._previous_criticality = criticality
         tracking_penalty = 0.0
         progress = float(info.get("maneuver_reference_progress", 0.0))
         if progress > 0.0:

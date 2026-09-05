@@ -76,14 +76,16 @@ def test_cutin_inner_config_selects_one_training_task() -> None:
         source, settings["training_logical_domains"]
     )
 
-    assert len(expanded) == 1
-    assert expanded[0].sut_ref == "idm_normal"
-    assert expanded[0].geometry_id == "cutin-g01"
-    assert expanded[0].logical_domain_id == "balanced_interaction"
+    assert len(expanded) == 3
+    assert {task.sut_ref for task in expanded} == {"idm_normal"}
+    assert {task.geometry_id for task in expanded} == {"cutin-g01"}
+    assert {task.logical_domain_id for task in expanded} == {
+        "close_closing_early", "balanced_interaction", "late_tight_cutin",
+    }
     assert prior["episodes_per_task"] == 40
     assert prior["warmup_episodes"] == 5
-    assert prior["event_sample_fraction"] == 0.25
-    assert prior["event_action_weight"] == 0.0
+    assert prior["event_sample_fraction"] == 0.5
+    assert prior["event_action_weight"] == 0.5
     assert prior["gamma"] == 0.99
     assert config["context_meta"]["gamma"] == 0.99
     assert config["model"]["state_dim"] == 30

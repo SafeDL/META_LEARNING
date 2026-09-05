@@ -32,7 +32,11 @@ def trainable_components(
     freeze_static_representation: bool = False,
 ) -> frozenset[str]:
     if stage is TrainingStage.INTERACTION_PRIOR and freeze_static_representation:
-        return frozenset({"shared_feature_encoder", "inner_sac"})
+        return frozenset({
+            "task_structure_encoder",
+            "shared_feature_encoder",
+            "inner_sac",
+        })
     return {
         TrainingStage.INTERACTION_PRIOR: frozenset({"map_encoder", "interaction_encoder", "task_structure_encoder", "shared_feature_encoder", "inner_sac"}),
         TrainingStage.CONTEXT_META: frozenset({"episode_token_builder", "context_encoder", "outcome_decoder", "task_structure_encoder", "shared_feature_encoder", "inner_sac"}),
