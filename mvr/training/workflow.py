@@ -13,8 +13,15 @@ class StagedWorkflow:
     components: Mapping[str, nn.Module]
     stage: TrainingStage | None = None
 
-    def activate(self, stage: TrainingStage) -> frozenset[str]:
-        enabled = trainable_components(stage)
+    def activate(
+        self,
+        stage: TrainingStage,
+        *,
+        freeze_static_representation: bool = False,
+    ) -> frozenset[str]:
+        enabled = trainable_components(
+            stage, freeze_static_representation=freeze_static_representation
+        )
         unknown = enabled - set(self.components)
         if unknown:
             raise ValueError(f"workflow is missing required components: {sorted(unknown)}")

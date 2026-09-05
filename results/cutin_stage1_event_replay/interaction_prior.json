@@ -1,0 +1,647 @@
+{
+  "stage": "interaction_prior",
+  "device": "cuda",
+  "seed": 11,
+  "compatibility_hash": "3f4ebecd5225c1bcfa059dd0c1dec7d7d843282a8aa700e38939422404a0c591",
+  "config_hash": "3f4ebecd5225c1bcfa059dd0c1dec7d7d843282a8aa700e38939422404a0c591",
+  "taskbook_hash": "9de82f66e48b6424ab5a188c001b9394007406be6b109b18b92a4615e699fb1b",
+  "control_contract": {
+    "action_schema": "frenet_path_longitudinal_v1",
+    "nominal_controller_schema": "stanley_feedforward_v1",
+    "scenario_contract_schema": "scenario_contract"
+  },
+  "checkpoint_hash": "2b6344e7508c1e95c82b45b8eb9c12ec1a9aba1d49beff2afb05b4093021979e",
+  "git_commit": "78038477360a31ba9a950db8384cf1caf0a36e01",
+  "working_tree_clean": false,
+  "source_tree_hash": "a10a88bd10ea5a43206efd75fa094d88197013f3d5f7f6ec8ef499abd8c6c859",
+  "config": {
+    "schema": "transferable_scenario_miner",
+    "seed": 11,
+    "taskbook": "mvr/configs/taskbook.json",
+    "model": {
+      "state_dim": 30,
+      "latent_dim": 16,
+      "num_experts": 4
+    },
+    "context": {
+      "type": "pearl_product",
+      "kl_weight": 0.001,
+      "support_shots": [
+        1,
+        2,
+        4
+      ]
+    },
+    "training": {
+      "device": "cuda",
+      "family_filter": "cutin",
+      "step_budget": 240,
+      "learning_rate": 0.0003
+    },
+    "failure": {
+      "severity_thresholds": {
+        "ttc_s": 5.0,
+        "distance_m": 10.0,
+        "closing_speed_mps": 20.0
+      },
+      "severity_bins": 5
+    },
+    "interaction_prior": {
+      "algorithm": "adversarial_sac",
+      "action_dim": 4,
+      "batch_size": 64,
+      "episodes_per_task": 40,
+      "updates_per_episode": 12,
+      "replay_capacity": 100000,
+      "learning_rate": 0.0003,
+      "warmup_episodes": 5,
+      "event_sample_fraction": 0.25,
+      "event_action_weight": 0.0,
+      "gamma": 0.99
+    },
+    "context_meta": {
+      "support_shots": [
+        1,
+        2,
+        4
+      ],
+      "groups_per_task": 3,
+      "queries_per_group": 1,
+      "updates_per_episode": 12,
+      "replay_capacity": 100000,
+      "batch_size": 64,
+      "learning_rate": 0.0003,
+      "event_sample_fraction": 0.5,
+      "event_action_weight": 0.5,
+      "gamma": 0.99
+    },
+    "control": {
+      "action_schema": "frenet_path_longitudinal_v1",
+      "nominal_controller_schema": "stanley_feedforward_v1",
+      "scenario_contract_schema": "scenario_contract"
+    },
+    "map": {
+      "encoder": "hptr_style",
+      "polyline_points": 16,
+      "embedding_dim": 128,
+      "cache_embeddings_only_when_frozen": true
+    },
+    "outer": {
+      "algorithm": "hybrid_moe_ppo",
+      "router_balance_weight": 0.01,
+      "ppo_epochs": 4,
+      "batch_size": 64,
+      "episodes_per_task": 20,
+      "learning_rate": 0.0003
+    },
+    "cutin_inner": {
+      "allow_outer": false,
+      "freeze_static_representation_during_interaction_prior": true,
+      "training_sut_refs": [
+        "idm_normal"
+      ],
+      "training_geometry_ids": [
+        "cutin-g01"
+      ],
+      "training_logical_domains": [
+        {
+          "id": "balanced_interaction",
+          "bounds": {
+            "cutin_gap_at_start_m": [
+              -0.3,
+              0.3
+            ],
+            "sut_initial_speed_mps": [
+              -0.3,
+              0.3
+            ],
+            "relative_speed_mps": [
+              -0.4,
+              0.1
+            ],
+            "cutin_start_progress": [
+              -0.3,
+              0.3
+            ],
+            "cutin_start_time_s": [
+              -0.3,
+              0.3
+            ]
+          }
+        }
+      ]
+    },
+    "evaluation": {
+      "support_shots": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "query_cases": 8,
+      "seeds": [
+        11,
+        22,
+        33
+      ],
+      "paired_bootstrap_samples": 10000,
+      "paired_bootstrap_seed": 11,
+      "query_design": {
+        "sobol_interior_per_candidate": 24,
+        "boundary_per_candidate": 8
+      },
+      "failure_rate": {
+        "query_cases": 8,
+        "support_shots": 4,
+        "seeds": [
+          11,
+          22,
+          33
+        ]
+      }
+    }
+  },
+  "metrics": {
+    "simulator_episodes_consumed": 40,
+    "transitions": 1691,
+    "replay_transitions": 1691,
+    "optimizer_updates": 420,
+    "last_loss": {
+      "inner_actor_loss": -96.9664306640625,
+      "inner_critic_loss": 11.027568817138672,
+      "inner_alpha_loss": -16.134788513183594,
+      "inner_td_target_variance": 282.5481262207031,
+      "posterior_loss": 0.0
+    },
+    "task_episode_counts": {
+      "cutin-g01-normal-cutin_interaction_core:balanced_interaction": 40
+    },
+    "family_episode_counts": {
+      "cutin": 40
+    },
+    "geometry_episode_counts": {
+      "cutin-g01": 40
+    },
+    "sut_episode_counts": {
+      "idm_normal": 40
+    },
+    "candidate_episode_counts": {
+      "left_target_lane": 20,
+      "right_target_lane": 20
+    },
+    "mean_inner_episode_return": 14.102728227895886,
+    "mean_valid_rate": 1.0,
+    "mean_failure_rate": 0.475,
+    "mean_min_ttc": 1.2986550335772336,
+    "mean_min_distance": 3.770165480673313,
+    "mean_max_closing_speed": 4.8635965501726535,
+    "actor_loss_mean": -32.11572483416114,
+    "actor_loss_last": -96.9664306640625,
+    "critic_loss_mean": 5.064424797324907,
+    "critic_loss_last": 11.027568817138672,
+    "alpha_loss_mean": -15.448560973576138,
+    "alpha_loss_last": -16.134788513183594,
+    "td_target_variance_mean": 87.121993910131,
+    "td_target_variance_last": 282.5481262207031,
+    "action_abs_mean": 0.4591569899386317,
+    "action_saturation_rate": 0.02828216461593597,
+    "training_signal": {
+      "family:cutin": {
+        "episodes": 40,
+        "valid_event_episodes": 19,
+        "valid_target_collision_episodes": 15,
+        "valid_near_miss_episodes": 4,
+        "transitions": 8371,
+        "positive_reward_transitions": 6790,
+        "event_capture_transitions": 53,
+        "challenge_transitions": 6216,
+        "positive_reward_transition_fraction": 0.8111336757854498,
+        "challenge_transition_fraction": 0.7425636124716283,
+        "reward_mean": 0.06738849947626752,
+        "reward_variance": 0.4812123144149046,
+        "reward_range": 12.014104823619215
+      },
+      "overall": {
+        "episodes": 40,
+        "valid_event_episodes": 19,
+        "valid_target_collision_episodes": 15,
+        "valid_near_miss_episodes": 4,
+        "transitions": 8371,
+        "positive_reward_transitions": 6790,
+        "event_capture_transitions": 53,
+        "challenge_transitions": 6216,
+        "positive_reward_transition_fraction": 0.8111336757854498,
+        "challenge_transition_fraction": 0.7425636124716283,
+        "reward_mean": 0.06738849947626752,
+        "reward_variance": 0.4812123144149046,
+        "reward_range": 12.014104823619215
+      }
+    },
+    "episode_return_curve": [
+      {
+        "episode": 1,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.40928561019688,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 2,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 18.085227887288923,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 3,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.6420968545529124,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 4,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 26.69237711894668,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 5,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 10.775002298250055,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 6,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.044505992467887,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 7,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.678126604499663,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 8,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 28.771107169129028,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 9,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.188791387853064,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 10,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.057324817509116,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 11,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 0.895212298968418,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 12,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.670380878139785,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 13,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 15.695219012979173,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 14,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 5.998631211442627,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 15,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 3.388634959002243,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 16,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 1.7180403685885155,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 17,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.879706246666716,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 18,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 1.7731380709303568,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 19,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 28.429210096948044,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 20,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 22.2315535944251,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 21,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 15.437657134487521,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 22,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 14.448457564426436,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 23,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 1.9447083947080366,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 24,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.126004958302318,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 25,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.528573203225144,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 26,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 6.759718867656457,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 27,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.991330184517573,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 28,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 15.168316224335598,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 29,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 8.16203806540547,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 30,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 2.0742924708706294,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 31,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 28.554512053754628,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 32,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.181572752637457,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 33,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.029215458251606,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 34,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.877396040220702,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 35,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 17.22268789779383,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 36,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 24.360974803701858,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 37,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 16.36721408818298,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 38,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 29.920498270298317,
+        "valid": true,
+        "failure": true
+      },
+      {
+        "episode": 39,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 7.412522037599623,
+        "valid": true,
+        "failure": false
+      },
+      {
+        "episode": 40,
+        "task_id": "cutin-g01-normal-cutin_interaction_core:balanced_interaction",
+        "sut_ref": "idm_normal",
+        "geometry_id": "cutin-g01",
+        "logical_domain_id": "balanced_interaction",
+        "inner_return": 3.517866166674015,
+        "valid": true,
+        "failure": false
+      }
+    ],
+    "balanced_sampling_epochs": 40,
+    "updates_per_episode": 12,
+    "requested_optimizer_updates": 480,
+    "warmup_skipped_updates": 60
+  }
+}

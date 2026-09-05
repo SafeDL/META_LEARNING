@@ -19,6 +19,7 @@ class InnerTransition:
     reward: float
     next_state: Any
     done: bool
+    duration_steps: int
     map_tokens: Any
     interactions: tuple[Any, ...]
     logical_domain_bounds: Mapping[str, tuple[float, float]]
@@ -26,7 +27,10 @@ class InnerTransition:
     latent: torch.Tensor
     candidate_index: int
     continuous: tuple[float, ...]
-    schedule_state: Any
+
+    def __post_init__(self) -> None:
+        if self.duration_steps < 1:
+            raise ValueError("inner transition duration_steps must be positive")
 
 
 @dataclass

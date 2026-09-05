@@ -172,6 +172,7 @@ def update_inner_sac(
     gradient_clip_norm: float = 5.0,
     event_sample_fraction: float = 0.25,
     event_action_weight: float = 0.0,
+    gamma: float = 0.99,
     context_replay: ContextReplay | None = None,
 ) -> dict[str, float]:
     """Update the Inner SAC from risk-reward replay with reconstructed features."""
@@ -205,12 +206,26 @@ def update_inner_sac(
     action = torch.as_tensor(np.stack([row.action for row in rows]), dtype=torch.float32, device=device)
     reward = torch.as_tensor([row.reward for row in rows], dtype=torch.float32, device=device)
     done = torch.as_tensor([row.done for row in rows], dtype=torch.bool, device=device)
+    duration_steps = torch.as_tensor(
+        [row.duration_steps for row in rows], dtype=torch.float32, device=device
+    )
+    if bool((duration_steps < 1).any()):
+        raise ValueError("inner transition duration_steps must be positive")
+    if not 0.0 < gamma <= 1.0:
+        raise ValueError("inner SAC gamma must lie in (0, 1]")
+    bootstrap_discount = torch.pow(
+        torch.full_like(duration_steps, float(gamma)), duration_steps
+    )
     maps, concrete = _concrete_inputs(model, rows)
     features = model.inner_features(states, maps, latent, concrete)
     next_features = model.inner_features(next_states, maps, latent, concrete)
-    td_target = model.inner_sac.critic_target(reward, next_features, done, context=latent)
+    td_target = model.inner_sac.critic_target(
+        reward, next_features, done, bootstrap_discount=bootstrap_discount,
+        context=latent,
+    )
     critic = model.inner_sac.critic_loss(
-        features, action, reward, next_features, done, context=latent
+        features, action, reward, next_features, done,
+        bootstrap_discount=bootstrap_discount, context=latent,
     )
     posterior = torch.stack(posterior_losses).mean() if posterior_losses else torch.zeros((), device=device)
     optimizer.zero_grad(set_to_none=True)

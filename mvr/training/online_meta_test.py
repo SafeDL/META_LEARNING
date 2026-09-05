@@ -112,6 +112,7 @@ class OnlineMetaTest:
         initial_latent: torch.Tensor | None = None,
         use_scene_context: bool = True,
         use_latent_context: bool = True,
+        inner_gamma: float = 0.99,
         rollout_step_callback: Callable[[Any, int, Mapping[str, Any]], None] | None = None,
         environment_overrides: Mapping[str, Any] | None = None,
     ) -> OnlineMetaTestResult:
@@ -123,6 +124,8 @@ class OnlineMetaTest:
             raise ValueError("posterior support limit must lie within the episode budget")
         if episode_index_offset < 0:
             raise ValueError("episode index offset must be non-negative")
+        if not 0.0 < inner_gamma <= 1.0:
+            raise ValueError("inner_gamma must lie in (0, 1]")
         space = mvr_parameter_spaces()[task.functional_scenario]
         tokens, candidates, encoding = self._scene_encoding(task)
         scene_embedding = self.model.encode_task_structure(
@@ -252,14 +255,26 @@ class OnlineMetaTest:
                 first = block[0]
                 last = block[-1]
                 result.inner_transitions.append(InnerTransition(
-                    episode_id, task.task_id, None, task.geometry_hash,
-                    first["state"], first["raw_policy_action"],
-                    float(sum(float(row["reward_inner"]) for row in block)),
-                    last["next_state"], last["done"],
-                    tokens, candidates, dict(task.logical_domain_bounds),
-                    task.logical_parameter_mask, latent.squeeze(0).detach().cpu(),
-                    int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),
-                    np.asarray((first["state"][-1],), dtype=np.float32),
+                    episode_id=episode_id,
+                    task_id=task.task_id,
+                    support_group_id=None,
+                    geometry_hash=task.geometry_hash,
+                    state=first["state"],
+                    action=first["raw_policy_action"],
+                    reward=float(sum(
+                        inner_gamma ** offset * float(row["reward_inner"])
+                        for offset, row in enumerate(block)
+                    )),
+                    next_state=last["next_state"],
+                    done=last["done"],
+                    duration_steps=len(block),
+                    map_tokens=tokens,
+                    interactions=candidates,
+                    logical_domain_bounds=dict(task.logical_domain_bounds),
+                    logical_parameter_mask=task.logical_parameter_mask,
+                    latent=latent.squeeze(0).detach().cpu(),
+                    candidate_index=int(scene.candidate_index.item()),
+                    continuous=tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),
                 ))
             result.episodes.append(OnlineEpisode(
                 episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(),

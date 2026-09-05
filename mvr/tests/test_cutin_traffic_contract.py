@@ -251,6 +251,48 @@ def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
         episode.env.close()
 
 
+def test_inner_state_includes_projector_acceleration_and_vehicle_steering() -> None:
+    episode = _episode()
+    try:
+        schedule = ScenarioActionAdapter(episode, "cutin")
+        schedule.update()
+        extractor = PhysicalStateExtractor()
+        extractor.reset(
+            episode.env, episode.layout, episode.adversary_route, episode.sut_route
+        )
+        controller = FrenetSACAdversaryController(episode, "cutin", schedule)
+        try:
+            initial = extractor(
+                episode.adversary, episode.sut, schedule, controller.actuator_state()
+            )
+            controller.action(np.asarray((0.0, 0.0, 0.0, -1.0), dtype=np.float32))
+            updated = extractor(
+                episode.adversary, episode.sut, schedule, controller.actuator_state()
+            )
+        finally:
+            controller.destroy()
+
+        acceleration = INNER_STATE_FIELDS.index("executed_longitudinal_acceleration")
+        steering = INNER_STATE_FIELDS.index("executed_steering")
+        assert initial.shape == (30,)
+        assert initial[acceleration] == pytest.approx(0.0)
+        assert updated[acceleration] == pytest.approx(-0.15 / 6.0)
+        assert updated[steering] == pytest.approx(float(episode.adversary.steering))
+
+        rollout = HierarchicalRunner(max_steps=1).rollout(
+            episode,
+            "cutin",
+            lambda _: np.asarray((0.0, 0.0, 0.0, -1.0), dtype=np.float32),
+        )
+        assert rollout.transitions[0]["state"][acceleration] == pytest.approx(0.0)
+        assert rollout.transitions[0]["next_state"][acceleration] == pytest.approx(
+            -0.15 / 6.0
+        )
+        assert rollout.transitions[0]["next_state"][steering] == pytest.approx(0.0)
+    finally:
+        episode.env.close()
+
+
 def test_cutin_reference_previews_curve_speed_before_spatial_onset() -> None:
     episode = _episode()
     try:

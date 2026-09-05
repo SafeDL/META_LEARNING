@@ -332,7 +332,15 @@ class MVRTrainingPipeline:
             validate_stage_transition(stage, previous_stage)
             stage_seed = int(self.config["seed"]) + index
             seed_everything(stage_seed)
-            active = self.workflow.activate(stage)
+            active = self.workflow.activate(
+                stage,
+                freeze_static_representation=(
+                    stage is TrainingStage.INTERACTION_PRIOR
+                    and bool(self.config.get("cutin_inner", {}).get(
+                        "freeze_static_representation_during_interaction_prior", False
+                    ))
+                ),
+            )
             settings = _stage_settings(self.config, stage)
             optimizer = _optimizer(
                 self.model,

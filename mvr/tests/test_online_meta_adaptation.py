@@ -52,7 +52,11 @@ def test_online_adaptation_obeys_k_shot_budget_and_freezes_after_support() -> No
         np.testing.assert_allclose(
             replay_row.action, block[0]["raw_policy_action"]
         )
-        assert replay_row.reward == sum(row["reward_inner"] for row in block)
+        assert replay_row.duration_steps == len(block)
+        assert replay_row.reward == sum(
+            0.99 ** index * row["reward_inner"]
+            for index, row in enumerate(block)
+        )
         np.testing.assert_allclose(replay_row.next_state, block[-1]["next_state"])
         assert replay_row.done is block[-1]["done"]
     adapted = build_online(model, task, 1, DEFAULT_FAILURE_CRITERIA).run(

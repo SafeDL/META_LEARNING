@@ -88,6 +88,48 @@ def test_sac_bellman_target_is_not_clamped() -> None:
     torch.testing.assert_close(target, torch.tensor([50.0]))
 
 
+def test_sac_bellman_target_uses_per_transition_smdp_discount() -> None:
+    class ConstantCritic(torch.nn.Module):
+        def forward(self, features, _action):
+            return features[:, 0] * 0.0 + 4.0
+
+    sac = AdversarialSAC(feature_dim=4, action_dim=2)
+    sac.target1 = ConstantCritic()
+    sac.target2 = ConstantCritic()
+    with torch.no_grad():
+        sac.log_alpha.fill_(-50.0)
+
+    target = sac.critic_target(
+        torch.tensor([1.0, 2.0]),
+        torch.zeros(2, 4),
+        torch.tensor([False, True]),
+        bootstrap_discount=torch.tensor([0.99 ** 5, 0.99 ** 2]),
+    )
+
+    torch.testing.assert_close(
+        target, torch.tensor([1.0 + (0.99 ** 5) * 4.0, 2.0]),
+        atol=1e-6, rtol=1e-6,
+    )
+
+
+def test_interaction_prior_freeze_is_opt_in_and_cutin_scoped() -> None:
+    model = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8)
+    workflow = StagedWorkflow(model.training_components())
+
+    frozen = workflow.activate(
+        TrainingStage.INTERACTION_PRIOR, freeze_static_representation=True
+    )
+
+    assert frozen == {"shared_feature_encoder", "inner_sac"}
+    for name in ("map_encoder", "interaction_encoder", "task_structure_encoder"):
+        assert not any(parameter.requires_grad for parameter in model.training_components()[name].parameters())
+    for name in frozen:
+        assert all(parameter.requires_grad for parameter in model.training_components()[name].parameters())
+
+    default = workflow.activate(TrainingStage.INTERACTION_PRIOR)
+    assert {"map_encoder", "interaction_encoder", "task_structure_encoder"} <= default
+
+
 def test_sac_actor_uses_unclamped_critic_value() -> None:
     class ConstantCritic(torch.nn.Module):
         def forward(self, _features, action):

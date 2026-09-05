@@ -343,7 +343,7 @@ def run(
                 "support_shots": shots,
                 "seed": seed,
                 "normalized_parameters": list(query.action.continuous),
-                "logical_parameters": dict(episode.concrete_scenario.logical_parameters),
+                "logical_parameters": dict(episode.concrete_scenario.initial_state),
                 "frames": len(frames),
                 "first_post_onset_raw_policy_action": [
                     float(value) for value in post_onset["raw_policy_action"]

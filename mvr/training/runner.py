@@ -76,7 +76,10 @@ class HierarchicalRunner:
         try:
             for step in range(max_steps):
                 schedule.update()
-                state = state_extractor(episode.adversary, episode.sut, schedule)
+                state = state_extractor(
+                    episode.adversary, episode.sut, schedule,
+                    controller.actuator_state(),
+                )
                 reference_before = schedule.maneuver_reference()
                 planner_active = bool(
                     schedule.state.maneuver_latched
@@ -249,7 +252,10 @@ class HierarchicalRunner:
                     "executed_vehicle_action": shielded.action,
                     "reward_inner": reward_fn(trajectory_row, info),
                     "reward_env": float(env_reward),
-                    "next_state": state_extractor(episode.adversary, episode.sut, schedule),
+                    "next_state": state_extractor(
+                        episode.adversary, episode.sut, schedule,
+                        controller.actuator_state(),
+                    ),
                     "done": done,
                     "info": info,
                     "sut_observation": sut_observation,

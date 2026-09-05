@@ -82,8 +82,12 @@ def test_cutin_inner_config_selects_one_training_task() -> None:
     assert expanded[0].logical_domain_id == "balanced_interaction"
     assert prior["episodes_per_task"] == 40
     assert prior["warmup_episodes"] == 5
-    assert prior["event_sample_fraction"] == 0.0
+    assert prior["event_sample_fraction"] == 0.25
     assert prior["event_action_weight"] == 0.0
+    assert prior["gamma"] == 0.99
+    assert config["context_meta"]["gamma"] == 0.99
+    assert config["model"]["state_dim"] == 30
+    assert settings["freeze_static_representation_during_interaction_prior"] is True
 
 
 def test_all_cutin_geometries_allow_the_completion_budget() -> None:

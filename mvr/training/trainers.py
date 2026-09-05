@@ -59,6 +59,7 @@ def _update_inner(
                     gradient_clip_norm=float(settings.get("gradient_clip_norm", 5.0)),
                     event_sample_fraction=float(settings.get("event_sample_fraction", 0.25)),
                     event_action_weight=float(settings.get("event_action_weight", 0.0)),
+                    gamma=float(settings.get("gamma", 0.99)),
                     context_replay=context_replay,
                 )
             )
@@ -116,6 +117,7 @@ def train_interaction_prior(
                 episode_index_offset=episode_index,
                 scene_action_provider=scene_sampler,
                 inner_action_provider=inner_action_provider,
+                inner_gamma=float(settings.get("gamma", 0.99)),
             )
             print(
                 f"inner episode {len(episodes) + 1}/{len(tasks) * episodes_per_task}: "
@@ -171,6 +173,7 @@ def train_context_meta(
                 task, support_count + queries_per_group,
                 posterior_support_limit=support_count, episode_index_offset=offset,
                 scene_action_provider=sampler,
+                inner_gamma=float(settings.get("gamma", 0.99)),
             )
             support, query = result.episodes[:support_count], result.episodes[support_count:]
             group_id = f"{task.task_id}:support:{group_index}"

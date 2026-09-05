@@ -26,6 +26,11 @@ class VehicleActionProjector:
     max_steering_rate_per_s: float = 1.5
     _previous_acceleration_mps2: float = field(default=0.0, init=False)
 
+    @property
+    def previous_acceleration_mps2(self) -> float:
+        """Return the acceleration used as the next jerk-limit reference."""
+        return self._previous_acceleration_mps2
+
     @staticmethod
     def _step_seconds(vehicle: Any) -> float:
         config = vehicle.engine.global_config

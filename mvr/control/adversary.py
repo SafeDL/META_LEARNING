@@ -33,6 +33,13 @@ class FrenetSACAdversaryController:
     def observe_environment(self, info: Any) -> None:
         """MetaDrive arrival does not end the SUT-completion test."""
 
+    def actuator_state(self) -> tuple[float, float]:
+        """Expose the state used by the next physical action projection."""
+        return (
+            self.projector.previous_acceleration_mps2,
+            float(getattr(self.episode.adversary, "steering", 0.0)),
+        )
+
     def action(self, sac_action: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         planner_action = self.schedule.apply_planner_action(sac_action)
         reference = self.schedule.maneuver_reference()

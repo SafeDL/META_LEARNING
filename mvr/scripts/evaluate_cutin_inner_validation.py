@@ -98,7 +98,7 @@ def _record(
         "query_design_kind": query.design_kind,
         "candidate_index": query.candidate_index,
         "normalized_parameters": [float(value) for value in query.action.continuous],
-        "logical_parameters": dict(episode.concrete_scenario.logical_parameters),
+        "logical_parameters": dict(episode.concrete_scenario.initial_state),
         "support_shots": int(shots),
         "seed": int(seed),
         "policy": "shared_prior" if shots == 0 else "adapted_h_z",

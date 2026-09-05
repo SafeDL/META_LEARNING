@@ -115,8 +115,26 @@ class AdversarialSAC(nn.Module):
             raw = raw + shift
         return self.action_limit * self.actor.squash(raw)
 
-    def critic_loss(self, features: torch.Tensor, action: torch.Tensor, reward: torch.Tensor, next_features: torch.Tensor, done: torch.Tensor, *, gamma: float = 0.99, context: torch.Tensor | None = None) -> torch.Tensor:
-        target = self.critic_target(reward, next_features, done, gamma=gamma, context=context)
+    def critic_loss(
+        self,
+        features: torch.Tensor,
+        action: torch.Tensor,
+        reward: torch.Tensor,
+        next_features: torch.Tensor,
+        done: torch.Tensor,
+        *,
+        gamma: float = 0.99,
+        bootstrap_discount: torch.Tensor | None = None,
+        context: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        target = self.critic_target(
+            reward,
+            next_features,
+            done,
+            gamma=gamma,
+            bootstrap_discount=bootstrap_discount,
+            context=context,
+        )
         return (
             nn.functional.smooth_l1_loss(self.critic1(features, action), target)
             + nn.functional.smooth_l1_loss(self.critic2(features, action), target)
@@ -130,6 +148,7 @@ class AdversarialSAC(nn.Module):
         done: torch.Tensor,
         *,
         gamma: float = 0.99,
+        bootstrap_discount: torch.Tensor | None = None,
         context: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return the Bellman target used by both critics."""
@@ -139,7 +158,12 @@ class AdversarialSAC(nn.Module):
             )
             next_action = self.action_limit * next_action
             next_q = torch.minimum(self.target1(next_features, next_action), self.target2(next_features, next_action)) - self.alpha.detach() * next_logprob
-            target = reward + gamma * (1.0 - done.float()) * next_q
+            discount = (
+                torch.as_tensor(bootstrap_discount, dtype=reward.dtype, device=reward.device)
+                if bootstrap_discount is not None
+                else torch.as_tensor(gamma, dtype=reward.dtype, device=reward.device)
+            )
+            target = reward + discount * (1.0 - done.float()) * next_q
         return target
 
     def actor_alpha_losses(
@@ -181,8 +205,26 @@ class AdversarialSAC(nn.Module):
         alpha = -(self.log_alpha * (logprob.detach() + self.target_entropy)).mean()
         return actor, alpha
 
-    def losses(self, features: torch.Tensor, action: torch.Tensor, reward: torch.Tensor, next_features: torch.Tensor, done: torch.Tensor, *, gamma: float = 0.99) -> SACLosses:
-        critic = self.critic_loss(features, action, reward, next_features, done, gamma=gamma)
+    def losses(
+        self,
+        features: torch.Tensor,
+        action: torch.Tensor,
+        reward: torch.Tensor,
+        next_features: torch.Tensor,
+        done: torch.Tensor,
+        *,
+        gamma: float = 0.99,
+        bootstrap_discount: torch.Tensor | None = None,
+    ) -> SACLosses:
+        critic = self.critic_loss(
+            features,
+            action,
+            reward,
+            next_features,
+            done,
+            gamma=gamma,
+            bootstrap_discount=bootstrap_discount,
+        )
         actor, alpha = self.actor_alpha_losses(features)
         return SACLosses(actor, critic, alpha)
 

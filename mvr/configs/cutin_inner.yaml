@@ -2,7 +2,7 @@ schema: transferable_scenario_miner
 seed: 11
 taskbook: mvr/configs/taskbook.json
 model:
-  state_dim: 28
+  state_dim: 30
   latent_dim: 16
   num_experts: 4
 context:
@@ -26,8 +26,9 @@ interaction_prior:
   replay_capacity: 100000
   learning_rate: 0.0003
   warmup_episodes: 5
-  event_sample_fraction: 0.0
+  event_sample_fraction: 0.25
   event_action_weight: 0.0
+  gamma: 0.99
 context_meta:
   support_shots: [1, 2, 4]
   groups_per_task: 3
@@ -38,6 +39,7 @@ context_meta:
   learning_rate: 0.0003
   event_sample_fraction: 0.5
   event_action_weight: 0.5
+  gamma: 0.99
 control:
   action_schema: frenet_path_longitudinal_v1
   nominal_controller_schema: stanley_feedforward_v1
@@ -56,6 +58,7 @@ outer:
   learning_rate: 0.0003
 cutin_inner:
   allow_outer: false
+  freeze_static_representation_during_interaction_prior: true
   training_sut_refs: [idm_normal]
   training_geometry_ids: [cutin-g01]
   training_logical_domains:

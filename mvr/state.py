@@ -36,6 +36,8 @@ INNER_STATE_FIELDS = (
     "maneuver_active_beta_late",
     "maneuver_reference_blend_progress",
     "maneuver_replan_due",
+    "executed_longitudinal_acceleration",
+    "executed_steering",
 )
 
 
@@ -46,7 +48,7 @@ class PhysicalStateExtractor:
     scales = np.asarray(
         (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 8.0, np.pi, 1.0,
          8.0, np.pi, 1.0, 60.0, 0.2, 20.0, 100.0, 5.0, 4.0,
-         1.0, 1.0, 1.0, 1.0, 1.0),
+         1.0, 1.0, 1.0, 1.0, 1.0, 6.0, 1.0),
         dtype=np.float32,
     )
 
@@ -85,7 +87,13 @@ class PhysicalStateExtractor:
         self._adversary_conflict_s = self._adversary_route.conflict_s(layout.conflict_xy)
         self._sut_conflict_s = self._sut_route.conflict_s(layout.conflict_xy)
 
-    def __call__(self, adversary: Any, sut: Any, schedule: Any | None = None) -> np.ndarray:
+    def __call__(
+        self,
+        adversary: Any,
+        sut: Any,
+        schedule: Any | None = None,
+        actuator_state: tuple[float, float] | None = None,
+    ) -> np.ndarray:
         if self._adversary_route is None or self._sut_route is None:
             raise RuntimeError("physical state extractor must be reset with an executable layout")
         adversary_position = np.asarray(adversary.position, dtype=float)
@@ -117,6 +125,12 @@ class PhysicalStateExtractor:
         active_beta_late = 0.0
         blend_progress = 1.0
         replan_due = 0.0
+        executed_acceleration = 0.0
+        executed_steering = float(getattr(adversary, "steering", 0.0))
+        if actuator_state is not None:
+            executed_acceleration, executed_steering = (
+                float(actuator_state[0]), float(actuator_state[1])
+            )
         if schedule is not None:
             reference = schedule.maneuver_reference()
             reference_lateral_error = reference.lateral_error_m
@@ -182,5 +196,7 @@ class PhysicalStateExtractor:
             active_beta_late,
             blend_progress,
             replan_due,
+            executed_acceleration,
+            executed_steering,
         ), dtype=np.float32)
         return np.clip(np.nan_to_num(values / self.scales, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)
