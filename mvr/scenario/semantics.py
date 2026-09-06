@@ -141,7 +141,13 @@ class ScenarioActionAdapter:
             self.state.maneuver_latched = bool(ready)
         return self.state
 
-    def apply_planner_action(self, action: np.ndarray) -> np.ndarray:
+    def apply_planner_action(
+        self,
+        action: np.ndarray,
+        *,
+        current_acceleration_mps2: float,
+        decision_seconds: float,
+    ) -> np.ndarray:
         reference = self.maneuver_reference()
         active = bool(
             self.state.maneuver_latched
@@ -152,7 +158,14 @@ class ScenarioActionAdapter:
             self.episode.adversary.position,
             self.episode.adversary.heading_theta,
         )
-        return self.planner.apply(action, active, projection.s_m)
+        return self.planner.apply(
+            action,
+            active,
+            projection.s_m,
+            float(self.episode.adversary.speed_km_h) / 3.6,
+            current_acceleration_mps2,
+            decision_seconds,
+        )
 
     def target_lane(self) -> Any:
         contract = self.episode.layout.traffic_contract

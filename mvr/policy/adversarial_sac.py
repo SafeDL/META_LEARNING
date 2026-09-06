@@ -119,22 +119,8 @@ class AdversarialSAC(nn.Module):
         self,
         features: torch.Tensor,
         action: torch.Tensor,
-        reward: torch.Tensor,
-        next_features: torch.Tensor,
-        done: torch.Tensor,
-        *,
-        gamma: float = 0.99,
-        bootstrap_discount: torch.Tensor | None = None,
-        context: torch.Tensor | None = None,
+        target: torch.Tensor,
     ) -> torch.Tensor:
-        target = self.critic_target(
-            reward,
-            next_features,
-            done,
-            gamma=gamma,
-            bootstrap_discount=bootstrap_discount,
-            context=context,
-        )
         return (
             nn.functional.smooth_l1_loss(self.critic1(features, action), target)
             + nn.functional.smooth_l1_loss(self.critic2(features, action), target)
@@ -144,7 +130,8 @@ class AdversarialSAC(nn.Module):
     def critic_target(
         self,
         reward: torch.Tensor,
-        next_features: torch.Tensor,
+        next_actor_features: torch.Tensor,
+        next_target_features: torch.Tensor,
         done: torch.Tensor,
         *,
         gamma: float = 0.99,
@@ -154,10 +141,13 @@ class AdversarialSAC(nn.Module):
         """Return the Bellman target used by both critics."""
         with torch.no_grad():
             next_action, next_logprob = self.actor.sample(
-                next_features, self._context_shift(context)
+                next_actor_features, self._context_shift(context)
             )
             next_action = self.action_limit * next_action
-            next_q = torch.minimum(self.target1(next_features, next_action), self.target2(next_features, next_action)) - self.alpha.detach() * next_logprob
+            next_q = torch.minimum(
+                self.target1(next_target_features, next_action),
+                self.target2(next_target_features, next_action),
+            ) - self.alpha.detach() * next_logprob
             discount = (
                 torch.as_tensor(bootstrap_discount, dtype=reward.dtype, device=reward.device)
                 if bootstrap_discount is not None
@@ -217,15 +207,15 @@ class AdversarialSAC(nn.Module):
         gamma: float = 0.99,
         bootstrap_discount: torch.Tensor | None = None,
     ) -> SACLosses:
-        critic = self.critic_loss(
-            features,
-            action,
+        target = self.critic_target(
             reward,
+            next_features,
             next_features,
             done,
             gamma=gamma,
             bootstrap_discount=bootstrap_discount,
         )
+        critic = self.critic_loss(features, action, target)
         actor, alpha = self.actor_alpha_losses(features)
         return SACLosses(actor, critic, alpha)
 

@@ -111,8 +111,8 @@ def assert_taskbook_compatible(checkpoint: HierarchicalCheckpoint, taskbook: str
 def load_config(path: str | Path) -> tuple[dict[str, Any], Path, torch.device]:
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     control = config.get("control", {})
-    if control.get("action_schema") != "frenet_path_longitudinal_v1":
-        raise ValueError("config must declare frenet_path_longitudinal_v1")
+    if control.get("action_schema") != "frenet_path_longitudinal_v2":
+        raise ValueError("config must declare frenet_path_longitudinal_v2")
     if control.get("nominal_controller_schema") != "stanley_feedforward_v1":
         raise ValueError("config must declare stanley_feedforward_v1")
     if control.get("scenario_contract_schema") != SCENARIO_CONTRACT_SCHEMA:

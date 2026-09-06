@@ -1,6 +1,7 @@
 """The transferable map- and interaction-conditioned scenario miner."""
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Sequence
 
 import torch
@@ -65,6 +66,12 @@ class TransferableScenarioMiner(nn.Module):
         self.shared_feature_encoder = SharedFeatureEncoder(
             self.state_dim, map_dim, latent_dim, self.concrete_dim
         )
+        self.target_task_structure_encoder = deepcopy(
+            self.task_structure_encoder
+        ).requires_grad_(False)
+        self.target_shared_feature_encoder = deepcopy(
+            self.shared_feature_encoder
+        ).requires_grad_(False)
         self.inner_sac = AdversarialSAC(
             256, action_dim=inner_action_dim, context_dim=latent_dim
         )
@@ -89,6 +96,33 @@ class TransferableScenarioMiner(nn.Module):
         logical_parameter_mask: Sequence[bool],
     ) -> torch.Tensor:
         """Combine map/interaction structure with observable Logical bounds."""
+        return self._encode_task_structure_with(
+            self.task_structure_encoder,
+            scene_embedding,
+            logical_domain_bounds,
+            logical_parameter_mask,
+        )
+
+    def target_encode_task_structure(
+        self,
+        scene_embedding: torch.Tensor,
+        logical_domain_bounds: dict[str, object],
+        logical_parameter_mask: Sequence[bool],
+    ) -> torch.Tensor:
+        return self._encode_task_structure_with(
+            self.target_task_structure_encoder,
+            scene_embedding,
+            logical_domain_bounds,
+            logical_parameter_mask,
+        )
+
+    def _encode_task_structure_with(
+        self,
+        encoder: nn.Module,
+        scene_embedding: torch.Tensor,
+        logical_domain_bounds: dict[str, object],
+        logical_parameter_mask: Sequence[bool],
+    ) -> torch.Tensor:
         mask = [bool(value) for value in logical_parameter_mask]
         values = [
             float(value) * float(active)
@@ -105,7 +139,7 @@ class TransferableScenarioMiner(nn.Module):
         # Logical-domain conditioning is trainable during the shared Inner
         # prior stage.  Keep its residual bounded so replayed SAC gradients
         # cannot inflate the task embedding and swamp the frozen scene map.
-        domain_residual = 0.25 * torch.tanh(self.task_structure_encoder(domain))
+        domain_residual = 0.25 * torch.tanh(encoder(domain))
         return scene_embedding + domain_residual
 
     def concrete_features(
@@ -168,6 +202,29 @@ class TransferableScenarioMiner(nn.Module):
         return self.shared_feature_encoder(
             state, scene_embedding, latent, concrete
         )
+
+    def target_inner_features(
+        self,
+        state: torch.Tensor,
+        scene_embedding: torch.Tensor,
+        latent: torch.Tensor,
+        concrete: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.target_shared_feature_encoder(
+            state, scene_embedding, latent, concrete
+        )
+
+    @torch.no_grad()
+    def soft_update_inner_targets(self, tau: float = 0.005) -> None:
+        for target, source in (
+            (self.target_task_structure_encoder, self.task_structure_encoder),
+            (self.target_shared_feature_encoder, self.shared_feature_encoder),
+        ):
+            for target_parameter, source_parameter in zip(
+                target.parameters(), source.parameters()
+            ):
+                target_parameter.lerp_(source_parameter, tau)
+        self.inner_sac.soft_update(tau)
 
     def act_inner(
         self,

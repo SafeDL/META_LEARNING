@@ -68,7 +68,10 @@ class TrajectoryFeatureExtractor:
         closing = float(-np.dot(relative, sut_velocity - adv_velocity) / max(distance, 1e-6))
         ttc = distance / closing if closing > 1e-4 else 15.0
         adv_speed, sut_speed = self._speed(adversary), self._speed(sut)
-        dt = float(getattr(env, "config", {}).get("physics_world_step_size", 0.1))
+        config = getattr(env, "config", {})
+        dt = float(config.get("physics_world_step_size", 0.1)) * int(
+            config.get("decision_repeat", 1)
+        )
         acceleration = 0.0 if self._previous_sut_speed is None else (sut_speed - self._previous_sut_speed) / max(dt, 1e-6)
         self._previous_sut_speed = sut_speed
         adv_projection = self._adversary_route.projection(adv_position, self._heading(adversary))

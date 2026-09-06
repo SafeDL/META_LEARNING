@@ -18,6 +18,10 @@ ANCHOR_PROGRESS = (1.0 / 3.0, 2.0 / 3.0)
 MIN_PATH_LENGTH_M = 30.0
 MAX_PATH_LENGTH_M = 60.0
 REFERENCE_LATERAL_ACCELERATION_MPS2 = 0.6
+REFERENCE_MAX_DECELERATION_MPS2 = 6.0
+REFERENCE_MAX_JERK_MPS3 = 1.5
+SHAPE_PROGRESS_SCALE = 0.15
+SPEED_PROFILE_SPACING_M = 1.0
 
 
 def _constraint_matrix() -> np.ndarray:
@@ -112,6 +116,42 @@ class FrenetPath:
         )
         return progress, lateral, slope, second_derivative
 
+    def curvature_m_inv(self, s_m: float) -> float:
+        _, _, slope, lateral_second = self.evaluate(s_m)
+        lateral_curvature = lateral_second / max((1.0 + slope**2) ** 1.5, 1e-6)
+        return float(self.contract.spine.curvature_at_s(float(s_m)) + lateral_curvature)
+
+    def speed_profile(
+        self,
+        current_s_m: float,
+        *,
+        max_deceleration_mps2: float = REFERENCE_MAX_DECELERATION_MPS2,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Return spatial samples, local curve caps, and a braking envelope."""
+        start = float(np.clip(current_s_m, 0.0, self.contract.spine.length_m))
+        end = max(start, self.end_s_m)
+        count = max(2, int(np.ceil((end - start) / SPEED_PROFILE_SPACING_M)) + 1)
+        positions = np.linspace(start, end, num=count, dtype=float)
+        local_limits = np.asarray([
+            min(
+                self.contract.speed_limit_mps,
+                float(np.sqrt(
+                    REFERENCE_LATERAL_ACCELERATION_MPS2
+                    / max(abs(self.curvature_m_inv(float(s_m))), 1e-5)
+                )),
+            )
+            for s_m in positions
+        ], dtype=float)
+        allowed = local_limits.copy()
+        for index in range(len(positions) - 2, -1, -1):
+            distance = float(positions[index + 1] - positions[index])
+            reachable = np.sqrt(
+                allowed[index + 1] ** 2
+                + 2.0 * float(max_deceleration_mps2) * distance
+            )
+            allowed[index] = min(allowed[index], reachable)
+        return positions, local_limits, allowed
+
 
 @dataclass(frozen=True)
 class FrenetReferenceState:
@@ -123,6 +163,7 @@ class FrenetReferenceState:
     desired_lateral_m: float
     length_m: float
     curvature_m_inv: float
+    curvature_speed_limit_mps: float
     speed_limit_mps: float
     start_remaining_m: float
     active_lambda_length: float
@@ -130,24 +171,57 @@ class FrenetReferenceState:
     active_beta_late: float
     blend_progress: float
     replan_due: bool
+    path_projection_scale: float
+    path_speed_feasible: bool
 
 
-def _base_anchor(contract: FrenetManeuverContract, progress: float) -> float:
-    weight = float(quintic_smoothstep(progress))
-    return float(
-        contract.start_lateral_m
-        + (contract.end_lateral_m - contract.start_lateral_m) * weight
+def _path_is_monotonic(path: FrenetPath, tolerance: float = 1e-9) -> bool:
+    first = np.polynomial.polynomial.polyder(path.coefficients)
+    second = np.polynomial.polynomial.polyder(first)
+    points = [0.0, 1.0]
+    if len(second) > 1:
+        for root in np.roots(second[::-1]):
+            if abs(float(root.imag)) <= 1e-8 and 0.0 < float(root.real) < 1.0:
+                points.append(float(root.real))
+    derivatives = np.polynomial.polynomial.polyval(points, first)
+    if path.contract.end_lateral_m >= path.contract.start_lateral_m:
+        return bool(np.min(derivatives) >= -tolerance)
+    return bool(np.max(derivatives) <= tolerance)
+
+
+def _build_path(
+    contract: FrenetManeuverContract,
+    length: float,
+    beta_early: float,
+    beta_late: float,
+) -> FrenetPath:
+    base_progress = np.asarray([
+        float(quintic_smoothstep(value)) for value in ANCHOR_PROGRESS
+    ])
+    progress = np.clip(
+        base_progress
+        + SHAPE_PROGRESS_SCALE * np.asarray((beta_early, beta_late), dtype=float),
+        0.0,
+        1.0,
     )
-
-
-def _anchor_scale(contract: FrenetManeuverContract, base: float) -> float:
-    available = min(
-        base - contract.corridor_lower_m,
-        contract.corridor_upper_m - base,
+    if contract.monotonic_lateral:
+        progress[1] = max(progress[0], progress[1])
+    effective_beta = (progress - base_progress) / SHAPE_PROGRESS_SCALE
+    anchors = contract.start_lateral_m + (
+        contract.end_lateral_m - contract.start_lateral_m
+    ) * progress
+    targets = np.asarray((
+        contract.start_lateral_m, 0.0, 0.0,
+        contract.end_lateral_m, 0.0, 0.0,
+        anchors[0], anchors[1],
+    ), dtype=float)
+    return FrenetPath(
+        contract,
+        float(length),
+        float(effective_beta[0]),
+        float(effective_beta[1]),
+        FRENET_CONSTRAINT_INVERSE @ targets,
     )
-    transition = abs(contract.end_lateral_m - contract.start_lateral_m)
-    desired = 0.15 * transition if transition > 1e-6 else 0.35
-    return float(max(0.0, min(desired, 0.8 * available)))
 
 
 def decode_frenet_path(
@@ -162,32 +236,57 @@ def decode_frenet_path(
     length = contract.min_length_m + 0.5 * (action[0] + 1.0) * (
         contract.max_length_m - contract.min_length_m
     )
-    bases = [_base_anchor(contract, value) for value in ANCHOR_PROGRESS]
-    anchors = [
-        float(np.clip(
-            base + beta * _anchor_scale(contract, base),
-            contract.corridor_lower_m,
-            contract.corridor_upper_m,
-        ))
-        for base, beta in zip(bases, action[1:])
-    ]
-    if contract.monotonic_lateral:
-        lower = min(contract.start_lateral_m, contract.end_lateral_m)
-        upper = max(contract.start_lateral_m, contract.end_lateral_m)
-        anchors = [float(np.clip(value, lower, upper)) for value in anchors]
-        if contract.start_lateral_m <= contract.end_lateral_m:
-            anchors[1] = max(anchors[0], anchors[1])
+    requested = _build_path(contract, length, float(action[1]), float(action[2]))
+    if not contract.monotonic_lateral or _path_is_monotonic(requested):
+        return requested
+    lower, upper = 0.0, 1.0
+    for _ in range(40):
+        scale = 0.5 * (lower + upper)
+        candidate = _build_path(
+            contract,
+            length,
+            scale * requested.beta_early,
+            scale * requested.beta_late,
+        )
+        if _path_is_monotonic(candidate):
+            lower = scale
         else:
-            anchors[1] = min(anchors[0], anchors[1])
-    targets = np.asarray((
-        contract.start_lateral_m, 0.0, 0.0,
-        contract.end_lateral_m, 0.0, 0.0,
-        anchors[0], anchors[1],
-    ), dtype=float)
-    coefficients = FRENET_CONSTRAINT_INVERSE @ targets
-    return FrenetPath(
-        contract, float(length), float(action[1]), float(action[2]), coefficients,
+            upper = scale
+    return _build_path(
+        contract,
+        length,
+        lower * requested.beta_early,
+        lower * requested.beta_late,
     )
+
+
+def _speed_feasible(
+    path: FrenetPath,
+    current_s_m: float,
+    current_speed_mps: float,
+    current_acceleration_mps2: float,
+    decision_seconds: float,
+) -> bool:
+    """Check the path under maximum discrete jerk-limited braking."""
+    positions, local_limits, _ = path.speed_profile(current_s_m)
+    position = float(positions[0])
+    speed = max(0.0, float(current_speed_mps))
+    acceleration = float(current_acceleration_mps2)
+    dt = float(decision_seconds)
+    while position < float(positions[-1]) - 1e-6 and speed > 1e-6:
+        limit = float(np.interp(position, positions, local_limits))
+        if speed > limit + 1e-6:
+            return False
+        acceleration = max(
+            -REFERENCE_MAX_DECELERATION_MPS2,
+            acceleration - REFERENCE_MAX_JERK_MPS3 * dt,
+        )
+        next_speed = max(0.0, speed + acceleration * dt)
+        position += max(0.0, 0.5 * (speed + next_speed) * dt)
+        speed = next_speed
+    if speed <= 1e-6:
+        return True
+    return bool(speed <= float(local_limits[-1]) + 1e-6)
 
 
 class FrenetPathPlanner:
@@ -204,6 +303,8 @@ class FrenetPathPlanner:
         self._maneuver_steps = 0
         self._blend_step = self.replan_interval_steps
         self._locked = False
+        self._path_projection_scale = 1.0
+        self._path_speed_feasible = True
 
     @property
     def active_action(self) -> np.ndarray:
@@ -228,6 +329,9 @@ class FrenetPathPlanner:
         raw_action: np.ndarray,
         maneuver_active: bool,
         current_s_m: float,
+        current_speed_mps: float,
+        current_acceleration_mps2: float,
+        decision_seconds: float,
     ) -> np.ndarray:
         action = np.asarray(raw_action, dtype=np.float32).reshape(-1)
         if action.shape != (4,) or not np.isfinite(action).all():
@@ -252,11 +356,61 @@ class FrenetPathPlanner:
             action[0] = 0.0 if interval <= 1e-6 else (
                 2.0 * (feasible_length - self.contract.min_length_m) / interval - 1.0
             )
-            self._previous_path = self._blended_path()
-            self._active_action = action[:3].copy()
-            self._target_path = decode_frenet_path(
-                self.contract, self._active_action
+            requested = action[:3].copy()
+            requested[0] = 0.0 if interval <= 1e-6 else (
+                2.0 * (feasible_length - self.contract.min_length_m) / interval - 1.0
             )
+            requested_path = decode_frenet_path(self.contract, requested)
+            requested[1:] = (
+                requested_path.beta_early, requested_path.beta_late
+            )
+            selected = requested_path
+            projection_scale = 1.0
+            feasible = _speed_feasible(
+                selected, current_s_m, current_speed_mps,
+                current_acceleration_mps2, decision_seconds,
+            )
+            if not feasible:
+                neutral = np.asarray((1.0, 0.0, 0.0), dtype=np.float32)
+                neutral_path = decode_frenet_path(self.contract, neutral)
+                if _speed_feasible(
+                    neutral_path, current_s_m, current_speed_mps,
+                    current_acceleration_mps2, decision_seconds,
+                ):
+                    lower, upper = 0.0, 1.0
+                    for _ in range(30):
+                        scale = 0.5 * (lower + upper)
+                        candidate_action = neutral + scale * (requested - neutral)
+                        candidate = decode_frenet_path(
+                            self.contract, candidate_action
+                        )
+                        if _speed_feasible(
+                            candidate, current_s_m, current_speed_mps,
+                            current_acceleration_mps2, decision_seconds,
+                        ):
+                            lower = scale
+                        else:
+                            upper = scale
+                    projection_scale = lower
+                    selected = decode_frenet_path(
+                        self.contract, neutral + lower * (requested - neutral)
+                    )
+                    feasible = True
+                else:
+                    projection_scale = 0.0
+                    selected = neutral_path
+            self._previous_path = self._blended_path()
+            interval = self.contract.max_length_m - self.contract.min_length_m
+            effective_lambda = 0.0 if interval <= 1e-6 else (
+                2.0 * (selected.length_m - self.contract.min_length_m) / interval
+                - 1.0
+            )
+            self._active_action = np.asarray((
+                effective_lambda, selected.beta_early, selected.beta_late,
+            ), dtype=np.float32)
+            self._target_path = selected
+            self._path_projection_scale = float(projection_scale)
+            self._path_speed_feasible = bool(feasible)
             self._blend_step = 0
         effective = np.concatenate((self._active_action, action[3:4])).astype(
             np.float32
@@ -311,27 +465,8 @@ class FrenetPathPlanner:
         route_heading = float(np.arctan2(tangent[1], tangent[0]))
         desired_heading = route_heading + float(np.arctan(slope))
         heading_error = wrap_to_pi(float(heading) - desired_heading)
-        path_curvature = lateral_second / max((1.0 + slope**2) ** 1.5, 1e-6)
-        curvature = self.contract.spine.curvature_at_s(projection.s_m) + path_curvature
-        preview_start = max(projection.s_m, self.contract.start_s_m)
-        preview_end = max(preview_start, path.end_s_m)
-        preview_curvature = [abs(curvature)]
-        for preview_s in np.linspace(preview_start, preview_end, num=33):
-            _, _, preview_slope, preview_second = path.evaluate(float(preview_s))
-            lateral_curvature = preview_second / max(
-                (1.0 + preview_slope**2) ** 1.5, 1e-6
-            )
-            preview_curvature.append(abs(
-                self.contract.spine.curvature_at_s(float(preview_s))
-                + lateral_curvature
-            ))
-        speed_limit = min(
-            self.contract.speed_limit_mps,
-            float(np.sqrt(
-                REFERENCE_LATERAL_ACCELERATION_MPS2
-                / max(max(preview_curvature), 1e-5)
-            )),
-        )
+        curvature = path.curvature_m_inv(projection.s_m)
+        _, local_limits, allowed = path.speed_profile(projection.s_m)
         return FrenetReferenceState(
             progress=progress,
             lateral_error_m=float(projection.lateral_m - desired_lateral),
@@ -339,11 +474,14 @@ class FrenetPathPlanner:
             desired_lateral_m=desired_lateral,
             length_m=path.length_m,
             curvature_m_inv=float(curvature),
-            speed_limit_mps=speed_limit,
+            curvature_speed_limit_mps=float(local_limits[0]),
+            speed_limit_mps=float(allowed[0]),
             start_remaining_m=float(self.contract.start_s_m - projection.s_m),
             active_lambda_length=float(self._active_action[0]),
             active_beta_early=float(self._active_action[1]),
             active_beta_late=float(self._active_action[2]),
             blend_progress=self.blend_progress,
             replan_due=self.replan_due,
+            path_projection_scale=self._path_projection_scale,
+            path_speed_feasible=self._path_speed_feasible,
         )

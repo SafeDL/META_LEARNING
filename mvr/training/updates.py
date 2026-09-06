@@ -63,7 +63,10 @@ def update_outer_ppo(
 
 
 def _scene_contexts(
-    model: "TransferableScenarioMiner", rows: list[object]
+    model: "TransferableScenarioMiner",
+    rows: list[object],
+    *,
+    target_task: bool = False,
 ) -> tuple[torch.Tensor, list[torch.Tensor]]:
     """Rebuild current task and candidate encodings without replayed embeddings."""
     unique: dict[tuple[object, ...], tuple[torch.Tensor, torch.Tensor]] = {}
@@ -77,8 +80,12 @@ def _scene_contexts(
         keys.append(key)
         if key not in unique:
             encoded = model.encode_scene(row.map_tokens, row.interactions)
+            task_encoder = (
+                model.target_encode_task_structure
+                if target_task else model.encode_task_structure
+            )
             unique[key] = (
-                model.encode_task_structure(
+                task_encoder(
                     encoded.global_embedding,
                     dict(row.logical_domain_bounds),
                     row.logical_parameter_mask,
@@ -89,8 +96,13 @@ def _scene_contexts(
     return torch.stack([value[0] for value in contexts]), [value[1] for value in contexts]
 
 
-def _scene_embeddings(model: "TransferableScenarioMiner", rows: list[object]) -> torch.Tensor:
-    return _scene_contexts(model, rows)[0]
+def _scene_embeddings(
+    model: "TransferableScenarioMiner",
+    rows: list[object],
+    *,
+    target_task: bool = False,
+) -> torch.Tensor:
+    return _scene_contexts(model, rows, target_task=target_task)[0]
 
 
 def _concrete_inputs(
@@ -221,15 +233,23 @@ def update_inner_sac(
     )
     maps, concrete = _concrete_inputs(model, rows)
     features = model.inner_features(states, maps, latent, concrete)
-    next_features = model.inner_features(next_states, maps, latent, concrete)
-    td_target = model.inner_sac.critic_target(
-        reward, next_features, done, bootstrap_discount=bootstrap_discount,
-        context=latent,
-    )
-    critic = model.inner_sac.critic_loss(
-        features, action, reward, next_features, done,
-        bootstrap_discount=bootstrap_discount, context=latent,
-    )
+    with torch.no_grad():
+        next_actor_features = model.inner_features(
+            next_states, maps, latent, concrete
+        )
+        target_maps = _scene_embeddings(model, rows, target_task=True)
+        next_target_features = model.target_inner_features(
+            next_states, target_maps, latent, concrete
+        )
+        td_target = model.inner_sac.critic_target(
+            reward,
+            next_actor_features,
+            next_target_features,
+            done,
+            bootstrap_discount=bootstrap_discount,
+            context=latent,
+        )
+    critic = model.inner_sac.critic_loss(features, action, td_target)
     posterior = torch.stack(posterior_losses).mean() if posterior_losses else torch.zeros((), device=device)
     optimizer.zero_grad(set_to_none=True)
     (critic + posterior).backward()
@@ -257,7 +277,7 @@ def update_inner_sac(
         float(gradient_clip_norm),
     )
     optimizer.step()
-    model.inner_sac.soft_update()
+    model.soft_update_inner_targets()
     return {
         "inner_actor_loss": float(actor.detach().cpu()),
         "inner_critic_loss": float(critic.detach().cpu()),

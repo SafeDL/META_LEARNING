@@ -1,12 +1,23 @@
 """Frenet-planning SAC interface and deterministic vehicle tracking."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
 from ..safety.dynamics import VehicleActionProjector
+from ..scenario.frenet import FrenetReferenceState
 from ..scenario.semantics import ScenarioActionAdapter
+
+
+@dataclass(frozen=True)
+class FrenetControlDecision:
+    planner_action: np.ndarray
+    raw_vehicle_action: np.ndarray
+    speed_limited_vehicle_action: np.ndarray
+    projected_vehicle_action: np.ndarray
+    reference: FrenetReferenceState
 
 
 class FrenetSACAdversaryController:
@@ -40,8 +51,12 @@ class FrenetSACAdversaryController:
             float(getattr(self.episode.adversary, "steering", 0.0)),
         )
 
-    def action(self, sac_action: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        planner_action = self.schedule.apply_planner_action(sac_action)
+    def action(self, sac_action: np.ndarray) -> FrenetControlDecision:
+        planner_action = self.schedule.apply_planner_action(
+            sac_action,
+            current_acceleration_mps2=self.projector.previous_acceleration_mps2,
+            decision_seconds=self.projector._step_seconds(self.episode.adversary),
+        )
         reference = self.schedule.maneuver_reference()
         steering = 0.0
         active = bool(
@@ -67,13 +82,22 @@ class FrenetSACAdversaryController:
             )
             max_steering = np.deg2rad(float(vehicle.config["max_steering"]))
             steering = float(steering_angle / max(max_steering, 1e-6))
-        longitudinal = float(planner_action[3])
+        raw_vehicle_action = np.asarray(
+            (steering, float(planner_action[3])), dtype=np.float32
+        )
+        speed_limited = raw_vehicle_action.copy()
         if speed > reference.speed_limit_mps:
-            longitudinal = min(
-                longitudinal,
+            speed_limited[1] = min(
+                float(speed_limited[1]),
                 -min(1.0, (speed - reference.speed_limit_mps) / 2.0),
             )
-        return planner_action, self.projector.project((steering, longitudinal))
+        return FrenetControlDecision(
+            planner_action=planner_action,
+            raw_vehicle_action=raw_vehicle_action,
+            speed_limited_vehicle_action=speed_limited,
+            projected_vehicle_action=self.projector.project(speed_limited),
+            reference=reference,
+        )
 
     def destroy(self) -> None:
         """The deterministic tracker owns no native policy resources."""

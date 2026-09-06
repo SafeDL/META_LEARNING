@@ -37,6 +37,17 @@ precedence over near-miss; an event bonus is captured only once.
 The Inner observation therefore includes the persistent
 `valid_near_miss_seen` bit, so the one-shot near-miss bonus remains Markov.
 
+The four-dimensional Cut-in action uses the
+`frenet_path_longitudinal_v2` contract. Shape coordinates perturb normalized
+lane-change progress with a common left/right meaning, and the decoded path is
+projected to a globally monotone, distance-speed-feasible trajectory. The
+curvature cap is propagated backward as a distance-dependent speed envelope;
+it no longer applies the tightest future speed immediately at path creation.
+
+Inner Bellman targets use Polyak target copies of both the task-structure and
+shared-feature encoders. The online encoder still supplies the next actor
+action, while the target representation and target critics evaluate it.
+
 ## Training
 
 `interaction_prior` samples the training task distribution and learns a shared

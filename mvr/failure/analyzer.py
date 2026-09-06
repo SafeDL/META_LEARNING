@@ -28,6 +28,19 @@ def analyze_rollout(
         "min_distance": min(float(row[10]) * 100.0 for row in features),
         "max_closing_speed": max(float(row[10]) * 100.0 / max(float(row[8]) * 15.0, 1e-3) if row[8] < 1.0 else 0.0 for row in features),
     }
+    challenge_features = [
+        feature
+        for feature, info in zip(features, infos)
+        if bool(info.get("semantic_challenge_phase_active", False))
+    ]
+    outcome["challenge_min_ttc"] = (
+        min(float(row[8]) * 15.0 for row in challenge_features)
+        if challenge_features else None
+    )
+    outcome["challenge_min_distance"] = (
+        min(float(row[10]) * 100.0 for row in challenge_features)
+        if challenge_features else None
+    )
     final_info = infos[-1]
     outcome["test_completion_condition"] = final_info.get("test_completion_condition")
     outcome["termination_reason"] = final_info.get("termination_reason")
@@ -67,7 +80,49 @@ def analyze_rollout(
             "max_abs_jerk_mps3": float(final_traffic["traffic_max_abs_jerk_mps3"]),
             "max_lateral_acceleration_mps2": float(final_traffic["traffic_max_lateral_acceleration_mps2"]),
             "legal_lane_lateral_m": float(final_traffic["traffic_legal_lane_lateral_m"]),
+            "raw_longitudinal": [
+                float(info["control_raw_longitudinal"]) for info in traffic_infos
+            ],
+            "speed_limited_longitudinal": [
+                float(info["control_speed_limited_longitudinal"])
+                for info in traffic_infos
+            ],
+            "projected_longitudinal": [
+                float(info["control_projected_longitudinal"])
+                for info in traffic_infos
+            ],
+            "curvature_speed_limit_mps": [
+                float(info["control_curvature_speed_limit_mps"])
+                for info in traffic_infos
+            ],
+            "distance_envelope_speed_limit_mps": [
+                float(info["control_distance_envelope_speed_limit_mps"])
+                for info in traffic_infos
+            ],
+            "path_projection_scale": [
+                float(info["control_path_projection_scale"])
+                for info in traffic_infos
+            ],
+            "path_speed_feasible": [
+                bool(info["control_path_speed_feasible"]) for info in traffic_infos
+            ],
         }
+    onset_infos = [
+        info for info in infos
+        if bool(info.get("cutin_actual_onset_just_started", False))
+    ]
+    if onset_infos:
+        onset = onset_infos[0]
+        outcome["cutin_actual_onset"] = {
+            "time_s": float(onset["cutin_actual_onset_time_s"]),
+            "gap_m": float(onset["cutin_actual_onset_gap_m"]),
+            "adversary_speed_mps": float(
+                onset["cutin_actual_onset_adversary_speed_mps"]
+            ),
+            "sut_speed_mps": float(onset["cutin_actual_onset_sut_speed_mps"]),
+        }
+    else:
+        outcome["cutin_actual_onset"] = None
     sut_infos = [info for info in infos if "sut_steering" in info]
     if sut_infos:
         outcome["sut_telemetry"] = {

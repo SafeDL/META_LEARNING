@@ -71,6 +71,7 @@ class HierarchicalRunner:
             int(episode.layout.traffic_contract.min_completion_steps),
         )
         held_policy_action: np.ndarray | None = None
+        actual_cutin_onset: dict[str, float] | None = None
         extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         state_extractor.reset(env, episode.layout, episode.adversary_route, episode.sut_route)
         try:
@@ -87,6 +88,33 @@ class HierarchicalRunner:
                     and not schedule.state.maneuver_completed
                     and reference_before.start_remaining_m <= 0.0
                 )
+                onset_just_started = bool(
+                    scenario_family == "cutin"
+                    and planner_active
+                    and actual_cutin_onset is None
+                )
+                if onset_just_started:
+                    spine = schedule.contract.spine
+                    adversary_s = spine.projection(
+                        episode.adversary.position,
+                        episode.adversary.heading_theta,
+                    ).s_m
+                    sut_s = spine.projection(
+                        episode.sut.position,
+                        episode.sut.heading_theta,
+                    ).s_m
+                    decision_seconds = (
+                        float(env.config["physics_world_step_size"])
+                        * int(env.config["decision_repeat"])
+                    )
+                    actual_cutin_onset = {
+                        "time_s": float(env.episode_step) * decision_seconds,
+                        "gap_m": float(adversary_s - sut_s),
+                        "adversary_speed_mps": (
+                            float(episode.adversary.speed_km_h) / 3.6
+                        ),
+                        "sut_speed_mps": float(episode.sut.speed_km_h) / 3.6,
+                    }
                 if planner_active:
                     policy_decision = (
                         held_policy_action is None or schedule.planner.replan_due
@@ -111,8 +139,8 @@ class HierarchicalRunner:
                         held_policy_action, -1.0, 1.0
                     )
                 raw_action = held_policy_action.copy()
-                planner_action, requested_action = controller.action(raw_action)
-                shielded = shield.project(requested_action)
+                control = controller.action(raw_action)
+                shielded = shield.project(control.projected_vehicle_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
                 schedule.update()
                 controller.observe_environment(info)
@@ -125,6 +153,9 @@ class HierarchicalRunner:
                     "maneuver_reference_desired_lateral_m": reference.desired_lateral_m,
                     "maneuver_reference_length_m": reference.length_m,
                     "maneuver_reference_curvature_m_inv": reference.curvature_m_inv,
+                    "maneuver_reference_curvature_speed_limit_mps": (
+                        reference.curvature_speed_limit_mps
+                    ),
                     "maneuver_reference_speed_limit_mps": reference.speed_limit_mps,
                     "maneuver_start_remaining_m": reference.start_remaining_m,
                     "maneuver_active_lambda_length": reference.active_lambda_length,
@@ -132,8 +163,46 @@ class HierarchicalRunner:
                     "maneuver_active_beta_late": reference.active_beta_late,
                     "maneuver_reference_blend_progress": reference.blend_progress,
                     "maneuver_replan_due": reference.replan_due,
+                    "maneuver_path_projection_scale": reference.path_projection_scale,
+                    "maneuver_path_speed_feasible": reference.path_speed_feasible,
                     "maneuver_reference_start_s_m": schedule.contract.start_s_m,
                     "maneuver_reference_points_xy": schedule.planner.reference_points(),
+                    "control_raw_longitudinal": float(control.raw_vehicle_action[1]),
+                    "control_speed_limited_longitudinal": float(
+                        control.speed_limited_vehicle_action[1]
+                    ),
+                    "control_projected_longitudinal": float(
+                        control.projected_vehicle_action[1]
+                    ),
+                    "control_curvature_speed_limit_mps": float(
+                        control.reference.curvature_speed_limit_mps
+                    ),
+                    "control_distance_envelope_speed_limit_mps": float(
+                        control.reference.speed_limit_mps
+                    ),
+                    "control_path_projection_scale": float(
+                        control.reference.path_projection_scale
+                    ),
+                    "control_path_speed_feasible": bool(
+                        control.reference.path_speed_feasible
+                    ),
+                    "cutin_actual_onset_just_started": onset_just_started,
+                    "cutin_actual_onset_time_s": (
+                        None if actual_cutin_onset is None
+                        else actual_cutin_onset["time_s"]
+                    ),
+                    "cutin_actual_onset_gap_m": (
+                        None if actual_cutin_onset is None
+                        else actual_cutin_onset["gap_m"]
+                    ),
+                    "cutin_actual_onset_adversary_speed_mps": (
+                        None if actual_cutin_onset is None
+                        else actual_cutin_onset["adversary_speed_mps"]
+                    ),
+                    "cutin_actual_onset_sut_speed_mps": (
+                        None if actual_cutin_onset is None
+                        else actual_cutin_onset["sut_speed_mps"]
+                    ),
                 })
                 sut_policy = env.engine.get_policy(episode.sut.id)
                 sut_action = np.asarray(
@@ -193,13 +262,13 @@ class HierarchicalRunner:
                     np.square(raw_action).sum()
                 )
                 info["inner_planner_action_l2"] = float(
-                    np.square(planner_action).sum()
+                    np.square(control.planner_action).sum()
                 )
                 info["inner_executed_vehicle_action_l2"] = float(
                     np.square(shielded.action).sum()
                 )
                 info["raw_policy_action"] = raw_action.tolist()
-                info["planner_action"] = planner_action.tolist()
+                info["planner_action"] = control.planner_action.tolist()
                 info["inner_policy_decision"] = bool(policy_decision)
                 info["requested_vehicle_action"] = (
                     shielded.requested_action.tolist()
@@ -250,7 +319,12 @@ class HierarchicalRunner:
                 transitions.append({
                     "state": state,
                     "raw_policy_action": raw_action,
-                    "planner_action": planner_action,
+                    "planner_action": control.planner_action,
+                    "raw_vehicle_action": control.raw_vehicle_action,
+                    "speed_limited_vehicle_action": (
+                        control.speed_limited_vehicle_action
+                    ),
+                    "projected_vehicle_action": control.projected_vehicle_action,
                     "requested_vehicle_action": shielded.requested_action,
                     "executed_vehicle_action": shielded.action,
                     "reward_inner": reward_fn(trajectory_row, info),
