@@ -20,7 +20,12 @@ class InnerRiskReward:
         self._previous_progress = 0.0
         self._previous_criticality = 0.0
 
-    def __call__(self, features: np.ndarray, info: Mapping[str, object]) -> float:
+    def step_with_components(
+        self,
+        features: np.ndarray,
+        info: Mapping[str, object],
+    ) -> tuple[float, dict[str, float]]:
+        """Evaluate one environment transition and advance reward history once."""
         row = np.asarray(features, dtype=float)
         ttc = max(0.0, row[8] * 15.0)
         distance = max(0.0, row[10] * 100.0)
@@ -75,7 +80,8 @@ class InnerRiskReward:
         # score. It is strictly confined to the semantic interaction
         # corridor, where lowering TTC/distance and increasing closing speed
         # are meaningful rather than a pre-conflict reward loophole.
-        risk_reward = 2.0 * (criticality - self._previous_criticality)
+        previous_criticality = self._previous_criticality
+        risk_reward = 2.0 * (criticality - previous_criticality)
         self._previous_criticality = criticality
         tracking_penalty = 0.0
         progress = float(info.get("maneuver_reference_progress", 0.0))
@@ -94,10 +100,29 @@ class InnerRiskReward:
         # remaining in the source lane while risk is accumulated.
         progress_reward = 0.10 * max(0.0, progress - self._previous_progress)
         self._previous_progress = max(self._previous_progress, progress)
-        shield_penalty = float(info.get("traffic_shield_intervention_l2", 0.0)) ** 2
-        return float(np.clip(
+        shield_penalty = 0.10 * float(
+            info.get("traffic_shield_intervention_l2", 0.0)
+        ) ** 2
+        invalid_penalty = 2.0 * float(invalid)
+        preclip = (
             risk_reward + event_bonus + progress_reward - tracking_penalty
-            - 0.10 * shield_penalty - 2.0 * float(invalid),
-            -3.0,
-            12.0,
-        ))
+            - shield_penalty - invalid_penalty
+        )
+        total = float(np.clip(preclip, -3.0, 12.0))
+        return total, {
+            "criticality_previous": float(previous_criticality),
+            "criticality_current": float(criticality),
+            "reward_risk": float(risk_reward),
+            "reward_event": float(event_bonus),
+            "reward_progress": float(progress_reward),
+            "penalty_tracking": float(tracking_penalty),
+            "penalty_shield": float(shield_penalty),
+            "penalty_invalid": float(invalid_penalty),
+            "reward_preclip": float(preclip),
+            "reward_clip_adjustment": float(total - preclip),
+            "reward_total": total,
+        }
+
+    def __call__(self, features: np.ndarray, info: Mapping[str, object]) -> float:
+        reward, _ = self.step_with_components(features, info)
+        return reward

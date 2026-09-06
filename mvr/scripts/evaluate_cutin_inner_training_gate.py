@@ -10,6 +10,7 @@ import numpy as np
 
 from ..experiments.cutin_inner import expand_cutin_training_domains
 from ..failure.criteria import FailureCriteria
+from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.parameter_space import NormalizedScenarioAction
 from ..training.checkpoint import HierarchicalCheckpoint
 from ..training.pipeline import (
@@ -184,16 +185,188 @@ def run(config_path: str, checkpoint_path: str) -> dict[str, Any]:
     }
 
 
+def paired_cases(config: dict[str, Any], taskbook: Path) -> list[dict[str, Any]]:
+    """Pre-register three reproducible in-domain cases for every Logical Domain."""
+    cases = []
+    candidate_count = len(mvr_parameter_spaces()["cutin"].candidates)
+    for domain_index, task in enumerate(_training_tasks(config, taskbook)):
+        bounds = np.asarray(list(task.logical_domain_bounds.values()), dtype=float)
+        samples = [
+            ("centre", 0, 0.5 * (bounds[:, 0] + bounds[:, 1])),
+        ]
+        generator = np.random.default_rng(20260906 + domain_index)
+        for sample_index, candidate in enumerate((0, 1), start=1):
+            samples.append((
+                f"domain_sample_{sample_index}",
+                candidate % candidate_count,
+                generator.uniform(bounds[:, 0], bounds[:, 1]),
+            ))
+        for source, candidate_index, continuous in samples:
+            case_index = len(cases)
+            cases.append({
+                "case_index": case_index,
+                "task_id": task.task_id,
+                "logical_domain_id": task.logical_domain_id,
+                "source": source,
+                "candidate_index": candidate_index,
+                "normalized_parameters": [float(value) for value in continuous],
+                "episode_seed": int(task.geometry_seed + 200_000 + case_index),
+                "action": NormalizedScenarioAction(
+                    candidate_index,
+                    tuple(float(value) for value in continuous),
+                ),
+            })
+    return cases
+
+
+def _random_inner_policy(seed: int):
+    generator = np.random.default_rng(seed)
+
+    def policy(_state: np.ndarray) -> np.ndarray:
+        return generator.uniform(-1.0, 1.0, size=4).astype(np.float32)
+
+    return policy
+
+
+def _paired_record(case: dict[str, Any], policy: str, episode: Any) -> dict[str, Any]:
+    outcome = episode.outcome
+    return {
+        **{key: value for key, value in case.items() if key != "action"},
+        "policy": policy,
+        "valid": bool(outcome["is_valid_episode"]),
+        "failure": bool(outcome["is_failure"]),
+        "target_collision": bool(outcome["valid_target_collision"]),
+        "critical_near_miss": bool(outcome["valid_critical_near_miss"]),
+        "event": bool(
+            outcome["valid_target_collision"]
+            or outcome["valid_critical_near_miss"]
+        ),
+        "min_ttc": float(outcome["min_ttc"]),
+        "min_distance": float(outcome["min_distance"]),
+        "challenge_min_ttc": outcome["challenge_min_ttc"],
+        "challenge_min_distance": outcome["challenge_min_distance"],
+        "termination_reason": outcome["termination_reason"],
+    }
+
+
+def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    domains: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        domains.setdefault(row["logical_domain_id"], []).append(row)
+
+    def summarize_policy(values: list[dict[str, Any]]) -> dict[str, float | int]:
+        return {
+            "cases": len(values),
+            "valid_rate": _rate(values, "valid"),
+            "event_rate": _rate(values, "event"),
+            "target_collision_rate": _rate(values, "target_collision"),
+            "critical_near_miss_rate": _rate(values, "critical_near_miss"),
+            "failure_rate": _rate(values, "failure"),
+        }
+
+    report = {}
+    for domain, values in sorted(domains.items()):
+        sac = [row for row in values if row["policy"] == "sac"]
+        random = [row for row in values if row["policy"] == "random"]
+        sac_summary = summarize_policy(sac)
+        random_summary = summarize_policy(random)
+        report[domain] = {
+            "sac": sac_summary,
+            "random": random_summary,
+            "event_rate_gain": sac_summary["event_rate"] - random_summary["event_rate"],
+            "target_collision_rate_gain": (
+                sac_summary["target_collision_rate"]
+                - random_summary["target_collision_rate"]
+            ),
+            "valid_rate_gain": sac_summary["valid_rate"] - random_summary["valid_rate"],
+        }
+    return report
+
+
+def run_paired(
+    config_path: str,
+    checkpoint_path: str,
+    output_dir: str,
+) -> dict[str, Any]:
+    """Run the fixed 9-case in-domain SAC/Random engineering comparison."""
+    config, taskbook, device = load_config(config_path)
+    checkpoint = HierarchicalCheckpoint.load(
+        checkpoint_path, expected_config_hash=checkpoint_config_hash(config),
+    )
+    assert_taskbook_compatible(checkpoint, taskbook)
+    model = build_model(config, device)
+    model.load_state_dict(checkpoint.state["model"])
+    model.eval()
+    criteria = FailureCriteria.from_config(config["failure"])
+    cases = paired_cases(config, taskbook)
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "paired_stage1_cases.json").write_text(
+        json.dumps([
+            {key: value for key, value in case.items() if key != "action"}
+            for case in cases
+        ], indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    tasks = {task.task_id: task for task in _training_tasks(config, taskbook)}
+    records = []
+    for case in cases:
+        task = tasks[case["task_id"]]
+        online = build_online(
+            model, task, int(config["training"]["step_budget"]), criteria,
+        )
+        for policy in ("sac", "random"):
+            episode = online.run(
+                task,
+                1,
+                deterministic=True,
+                posterior_support_limit=0,
+                scene_action_provider=lambda *_args, value=case["action"]: value,
+                inner_action_provider=(
+                    None if policy == "sac"
+                    else _random_inner_policy(20260906 + case["case_index"])
+                ),
+                episode_seed_provider=lambda *_args, value=case["episode_seed"]: value,
+            ).episodes[0]
+            records.append(_paired_record(case, policy, episode))
+    report = {
+        "scope": {
+            "functional_scenario": "cutin",
+            "sut_ref": "idm_normal",
+            "geometry_id": "cutin-g01",
+            "logical_domains": sorted({case["logical_domain_id"] for case in cases}),
+            "cases_per_domain": 3,
+            "outer_trained": False,
+            "ood_split_accessed": False,
+        },
+        "checkpoint": str(checkpoint_path),
+        "paired_protocol": (
+            "SAC and Random share every concrete Logical action, candidate, episode seed, and horizon."
+        ),
+        "paired_gain_status": "inconclusive",
+        "domain_summary": _paired_summary(records),
+        "records": records,
+    }
+    (output / "paired_stage1_report.json").write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="mvr/configs/cutin_inner.yaml")
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--paired-output")
     args = parser.parse_args()
     report = run(args.config, args.checkpoint)
     Path(args.output).write_text(
         json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8",
     )
+    if args.paired_output:
+        run_paired(args.config, args.checkpoint, args.paired_output)
 
 
 if __name__ == "__main__":

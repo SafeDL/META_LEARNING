@@ -159,6 +159,39 @@ def test_inner_reward_prefers_a_valid_target_collision_over_dense_criticality() 
     assert collision > reward(critical, {})
 
 
+def test_inner_reward_component_interface_preserves_the_scalar_contract() -> None:
+    criteria = FailureCriteria(5.0, 10.0, 20.0, 5)
+    features = np.zeros(12, dtype=np.float32)
+    features[8], features[10] = 1.0 / 15.0, 1.0 / 100.0
+    info = {
+        "semantic_challenge_phase_active": True,
+        "maneuver_reference_progress": 0.25,
+        "maneuver_reference_lateral_error_m": 0.2,
+        "maneuver_reference_heading_error_rad": 0.1,
+        "traffic_shield_intervention_l2": 0.4,
+    }
+    scalar = InnerRiskReward(criteria)(features, info)
+    reward = InnerRiskReward(criteria)
+    total, components = reward.step_with_components(features, info)
+
+    assert total == pytest.approx(scalar)
+    assert components["reward_total"] == pytest.approx(total)
+    assert components["reward_preclip"] + components["reward_clip_adjustment"] == pytest.approx(total)
+    assert components["reward_preclip"] == pytest.approx(
+        components["reward_risk"] + components["reward_event"]
+        + components["reward_progress"] - components["penalty_tracking"]
+        - components["penalty_shield"] - components["penalty_invalid"]
+    )
+    repeated, repeated_components = reward.step_with_components(features, info)
+    assert repeated_components["criticality_previous"] == pytest.approx(
+        components["criticality_current"]
+    )
+    assert repeated < total
+    reward.reset()
+    reset_total, _ = reward.step_with_components(features, info)
+    assert reset_total == pytest.approx(total)
+
+
 def test_cutin_reward_does_not_reward_absolute_adversary_speed() -> None:
     criteria = FailureCriteria(5.0, 10.0, 20.0, 5)
     features = np.zeros(12, dtype=np.float32)

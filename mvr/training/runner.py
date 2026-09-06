@@ -163,6 +163,7 @@ class HierarchicalRunner:
                     "maneuver_active_beta_late": reference.active_beta_late,
                     "maneuver_reference_blend_progress": reference.blend_progress,
                     "maneuver_replan_due": reference.replan_due,
+                    "planner_active": planner_active,
                     "maneuver_path_projection_scale": reference.path_projection_scale,
                     "maneuver_path_speed_feasible": reference.path_speed_feasible,
                     "maneuver_reference_start_s_m": schedule.contract.start_s_m,
@@ -316,6 +317,9 @@ class HierarchicalRunner:
                 # collision or hard violation occurs, the SUT must finish its
                 # declared route for the scenario to be a complete test.
                 done = termination_reason is not None
+                reward_inner, reward_components = reward_fn.step_with_components(
+                    trajectory_row, info
+                )
                 transitions.append({
                     "state": state,
                     "raw_policy_action": raw_action,
@@ -327,7 +331,8 @@ class HierarchicalRunner:
                     "projected_vehicle_action": control.projected_vehicle_action,
                     "requested_vehicle_action": shielded.requested_action,
                     "executed_vehicle_action": shielded.action,
-                    "reward_inner": reward_fn(trajectory_row, info),
+                    "reward_inner": reward_inner,
+                    "reward_components": reward_components,
                     "reward_env": float(env_reward),
                     "next_state": state_extractor(
                         episode.adversary, episode.sut, schedule,

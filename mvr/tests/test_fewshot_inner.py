@@ -128,8 +128,7 @@ def test_actor_stops_representation_gradient_but_critic_keeps_it() -> None:
     critic_scene = model.encode_task_structure(torch.randn(1, 8), bounds, (True,) * 5)
     critic_features = model.inner_features(state, critic_scene, critic_latent, concrete)
     critic = model.inner_sac.critic_loss(
-        critic_features, torch.zeros(1, 4), torch.zeros(1), critic_features.detach(),
-        torch.ones(1, dtype=torch.bool),
+        critic_features, torch.zeros(1, 4), torch.zeros(1),
     )
     critic.backward()
     assert any(parameter.grad is not None for parameter in model.context_encoder.parameters())

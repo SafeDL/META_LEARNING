@@ -292,6 +292,21 @@ class MVRTrainingPipeline:
     ) -> Path:
         output_path = Path(output)
         output_path.mkdir(parents=True, exist_ok=True)
+        provenance = source_tree_provenance()
+        run_metadata = {
+            "git_commit": provenance["git_commit"],
+            "working_tree_clean": provenance["working_tree_clean"],
+            "config": self.config,
+            "action_schema": self.config["control"]["action_schema"],
+            "reward_schema": "inner_risk_reward_components_v1",
+            "training_seed": int(self.config["seed"]),
+            "training_status": "running",
+        }
+        metadata_path = output_path / "run_metadata.json"
+        metadata_path.write_text(
+            json.dumps(run_metadata, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
         tasks = selected_tasks(self.config, self.taskbook, "train", "train", "train")
         cutin_inner = self.config.get("cutin_inner")
         if cutin_inner is not None:
@@ -349,6 +364,16 @@ class MVRTrainingPipeline:
             )
             metrics = self._train_stage(stage, tasks, optimizer)
             checkpoint_path = output_path / f"{stage.value}.pt"
+            if stage is TrainingStage.INTERACTION_PRIOR:
+                reward_records = metrics.pop("reward_episode_records")
+                records_path = output_path / "reward_episode_metrics.jsonl"
+                records_path.write_text(
+                    "".join(
+                        json.dumps(record, ensure_ascii=False) + "\n"
+                        for record in reward_records
+                    ),
+                    encoding="utf-8",
+                )
             _save_stage(
                 checkpoint_path,
                 stage,
@@ -382,6 +407,12 @@ class MVRTrainingPipeline:
                 ensure_ascii=False,
             )
             + "\n",
+            encoding="utf-8",
+        )
+        run_metadata["training_status"] = "completed"
+        run_metadata["completed_stages"] = [record["stage"] for record in records]
+        metadata_path.write_text(
+            json.dumps(run_metadata, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
         return manifest

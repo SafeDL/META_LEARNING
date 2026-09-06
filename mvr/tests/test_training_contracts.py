@@ -88,6 +88,7 @@ def test_sac_bellman_target_is_not_clamped() -> None:
     target = sac.critic_target(
         torch.tensor([50.0]),
         torch.zeros(1, 4),
+        torch.zeros(1, 4),
         torch.ones(1, dtype=torch.bool),
     )
 
@@ -107,6 +108,7 @@ def test_sac_bellman_target_uses_per_transition_smdp_discount() -> None:
 
     target = sac.critic_target(
         torch.tensor([1.0, 2.0]),
+        torch.zeros(2, 4),
         torch.zeros(2, 4),
         torch.tensor([False, True]),
         bootstrap_discount=torch.tensor([0.99 ** 5, 0.99 ** 2]),
@@ -199,7 +201,9 @@ def test_inner_replay_uses_only_explicit_event_labels() -> None:
 
 
 def test_training_signal_metrics_report_event_and_reward_density() -> None:
-    task = SimpleNamespace(functional_scenario="cutin")
+    task = SimpleNamespace(
+        functional_scenario="cutin", logical_domain_id="balanced_interaction"
+    )
     episode = SimpleNamespace(
         concrete_scenario=SimpleNamespace(candidate_id="main_conflict"),
         rollout=SimpleNamespace(
@@ -217,6 +221,7 @@ def test_training_signal_metrics_report_event_and_reward_density() -> None:
     assert report["overall"]["positive_reward_transitions"] == 1
     assert report["overall"]["positive_reward_transition_fraction"] == 0.5
     assert report["family:cutin"]["event_capture_transitions"] == 1
+    assert report["logical_domain:balanced_interaction"]["episodes"] == 1
 
 
 def test_training_curve_loader_recovers_prior_stage_after_resume(tmp_path: Path) -> None:

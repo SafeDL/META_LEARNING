@@ -91,6 +91,7 @@ def train_interaction_prior(
     executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
     online = build_online(model, tasks[0], max_steps, criteria, executor)
     episodes = []
+    episode_optimizer_updates: list[int] = []
     transitions_collected = 0
     warmup_episodes = int(settings.get("warmup_episodes", 0))
     for episode_index in range(episodes_per_task):
@@ -128,11 +129,27 @@ def train_interaction_prior(
                 replay.add(row)
             transitions_collected += len(result.inner_transitions)
             episodes.extend((task, episode) for episode in result.episodes)
+            updates_before = len(losses)
             if episode_index >= warmup_episodes:
                 _update_inner(model, replay, optimizer, settings, losses)
+            episode_optimizer_updates.extend(
+                [len(losses) - updates_before] * len(result.episodes)
+            )
     metrics = _inner_metrics(
         len(episodes), replay, losses, episodes, transitions_collected,
+        gamma=float(settings.get("gamma", 0.99)),
     )
+    for record, updates in zip(
+        metrics["reward_episode_records"], episode_optimizer_updates
+    ):
+        record.update({
+            "run_id": "interaction_prior",
+            "action_schema": config["control"]["action_schema"],
+            "reward_schema": "inner_risk_reward_components_v1",
+            "training_seed": int(config["seed"]),
+            "warmup": bool(record["domain_episode_index"] <= warmup_episodes),
+            "optimizer_updates": updates,
+        })
     metrics.update({
         "balanced_sampling_epochs": episodes_per_task,
         "updates_per_episode": int(settings["updates_per_episode"]),
@@ -202,6 +219,7 @@ def _inner_metrics(
     losses: list[dict[str, float]],
     episode_records: list[tuple[ScenarioMiningTaskSpec, Any]] | None = None,
     transitions_collected: int | None = None,
+    gamma: float = 0.99,
 ) -> dict[str, Any]:
     records = list(episode_records or ())
     task_counts = {task.task_id: 0 for task, _ in records}
@@ -254,6 +272,7 @@ def _inner_metrics(
     critic = [value["inner_critic_loss"] for value in losses if "inner_critic_loss" in value]
     alpha = [value["inner_alpha_loss"] for value in losses if "inner_alpha_loss" in value]
     td_target = [value["inner_td_target_variance"] for value in losses if "inner_td_target_variance" in value]
+    reward_episode_records = _reward_episode_records(records, gamma)
     metrics = {
         "simulator_episodes_consumed": episodes,
         "transitions": transitions_collected if transitions_collected is not None else len(replay.rows),
@@ -283,8 +302,139 @@ def _inner_metrics(
         "action_saturation_rate": mean([float(value) for value in saturated]),
         "training_signal": training_signal,
         "episode_return_curve": episode_return_curve,
+        "reward_episode_records": reward_episode_records,
+        "reward_component_summary": _reward_component_summary(
+            reward_episode_records
+        ),
     }
     return metrics
+
+
+def _reward_episode_records(
+    records: list[tuple[ScenarioMiningTaskSpec, Any]],
+    gamma: float,
+) -> list[dict[str, Any]]:
+    """Build the compact, per-episode reward and control audit records."""
+    domain_indices: dict[str, int] = {}
+    component_names = (
+        "criticality_previous",
+        "criticality_current",
+        "reward_risk",
+        "reward_event",
+        "reward_progress",
+        "penalty_tracking",
+        "penalty_shield",
+        "penalty_invalid",
+        "reward_preclip",
+        "reward_clip_adjustment",
+        "reward_total",
+    )
+    output = []
+    for task, episode in records:
+        domain = task.logical_domain_id
+        domain_indices[domain] = domain_indices.get(domain, 0) + 1
+        transitions = episode.rollout.transitions
+        components = {
+            name: float(sum(
+                float(row["reward_components"][name]) for row in transitions
+            ))
+            for name in component_names
+        }
+        outcome = episode.rollout.outcome
+        telemetry = outcome.get("control_telemetry", {})
+        raw = np.asarray(telemetry.get("raw_longitudinal", ()), dtype=float)
+        limited = np.asarray(
+            telemetry.get("speed_limited_longitudinal", ()), dtype=float
+        )
+        projected = np.asarray(
+            telemetry.get("projected_longitudinal", ()), dtype=float
+        )
+        scales = np.asarray(telemetry.get("path_projection_scale", ()), dtype=float)
+        feasible = telemetry.get("path_speed_feasible", ())
+        onset = outcome.get("cutin_actual_onset")
+        output.append({
+            "task_id": task.task_id,
+            "logical_domain_id": domain,
+            "domain_episode_index": domain_indices[domain],
+            "episode_seed": episode.concrete_scenario.episode_seed,
+            "candidate_index": episode.candidate_index,
+            "normalized_initial_parameters": list(episode.continuous),
+            "environment_steps": len(transitions),
+            "macro_transitions": len(episode.macro_records),
+            "inner_return_undiscounted": float(sum(
+                float(row["reward_inner"]) for row in transitions
+            )),
+            "inner_return_discounted": float(sum(
+                gamma ** index * float(row["reward_inner"])
+                for index, row in enumerate(transitions)
+            )),
+            "reward_component_sums": components,
+            "reward_clipped_steps": int(sum(
+                abs(float(row["reward_components"]["reward_clip_adjustment"]))
+                > 1e-12 for row in transitions
+            )),
+            "valid": bool(outcome["is_valid_episode"]),
+            "valid_target_collision": bool(outcome["valid_target_collision"]),
+            "valid_critical_near_miss": bool(
+                outcome["valid_critical_near_miss"]
+            ),
+            "challenge_steps": int(sum(
+                bool(row["info"]["semantic_challenge_phase_active"])
+                for row in transitions
+            )),
+            "min_challenge_ttc": outcome["challenge_min_ttc"],
+            "min_challenge_distance": outcome["challenge_min_distance"],
+            "actual_onset_time": None if onset is None else onset["time_s"],
+            "actual_onset_gap": None if onset is None else onset["gap_m"],
+            "actual_onset_speeds": None if onset is None else {
+                "adversary_speed_mps": onset["adversary_speed_mps"],
+                "sut_speed_mps": onset["sut_speed_mps"],
+            },
+            "path_speed_infeasible_steps": int(sum(not bool(value) for value in feasible)),
+            "path_projection_statistics": {
+                "count": int(scales.size),
+                "mean": None if not scales.size else float(scales.mean()),
+                "minimum": None if not scales.size else float(scales.min()),
+                "intervened_steps": int(sum(scales < 1.0 - 1e-6)),
+            },
+            "longitudinal_override_statistics": {
+                "speed_limit_intervened_steps": int(sum(
+                    np.abs(raw - limited) > 1e-6
+                )),
+                "projector_intervened_steps": int(sum(
+                    np.abs(limited - projected) > 1e-6
+                )),
+                "speed_limit_abs_delta_mean": (
+                    None if not raw.size else float(np.abs(raw - limited).mean())
+                ),
+                "projector_abs_delta_mean": (
+                    None if not limited.size else float(
+                        np.abs(limited - projected).mean()
+                    )
+                ),
+            },
+            "termination_reason": outcome["termination_reason"],
+            "macro_records": list(episode.macro_records),
+        })
+    return output
+
+
+def _reward_component_summary(
+    records: list[dict[str, Any]],
+) -> dict[str, dict[str, float]]:
+    """Aggregate the recorded component sums by Logical Domain."""
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        grouped.setdefault(record["logical_domain_id"], []).append(record)
+    return {
+        domain: {
+            name: float(np.mean([
+                row["reward_component_sums"][name] for row in domain_records
+            ]))
+            for name in domain_records[0]["reward_component_sums"]
+        }
+        for domain, domain_records in sorted(grouped.items())
+    }
 
 
 def _training_signal_metrics(
@@ -335,6 +485,7 @@ def _training_signal_metrics(
     for task, episode in records:
         add("overall", episode)
         add(f"family:{task.functional_scenario}", episode)
+        add(f"logical_domain:{task.logical_domain_id}", episode)
 
     report = {}
     for name, values in sorted(buckets.items()):

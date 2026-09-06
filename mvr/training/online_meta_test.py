@@ -39,6 +39,7 @@ class OnlineEpisode:
     continuous: tuple[float, ...]
     outcome: Mapping[str, Any]
     concrete_scenario: ConcreteScenario
+    macro_records: tuple[Mapping[str, Any], ...] = ()
 
 
 @dataclass
@@ -251,9 +252,39 @@ class OnlineMetaTest:
                 scene.value.cpu(), reward, index + 1 == budget,
             ))
             episode_id = f"{task.task_id}:{episode_index}"
-            for block in _inner_learning_blocks(rollout.transitions):
+            blocks = _inner_learning_blocks(rollout.transitions)
+            macro_records: list[Mapping[str, Any]] = []
+            start_micro_step = 0
+            for macro_index, block in enumerate(blocks):
                 first = block[0]
                 last = block[-1]
+                macro_reward = float(sum(
+                    inner_gamma ** offset * float(row["reward_inner"])
+                    for offset, row in enumerate(block)
+                ))
+                event_occurred = any(
+                    bool(row["info"].get("event_just_captured", False))
+                    and (
+                        bool(row["info"].get("valid_target_collision", False))
+                        or bool(row["info"].get(
+                            "valid_critical_near_miss", False
+                        ))
+                    )
+                    for row in block
+                )
+                macro_records.append({
+                    "macro_index": macro_index,
+                    "start_micro_step": start_micro_step,
+                    "duration_steps": len(block),
+                    "raw_policy_action": first["raw_policy_action"].tolist(),
+                    "micro_reward_sum": float(sum(
+                        float(row["reward_inner"]) for row in block
+                    )),
+                    "macro_reward_discounted": macro_reward,
+                    "bootstrap_discount": float(inner_gamma ** len(block)),
+                    "event_occurred": bool(event_occurred),
+                    "termination_reason": last["info"].get("termination_reason"),
+                })
                 result.inner_transitions.append(InnerTransition(
                     episode_id=episode_id,
                     task_id=task.task_id,
@@ -261,20 +292,8 @@ class OnlineMetaTest:
                     geometry_hash=task.geometry_hash,
                     state=first["state"],
                     action=first["raw_policy_action"],
-                    reward=float(sum(
-                        inner_gamma ** offset * float(row["reward_inner"])
-                        for offset, row in enumerate(block)
-                    )),
-                    event_occurred=any(
-                        bool(row["info"].get("event_just_captured", False))
-                        and (
-                            bool(row["info"].get("valid_target_collision", False))
-                            or bool(row["info"].get(
-                                "valid_critical_near_miss", False
-                            ))
-                        )
-                        for row in block
-                    ),
+                    reward=macro_reward,
+                    event_occurred=bool(event_occurred),
                     next_state=last["next_state"],
                     done=last["done"],
                     duration_steps=len(block),
@@ -286,12 +305,13 @@ class OnlineMetaTest:
                     candidate_index=int(scene.candidate_index.item()),
                     continuous=tuple(float(value) for value in scene.continuous.squeeze(0).tolist()),
                 ))
+                start_micro_step += len(block)
             result.episodes.append(OnlineEpisode(
                 episode_id, rollout, token.detach().cpu(), latent.detach().cpu().clone(),
                 latent_after.detach().cpu().clone(), tokens, candidates,
                 dict(task.logical_domain_bounds), task.logical_parameter_mask,
                 int(scene.candidate_index.item()), tuple(float(value) for value in scene.continuous.squeeze(0).tolist()), outcome,
-                concrete,
+                concrete, tuple(macro_records),
             ))
             latent = latent_after
         result.outer_rollout.finish()

@@ -67,6 +67,15 @@ def test_online_adaptation_obeys_k_shot_budget_and_freezes_after_support() -> No
         )
         np.testing.assert_allclose(replay_row.next_state, block[-1]["next_state"])
         assert replay_row.done is block[-1]["done"]
+    macro = first_episode.macro_records
+    assert len(macro) == len(blocks)
+    assert [row["duration_steps"] for row in macro] == [len(block) for block in blocks]
+    assert [row["start_micro_step"] for row in macro] == list(
+        np.cumsum([0] + [len(block) for block in blocks[:-1]])
+    )
+    for summary, replay_row in zip(macro, replay_rows):
+        assert summary["macro_reward_discounted"] == replay_row.reward
+        assert summary["bootstrap_discount"] == 0.99 ** summary["duration_steps"]
     adapted = build_online(model, task, 1, DEFAULT_FAILURE_CRITERIA).run(
         task, 3, posterior_support_limit=2
     )

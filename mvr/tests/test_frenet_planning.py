@@ -90,8 +90,12 @@ def test_length_and_control_points_are_significant_and_deterministic() -> None:
 def test_non_replan_steps_lock_shape_but_accept_longitudinal_action() -> None:
     contract = _contract()
     planner = FrenetPathPlanner(contract)
-    first = planner.apply(np.asarray((1.0, 0.5, -0.5, -1.0)), True, 10.0)
-    second = planner.apply(np.asarray((-1.0, -1.0, 1.0, 0.75)), True, 11.0)
+    first = planner.apply(
+        np.asarray((1.0, 0.5, -0.5, -1.0)), True, 10.0, 10.0, 0.0, 0.1
+    )
+    second = planner.apply(
+        np.asarray((-1.0, -1.0, 1.0, 0.75)), True, 11.0, 10.0, 0.0, 0.1
+    )
     np.testing.assert_allclose(second[:3], first[:3])
     assert second[3] == pytest.approx(0.75)
 
@@ -99,6 +103,8 @@ def test_non_replan_steps_lock_shape_but_accept_longitudinal_action() -> None:
 def test_planner_projects_endpoint_ahead_of_current_vehicle() -> None:
     contract = _contract()
     planner = FrenetPathPlanner(contract)
-    action = planner.apply(np.asarray((-1.0, 0.0, 0.0, 0.0)), True, 45.0)
+    action = planner.apply(
+        np.asarray((-1.0, 0.0, 0.0, 0.0)), True, 45.0, 10.0, 0.0, 0.1
+    )
     decoded = decode_frenet_path(contract, action[:3])
     assert decoded.end_s_m >= 57.0 - 1e-6

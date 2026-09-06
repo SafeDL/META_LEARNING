@@ -71,12 +71,12 @@ def test_frenet_sac_action_uses_full_jerk_limited_longitudinal_control() -> None
         controller = FrenetSACAdversaryController(episode, "cutin", schedule)
         try:
             target = np.asarray((0.25, -0.5, 0.75, -0.5), dtype=np.float32)
-            planner_action, action = controller.action(target)
+            control = controller.action(target)
         finally:
             controller.destroy()
-        np.testing.assert_allclose(planner_action[:3], 0.0)
-        assert action[0] == pytest.approx(0.0)
-        assert action[1] == pytest.approx(-0.15 / 6.0)
+        np.testing.assert_allclose(control.planner_action[:3], 0.0)
+        assert control.raw_vehicle_action[0] == pytest.approx(0.0)
+        assert control.projected_vehicle_action[1] == pytest.approx(-0.15 / 6.0)
     finally:
         episode.env.close()
 
@@ -160,15 +160,9 @@ def test_inner_policy_action_is_held_between_planner_decisions() -> None:
                 row["raw_policy_action"], previous["raw_policy_action"]
             )
 
-    started = INNER_STATE_FIELDS.index("maneuver_started")
-    start_remaining = INNER_STATE_FIELDS.index("maneuver_start_remaining_m")
     inactive_decisions = [
-        index
-        for index in decisions
-        if not (
-            rollout.transitions[index]["state"][started] == 1.0
-            and rollout.transitions[index]["state"][start_remaining] <= 0.0
-        )
+        index for index in decisions
+        if not rollout.transitions[index]["info"]["planner_active"]
     ]
     active_decisions = [index for index in decisions if index not in inactive_decisions]
     assert all(index % 5 == 0 for index in inactive_decisions)

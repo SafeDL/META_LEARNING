@@ -21,7 +21,10 @@ def test_interaction_prior_visits_one_task_per_episode_in_balanced_epochs(monkey
         "_update_inner",
         lambda *args: updates.append(None),
     )
-    monkeypatch.setattr(trainers, "_inner_metrics", lambda *args: {})
+    monkeypatch.setattr(
+        trainers, "_inner_metrics",
+        lambda *args, **kwargs: {"reward_episode_records": []},
+    )
     config = {
         "seed": 11,
         "training": {"step_budget": 60},
@@ -62,7 +65,10 @@ def test_interaction_prior_uses_random_actions_before_warmup_updates(monkeypatch
         "_update_inner",
         lambda *args: updates.append(None),
     )
-    monkeypatch.setattr(trainers, "_inner_metrics", lambda *args: {})
+    monkeypatch.setattr(
+        trainers, "_inner_metrics",
+        lambda *args, **kwargs: {"reward_episode_records": []},
+    )
     config = {
         "seed": 11,
         "training": {"step_budget": 60},

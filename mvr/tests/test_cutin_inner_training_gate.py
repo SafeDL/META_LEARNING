@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from mvr.scripts.evaluate_cutin_inner_training_gate import summarize_records
+from mvr.scripts.evaluate_cutin_inner_training_gate import (
+    paired_cases,
+    summarize_records,
+)
+from mvr.training.pipeline import load_config
 
 
 def _record(domain: str, *, valid: bool = True, event: bool = False) -> dict[str, object]:
@@ -56,3 +60,22 @@ def test_gate_fails_domain_below_minimum_valid_rate() -> None:
     assert report["domains"]["balanced"]["valid_rate"] == 1.0 / 3.0
     assert report["domains"]["balanced"]["passed"] is False
     assert report["status"] == "partially_passed"
+
+
+def test_paired_cases_cover_three_fixed_cases_per_training_domain() -> None:
+    config, taskbook, _ = load_config("mvr/configs/cutin_inner.yaml")
+
+    cases = paired_cases(config, taskbook)
+
+    assert len(cases) == 9
+    assert {case["logical_domain_id"] for case in cases} == {
+        "close_closing_early",
+        "balanced_interaction",
+        "late_tight_cutin",
+    }
+    for domain in {case["logical_domain_id"] for case in cases}:
+        rows = [case for case in cases if case["logical_domain_id"] == domain]
+        assert [row["source"] for row in rows] == [
+            "centre", "domain_sample_1", "domain_sample_2",
+        ]
+        assert len({row["episode_seed"] for row in rows}) == 3
