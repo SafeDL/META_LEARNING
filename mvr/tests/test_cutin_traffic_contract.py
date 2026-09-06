@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -11,6 +13,7 @@ from mvr.scenario.registry import load_adapters
 from mvr.scenario.semantics import (
     ScenarioActionAdapter,
     ScenarioSemanticMonitor,
+    SemanticState,
     quintic_smoothstep,
     quintic_smoothstep_derivative,
     quintic_smoothstep_second_derivative,
@@ -244,11 +247,73 @@ def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
             episode.adversary_route,
             episode.sut_route,
         )
-        state = extractor(episode.adversary, episode.sut, schedule)
+        state = extractor(
+            episode.adversary,
+            episode.sut,
+            schedule,
+            valid_near_miss_seen=False,
+        )
         assert state.shape == (PhysicalStateExtractor.dimension,)
         assert state[INNER_STATE_FIELDS.index("maneuver_started")] == 1.0
     finally:
         episode.env.close()
+
+
+def test_invalid_near_miss_does_not_occupy_the_event_latch() -> None:
+    monitor = ScenarioSemanticMonitor(
+        SimpleNamespace(), "cutin", SimpleNamespace()
+    )
+
+    assert not monitor.capture_event("near_miss", {})
+    assert monitor.info()["event_kind"] is None
+    assert not monitor.info()["event_just_captured"]
+
+    monitor._state = SemanticState(True, True, False, True, True, True)
+    assert monitor.capture_event("near_miss", {})
+    assert monitor.info()["event_semantic_valid"]
+    assert monitor.info()["event_execution_valid"]
+    assert monitor.valid_near_miss_seen
+    assert not monitor.capture_event("near_miss", {})
+    assert monitor.capture_event("collision", {})
+    assert monitor.info()["event_kind"] == "collision"
+
+
+def test_execution_invalid_near_miss_does_not_occupy_the_event_latch() -> None:
+    monitor = ScenarioSemanticMonitor(
+        SimpleNamespace(), "cutin", SimpleNamespace()
+    )
+    monitor._state = SemanticState(True, True, False, True, True, True)
+
+    assert not monitor.capture_event("near_miss", {"wrong_route": True})
+    assert monitor.info()["event_kind"] is None
+    assert not monitor.valid_near_miss_seen
+
+
+def test_runner_next_state_matches_the_following_actor_state() -> None:
+    episode = _episode()
+    try:
+        rollout = HierarchicalRunner(max_steps=60).rollout(
+            episode,
+            "cutin",
+            lambda _state: np.zeros(4, dtype=np.float32),
+        )
+    finally:
+        episode.env.close()
+
+    assert len(rollout.transitions) > 1
+    started = INNER_STATE_FIELDS.index("maneuver_started")
+    assert any(row["state"][started] == 0.0 for row in rollout.transitions)
+    assert any(row["state"][started] == 1.0 for row in rollout.transitions)
+    for previous, following in zip(
+        rollout.transitions, rollout.transitions[1:]
+    ):
+        np.testing.assert_allclose(
+            previous["next_state"], following["state"]
+        )
+    assert all(
+        "raw_near_miss_candidate" in row["info"]
+        for row in rollout.transitions
+    )
 
 
 def test_inner_state_includes_projector_acceleration_and_vehicle_steering() -> None:
@@ -263,21 +328,32 @@ def test_inner_state_includes_projector_acceleration_and_vehicle_steering() -> N
         controller = FrenetSACAdversaryController(episode, "cutin", schedule)
         try:
             initial = extractor(
-                episode.adversary, episode.sut, schedule, controller.actuator_state()
+                episode.adversary,
+                episode.sut,
+                schedule,
+                controller.actuator_state(),
+                valid_near_miss_seen=False,
             )
             controller.action(np.asarray((0.0, 0.0, 0.0, -1.0), dtype=np.float32))
             updated = extractor(
-                episode.adversary, episode.sut, schedule, controller.actuator_state()
+                episode.adversary,
+                episode.sut,
+                schedule,
+                controller.actuator_state(),
+                valid_near_miss_seen=True,
             )
         finally:
             controller.destroy()
 
         acceleration = INNER_STATE_FIELDS.index("executed_longitudinal_acceleration")
         steering = INNER_STATE_FIELDS.index("executed_steering")
-        assert initial.shape == (30,)
+        near_miss_seen = INNER_STATE_FIELDS.index("valid_near_miss_seen")
+        assert initial.shape == (31,)
         assert initial[acceleration] == pytest.approx(0.0)
+        assert initial[near_miss_seen] == pytest.approx(0.0)
         assert updated[acceleration] == pytest.approx(-0.15 / 6.0)
         assert updated[steering] == pytest.approx(float(episode.adversary.steering))
+        assert updated[near_miss_seen] == pytest.approx(1.0)
 
         rollout = HierarchicalRunner(max_steps=1).rollout(
             episode,

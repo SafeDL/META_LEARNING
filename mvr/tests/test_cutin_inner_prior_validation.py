@@ -31,6 +31,8 @@ def _record(case_index: int, policy: str, *, failure: bool, ttc: float) -> dict[
         "critical_near_miss": False,
         "min_ttc": ttc,
         "min_distance": 8.0,
+        "raw_near_miss_candidate_steps": 2,
+        "valid_event_capture_steps": int(failure),
     }
 
 
@@ -59,4 +61,6 @@ def test_summary_and_render_selection_use_paired_failure_contracts() -> None:
 
     assert report["failure_count"] == 1
     assert report["failure_rate"] == 0.5
+    assert report["raw_near_miss_candidate_steps"] == 4
+    assert report["valid_event_capture_steps"] == 1
     assert select_render_case_ids(rows) == [0, 1]

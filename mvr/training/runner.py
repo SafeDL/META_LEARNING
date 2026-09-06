@@ -79,6 +79,7 @@ class HierarchicalRunner:
                 state = state_extractor(
                     episode.adversary, episode.sut, schedule,
                     controller.actuator_state(),
+                    valid_near_miss_seen=monitor.valid_near_miss_seen,
                 )
                 reference_before = schedule.maneuver_reference()
                 planner_active = bool(
@@ -113,6 +114,7 @@ class HierarchicalRunner:
                 planner_action, requested_action = controller.action(raw_action)
                 shielded = shield.project(requested_action)
                 _, env_reward, terminated, truncated, info = env.step(shielded.action)
+                schedule.update()
                 controller.observe_environment(info)
                 info = {**dict(info), **shield.observe(shielded)}
                 reference = schedule.maneuver_reference()
@@ -181,6 +183,7 @@ class HierarchicalRunner:
                     and 0.0 < distance < self.criteria.distance_m
                     and ttc < self.criteria.ttc_s
                 )
+                info["raw_near_miss_candidate"] = bool(near_miss)
                 monitor.capture_event(
                     "collision" if target_collision else "near_miss" if near_miss else None,
                     info,
@@ -255,6 +258,7 @@ class HierarchicalRunner:
                     "next_state": state_extractor(
                         episode.adversary, episode.sut, schedule,
                         controller.actuator_state(),
+                        valid_near_miss_seen=monitor.valid_near_miss_seen,
                     ),
                     "done": done,
                     "info": info,

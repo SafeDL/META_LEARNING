@@ -214,6 +214,7 @@ class ScenarioSemanticMonitor:
         self._event_semantic_valid = False
         self._event_execution_valid = False
         self._event_just_captured = False
+        self._valid_near_miss_seen = False
         self._state = SemanticState(False, False, False, False, False, False)
 
     def _target_lane(self) -> Any | None:
@@ -334,6 +335,9 @@ class ScenarioSemanticMonitor:
                 semantic = semantic and self._state.challenge_phase_active
         else:
             semantic = self._state.challenge_phase_active
+        execution_valid = self._execution_valid(info)
+        if kind == "near_miss" and not (semantic and execution_valid):
+            return False
         # A near-miss is recorded once but does not end the route-completion
         # test.  A later target collision is the decisive event and replaces
         # the earlier near-miss latch.
@@ -343,9 +347,15 @@ class ScenarioSemanticMonitor:
             return False
         self._event_kind = kind
         self._event_semantic_valid = bool(semantic)
-        self._event_execution_valid = self._execution_valid(info)
+        self._event_execution_valid = execution_valid
         self._event_just_captured = True
+        if kind == "near_miss":
+            self._valid_near_miss_seen = True
         return True
+
+    @property
+    def valid_near_miss_seen(self) -> bool:
+        return self._valid_near_miss_seen
 
     def info(self) -> dict[str, Any]:
         return {
@@ -359,4 +369,5 @@ class ScenarioSemanticMonitor:
             "event_semantic_valid": self._event_semantic_valid,
             "event_execution_valid": self._event_execution_valid,
             "event_just_captured": self._event_just_captured,
+            "valid_near_miss_seen": self._valid_near_miss_seen,
         }

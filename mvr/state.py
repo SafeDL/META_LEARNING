@@ -38,6 +38,7 @@ INNER_STATE_FIELDS = (
     "maneuver_replan_due",
     "executed_longitudinal_acceleration",
     "executed_steering",
+    "valid_near_miss_seen",
 )
 
 
@@ -48,7 +49,7 @@ class PhysicalStateExtractor:
     scales = np.asarray(
         (100.0, 20.0, np.pi, 30.0, 30.0, 30.0, 100.0, 1.0, 1.0, 15.0, 1.0, 8.0, np.pi, 1.0,
          8.0, np.pi, 1.0, 60.0, 0.2, 20.0, 100.0, 5.0, 4.0,
-         1.0, 1.0, 1.0, 1.0, 1.0, 6.0, 1.0),
+         1.0, 1.0, 1.0, 1.0, 1.0, 6.0, 1.0, 1.0),
         dtype=np.float32,
     )
 
@@ -93,6 +94,8 @@ class PhysicalStateExtractor:
         sut: Any,
         schedule: Any | None = None,
         actuator_state: tuple[float, float] | None = None,
+        *,
+        valid_near_miss_seen: bool,
     ) -> np.ndarray:
         if self._adversary_route is None or self._sut_route is None:
             raise RuntimeError("physical state extractor must be reset with an executable layout")
@@ -198,5 +201,6 @@ class PhysicalStateExtractor:
             replan_due,
             executed_acceleration,
             executed_steering,
+            float(valid_near_miss_seen),
         ), dtype=np.float32)
         return np.clip(np.nan_to_num(values / self.scales, nan=0.0, posinf=1.0, neginf=-1.0), -1.0, 1.0)

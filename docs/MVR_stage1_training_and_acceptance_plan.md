@@ -34,6 +34,9 @@ Cut-in uses vehicle-footprint lane intrusion, Merge uses the branch/mainline
 conflict corridor, and Roundabout uses route-conflict windows. Collision takes
 precedence over near-miss; an event bonus is captured only once.
 
+The Inner observation therefore includes the persistent
+`valid_near_miss_seen` bit, so the one-shot near-miss bonus remains Markov.
+
 ## Training
 
 `interaction_prior` samples the training task distribution and learns a shared

@@ -265,6 +265,16 @@ class OnlineMetaTest:
                         inner_gamma ** offset * float(row["reward_inner"])
                         for offset, row in enumerate(block)
                     )),
+                    event_occurred=any(
+                        bool(row["info"].get("event_just_captured", False))
+                        and (
+                            bool(row["info"].get("valid_target_collision", False))
+                            or bool(row["info"].get(
+                                "valid_critical_near_miss", False
+                            ))
+                        )
+                        for row in block
+                    ),
                     next_state=last["next_state"],
                     done=last["done"],
                     duration_steps=len(block),

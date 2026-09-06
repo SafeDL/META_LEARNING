@@ -57,6 +57,14 @@ def test_online_adaptation_obeys_k_shot_budget_and_freezes_after_support() -> No
             0.99 ** index * row["reward_inner"]
             for index, row in enumerate(block)
         )
+        assert replay_row.event_occurred is any(
+            bool(row["info"].get("event_just_captured", False))
+            and (
+                bool(row["info"].get("valid_target_collision", False))
+                or bool(row["info"].get("valid_critical_near_miss", False))
+            )
+            for row in block
+        )
         np.testing.assert_allclose(replay_row.next_state, block[-1]["next_state"])
         assert replay_row.done is block[-1]["done"]
     adapted = build_online(model, task, 1, DEFAULT_FAILURE_CRITERIA).run(

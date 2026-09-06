@@ -171,7 +171,7 @@ class AdversarialSAC(nn.Module):
         features: torch.Tensor,
         *,
         actions: torch.Tensor | None = None,
-        rewards: torch.Tensor | None = None,
+        event_mask: torch.Tensor | None = None,
         event_action_weight: float = 0.0,
         context: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -186,10 +186,11 @@ class AdversarialSAC(nn.Module):
                 self.critic1(features, sampled), self.critic2(features, sampled)
             )
             actor = (self.alpha.detach() * logprob - q_value).mean()
-            if event_action_weight > 0.0 and actions is not None and rewards is not None:
-                # Shaping is capped below one; only captured valid events
-                # include the shared terminal bonus above this threshold.
-                event_mask = rewards >= 1.0
+            if (
+                event_action_weight > 0.0
+                and actions is not None
+                and event_mask is not None
+            ):
                 if bool(event_mask.any()):
                     mean = self.actor.distribution(features).mean
                     if context_shift is not None:

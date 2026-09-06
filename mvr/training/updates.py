@@ -205,6 +205,9 @@ def update_inner_sac(
     latent = torch.stack(latent_rows)
     action = torch.as_tensor(np.stack([row.action for row in rows]), dtype=torch.float32, device=device)
     reward = torch.as_tensor([row.reward for row in rows], dtype=torch.float32, device=device)
+    event_mask = torch.as_tensor(
+        [row.event_occurred for row in rows], dtype=torch.bool, device=device
+    )
     done = torch.as_tensor([row.done for row in rows], dtype=torch.bool, device=device)
     duration_steps = torch.as_tensor(
         [row.duration_steps for row in rows], dtype=torch.float32, device=device
@@ -243,7 +246,7 @@ def update_inner_sac(
     actor, alpha = model.inner_sac.actor_alpha_losses(
         features,
         actions=action,
-        rewards=reward,
+        event_mask=event_mask,
         event_action_weight=event_action_weight,
         context=latent.detach(),
     )

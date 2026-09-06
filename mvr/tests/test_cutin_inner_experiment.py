@@ -12,6 +12,7 @@ from mvr.scenario.registry import load_geometry_catalog
 from mvr.scripts.evaluate_cutin_inner_validation import _support_effects
 from mvr.scenario.task_spec import CUTIN_LOGICAL_PARAMETER_NAMES, ScenarioMiningTaskSpec
 from mvr.scenario.taskbook import load_taskbook
+from mvr.state import PhysicalStateExtractor
 
 
 def _task(
@@ -90,7 +91,11 @@ def test_cutin_inner_config_selects_one_training_task() -> None:
     assert config["context_meta"]["event_sample_fraction"] == 0.5
     assert config["context_meta"]["event_action_weight"] == 0.5
     assert config["context_meta"]["gamma"] == 0.99
-    assert config["model"]["state_dim"] == 30
+    base_config = yaml.safe_load(
+        Path("mvr/configs/mvr.yaml").read_text(encoding="utf-8")
+    )
+    assert config["model"]["state_dim"] == PhysicalStateExtractor.dimension
+    assert base_config["model"]["state_dim"] == PhysicalStateExtractor.dimension
     assert settings["freeze_static_representation_during_interaction_prior"] is True
 
 

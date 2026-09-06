@@ -74,6 +74,7 @@ def _record(
     episode: Any,
 ) -> dict[str, Any]:
     outcome = episode.outcome
+    transitions = episode.rollout.transitions
     return {
         "case_index": case_index,
         "policy": policy,
@@ -90,7 +91,19 @@ def _record(
         "termination_reason": outcome["termination_reason"],
         "cutin_completed": any(
             bool(row["info"].get("semantic_maneuver_completed", False))
-            for row in episode.rollout.transitions
+            for row in transitions
+        ),
+        "raw_near_miss_candidate_steps": sum(
+            bool(row["info"].get("raw_near_miss_candidate", False))
+            for row in transitions
+        ),
+        "valid_event_capture_steps": sum(
+            bool(row["info"].get("event_just_captured", False))
+            and (
+                bool(row["info"].get("valid_target_collision", False))
+                or bool(row["info"].get("valid_critical_near_miss", False))
+            )
+            for row in transitions
         ),
     }
 
@@ -110,6 +123,12 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, float | int]:
         "target_collision_count": sum(bool(row["target_collision"]) for row in rows),
         "critical_near_miss_count": sum(
             bool(row["critical_near_miss"]) for row in rows
+        ),
+        "raw_near_miss_candidate_steps": sum(
+            int(row["raw_near_miss_candidate_steps"]) for row in rows
+        ),
+        "valid_event_capture_steps": sum(
+            int(row["valid_event_capture_steps"]) for row in rows
         ),
     }
 

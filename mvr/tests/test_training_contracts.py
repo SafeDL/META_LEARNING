@@ -160,7 +160,7 @@ def test_sac_event_action_anchor_is_finite_and_keeps_critics_frozen() -> None:
     actor, _ = sac.actor_alpha_losses(
         torch.randn(4, 4),
         actions=torch.tensor([[-0.75, -0.75]] * 4),
-        rewards=torch.tensor([4.0, -0.1, -0.1, -0.1]),
+        event_mask=torch.tensor([True, False, False, False]),
         event_action_weight=2.0,
     )
     actor.backward()
@@ -172,24 +172,30 @@ def test_sac_event_action_anchor_is_finite_and_keeps_critics_frozen() -> None:
 def test_inner_replay_reserves_positive_event_transitions() -> None:
     replay = InnerReplay()
     for index in range(12):
-        replay.add(SimpleNamespace(episode_id=str(index), reward=1.0 if index < 4 else -0.1))
-
-    rows = replay.sample(8, positive_fraction=0.5)
-
-    assert len(rows) == 8
-    assert sum(float(row.reward) > 0.0 for row in rows) == 4
-
-
-def test_inner_replay_does_not_treat_dense_risk_shaping_as_an_event() -> None:
-    replay = InnerReplay()
-    for index in range(12):
         replay.add(SimpleNamespace(
-            episode_id=str(index), reward=2.0 if index < 2 else 0.5
+            episode_id=str(index),
+            reward=0.2 if index < 4 else 4.0,
+            event_occurred=index < 4,
         ))
 
     rows = replay.sample(8, positive_fraction=0.5)
 
-    assert sum(float(row.reward) >= 1.0 for row in rows) == 2
+    assert len(rows) == 8
+    assert sum(bool(row.event_occurred) for row in rows) == 4
+
+
+def test_inner_replay_uses_only_explicit_event_labels() -> None:
+    replay = InnerReplay()
+    for index in range(12):
+        replay.add(SimpleNamespace(
+            episode_id=str(index),
+            reward=2.0 if index < 6 else 0.5,
+            event_occurred=index >= 10,
+        ))
+
+    rows = replay.sample(8, positive_fraction=0.5)
+
+    assert sum(bool(row.event_occurred) for row in rows) == 2
 
 
 def test_training_signal_metrics_report_event_and_reward_density() -> None:

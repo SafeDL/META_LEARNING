@@ -147,6 +147,20 @@ def run(config_path: str, checkpoint_path: str) -> dict[str, Any]:
                 "min_ttc": float(episode.outcome["min_ttc"]),
                 "min_distance": float(episode.outcome["min_distance"]),
                 "termination_reason": episode.outcome["termination_reason"],
+                "raw_near_miss_candidate_steps": sum(
+                    bool(row["info"].get("raw_near_miss_candidate", False))
+                    for row in transitions
+                ),
+                "valid_event_capture_steps": sum(
+                    bool(row["info"].get("event_just_captured", False))
+                    and (
+                        bool(row["info"].get("valid_target_collision", False))
+                        or bool(row["info"].get(
+                            "valid_critical_near_miss", False
+                        ))
+                    )
+                    for row in transitions
+                ),
             })
 
     for row in rows:
