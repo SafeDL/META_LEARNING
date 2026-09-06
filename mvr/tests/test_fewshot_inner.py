@@ -96,28 +96,45 @@ def test_support_schedule_uses_distinct_nested_points_outside_query_pool() -> No
         assert torch.allclose(torch.as_tensor(left.continuous), torch.as_tensor(right.continuous))
 
 
-def test_actor_stops_context_gradient_but_critic_keeps_it() -> None:
+def test_actor_stops_representation_gradient_but_critic_keeps_it() -> None:
     model = TransferableScenarioMiner(state_dim=PhysicalStateExtractor.dimension, map_dim=8, latent_dim=4)
     support = torch.randn(1, 2, 128)
     mask = torch.ones(1, 2, dtype=torch.bool)
     latent, _ = model.infer_posterior(support, mask)
     state = torch.randn(1, PhysicalStateExtractor.dimension)
-    scene = torch.randn(1, 8)
+    bounds = {
+        "cutin_gap_at_start_m": (-0.2, 0.2),
+        "sut_initial_speed_mps": (-0.2, 0.2),
+        "relative_speed_mps": (-0.2, 0.2),
+        "cutin_start_progress": (-0.2, 0.2),
+        "cutin_start_time_s": (-0.2, 0.2),
+    }
+    scene = model.encode_task_structure(torch.randn(1, 8), bounds, (True,) * 5)
     concrete = torch.randn(1, 18)
 
-    actor_features = model.inner_features(state, scene, latent.detach(), concrete)
-    actor, _ = model.inner_sac.actor_alpha_losses(actor_features)
-    actor.backward()
+    actor_features = model.inner_features(
+        state, scene, latent.detach(), concrete
+    ).detach()
+    actor, alpha = model.inner_sac.actor_alpha_losses(actor_features)
+    (actor + alpha).backward()
     assert all(parameter.grad is None for parameter in model.context_encoder.parameters())
+    assert all(parameter.grad is None for parameter in model.task_structure_encoder.parameters())
+    assert all(parameter.grad is None for parameter in model.shared_feature_encoder.parameters())
+    assert any(parameter.grad is not None for parameter in model.inner_sac.actor.parameters())
+    assert model.inner_sac.log_alpha.grad is not None
 
     model.zero_grad(set_to_none=True)
-    critic_features = model.inner_features(state, scene, latent, concrete)
+    critic_latent, _ = model.infer_posterior(support, mask)
+    critic_scene = model.encode_task_structure(torch.randn(1, 8), bounds, (True,) * 5)
+    critic_features = model.inner_features(state, critic_scene, critic_latent, concrete)
     critic = model.inner_sac.critic_loss(
         critic_features, torch.zeros(1, 4), torch.zeros(1), critic_features.detach(),
         torch.ones(1, dtype=torch.bool),
     )
     critic.backward()
     assert any(parameter.grad is not None for parameter in model.context_encoder.parameters())
+    assert any(parameter.grad is not None for parameter in model.task_structure_encoder.parameters())
+    assert any(parameter.grad is not None for parameter in model.shared_feature_encoder.parameters())
 
 
 def test_concrete_candidate_changes_inner_features() -> None:

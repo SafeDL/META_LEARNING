@@ -10,9 +10,9 @@ import numpy as np
 
 
 DOMAIN_STYLES = {
-    "close_closing_early": ("Close-closing early", "#4477aa"),
-    "balanced_interaction": ("Balanced interaction", "#228833"),
-    "late_tight_cutin": ("Late-tight cut-in", "#cc6677"),
+    "close_closing_early": ("Close-closing early", "#4477aa", "-"),
+    "balanced_interaction": ("Balanced interaction", "#228833", "--"),
+    "late_tight_cutin": ("Late-tight cut-in", "#cc6677", "-."),
 }
 
 
@@ -58,18 +58,24 @@ def run(manifest_path: str, output_prefix: str) -> None:
         )
 
     figure, axis = plt.subplots(figsize=(6.5, 3.8))
-    for domain, (label, color) in DOMAIN_STYLES.items():
+    for domain, (label, color, linestyle) in DOMAIN_STYLES.items():
         values = np.asarray(grouped[domain], dtype=float)
         episodes = np.arange(1, len(values) + 1)
         trend = _trailing_mean(values, window=8)
         axis.plot(episodes, values, color=color, alpha=0.15, linewidth=0.8)
-        axis.plot(episodes, trend, color=color, linewidth=2.0, label=label)
+        axis.plot(
+            episodes, trend, color=color, linestyle=linestyle, linewidth=2.0,
+            label=label,
+        )
     axis.spines["top"].set_visible(False)
     axis.spines["right"].set_visible(False)
     axis.grid(axis="y", alpha=0.20, linewidth=0.6)
     axis.set_xlabel("Training episode")
     axis.set_ylabel("Inner episodic return")
-    axis.legend(frameon=False)
+    axis.legend(
+        frameon=False, fontsize=8, ncol=3, loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+    )
     figure.tight_layout()
     output = Path(output_prefix)
     output.parent.mkdir(parents=True, exist_ok=True)

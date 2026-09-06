@@ -84,9 +84,11 @@ def test_cutin_inner_config_selects_one_training_task() -> None:
     }
     assert prior["episodes_per_task"] == 40
     assert prior["warmup_episodes"] == 5
-    assert prior["event_sample_fraction"] == 0.5
-    assert prior["event_action_weight"] == 0.5
+    assert prior["event_sample_fraction"] == 0.25
+    assert prior["event_action_weight"] == 0.0
     assert prior["gamma"] == 0.99
+    assert config["context_meta"]["event_sample_fraction"] == 0.5
+    assert config["context_meta"]["event_action_weight"] == 0.5
     assert config["context_meta"]["gamma"] == 0.99
     assert config["model"]["state_dim"] == 30
     assert settings["freeze_static_representation_during_interaction_prior"] is True

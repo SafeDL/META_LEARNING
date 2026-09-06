@@ -43,6 +43,60 @@ def _centre_action(task: Any) -> NormalizedScenarioAction:
     )
 
 
+def _rate(rows: list[dict[str, Any]], key: str) -> float:
+    return float(np.mean([float(row[key]) for row in rows]))
+
+
+def summarize_records(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Apply the Stage 1 shared-policy gate to each Logical Domain."""
+    if not rows:
+        raise ValueError("training gate requires at least one evaluation record")
+    gate = {
+        "minimum_valid_rate_per_domain": 0.75,
+        "minimum_valid_event_count_per_domain": 1,
+    }
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(str(row["logical_domain_id"]), []).append(row)
+
+    domains = {}
+    for domain, domain_rows in sorted(grouped.items()):
+        valid_count = sum(bool(row["valid"]) for row in domain_rows)
+        event_count = sum(bool(row["event"]) for row in domain_rows)
+        summary = {
+            "cases": len(domain_rows),
+            "valid_count": valid_count,
+            "event_count": event_count,
+            "valid_rate": _rate(domain_rows, "valid"),
+            "event_rate": _rate(domain_rows, "event"),
+            "cutin_path_or_event_rate": _rate(domain_rows, "cutin_path_or_event"),
+        }
+        summary["passed"] = bool(
+            summary["valid_rate"] >= gate["minimum_valid_rate_per_domain"]
+            and event_count >= gate["minimum_valid_event_count_per_domain"]
+        )
+        domains[domain] = summary
+
+    passed_domain_count = sum(summary["passed"] for summary in domains.values())
+    total_domain_count = len(domains)
+    passed = passed_domain_count == total_domain_count
+    return {
+        "gate": gate,
+        "summary": {
+            "valid_rate": _rate(rows, "valid"),
+            "cutin_path_or_event_rate": _rate(rows, "cutin_path_or_event"),
+            "valid_event_rate": _rate(rows, "event"),
+        },
+        "domains": domains,
+        "passed_domain_count": passed_domain_count,
+        "total_domain_count": total_domain_count,
+        "status": "passed" if passed else (
+            "partially_passed" if passed_domain_count else "failed"
+        ),
+        "passed": passed,
+    }
+
+
 def run(config_path: str, checkpoint_path: str) -> dict[str, Any]:
     config, taskbook, device = load_config(config_path)
     checkpoint = HierarchicalCheckpoint.load(
@@ -102,20 +156,7 @@ def run(config_path: str, checkpoint_path: str) -> dict[str, Any]:
         # any failure or semantic criterion.
         row["cutin_path_or_event"] = bool(row["cutin_completed"] or row["event"])
 
-    def rate(key: str) -> float:
-        return float(np.mean([float(row[key]) for row in rows]))
-
-    gate = {
-        "minimum_valid_rate": 0.75,
-        "minimum_cutin_path_or_event_rate": 0.75,
-        "minimum_valid_event_rate": 1.0 / len(rows),
-    }
-    summary = {
-        "valid_rate": rate("valid"),
-        "cutin_path_or_event_rate": rate("cutin_path_or_event"),
-        "valid_event_rate": rate("event"),
-    }
-    passed = all(summary[name.removeprefix("minimum_")] >= threshold for name, threshold in gate.items())
+    report = summarize_records(rows)
     return {
         "scope": {
             "functional_scenario": "cutin",
@@ -124,9 +165,7 @@ def run(config_path: str, checkpoint_path: str) -> dict[str, Any]:
             "test_split_accessed": False,
         },
         "checkpoint_stage": checkpoint.stage,
-        "gate": gate,
-        "summary": summary,
-        "passed": passed,
+        **report,
         "records": rows,
     }
 

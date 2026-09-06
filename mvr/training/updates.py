@@ -237,7 +237,9 @@ def update_inner_sac(
     optimizer.step()
 
     maps, concrete = _concrete_inputs(model, rows)
-    features = model.inner_features(states, maps, latent.detach(), concrete)
+    features = model.inner_features(
+        states, maps, latent.detach(), concrete
+    ).detach()
     actor, alpha = model.inner_sac.actor_alpha_losses(
         features,
         actions=action,

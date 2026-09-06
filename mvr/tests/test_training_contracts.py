@@ -11,6 +11,7 @@ from mvr.model import TransferableScenarioMiner
 from mvr.state import PhysicalStateExtractor
 from mvr.policy.adversarial_sac import AdversarialSAC, _Actor
 from mvr.scripts.plot_inner_sac_training import (
+    DOMAIN_STYLES,
     _recorded_stages,
     _trailing_mean,
     run as plot_training_curve,
@@ -231,6 +232,7 @@ def test_publication_curve_uses_domain_groups_and_trailing_mean(tmp_path: Path) 
         _trailing_mean(np.asarray([1.0, 3.0, 5.0]), window=2),
         np.asarray([1.0, 2.0, 4.0]),
     )
+    assert {style[2] for style in DOMAIN_STYLES.values()} == {"-", "--", "-."}
     domains = (
         "close_closing_early",
         "balanced_interaction",

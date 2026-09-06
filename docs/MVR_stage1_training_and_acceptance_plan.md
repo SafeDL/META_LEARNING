@@ -42,9 +42,10 @@ task-local support/query groups. Support and query use different concrete
 episodes. The group-level context replay stores support episodes once; query
 transitions refer to them by group ID.
 
-The critic and posterior/outcome objectives update the context encoder. The
-actor receives a stop-gradient latent, preventing actor optimization from
-arbitrarily distorting the posterior.
+The critic and posterior/outcome objectives update the context encoder and
+shared task/feature representation. The actor receives stop-gradient latent
+and shared features, preventing actor optimization from arbitrarily
+distorting either the posterior or shared representation.
 
 Training uses semantic-gated dense TTC/distance/closing-speed shaping, valid
 event reward, residual energy cost, shield cost and invalidity cost. This is a
