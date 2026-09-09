@@ -63,3 +63,10 @@ topology OOD in this implementation.
 conda run -n metadrive python -m pytest mvr/tests -q
 conda run -n metadrive python -m compileall -q mvr
 ```
+
+## DIVA-Mine Cut-in
+
+The DIVA implementation is isolated in `mvr/diva/`; command entry points keep
+the `diva` prefix under `mvr/scripts/`. Its active physical scenario contract,
+configuration, execution order and result layout are documented in
+[`docs/DIVA_Mine_CutIn_Technical_Design.md`](../docs/DIVA_Mine_CutIn_Technical_Design.md).

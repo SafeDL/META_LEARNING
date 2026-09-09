@@ -11,8 +11,8 @@ def test_concrete_scenario_reconstructs_the_outer_action() -> None:
         task.geometry_id, task.geometry_hash, task.geometry_seed, "main_conflict", "merge:zone", {
             "adversary_distance_to_conflict_m": 2.0,
             "sut_distance_to_conflict_m": 3.0,
-            "adversary_initial_speed_mps": 8.0,
-            "sut_initial_speed_mps": 9.0,
+            "relative_speed_mps": 8.0,
+            "ego_initial_speed_mps": 9.0,
         }, "policy-hash", (0.1, -0.2, 0.3, -0.4, 0.0),
     )
     action = scenario.replay_action(mvr_parameter_spaces()["merge"])
@@ -30,8 +30,8 @@ def test_concrete_scenario_replay_preserves_the_normalized_outer_action() -> Non
         {
             "adversary_distance_to_conflict_m": 99.0,
             "sut_distance_to_conflict_m": 2.0,
-            "adversary_initial_speed_mps": 11.0,
-            "sut_initial_speed_mps": 9.0,
+            "relative_speed_mps": 11.0,
+            "ego_initial_speed_mps": 9.0,
         },
         "policy-hash",
         (-0.8, 0.7, -0.2, 0.4, 0.0),

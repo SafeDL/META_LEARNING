@@ -1,0 +1,40 @@
+schema: diva_mine_cutin_constant_speed_physical
+seed: 11
+taskbook: mvr/configs/taskbook.json
+device: cuda
+study:
+  family: cutin
+  geometry_id: cutin-g01
+  logical_domain_id: cutin_interaction_core
+  source_sut_refs: [idm_cautious, idm_defensive, idm_normal, idm_assertive]
+  validation_sut_ref: idm_fast_small_gap
+  test_sut_ref: idm_late_response
+execution:
+  runner_step_budget: 720
+  environment_horizon: 720
+source_bank:
+  anchors_per_candidate: 24
+  seeds: [11]
+  seed_sensitivity_probe_anchors: 16
+  seed_sensitivity_extra_seeds: [22, 33]
+prior:
+  rank_candidates: [1, 2]
+  noise_floor_var: 0.02
+  gp_fit_steps: 100
+validity:
+  bandwidth: 0.35
+  power: 2.0
+diagnostic:
+  boundary_floor_eta: 0.20
+mining:
+  ucb_beta: 0.50
+  novelty_floor: 0.25
+  novelty_bandwidth: 0.50
+candidate_pool:
+  per_candidate: 4096
+  seed: 1701
+evaluation:
+  support_shots: [0, 1, 2, 4]
+  fixed_query_cases: 8
+  total_episode_budget: 20
+  algorithm_seeds: [1701, 1702, 1703]

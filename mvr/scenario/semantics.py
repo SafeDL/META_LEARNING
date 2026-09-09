@@ -16,9 +16,6 @@ from .frenet import (
 from .route_geometry import RoutePolyline
 
 
-CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2 = 0.6
-
-
 def quintic_smoothstep(progress: float | np.ndarray) -> float | np.ndarray:
     """Return the C2 lane-change interpolation on the unit interval."""
     q = np.asarray(progress, dtype=float)
@@ -75,13 +72,10 @@ class ScenarioActionAdapter:
             start_lateral = route.projection(
                 episode.adversary.position, episode.adversary.heading_theta
             ).lateral_m
+            path_length = float(parameters["cutin_path_length_m"])
             _, merge_end = traffic.merge_window_m
-            maximum = min(
-                MAX_PATH_LENGTH_M,
-                float(merge_end) - start_s,
-                route.length_m - start_s,
-            )
-            minimum = min(MIN_PATH_LENGTH_M, maximum)
+            maximum = min(path_length, float(merge_end) - start_s, route.length_m - start_s)
+            minimum = maximum
             corridor_lower = min(start_lateral, 0.0) - 0.5
             corridor_upper = max(start_lateral, 0.0) + 0.5
             monotonic = True
@@ -128,16 +122,11 @@ class ScenarioActionAdapter:
         self.state.maneuver_progress = self._route_progress()
         if not self.state.maneuver_latched:
             parameters = self.episode.applied_scenario.logical_parameters
-            if self.family == "cutin":
-                ready = self._elapsed_seconds() >= float(
-                    parameters["cutin_start_time_s"]
-                )
-            else:
-                projection = self.contract.spine.projection(
-                    self.episode.adversary.position,
-                    self.episode.adversary.heading_theta,
-                )
-                ready = projection.s_m >= self.contract.start_s_m
+            projection = self.contract.spine.projection(
+                self.episode.adversary.position,
+                self.episode.adversary.heading_theta,
+            )
+            ready = projection.s_m >= self.contract.start_s_m
             self.state.maneuver_latched = bool(ready)
         return self.state
 
@@ -183,13 +172,6 @@ class ScenarioActionAdapter:
         """Evaluate the active scenario-neutral Frenet reference."""
         vehicle = self.episode.adversary
         return self.planner.reference(vehicle.position, vehicle.heading_theta)
-
-        # Apply the path speed envelope before and after the spatial onset.
-        # Using only instantaneous curvature reports a straight-road limit
-        # while approaching a short lane-change curve, or immediately after
-        # it when residual yaw still needs to settle.  The complete quintic
-        # path supplies one 0.6 m/s² physical cap and reserves headroom for
-        # the simulator's steering transient beneath the 3.0 m/s² limit.
 
     def observe_semantics(
         self, challenge_phase_active: bool, maneuver_completed: bool

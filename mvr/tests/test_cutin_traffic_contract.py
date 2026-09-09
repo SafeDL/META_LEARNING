@@ -6,7 +6,11 @@ import numpy as np
 import pytest
 
 from mvr.control import FrenetSACAdversaryController
-from mvr.scenario.catalog import mvr_parameter_spaces
+from mvr.physical_limits import CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
+from mvr.scenario.catalog import (
+    CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2,
+    mvr_parameter_spaces,
+)
 from mvr.scenario.executor import ScenarioExecutor
 from mvr.scenario.parameter_space import NormalizedScenarioAction
 from mvr.scenario.registry import load_adapters
@@ -18,9 +22,13 @@ from mvr.scenario.semantics import (
     quintic_smoothstep_derivative,
     quintic_smoothstep_second_derivative,
 )
+from mvr.scenario.frenet import REFERENCE_LATERAL_ACCELERATION_MPS2
 from mvr.state import INNER_STATE_FIELDS, PhysicalStateExtractor
 from mvr.scenario.taskbook import load_taskbook
-from mvr.safety.dynamics import CUTIN_VEHICLE_CONFIG
+from mvr.safety.dynamics import (
+    CUTIN_MAX_LATERAL_ACCELERATION_MPS2,
+    CUTIN_VEHICLE_CONFIG,
+)
 from mvr.safety import TrafficActionShield
 from mvr.training.runner import HierarchicalRunner
 
@@ -39,6 +47,19 @@ def _episode(candidate_index: int = 0, *, environment_overrides=None):
         ),
         episode_seed=204 + candidate_index,
         environment_overrides=environment_overrides,
+    )
+
+
+def test_cutin_lateral_acceleration_limit_is_consistent_across_layers() -> None:
+    assert CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2 == pytest.approx(0.6 * 9.80665)
+    assert CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2 == pytest.approx(
+        CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
+    )
+    assert REFERENCE_LATERAL_ACCELERATION_MPS2 == pytest.approx(
+        CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2
+    )
+    assert CUTIN_MAX_LATERAL_ACCELERATION_MPS2 == pytest.approx(
+        CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2
     )
 
 
@@ -94,6 +115,9 @@ def test_cutin_agent_force_limits_match_the_physical_contract() -> None:
         assert getattr(episode.env.engine.get_policy(episode.sut.id), "action_projector") is not None
         assert acceleration == pytest.approx(3.0)
         assert deceleration == pytest.approx(6.0)
+        assert shield.max_lateral_acceleration_mps2 == pytest.approx(
+            CUTIN_MAX_LATERAL_ACCELERATION_MPS2
+        )
     finally:
         episode.env.close()
 
@@ -173,6 +197,34 @@ def test_inner_policy_action_is_held_between_planner_decisions() -> None:
     )
 
 
+def test_step_action_is_called_each_tick_without_changing_inner_action_holding() -> None:
+    episode = _episode()
+    phases = []
+
+    def policy(phase):
+        phases.append(phase)
+        return np.asarray((0.2, 0.0, 0.0, 0.0), dtype=np.float32)
+
+    try:
+        rollout = HierarchicalRunner(max_steps=12).rollout(
+            episode, "cutin", step_action=policy
+        )
+    finally:
+        episode.env.close()
+
+    assert len(phases) == len(rollout.transitions)
+    assert all(row["info"]["inner_policy_decision"] for row in rollout.transitions)
+    assert all(row["raw_policy_action"].shape == (4,) for row in rollout.transitions)
+
+
+def test_runner_rejects_missing_or_ambiguous_action_provider() -> None:
+    runner = HierarchicalRunner()
+    with pytest.raises(ValueError, match="exactly one"):
+        runner.rollout(None, "cutin")
+    with pytest.raises(ValueError, match="exactly one"):
+        runner.rollout(None, "cutin", lambda _: np.zeros(4), step_action=lambda _: np.zeros(4))
+
+
 def test_simulator_truncation_precedes_runner_step_budget() -> None:
     episode = _episode(environment_overrides={"horizon": 1})
     try:
@@ -222,7 +274,7 @@ def test_direct_cutin_steering_stays_inside_road_corridor() -> None:
         episode.env.close()
 
 
-def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
+def test_cutin_onset_is_fixed_spatial_scenario_parameter() -> None:
     episode = _episode()
     try:
         schedule = ScenarioActionAdapter(episode, "cutin")
@@ -231,7 +283,7 @@ def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
         assert not schedule.state.maneuver_latched
         schedule._elapsed_seconds = lambda: 100.0
         schedule.update()
-        assert schedule.state.maneuver_latched
+        assert not schedule.state.maneuver_latched
         monitor = ScenarioSemanticMonitor(episode, "cutin", schedule)
         assert not monitor.info()["event_semantic_valid"]
         extractor = PhysicalStateExtractor()
@@ -248,7 +300,7 @@ def test_cutin_onset_is_fixed_logical_scenario_parameter() -> None:
             valid_near_miss_seen=False,
         )
         assert state.shape == (PhysicalStateExtractor.dimension,)
-        assert state[INNER_STATE_FIELDS.index("maneuver_started")] == 1.0
+        assert state[INNER_STATE_FIELDS.index("maneuver_started")] == 0.0
     finally:
         episode.env.close()
 
@@ -363,7 +415,7 @@ def test_inner_state_includes_projector_acceleration_and_vehicle_steering() -> N
         episode.env.close()
 
 
-def test_cutin_reference_previews_curve_speed_before_spatial_onset() -> None:
+def test_cutin_reference_uses_road_speed_before_spatial_onset() -> None:
     episode = _episode()
     try:
         schedule = ScenarioActionAdapter(episode, "cutin")
@@ -373,7 +425,7 @@ def test_cutin_reference_previews_curve_speed_before_spatial_onset() -> None:
         reference = schedule.maneuver_reference()
 
         assert reference.progress == pytest.approx(0.0)
-        assert reference.speed_limit_mps < episode.layout.traffic_contract.speed_limit_mps
+        assert reference.speed_limit_mps == episode.layout.traffic_contract.speed_limit_mps
     finally:
         episode.env.close()
 
@@ -394,13 +446,10 @@ def test_reference_path_tracks_with_bounded_direct_longitudinal_command() -> Non
             episode,
             "cutin",
             lambda _: np.asarray((0.0, 0.0, 0.0, 0.35), dtype=np.float32),
-            step_callback=lambda _episode, _step, info: observed_actions.append(
-                (
-                    np.asarray(info["traffic_requested_action"], dtype=float),
-                    np.asarray(info["traffic_executed_action"], dtype=float),
-                    info.get("traffic_shield_rejection_reason"),
-                )
-            ),
+            step_callback=lambda _episode, _step, info: observed_actions.append({
+                "requested": np.asarray(info["traffic_requested_action"], dtype=float),
+                "start_remaining_m": float(info["maneuver_start_remaining_m"]),
+            }),
         )
     finally:
         episode.env.close()
@@ -408,8 +457,14 @@ def test_reference_path_tracks_with_bounded_direct_longitudinal_command() -> Non
     # geometry. The direct longitudinal command keeps the adversary moving;
     # it may steer only after onset.
     assert observed_actions
-    assert all(np.isclose(requested[0], 0.0) for requested, _, _ in observed_actions[:15])
-    assert any(not np.isclose(requested[0], 0.0) for requested, _, _ in observed_actions[40:])
+    assert all(
+        np.isclose(row["requested"][0], 0.0)
+        for row in observed_actions if row["start_remaining_m"] > 0.0
+    )
+    assert any(
+        not np.isclose(row["requested"][0], 0.0)
+        for row in observed_actions if row["start_remaining_m"] <= 0.0
+    )
     assert all(
         abs(float(row["info"].get("maneuver_reference_lateral_error_m", 0.0))) < 3.5
         for row in rollout.transitions

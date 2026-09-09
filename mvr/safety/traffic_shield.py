@@ -9,6 +9,7 @@ import numpy as np
 
 from ..scenario.applied import ExecutableEpisode
 from ..scenario.semantics import ScenarioActionAdapter
+from .dynamics import CUTIN_MAX_LATERAL_ACCELERATION_MPS2
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,7 @@ class TrafficActionShield:
     # discrete wheel/brake response while retaining the calibrated physical
     # jerk diagnostic below.
     max_jerk_mps3: float = 2.0
-    max_lateral_acceleration_mps2: float = 3.0
+    max_lateral_acceleration_mps2: float = CUTIN_MAX_LATERAL_ACCELERATION_MPS2
     max_steering_rate_per_s: float = 1.5
     _previous_speed_mps: float | None = field(default=None, init=False)
     _previous_acceleration_mps2: float | None = field(default=None, init=False)

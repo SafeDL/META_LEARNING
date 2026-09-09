@@ -100,8 +100,8 @@ def test_pretrain_scene_sampler_aligns_reachable_candidate_arrivals() -> None:
 
 def test_pretrain_scene_sampler_uses_cutin_logical_domain_controls() -> None:
     names = (
-        "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
-        "cutin_start_progress", "cutin_start_time_s",
+        "initial_gap_m", "ego_initial_speed_mps", "relative_speed_mps",
+        "cutin_start_offset_m", "cutin_path_length_m",
     )
     task = SimpleNamespace(
         task_id="cutin-task", functional_scenario="cutin",
@@ -111,11 +111,11 @@ def test_pretrain_scene_sampler_uses_cutin_logical_domain_controls() -> None:
     space = ParameterSpace(
         "sampling-test", ("candidate-0",),
         {
-            "cutin_gap_at_start_m": (7.0, 16.0),
-            "sut_initial_speed_mps": (4.0, 18.0),
+            "initial_gap_m": (7.0, 16.0),
+            "ego_initial_speed_mps": (4.0, 18.0),
             "relative_speed_mps": (-3.0, 1.0),
-            "cutin_start_progress": (0.0, 1.0),
-            "cutin_start_time_s": (0.8, 2.8),
+            "cutin_start_offset_m": (0.0, 1.0),
+            "cutin_path_length_m": (0.8, 2.8),
         },
     )
     action = PretrainSceneSampler(

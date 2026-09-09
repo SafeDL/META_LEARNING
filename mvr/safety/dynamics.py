@@ -6,11 +6,14 @@ from typing import Any
 
 import numpy as np
 
+from ..physical_limits import CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
 
 CUTIN_VEHICLE_CONFIG = {
     "max_engine_force": 825.0,
     "max_brake_force": 33.0,
 }
+CUTIN_NOMINAL_VEHICLE_LENGTH_M = 4.5
+CUTIN_MAX_LATERAL_ACCELERATION_MPS2 = CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
 
 
 @dataclass
@@ -22,7 +25,7 @@ class VehicleActionProjector:
     max_acceleration_mps2: float = 3.0
     max_deceleration_mps2: float = 6.0
     max_jerk_mps3: float = 2.0
-    max_lateral_acceleration_mps2: float = 3.0
+    max_lateral_acceleration_mps2: float = CUTIN_MAX_LATERAL_ACCELERATION_MPS2
     max_steering_rate_per_s: float = 1.5
     _previous_acceleration_mps2: float = field(default=0.0, init=False)
 

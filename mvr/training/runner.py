@@ -27,6 +27,17 @@ class Rollout:
     trajectory: Any
 
 
+@dataclass(frozen=True)
+class InnerActionPhase:
+    """Physical maneuver state exposed to deterministic per-step controllers."""
+
+    planner_active: bool
+    maneuver_completed: bool
+    reference_progress: float
+    adversary_speed_mps: float = 0.0
+    reference_speed_limit_mps: float = float("inf")
+
+
 class HierarchicalRunner:
     def __init__(self, max_steps: int = 240, criteria: FailureCriteria = DEFAULT_FAILURE_CRITERIA) -> None:
         self.max_steps = int(max_steps)
@@ -44,16 +55,38 @@ class HierarchicalRunner:
             and (0.5 - lane_count) * lane_width <= float(lateral) <= 0.5 * lane_width
         )
 
+    @classmethod
+    def _sut_completed_test_route(cls, episode: ExecutableEpisode) -> bool:
+        contract = episode.layout.traffic_contract
+        if contract.completion_condition == "sut_route_destination":
+            return cls._sut_arrived_destination(episode)
+        if contract.completion_condition != "sut_cutin_follow_through":
+            raise RuntimeError("unsupported test-completion condition")
+        completion_s = float(
+            episode.applied_scenario.logical_parameters["test_completion_s_m"]
+        )
+        projection = episode.sut_route.projection(
+            episode.sut.position, episode.sut.heading_theta
+        )
+        return bool(
+            float(projection.s_m) >= completion_s
+            and abs(float(projection.lateral_m))
+            <= 0.5 * float(episode.sut.navigation.get_current_lane_width())
+        )
+
     def rollout(
         self,
         episode: ExecutableEpisode,
         scenario_family: str,
-        inner_action: Callable[[np.ndarray], np.ndarray],
+        inner_action: Callable[[np.ndarray], np.ndarray] | None = None,
         *,
+        step_action: Callable[[InnerActionPhase], np.ndarray] | None = None,
         trajectory_extractor: TrajectoryFeatureExtractor | None = None,
         reward_fn: InnerRiskReward | None = None,
         step_callback: Callable[[ExecutableEpisode, int, Mapping[str, Any]], None] | None = None,
     ) -> Rollout:
+        if (inner_action is None) == (step_action is None):
+            raise ValueError("provide exactly one of inner_action or step_action")
         transitions: list[dict[str, Any]] = []
         env = episode.env
         extractor = trajectory_extractor or TrajectoryFeatureExtractor()
@@ -115,7 +148,19 @@ class HierarchicalRunner:
                         ),
                         "sut_speed_mps": float(episode.sut.speed_km_h) / 3.6,
                     }
-                if planner_active:
+                phase = InnerActionPhase(
+                    planner_active=planner_active,
+                    maneuver_completed=bool(schedule.state.maneuver_completed),
+                    reference_progress=float(reference_before.progress),
+                    adversary_speed_mps=float(episode.adversary.speed_km_h) / 3.6,
+                    reference_speed_limit_mps=float(reference_before.speed_limit_mps),
+                )
+                if step_action is not None:
+                    policy_decision = True
+                    held_policy_action = np.asarray(
+                        step_action(phase), dtype=np.float32
+                    ).reshape(-1)
+                elif planner_active:
                     policy_decision = (
                         held_policy_action is None or schedule.planner.replan_due
                     )
@@ -124,7 +169,7 @@ class HierarchicalRunner:
                         held_policy_action is None
                         or step % schedule.planner.replan_interval_steps == 0
                     )
-                if policy_decision:
+                if policy_decision and step_action is None:
                     held_policy_action = np.asarray(
                         inner_action(state), dtype=np.float32
                     ).reshape(-1)
@@ -288,10 +333,12 @@ class HierarchicalRunner:
                     and info["event_execution_valid"]
                 )
                 sut_arrived = self._sut_arrived_destination(episode)
+                sut_completed = self._sut_completed_test_route(episode)
                 info["sut_arrived_destination"] = sut_arrived
+                info["sut_completed_test_route"] = sut_completed
                 if target_collision:
                     termination_reason = "target_collision"
-                elif sut_arrived:
+                elif sut_completed:
                     termination_reason = "sut_route_completed"
                 # MetaDrive's sole controllable agent is the adversary.  Its
                 # native arrival sets ``terminated`` permanently, but does

@@ -7,7 +7,12 @@ from typing import Any, Mapping, Protocol
 import numpy as np
 
 from ..map.metadrive_tokenizer import tokenize_road_network
-from ..safety.dynamics import CUTIN_VEHICLE_CONFIG
+from ..safety.dynamics import CUTIN_NOMINAL_VEHICLE_LENGTH_M, CUTIN_VEHICLE_CONFIG
+from .catalog import (
+    CUTIN_MIN_INITIAL_GAP_M,
+    CUTIN_POST_MANEUVER_FOLLOW_THROUGH_M,
+    valid_cutin_initial_state,
+)
 from ..sut.registry import SUTRegistry, default_registry
 from .applied import AppliedScenario, ExecutableEpisode
 from .layout import ScenarioLayout
@@ -132,6 +137,44 @@ class ScenarioExecutor:
         return status
 
     @staticmethod
+    def _assert_cutin_initial_physics(
+        cached: _CachedLayout,
+        adversary: Any,
+        sut: Any,
+        config: Mapping[str, float | str],
+    ) -> dict[str, float]:
+        """Verify the reset state matches the declared physical Cut-in scene."""
+        adversary_s = cached.adversary_route.projection(
+            adversary.position, adversary.heading_theta
+        ).s_m
+        sut_s = cached.sut_route.projection(sut.position, sut.heading_theta).s_m
+        centre_gap = float(adversary_s - sut_s)
+        initial_gap = centre_gap - 0.5 * (
+            float(getattr(adversary, "LENGTH", CUTIN_NOMINAL_VEHICLE_LENGTH_M))
+            + float(getattr(sut, "LENGTH", CUTIN_NOMINAL_VEHICLE_LENGTH_M))
+        )
+        requested = float(config["initial_gap_m"])
+        if not np.isclose(initial_gap, requested, atol=0.35):
+            raise RuntimeError(
+                "runtime Cut-in initial gap differs from the declared "
+                f"bumper-to-bumper distance: declared={requested:.3f}, "
+                f"actual={initial_gap:.3f}"
+            )
+        if initial_gap < CUTIN_MIN_INITIAL_GAP_M:
+            raise RuntimeError("runtime Cut-in reset overlaps or nearly overlaps vehicles")
+        adversary_speed = ScenarioExecutor._speed_mps(adversary)
+        sut_speed = ScenarioExecutor._speed_mps(sut)
+        if not np.isclose(adversary_speed - sut_speed, float(config["relative_speed_mps"]), atol=0.35):
+            raise RuntimeError("runtime Cut-in initial relative speed differs from the Logical scene")
+        return {
+            "actual_initial_gap_m": float(initial_gap),
+            "actual_initial_center_gap_m": float(centre_gap),
+            "actual_ego_initial_speed_mps": float(sut_speed),
+            "actual_adversary_initial_speed_mps": float(adversary_speed),
+            "actual_relative_speed_mps": float(adversary_speed - sut_speed),
+        }
+
+    @staticmethod
     def _static_key(task: ScenarioMiningTaskSpec) -> tuple[str, str]:
         return task.adapter_id, task.geometry_hash
 
@@ -167,23 +210,36 @@ class ScenarioExecutor:
     ) -> dict[str, float | str]:
         resolved = dict(config)
         if cached.layout.traffic_contract.adversary_intent == "cut_in_to_sut_lane":
-            sut_speed = float(resolved["sut_initial_speed_mps"])
-            adversary_speed = sut_speed + float(resolved["relative_speed_mps"])
-            onset = float(resolved["cutin_start_time_s"])
-            gap = float(resolved["cutin_gap_at_start_m"])
+            sut_speed = float(resolved["ego_initial_speed_mps"])
+            relative_speed = float(resolved["relative_speed_mps"])
+            adversary_speed = sut_speed + relative_speed
+            initial_gap = float(resolved["initial_gap_m"])
+            path_length = float(resolved["cutin_path_length_m"])
+            if not valid_cutin_initial_state(
+                sut_speed, relative_speed, initial_gap, path_length
+            ):
+                raise ValueError(
+                    "Cut-in reset violates the coupled speed, initial-gap, or lateral "
+                    "acceleration constraints"
+                )
             merge_start, merge_end = cached.layout.traffic_contract.merge_window_m
-            # Reserve the maximum planner horizon so every reset leaves the
-            # four-dimensional Inner action a legal 30--60 m path interval.
-            max_path_length = min(60.0, merge_end - merge_start)
-            if max_path_length < 30.0:
-                raise ValueError("Cut-in corridor cannot support the planner length interval")
-            start = merge_start + float(resolved["cutin_start_progress"]) * (
-                merge_end - merge_start - max_path_length
-            )
-            initial_gap = gap - float(resolved["relative_speed_mps"]) * onset
-            adversary_spawn = float(start - adversary_speed * onset)
-            sut_spawn = float(adversary_spawn - initial_gap)
-            if adversary_speed <= 0.0 or min(adversary_spawn, sut_spawn) < 0.0:
+            start = merge_start + float(resolved["cutin_start_offset_m"])
+            if not (merge_start <= start and start + path_length <= merge_end):
+                raise ValueError("Cut-in start and path length must lie inside the legal merge window")
+            completion_s = start + path_length + CUTIN_POST_MANEUVER_FOLLOW_THROUGH_M
+            if completion_s > cached.sut_route.length_m - CUTIN_NOMINAL_VEHICLE_LENGTH_M:
+                raise ValueError(
+                    "Cut-in path leaves no legal post-maneuver test-completion position"
+                )
+            # The red vehicle only needs a short straight segment before its
+            # prescribed spatial lane change. Tying this distance to the
+            # path length delayed every onset enough for the SUT to remove
+            # the intended challenge before the Cut-in began.
+            lead_in_m = 12.0
+            adversary_spawn = float(start - lead_in_m)
+            center_gap = initial_gap + CUTIN_NOMINAL_VEHICLE_LENGTH_M
+            sut_spawn = float(adversary_spawn - center_gap)
+            if min(adversary_spawn, sut_spawn) < 0.0:
                 raise ValueError("Cut-in Logical parameters cannot produce a positive executable spawn")
             adversary_lane, adversary_local = ScenarioExecutor._route_spawn_lane(
                 cached.adversary_route, adversary_spawn
@@ -193,7 +249,9 @@ class ScenarioExecutor:
             )
             resolved.update({
                 "adversary_initial_speed_mps": adversary_speed,
+                "initial_center_gap_m": center_gap,
                 "cutin_start_s_m": start,
+                "test_completion_s_m": completion_s,
                 "adversary_spawn_m": adversary_local,
                 "sut_spawn_m": sut_local,
                 "adversary_spawn_lane": adversary_lane,
@@ -299,11 +357,16 @@ class ScenarioExecutor:
             sut_adapter, sut_profile = self.sut_registry.create(task.sut_ref)
             sut_adapter.reset(env, task, config, run_seed)
             layout = cached.layout
+            sut_speed_key = (
+                "ego_initial_speed_mps"
+                if task.functional_scenario == "cutin"
+                else "sut_initial_speed_mps"
+            )
             sut = spawn_sut(
                 env,
                 lane_index=tuple(config.get("sut_spawn_lane", layout.sut_lane)),
                 longitudinal_m=float(config["sut_spawn_m"]),
-                speed_mps=float(config["sut_initial_speed_mps"]),
+                speed_mps=float(config[sut_speed_key]),
                 destination=layout.sut_destination,
                 adapter=sut_adapter,
                 profile=sut_profile,
@@ -315,7 +378,12 @@ class ScenarioExecutor:
                 ),
             )
             self._assert_vehicle_applied(adversary, tuple(config.get("adversary_spawn_lane", layout.adversary_lane)), float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]), layout.adversary_destination)
-            self._assert_vehicle_applied(sut, tuple(config.get("sut_spawn_lane", layout.sut_lane)), float(config["sut_spawn_m"]), float(config["sut_initial_speed_mps"]), layout.sut_destination)
+            self._assert_vehicle_applied(sut, tuple(config.get("sut_spawn_lane", layout.sut_lane)), float(config["sut_spawn_m"]), float(config[sut_speed_key]), layout.sut_destination)
+            cutin_physics: dict[str, float] = {}
+            if task.functional_scenario == "cutin":
+                cutin_physics = self._assert_cutin_initial_physics(
+                    cached, adversary, sut, config
+                )
             navigation = layout.native_navigation
             if navigation is None:
                 raise RuntimeError("scenario layout has no native navigation contract")
@@ -334,10 +402,17 @@ class ScenarioExecutor:
                 # scene and the audited legal corridor; retaining it makes a
                 # reset independently reconstructible in artifacts.
                 logical_parameters["cutin_start_s_m"] = float(config["cutin_start_s_m"])
+                logical_parameters["test_completion_s_m"] = float(
+                    config["test_completion_s_m"]
+                )
+                logical_parameters["declared_initial_center_gap_m"] = float(
+                    config["initial_center_gap_m"]
+                )
+                logical_parameters.update(cutin_physics)
             applied = AppliedScenario(
                 str(adversary.id), str(sut.id), layout.adversary_lane, layout.sut_lane,
                 float(config["adversary_spawn_m"]), float(config["sut_spawn_m"]),
-                float(config["adversary_initial_speed_mps"]), float(config["sut_initial_speed_mps"]),
+                float(config["adversary_initial_speed_mps"]), float(config[sut_speed_key]),
                 logical_parameters,
                 layout.candidate, layout.conflict_zone_id,
                 layout.adversary_route, layout.sut_route, tuple(float(value) for value in action.continuous),

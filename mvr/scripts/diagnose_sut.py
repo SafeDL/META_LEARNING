@@ -17,7 +17,7 @@ from ..scenario.taskbook import load_taskbook
 
 
 FAMILIES = ("merge", "cutin", "roundabout")
-MAX_STEPS = 480
+MAX_STEPS = 720
 STEERING_DEADBAND = 0.05
 MAX_LATERAL_RMS_M = 0.30
 MAX_LATERAL_ERROR_M = 0.60

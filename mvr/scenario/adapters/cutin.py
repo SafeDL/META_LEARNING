@@ -150,6 +150,7 @@ class CutInScenarioAdapter(MetaDriveFamilyAdapter):
                 "broken",
                 adversary_intent="cut_in_to_sut_lane",
                 sut_role="lane_stable_main_corridor",
+                completion_condition="sut_cutin_follow_through",
                 min_completion_steps=300,
             ),
         )

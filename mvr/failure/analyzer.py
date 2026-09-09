@@ -47,7 +47,9 @@ def analyze_rollout(
     outcome["sut_arrived_destination"] = any(
         bool(info.get("sut_arrived_destination", False)) for info in infos
     )
-    outcome["test_process_completed"] = bool(outcome["sut_arrived_destination"])
+    outcome["test_process_completed"] = any(
+        bool(info.get("sut_completed_test_route", False)) for info in infos
+    )
     event_infos = [info for info in infos if info.get("event_kind") is not None]
     collision_events = [
         info for info in event_infos if info.get("event_kind") == "collision"

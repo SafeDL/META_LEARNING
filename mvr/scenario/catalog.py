@@ -1,7 +1,49 @@
 """Universal interaction-centric initial-condition search space."""
 from __future__ import annotations
 
+import numpy as np
+
+from ..physical_limits import CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
 from .parameter_space import ParameterSpace
+
+CUTIN_MIN_INITIAL_GAP_M = 2.0
+CUTIN_MIN_INITIAL_SPEED_MPS = 7.0
+CUTIN_MAX_INITIAL_SPEED_MPS = 13.0
+CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2 = (
+    CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
+)
+CUTIN_NOMINAL_LANE_SHIFT_M = 3.5
+CUTIN_QUINTIC_MAX_SECOND_DERIVATIVE = 5.7735026919
+CUTIN_PATH_LENGTH_SAFETY_FACTOR = 1.05
+CUTIN_POST_MANEUVER_FOLLOW_THROUGH_M = 30.0
+
+
+def minimum_cutin_path_length_m(red_speed_mps: float) -> float:
+    """Minimum path length for a 3.5 m Cut-in below 0.6 g laterally."""
+    return float(
+        CUTIN_PATH_LENGTH_SAFETY_FACTOR
+        * float(red_speed_mps)
+        * np.sqrt(
+            CUTIN_NOMINAL_LANE_SHIFT_M * CUTIN_QUINTIC_MAX_SECOND_DERIVATIVE
+            / CUTIN_REFERENCE_LATERAL_ACCELERATION_MPS2
+        )
+    )
+
+
+def valid_cutin_initial_state(
+    ego_speed_mps: float,
+    relative_speed_mps: float,
+    initial_gap_m: float,
+    path_length_m: float,
+) -> bool:
+    """Check the coupled physical reset constraints for a Cut-in design."""
+    red_speed_mps = float(ego_speed_mps) + float(relative_speed_mps)
+    return bool(
+        CUTIN_MIN_INITIAL_SPEED_MPS <= float(ego_speed_mps) <= CUTIN_MAX_INITIAL_SPEED_MPS
+        and red_speed_mps > 0.0
+        and float(initial_gap_m) >= CUTIN_MIN_INITIAL_GAP_M
+        and float(path_length_m) >= minimum_cutin_path_length_m(red_speed_mps)
+    )
 
 
 def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
@@ -27,14 +69,16 @@ def mvr_parameter_spaces() -> dict[str, ParameterSpace]:
         # A Cut-in is specified in the two vehicles' shared longitudinal
         # frame.  It has no fixed conflict point: the route merely provides
         # a legal lane-change corridor.
-        # This is the reset gap. Restrict its independent range together
-        # with relative speed so every Logical-domain box retains a real
-        # post-onset interaction opportunity.
-        "cutin_gap_at_start_m": (7.0, 16.0),
-        "sut_initial_speed_mps": (7.0, 13.0),
-        "relative_speed_mps": (-3.0, 1.0),
-        "cutin_start_progress": (0.0, 1.0),
-        "cutin_start_time_s": (0.8, 2.8),
+        # The initial gap is the bumper-to-bumper separation at reset,
+        # never a centre-to-centre proxy. The red speed is derived as ego
+        # speed plus relative speed; it is only required to remain positive.
+        "initial_gap_m": (7.0, 16.0),
+        "ego_initial_speed_mps": (
+            CUTIN_MIN_INITIAL_SPEED_MPS, CUTIN_MAX_INITIAL_SPEED_MPS,
+        ),
+        "relative_speed_mps": (-2.5, 2.5),
+        "cutin_start_offset_m": (35.0, 600.0),
+        "cutin_path_length_m": (30.0, 130.0),
     }
     return {
         "merge": ParameterSpace(

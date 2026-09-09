@@ -11,11 +11,11 @@ def _task() -> SimpleNamespace:
     return SimpleNamespace(
         functional_scenario="cutin",
         logical_domain_bounds={
-            "cutin_gap_at_start_m": (-0.5, -0.2),
-            "sut_initial_speed_mps": (0.2, 0.5),
+            "initial_gap_m": (-0.5, -0.2),
+            "ego_initial_speed_mps": (0.2, 0.5),
             "relative_speed_mps": (0.1, 0.4),
-            "cutin_start_progress": (-0.4, -0.1),
-            "cutin_start_time_s": (0.2, 0.5),
+            "cutin_start_offset_m": (-0.4, -0.1),
+            "cutin_path_length_m": (0.2, 0.5),
         },
     )
 

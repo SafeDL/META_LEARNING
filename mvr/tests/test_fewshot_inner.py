@@ -28,8 +28,8 @@ from mvr.scripts.evaluate_inner_fewshot import _query_records
 
 def test_cutin_validation_query_design_covers_both_candidates_without_duplicates() -> None:
     names = (
-        "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
-        "cutin_start_progress", "cutin_start_time_s",
+        "initial_gap_m", "ego_initial_speed_mps", "relative_speed_mps",
+        "cutin_start_offset_m", "cutin_path_length_m",
     )
     task = SimpleNamespace(
         geometry_seed=204,
@@ -69,8 +69,8 @@ def test_support_groups_are_episode_level_and_disjoint() -> None:
 
 def test_support_schedule_uses_distinct_nested_points_outside_query_pool() -> None:
     names = (
-        "cutin_gap_at_start_m", "sut_initial_speed_mps", "relative_speed_mps",
-        "cutin_start_progress", "cutin_start_time_s",
+        "initial_gap_m", "ego_initial_speed_mps", "relative_speed_mps",
+        "cutin_start_offset_m", "cutin_path_length_m",
     )
     task = SimpleNamespace(
         task_id="cutin-validation", functional_scenario="cutin",
@@ -103,11 +103,11 @@ def test_actor_stops_representation_gradient_but_critic_keeps_it() -> None:
     latent, _ = model.infer_posterior(support, mask)
     state = torch.randn(1, PhysicalStateExtractor.dimension)
     bounds = {
-        "cutin_gap_at_start_m": (-0.2, 0.2),
-        "sut_initial_speed_mps": (-0.2, 0.2),
+        "initial_gap_m": (-0.2, 0.2),
+        "ego_initial_speed_mps": (-0.2, 0.2),
         "relative_speed_mps": (-0.2, 0.2),
-        "cutin_start_progress": (-0.2, 0.2),
-        "cutin_start_time_s": (-0.2, 0.2),
+        "cutin_start_offset_m": (-0.2, 0.2),
+        "cutin_path_length_m": (-0.2, 0.2),
     }
     scene = model.encode_task_structure(torch.randn(1, 8), bounds, (True,) * 5)
     concrete = torch.randn(1, 18)
@@ -152,7 +152,7 @@ def test_logical_domain_bounds_are_part_of_observable_task_structure() -> None:
     scene = torch.zeros(8)
     narrow = {name: (-0.2, 0.2) for name in (
         "adversary_distance_to_conflict_m", "sut_distance_to_conflict_m",
-        "adversary_initial_speed_mps", "sut_initial_speed_mps", "maneuver_onset_progress",
+        "relative_speed_mps", "ego_initial_speed_mps", "maneuver_onset_progress",
     )}
     wide = {name: (-0.8, 0.8) for name in narrow}
     assert not torch.allclose(

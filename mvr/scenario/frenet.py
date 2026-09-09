@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 
+from ..physical_limits import CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
 from .route_geometry import RoutePolyline, wrap_to_pi
 
 
@@ -17,7 +18,7 @@ def quintic_smoothstep(progress: float | np.ndarray) -> float | np.ndarray:
 ANCHOR_PROGRESS = (1.0 / 3.0, 2.0 / 3.0)
 MIN_PATH_LENGTH_M = 30.0
 MAX_PATH_LENGTH_M = 60.0
-REFERENCE_LATERAL_ACCELERATION_MPS2 = 0.6
+REFERENCE_LATERAL_ACCELERATION_MPS2 = CUTIN_LATERAL_ACCELERATION_LIMIT_MPS2
 REFERENCE_MAX_DECELERATION_MPS2 = 6.0
 REFERENCE_MAX_JERK_MPS3 = 1.5
 SHAPE_PROGRESS_SCALE = 0.15

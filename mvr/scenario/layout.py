@@ -36,8 +36,11 @@ class TrafficBehaviorContract:
             raise ValueError("traffic contract requires positive speeds and allowed lanes")
         if not self.adversary_intent or not self.sut_role:
             raise ValueError("traffic contract requires explicit vehicle roles")
-        if self.completion_condition != "sut_route_destination":
-            raise ValueError("Stage 1 requires SUT route completion as the test condition")
+        if self.completion_condition not in {
+            "sut_route_destination",
+            "sut_cutin_follow_through",
+        }:
+            raise ValueError("traffic contract has an unsupported completion condition")
         if not self.terminate_on_target_collision:
             raise ValueError("Stage 1 must terminate immediately on a target collision")
         if int(self.min_completion_steps) < 1:

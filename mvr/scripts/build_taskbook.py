@@ -31,19 +31,19 @@ LOGICAL_DOMAINS = (
 
 CUTIN_LOGICAL_DOMAINS = (
     ("cutin_interaction_core", "train", {
-        "cutin_gap_at_start_m": (-0.15, 0.15), "sut_initial_speed_mps": (-0.15, 0.15),
-        "relative_speed_mps": (-0.15, 0.15), "cutin_start_progress": (-0.15, 0.15),
-        "cutin_start_time_s": (-0.15, 0.15),
+        "initial_gap_m": (-0.15, 0.15), "ego_initial_speed_mps": (-0.50, 0.50),
+        "relative_speed_mps": (-0.60, 0.60), "cutin_start_offset_m": (-1.00, 0.00),
+        "cutin_path_length_m": (0.00, 0.50),
     }),
     ("cutin_late_fast", "validation", {
-        "cutin_gap_at_start_m": (-0.65, -0.25), "sut_initial_speed_mps": (0.25, 0.65),
-        "relative_speed_mps": (0.25, 0.75), "cutin_start_progress": (-0.65, -0.25),
-        "cutin_start_time_s": (0.25, 0.65),
+        "initial_gap_m": (-0.65, -0.25), "ego_initial_speed_mps": (0.55, 0.85),
+        "relative_speed_mps": (-0.95, -0.65), "cutin_start_offset_m": (0.25, 0.55),
+        "cutin_path_length_m": (0.55, 0.85),
     }),
     ("cutin_tight_gap", "test", {
-        "cutin_gap_at_start_m": (0.35, 0.85), "sut_initial_speed_mps": (-0.85, -0.35),
-        "relative_speed_mps": (-0.85, -0.35), "cutin_start_progress": (0.35, 0.85),
-        "cutin_start_time_s": (-0.85, -0.35),
+        "initial_gap_m": (0.35, 0.85), "ego_initial_speed_mps": (-0.95, -0.55),
+        "relative_speed_mps": (0.65, 0.85), "cutin_start_offset_m": (0.57, 0.85),
+        "cutin_path_length_m": (-0.30, -0.05),
     }),
 )
 

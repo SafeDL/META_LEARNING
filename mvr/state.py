@@ -149,16 +149,12 @@ class PhysicalStateExtractor:
             blend_progress = reference.blend_progress
             replan_due = float(reference.replan_due)
             parameters = schedule.episode.applied_scenario.logical_parameters
-            if schedule.family == "cutin":
-                onset = float(parameters["cutin_start_time_s"])
-                onset_remaining = max(0.0, onset - schedule._elapsed_seconds())
-            else:
-                projection = schedule.contract.spine.projection(
-                    adversary_position, heading
-                )
-                onset_remaining = max(
-                    0.0, schedule.contract.start_s_m - projection.s_m
-                ) / max(adversary_speed, 0.25)
+            projection = schedule.contract.spine.projection(
+                adversary_position, heading
+            )
+            onset_remaining = max(
+                0.0, schedule.contract.start_s_m - projection.s_m
+            ) / max(adversary_speed, 0.25)
             projection = schedule.contract.spine.projection(
                 adversary_position, heading
             )
