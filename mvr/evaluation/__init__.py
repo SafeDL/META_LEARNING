@@ -1,3 +1,5 @@
-from .fewshot_inner import AdaptationQualityProtocol, BudgetEfficiencyProtocol
+﻿"""Formal scoring and fixed-budget accounting."""
 
-__all__ = ("AdaptationQualityProtocol", "BudgetEfficiencyProtocol")
+from .fewshot_inner import valid_critical_score
+
+__all__ = ("valid_critical_score",)

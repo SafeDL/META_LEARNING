@@ -12,7 +12,14 @@ from ..diva.episode_executor import DivaEpisodeExecutor
 from ..diva.baselines import TargetOnlyGP
 from ..diva.miner import DivaMiner
 from ..diva.prior import LowRankVulnerabilityPrior
-from ..diva.source_bank import SourceBank, observation_from_dict, retained_task, sobol_designs
+from ..diva.response import VulnerabilityResponseConfig
+from ..diva.source_bank import (
+    SourceBank,
+    observation_from_dict,
+    retained_task,
+    sobol_designs_from_physical_bounds,
+    study_task,
+)
 from ..evaluation.diva_protocol import DivaBudgetLedger
 from ..scenario.catalog import mvr_parameter_spaces
 from ..scenario.executor import ScenarioExecutor
@@ -31,6 +38,20 @@ def _source_logical_domain(observations) -> str:
     if len(domains) != 1:
         raise ValueError("DIVA source bank must contain exactly one frozen logical domain")
     return domains.pop()
+
+
+def _require_g1_pass(prior_path: str, logical_domain_id: str) -> None:
+    """Prevent any held-out rollout until the matching offline G1 gate passes."""
+    gate_path = Path(prior_path).with_name("source_loso_g1_v2.json")
+    if not gate_path.exists():
+        raise ValueError("G1 report is required before validation or test evaluation")
+    report = json.loads(gate_path.read_text(encoding="utf-8"))
+    if (
+        report.get("schema") != "diva_source_loso_g1_v2"
+        or report.get("logical_domain_id") != logical_domain_id
+        or not report.get("g1_source_only_diagnostic", {}).get("pass", False)
+    ):
+        raise ValueError("G1 has not passed for the frozen source study domain")
 
 
 METHODS = (
@@ -55,17 +76,34 @@ def run(config_path: str, source_path: str, prior_path: str, output_path: str, *
     tasks = load_taskbook(config["taskbook"])
     source_observations = _load(source_path)
     logical_domain_id = _source_logical_domain(source_observations)
-    task = retained_task(tasks, target_ref, logical_domain_id)
+    _require_g1_pass(prior_path, logical_domain_id)
+    task = study_task(
+        retained_task(tasks, target_ref, config["study"]["task_logical_domain_id"]),
+        logical_domain_id,
+        config["study"]["source_physical_bounds"],
+    )
     bank = SourceBank.from_observations(source_observations, tuple(config["study"]["source_sut_refs"]))
     features = np.tile(bank.features, (len(bank.source_refs), 1))
     evaluability = RBFEvaluability(features, bank.eligible.reshape(-1), float(config["validity"]["bandwidth"]))
-    pool = sobol_designs(task, int(config["candidate_pool"]["per_candidate"]), int(algorithm_seed))
+    pool = sobol_designs_from_physical_bounds(
+        config["study"]["source_physical_bounds"],
+        int(config["candidate_pool"]["per_candidate"]),
+        int(algorithm_seed),
+    )
     prior = LowRankVulnerabilityPrior.load(prior_path)
-    miner = DivaMiner(prior, pool, evaluability.predict(np.asarray([design.feature_vector() for design in pool])))
+    miner = DivaMiner(
+        prior,
+        pool,
+        evaluability.predict(np.asarray([design.feature_vector() for design in pool])),
+        proxy_event_threshold=float(
+            config["vulnerability_response"]["proxy_event_threshold"]
+        ),
+    )
     executor = DivaEpisodeExecutor(
         ScenarioExecutor(load_adapters(), mvr_parameter_spaces()),
         HierarchicalRunner(int(config["execution"]["runner_step_budget"])),
         int(config["execution"]["environment_horizon"]),
+        VulnerabilityResponseConfig(**config["vulnerability_response"]),
     )
     rng = np.random.default_rng(algorithm_seed)
     target_only = TargetOnlyGP(pool, rng, device=str(config["device"])) if method == "target_only_gp" else None
@@ -83,7 +121,9 @@ def run(config_path: str, source_path: str, prior_path: str, output_path: str, *
             assert target_only is not None
             design = target_only.select()
         slot = budget.reserve(phase="support", design_id=design.design_id, episode_seed=algorithm_seed + index)
-        observation = executor.run(task, design, algorithm_seed + index)
+        observation = executor.run(
+            task, design, algorithm_seed + index, logical_domain_id=logical_domain_id
+        )
         budget.complete(slot, status=observation.status, score=observation.score)
         if method != "frozen_source_mean":
             if target_only is not None:
@@ -93,7 +133,11 @@ def run(config_path: str, source_path: str, prior_path: str, output_path: str, *
         observations.append(observation.to_dict())
     remaining = 8 if protocol in {"adaptation_quality", "frozen_selection"} else budget.total_budget - budget.consumed
     query_designs = (
-        sobol_designs(task, 4, int(algorithm_seed) + 1_000_000)
+        sobol_designs_from_physical_bounds(
+            config["study"]["source_physical_bounds"],
+            4,
+            int(algorithm_seed) + 1_000_000,
+        )
         if protocol == "adaptation_quality" else ()
     )
     for offset in range(remaining):
@@ -117,7 +161,12 @@ def run(config_path: str, source_path: str, prior_path: str, output_path: str, *
         if protocol == "adaptation_quality" and method != "random" and target_only is None:
             mean, variance, _, _ = prior.predict((design,), miner.posterior)
             prediction = {"mean": float(mean[0]), "variance": float(variance[0])}
-        observation = executor.run(task, design, algorithm_seed + support_count + offset)
+        observation = executor.run(
+            task,
+            design,
+            algorithm_seed + support_count + offset,
+            logical_domain_id=logical_domain_id,
+        )
         budget.complete(slot, status=observation.status, score=observation.score)
         if protocol == "budget_efficiency":
             if target_only is not None:

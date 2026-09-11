@@ -10,7 +10,7 @@ from ..provenance import content_hash
 from ..scenario.parameter_space import NormalizedScenarioAction
 
 
-DIVA_SCHEMA = "diva_mine_cutin_constant_speed_physical"
+DIVA_SCHEMA = "diva_mine_cutin_constant_speed_physical_v2"
 ObservationStatus = Literal[
     "valid_event", "completed_noncritical", "censored", "invalid",
 ]
@@ -50,7 +50,7 @@ class DivaCutInDesign:
 
 @dataclass(frozen=True)
 class DivaObservation:
-    """One auditable simulator call; SUT reference is provenance only."""
+    """One auditable call: formal score and learning response remain separate."""
 
     design: DivaCutInDesign
     task_id: str
@@ -62,6 +62,7 @@ class DivaObservation:
     is_valid_episode: bool
     status: ObservationStatus
     posterior_eligible: bool
+    vulnerability_response: float | None
     outcome: Mapping[str, Any]
     concrete_scenario: Mapping[str, Any]
     behavior_contract_hash: str
@@ -74,6 +75,13 @@ class DivaObservation:
             raise ValueError("DIVA score must use the formal valid-critical scale")
         if self.posterior_eligible != (self.status in {"valid_event", "completed_noncritical"}):
             raise ValueError("posterior eligibility must agree with observation status")
+        if self.posterior_eligible:
+            if self.vulnerability_response is None or not np.isfinite(self.vulnerability_response):
+                raise ValueError("eligible DIVA observation requires a finite vulnerability response")
+            if not 0.0 <= float(self.vulnerability_response) <= 1.0:
+                raise ValueError("vulnerability response must lie in [0, 1]")
+        elif self.vulnerability_response is not None:
+            raise ValueError("ineligible DIVA observation must not carry a vulnerability response")
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)

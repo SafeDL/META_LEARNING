@@ -29,3 +29,5 @@ Before every rollout, the executor converts the declared initial vehicle distanc
 The test completion position is derived, not sampled: the ego must pass `cutin_start_s_m + cutin_path_length_m + 30 m` while remaining in the target lane. The 30 m follow-through confirms the post-merge state while both vehicles remain on the legal corridor. A tuple that leaves no such position on the route is rejected at reset; its declared five parameters are never silently changed.
 
 Collisions and near misses after reset are valid test outcomes. Initial overlap, invalid speed/path combinations, out-of-corridor lane changes and unbounded commands are invalid and excluded from learning.
+
+Continuous vulnerability response is a learning signal derived from already-recorded challenge-phase telemetry. It does not alter collision, near-miss, validity, route, completion, or physical execution semantics.

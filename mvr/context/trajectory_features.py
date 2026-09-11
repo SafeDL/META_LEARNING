@@ -7,7 +7,12 @@ import numpy as np
 import torch
 
 from ..scenario.route_geometry import RoutePolyline
-from .trajectory_encoder import TRAJECTORY_FIELDS
+
+TRAJECTORY_FIELDS = (
+    "relative_x", "relative_y", "relative_speed", "sut_acceleration", "sut_speed",
+    "sut_lateral_offset", "adversary_progress", "sut_progress", "ttc", "pet",
+    "pair_distance", "conflict_timing",
+)
 
 
 class TrajectoryFeatureExtractor:

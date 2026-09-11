@@ -16,6 +16,7 @@ class DivaMiner:
     prior: LowRankVulnerabilityPrior
     pool: tuple[DivaCutInDesign, ...]
     evaluability: np.ndarray
+    proxy_event_threshold: float = 0.75
     posterior: LatentVulnerabilityPosterior = field(init=False)
     selected_ids: set[str] = field(default_factory=set, init=False)
     archive_features: list[np.ndarray] = field(default_factory=list, init=False)
@@ -40,7 +41,14 @@ class DivaMiner:
 
     def select_diagnostic(self) -> DivaCutInDesign:
         mean, _, bases, noise = self.prior.predict(self.pool, self.posterior)
-        scores = diagnostic_scores(self.posterior, bases, mean, noise, self.evaluability)
+        scores = diagnostic_scores(
+            self.posterior,
+            bases,
+            mean,
+            noise,
+            self.evaluability,
+            level_set_threshold=self.proxy_event_threshold,
+        )
         design = self._select(scores, self._available(), self.pool)
         self.selected_ids.add(design.design_id)
         return design
@@ -77,6 +85,9 @@ class DivaMiner:
         if observation.posterior_eligible:
             mean, _, basis, noise = self.prior.predict((observation.design,), self.posterior)
             shared_mean = mean[0] - float(basis[0] @ self.posterior.mean)
-            self.posterior.update(basis[0], observation.score - shared_mean, noise[0])
+            assert observation.vulnerability_response is not None
+            self.posterior.update(
+                basis[0], observation.vulnerability_response - shared_mean, noise[0]
+            )
         if observation.score > 0.0:
             self.archive_features.append(observation.design.feature_vector())

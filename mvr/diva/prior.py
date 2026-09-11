@@ -25,7 +25,7 @@ class LowRankVulnerabilityPrior:
         cls, bank: SourceBank, rank: int, *, device: str = "cuda", gp_fit_steps: int = 100
     ) -> "LowRankVulnerabilityPrior":
         factorization = fit_low_rank_vulnerability(
-            bank.scores, bank.eligible, bank.source_refs, bank.design_ids, rank
+            bank.responses, bank.eligible, bank.source_refs, bank.design_ids, rank
         )
         gp_bank = BasisGPBank(device=device, fit_steps=gp_fit_steps)
         common = factorization.common_eligible_mask

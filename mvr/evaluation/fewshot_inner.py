@@ -1,13 +1,11 @@
-"""Metrics and budget contracts for Inner few-shot adaptation."""
+"""Formal outcome scoring shared by DIVA experiments."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
-
-import numpy as np
 
 
 def valid_critical_score(outcome: Mapping[str, Any]) -> float:
+    """Return the fixed formal score for one simulator outcome."""
     if not bool(outcome.get("is_valid_episode", False)):
         return 0.0
     if bool(outcome.get("valid_target_collision", False)):
@@ -17,85 +15,14 @@ def valid_critical_score(outcome: Mapping[str, Any]) -> float:
     return 0.0
 
 
-@dataclass(frozen=True)
-class AdaptationQualityProtocol:
-    """Fixed paired query set; support cost is reported, not equalized."""
-
-    query_cases: int = 8
-    support_shots: tuple[int, ...] = (0, 1, 2, 4)
-
-    def total_episodes(self, shots: int) -> int:
-        if shots not in self.support_shots:
-            raise ValueError("unsupported support-shot count")
-        return int(shots) + self.query_cases
-
-
-@dataclass(frozen=True)
-class BudgetEfficiencyProtocol:
-    """Support and query episodes share one strict simulator budget."""
-
-    total_episode_budget: int = 20
-    support_shots: tuple[int, ...] = (0, 1, 2, 4)
-
-    def query_cases(self, shots: int) -> int:
-        if shots not in self.support_shots or not 0 <= shots < self.total_episode_budget:
-            raise ValueError("support shots must leave a query episode within budget")
-        return self.total_episode_budget - int(shots)
-
-
 def summarize_outcomes(outcomes: Sequence[Mapping[str, Any]]) -> dict[str, float]:
-    values = [valid_critical_score(outcome) for outcome in outcomes]
-    invalid = [not bool(outcome.get("is_valid_episode", False)) for outcome in outcomes]
+    """Summarize formal scores while retaining invalid-episode accounting."""
+    scores = [valid_critical_score(outcome) for outcome in outcomes]
+    total = max(len(outcomes), 1)
+    invalid = sum(not bool(outcome.get("is_valid_episode", False)) for outcome in outcomes)
     return {
         "episodes": float(len(outcomes)),
-        "valid_critical_score_mean": sum(values) / max(len(values), 1),
-        "cumulative_valid_critical_score": sum(values),
-        "invalid_rate": sum(invalid) / max(len(invalid), 1),
-    }
-
-
-PAIR_KEY_FIELDS = ("task_id", "logical_domain_id", "support_shots", "seed", "query_case_id")
-
-
-def paired_policy_deltas(
-    records: Sequence[Mapping[str, Any]], left_policy: str, right_policy: str
-) -> list[dict[str, float]]:
-    """Match formal scores strictly by task, domain, K, simulator seed, and query."""
-    indexed: dict[tuple[object, ...], Mapping[str, Any]] = {}
-    for record in records:
-        if record.get("policy") not in {left_policy, right_policy}:
-            continue
-        key = tuple(record[field] for field in PAIR_KEY_FIELDS) + (record["policy"],)
-        if key in indexed:
-            raise ValueError("duplicate paired evaluation record")
-        indexed[key] = record
-    pairs = []
-    keys = {key[:-1] for key in indexed}
-    for key in sorted(keys):
-        left = indexed.get(key + (left_policy,))
-        right = indexed.get(key + (right_policy,))
-        if left is None or right is None:
-            raise ValueError("incomplete paired evaluation record")
-        pairs.append({
-            "score_delta": float(left["score"]) - float(right["score"]),
-            "invalid_delta": float(bool(left["invalid"])) - float(bool(right["invalid"])),
-        })
-    return pairs
-
-
-def paired_bootstrap(
-    pairs: Sequence[Mapping[str, float]], *, samples: int = 10_000, seed: int = 11
-) -> dict[str, float]:
-    if samples < 1 or not pairs:
-        raise ValueError("paired bootstrap requires positive samples and matched pairs")
-    score = np.asarray([float(row["score_delta"]) for row in pairs], dtype=float)
-    invalid = np.asarray([float(row["invalid_delta"]) for row in pairs], dtype=float)
-    indices = np.random.default_rng(seed).integers(0, len(score), size=(samples, len(score)))
-    means = score[indices].mean(axis=1)
-    return {
-        "pairs": float(len(score)),
-        "mean_delta": float(score.mean()),
-        "ci95_lower": float(np.quantile(means, 0.025)),
-        "ci95_upper": float(np.quantile(means, 0.975)),
-        "invalid_rate_delta": float(invalid.mean()),
+        "valid_critical_score_mean": sum(scores) / total,
+        "cumulative_valid_critical_score": sum(scores),
+        "invalid_rate": invalid / total,
     }

@@ -8,7 +8,9 @@ import numpy as np
 from .posterior import LatentVulnerabilityPosterior
 
 
-def score_level_set_weight(mean: np.ndarray, variance: np.ndarray, threshold: float = 0.5) -> np.ndarray:
+def score_level_set_weight(
+    mean: np.ndarray, variance: np.ndarray, threshold: float
+) -> np.ndarray:
     std = np.sqrt(np.maximum(np.asarray(variance, dtype=np.float64), 1e-12))
     z = (np.asarray(mean, dtype=np.float64) - threshold) / std
     probability = 0.5 * (1.0 + np.vectorize(erf)(z / sqrt(2.0)))
@@ -22,6 +24,7 @@ def diagnostic_scores(
     observation_noise_var: np.ndarray,
     evaluability: np.ndarray,
     *,
+    level_set_threshold: float,
     eta: float = 0.20,
     evaluability_power: float = 2.0,
 ) -> np.ndarray:
@@ -32,7 +35,9 @@ def diagnostic_scores(
     information = np.asarray([
         posterior.information_gain(row, value) for row, value in zip(matrix, noise)
     ])
-    boundary = score_level_set_weight(predicted_mean, predicted_variance)
+    boundary = score_level_set_weight(
+        predicted_mean, predicted_variance, level_set_threshold
+    )
     return information * (eta + (1.0 - eta) * boundary) * np.power(evaluability, evaluability_power)
 
 

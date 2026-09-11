@@ -13,6 +13,7 @@ from ..scenario.executor import ScenarioExecutor
 from ..scenario.task_spec import ScenarioMiningTaskSpec
 from ..training.runner import HierarchicalRunner
 from .behavior import DivaCutInBehavior
+from .response import VulnerabilityResponseConfig, compute_vulnerability_response
 from .types import DivaCutInDesign, DivaObservation
 
 
@@ -27,10 +28,18 @@ class DivaEpisodeExecutor:
         executor: ScenarioExecutor,
         runner: HierarchicalRunner,
         environment_horizon: int | None = None,
+        response_config: VulnerabilityResponseConfig | None = None,
     ) -> None:
         self.executor = executor
         self.runner = runner
         self.environment_horizon = environment_horizon
+        self.response_config = response_config or VulnerabilityResponseConfig(
+            ttc_scale_s=5.0,
+            distance_scale_m=10.0,
+            noncritical_cap=0.74,
+            near_miss_floor=0.75,
+            proxy_event_threshold=0.75,
+        )
 
     @staticmethod
     def _status(outcome: Mapping[str, Any], transitions: list[Mapping[str, Any]]) -> tuple[str, bool]:
@@ -54,6 +63,8 @@ class DivaEpisodeExecutor:
         task: ScenarioMiningTaskSpec,
         design: DivaCutInDesign,
         episode_seed: int,
+        *,
+        logical_domain_id: str | None = None,
     ) -> DivaObservation:
         if task.functional_scenario != "cutin":
             raise ValueError("DIVA only executes Cut-in tasks")
@@ -99,6 +110,9 @@ class DivaEpisodeExecutor:
             episode.env.close()
         score = valid_critical_score(rollout.outcome)
         status, posterior_eligible = self._status(rollout.outcome, rollout.transitions)
+        response = compute_vulnerability_response(
+            rollout.outcome, status, self.response_config
+        )
         audit = {
             "cutin_actual_onset": rollout.outcome.get("cutin_actual_onset"),
             "prescribed_adversary_speed_mps": behavior.prescribed_speed_mps,
@@ -125,12 +139,13 @@ class DivaEpisodeExecutor:
             task_id=task.task_id,
             sut_ref=task.sut_ref,
             geometry_id=task.geometry_id,
-            logical_domain_id=task.logical_domain_id,
+            logical_domain_id=logical_domain_id or task.logical_domain_id,
             episode_seed=int(episode_seed),
             score=score,
             is_valid_episode=bool(rollout.outcome.get("is_valid_episode", False)),
             status=status,
             posterior_eligible=posterior_eligible,
+            vulnerability_response=response,
             outcome=audit,
             concrete_scenario=concrete.to_dict(),
             behavior_contract_hash=behavior_hash,
