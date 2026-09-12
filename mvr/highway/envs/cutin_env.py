@@ -1,4 +1,4 @@
-"""A deterministic two-dimensional cut-in scenario for highway-env."""
+"""Deterministic Cut-in interaction modes for highway-env."""
 
 from __future__ import annotations
 
@@ -15,10 +15,11 @@ from mvr.highway.sut.idm_profiles import SUTProfile, create_profiled_vehicle
 
 @dataclass(frozen=True)
 class CutInScenario:
-    """Anchor coordinates: gap at cut-in start and lead-minus-ego speed."""
+    """Anchor coordinates plus a discrete interaction mechanism."""
 
     initial_gap: float
     relative_speed: float
+    mode: str = "single"
 
     def as_array(self) -> np.ndarray:
         return np.array([self.initial_gap, self.relative_speed], dtype=float)
@@ -46,21 +47,33 @@ class ScheduledCutInVehicle(ControlledVehicle):
         cutin_start: float,
         cutin_duration: float,
         cutin_target_lane_index: tuple[str, str, int],
+        brake_start: float | None = None,
+        brake_duration: float = 0.0,
+        braking_deceleration: float = 0.0,
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.cutin_start = cutin_start
         self.cutin_duration = cutin_duration
         self.cutin_target_lane_index = cutin_target_lane_index
+        self.brake_start = brake_start
+        self.brake_duration = brake_duration
+        self.braking_deceleration = braking_deceleration
         self.elapsed = 0.0
         self.KP_LATERAL = 2.0 / cutin_duration
 
     def act(self, action: dict | str = None) -> None:
         if self.elapsed >= self.cutin_start:
             self.target_lane_index = self.cutin_target_lane_index
+        acceleration = self.speed_control(self.target_speed)
+        if (
+            self.brake_start is not None
+            and self.brake_start <= self.elapsed < self.brake_start + self.brake_duration
+        ):
+            acceleration = -self.braking_deceleration
         action = {
             "steering": self.steering_control(self.target_lane_index),
-            "acceleration": self.speed_control(self.target_speed),
+            "acceleration": acceleration,
         }
         action["steering"] = np.clip(
             action["steering"], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE
@@ -77,6 +90,8 @@ class CutInEnv(AbstractEnv):
 
     EGO_SPEED = 25.0
     CUTIN_START = 1.0
+    FAST_INTRUSION = "fast_intrusion"
+    CUTIN_BRAKING = "cutin_braking"
 
     def __init__(
         self,
@@ -145,6 +160,12 @@ class CutInEnv(AbstractEnv):
             - self.scenario.relative_speed * self.CUTIN_START
         )
         adjacent_road_lane = self.road.network.get_lane(adjacent_lane)
+        (
+            cutin_duration,
+            brake_start,
+            brake_duration,
+            braking_deceleration,
+        ) = self._mode_parameters()
         lead = ScheduledCutInVehicle(
             self.road,
             adjacent_road_lane.position(lead_longitudinal, 0.0),
@@ -153,12 +174,29 @@ class CutInEnv(AbstractEnv):
             target_lane_index=adjacent_lane,
             target_speed=lead_speed,
             cutin_start=self.CUTIN_START,
-            cutin_duration=self.config["cutin_duration"],
+            cutin_duration=cutin_duration,
             cutin_target_lane_index=ego_lane,
+            brake_start=brake_start,
+            brake_duration=brake_duration,
+            braking_deceleration=braking_deceleration,
         )
         self.vehicle = ego
         self._cutin_vehicle = lead
         self.road.vehicles = [ego, lead]
+
+    def _mode_parameters(self) -> tuple[float, float | None, float, float]:
+        """Map a declared discrete mode to its fixed interaction mechanism."""
+        if self.scenario.mode in ("single", self.FAST_INTRUSION):
+            duration = (
+                0.45
+                if self.scenario.mode == self.FAST_INTRUSION
+                else self.config["cutin_duration"]
+            )
+            return duration, None, 0.0, 0.0
+        if self.scenario.mode == self.CUTIN_BRAKING:
+            duration = self.config["cutin_duration"]
+            return duration, self.CUTIN_START + duration, 1.0, 4.5
+        raise ValueError(f"Unsupported Cut-in interaction mode: {self.scenario.mode}")
 
     def _simulate(self, action: int | None = None) -> None:
         frames = int(self.config["simulation_frequency"] // self.config["policy_frequency"])

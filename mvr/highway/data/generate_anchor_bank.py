@@ -25,6 +25,24 @@ def generate_anchor_bank(num_anchors: int, seed: int) -> np.ndarray:
     return qmc.scale(unit_anchors, LOWER_BOUNDS, UPPER_BOUNDS)
 
 
+def generate_dual_mode_anchor_bank(num_anchors: int, seed: int) -> tuple[np.ndarray, np.ndarray]:
+    """Return an equal-size Fast Intrusion / Cut-in + Braking anchor bank."""
+    if num_anchors < 2 or num_anchors % 2:
+        raise ValueError("dual-mode anchor banks require a positive even anchor count")
+    anchors = np.vstack(
+        [
+            generate_anchor_bank(num_anchors // 2, seed),
+            generate_anchor_bank(num_anchors // 2, seed + 1),
+        ]
+    )
+    modes = np.array(
+        ["fast_intrusion"] * (num_anchors // 2)
+        + ["cutin_braking"] * (num_anchors // 2),
+        dtype="U32",
+    )
+    return anchors, modes
+
+
 def save_anchor_bank(path: Path, anchors: np.ndarray) -> None:
     """Persist anchors with enough metadata to prevent coordinate ambiguity."""
     path = Path(path)

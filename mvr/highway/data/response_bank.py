@@ -25,6 +25,7 @@ class ResponseBank:
     min_ttc: np.ndarray
     min_distance: np.ndarray
     completed: np.ndarray
+    modes: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         expected = (len(self.sut_names), len(self.anchors))
@@ -38,6 +39,11 @@ class ResponseBank:
         ):
             if getattr(self, name).shape != expected:
                 raise ValueError(f"{name} must have shape {expected}")
+        if (
+            self.modes is not None
+            and np.asarray(self.modes).shape != (len(self.anchors),)
+        ):
+            raise ValueError("modes must contain one interaction mode per anchor")
 
     def index_of(self, sut_name: str) -> int:
         return self.sut_names.index(sut_name)
@@ -55,6 +61,11 @@ class ResponseBank:
             min_ttc=self.min_ttc,
             min_distance=self.min_distance,
             completed=self.completed,
+            modes=(
+                np.asarray(self.modes, dtype="U32")
+                if self.modes is not None
+                else np.full(len(self.anchors), "single", dtype="U32")
+            ),
         )
 
     @classmethod
@@ -69,10 +80,13 @@ class ResponseBank:
                 min_ttc=data["min_ttc"],
                 min_distance=data["min_distance"],
                 completed=data["completed"].astype(bool),
+                modes=(data["modes"].astype(str) if "modes" in data.files else None),
             )
 
 
-def build_response_bank(anchors: np.ndarray, seed: int) -> ResponseBank:
+def build_response_bank(
+    anchors: np.ndarray, seed: int, modes: np.ndarray | None = None
+) -> ResponseBank:
     """Run all six deterministic SUTs on exactly the same anchor bank."""
     shape = (len(PROFILE_NAMES), len(anchors))
     vulnerability = np.empty(shape, dtype=float)
@@ -81,12 +95,23 @@ def build_response_bank(anchors: np.ndarray, seed: int) -> ResponseBank:
     min_ttc = np.empty(shape, dtype=float)
     min_distance = np.empty(shape, dtype=float)
     completed = np.empty(shape, dtype=bool)
+    interaction_modes = (
+        np.full(len(anchors), "single", dtype="U32")
+        if modes is None
+        else np.asarray(modes, dtype="U32")
+    )
+    if interaction_modes.shape != (len(anchors),):
+        raise ValueError("modes must contain one value per anchor")
     for sut_index, sut_name in enumerate(PROFILE_NAMES):
         profile = get_profile(sut_name)
         for anchor_index, (initial_gap, relative_speed) in enumerate(anchors):
             result = run_cutin_episode(
                 profile,
-                CutInScenario(float(initial_gap), float(relative_speed)),
+                CutInScenario(
+                    float(initial_gap),
+                    float(relative_speed),
+                    interaction_modes[anchor_index],
+                ),
                 seed=seed + anchor_index,
             )
             vulnerability[sut_index, anchor_index] = result.vulnerability
@@ -104,6 +129,7 @@ def build_response_bank(anchors: np.ndarray, seed: int) -> ResponseBank:
         min_ttc=min_ttc,
         min_distance=min_distance,
         completed=completed,
+        modes=interaction_modes,
     )
 
 

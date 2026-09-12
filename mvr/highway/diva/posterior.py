@@ -42,3 +42,16 @@ def adapt_posterior(
     covariance = np.linalg.inv(precision)
     mean = covariance @ design.T @ residual / observation_noise**2
     return LatentPosterior(mean, covariance, prior.predict(mean))
+
+
+def oracle_latent_prediction(prior: LowRankPrior, target_responses: np.ndarray) -> np.ndarray:
+    """Project a complete target response onto the prior basis for an upper bound.
+
+    This is not target adaptation: all target-anchor outcomes are used. It
+    isolates the representational headroom of the fitted LOSO prior.
+    """
+    truth = np.asarray(target_responses, dtype=float)
+    if truth.shape != prior.mean.shape:
+        raise ValueError("target_responses must have one value per anchor")
+    latent, _, _, _ = np.linalg.lstsq(prior.basis, truth - prior.mean, rcond=None)
+    return prior.predict(latent)

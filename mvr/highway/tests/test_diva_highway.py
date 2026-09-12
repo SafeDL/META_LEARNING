@@ -4,11 +4,12 @@ import numpy as np
 
 from mvr.highway.diva.acquisition import (
     diagnostic_support_indices,
+    oracle_support_indices,
     variance_support_indices,
 )
 from mvr.highway.diva.low_rank_prior import LowRankPrior
 from mvr.highway.diva.mining import adapted_mining, diagnostic_mining
-from mvr.highway.diva.posterior import adapt_posterior
+from mvr.highway.diva.posterior import adapt_posterior, oracle_latent_prediction
 
 
 def test_prior_uses_only_source_rows_and_posterior_uses_only_support():
@@ -72,3 +73,25 @@ def test_variance_only_support_remains_a_separate_legacy_baseline():
     )
     support = variance_support_indices(prior, 2)
     assert len(support) == len(np.unique(support)) == 2
+
+
+def test_oracle_latent_recovers_a_response_inside_the_prior_basis():
+    prior = LowRankPrior(
+        mean=np.array([0.2, 0.4, 0.6]),
+        basis=np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]),
+        latent_covariance=np.eye(2),
+        explained_variance_ratio=np.array([0.6, 0.4]),
+    )
+    truth = prior.predict(np.array([0.15, -0.2]))
+    assert np.allclose(oracle_latent_prediction(prior, truth), truth)
+
+
+def test_oracle_support_is_unique_and_uses_the_target_only_as_an_upper_bound():
+    prior = LowRankPrior(
+        mean=np.array([0.2, 0.3, 0.4, 0.5]),
+        basis=np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, -1.0]]),
+        latent_covariance=np.eye(2),
+        explained_variance_ratio=np.array([0.6, 0.4]),
+    )
+    support = oracle_support_indices(prior, np.array([0.9, 0.1, 1.0, 0.2]), 3)
+    assert len(support) == len(np.unique(support)) == 3

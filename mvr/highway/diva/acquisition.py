@@ -6,6 +6,7 @@ import numpy as np
 
 from mvr.highway.diva.low_rank_prior import LowRankPrior
 from mvr.highway.diva.posterior import LatentPosterior, adapt_posterior
+from mvr.highway.experiments.metrics import ndcg_at_k
 
 
 def highest_risk_indices(
@@ -97,4 +98,39 @@ def diagnostic_support_indices(
         posterior = adapt_posterior(
             prior, support, truth[support], observation_noise
         )
+    return np.asarray(selected, dtype=int)
+
+
+def oracle_support_indices(
+    prior: LowRankPrior,
+    target_responses: np.ndarray,
+    count: int,
+    observation_noise: float = 0.03,
+) -> np.ndarray:
+    """Greedily choose support using all target outcomes as an offline upper bound.
+
+    This function is deliberately unsuitable for a deployable method: every
+    candidate target response is inspected to select each probe. It answers
+    only whether an ideal four-shot support set could improve the posterior
+    ranking under the current low-rank representation.
+    """
+    truth = np.asarray(target_responses, dtype=float)
+    if truth.shape != prior.mean.shape:
+        raise ValueError("target_responses must have one value per anchor")
+    if count > len(prior.mean):
+        raise ValueError("support count exceeds candidate pool")
+    selected: list[int] = []
+    for _ in range(count):
+        candidates = np.asarray(
+            [index for index in range(len(truth)) if index not in selected], dtype=int
+        )
+        scores = np.empty(len(candidates), dtype=float)
+        for position, candidate in enumerate(candidates):
+            support = np.asarray([*selected, int(candidate)], dtype=int)
+            prediction = adapt_posterior(
+                prior, support, truth[support], observation_noise
+            ).prediction
+            scores[position] = ndcg_at_k(prediction, truth)
+        order = np.lexsort((candidates, -scores))
+        selected.append(int(candidates[order[0]]))
     return np.asarray(selected, dtype=int)

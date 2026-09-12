@@ -1,4 +1,4 @@
-# Highway-env DIVA-Mine continuation outcome
+# Highway-env DIVA-Mine E1--E6 outcome
 
 This record follows the original Highway-env MVP result in `results/diva_highway/cutin_mvp/`. The original result directory is retained unchanged as E1 evidence; the independent E2 controller-bank result is in `results/diva_highway/cutin_mvp_e2/`.
 
@@ -46,8 +46,62 @@ DIVA matches the Shared Prior on all six held-out SUTs. It has neither the requi
 
 E4 was replayed from the completed bank for diagnostic evidence. DIVA is 10.6% below Shared Prior and also below Random Support, so it fails the required `+5%` improvement and 4-of-6 target wins. Because E3 failed, this is not a valid successful downstream mining claim.
 
+## E5: offline Oracle Headroom audit on E2
+
+E5 uses the completed E2 bank only; it triggers **zero** new Highway-env
+episodes. `Oracle Latent` projects all 128 held-out vulnerability values onto
+the LOSO rank-2 basis, which tests representational headroom. `Oracle K=4`
+inspects every candidate target outcome at each selection step and greedily
+maximizes the resulting NDCG@10. Both are diagnostic upper bounds, not
+baselines and not deployable methods. The four support probes remain part of
+the B=20 critical-score budget.
+
+| Method | Mean NDCG@10 | Mean CriticalScore@20 |
+|---|---:|---:|
+| Shared Prior | 0.981283 | 18.167 |
+| Oracle Latent (full target) | 0.981283 | n/a |
+| Oracle K=4 (ranking upper bound) | 0.981283 | 15.917 |
+
+Oracle K=4 produces **0/6** strict NDCG wins and **0/6** strict critical-score
+wins. Its CriticalScore@20 is 12.4% below the Shared Prior. Oracle Latent also
+does not strictly improve mean NDCG. Thus the E2 failure is not caused by a
+suboptimal diagnostic acquisition rule: under this low-rank representation,
+the single-mode Cut-in bank has no usable target-adaptation headroom.
+
+The former E3 absolute NDCG threshold (`+0.02`) is retired. With Shared Prior
+NDCG@10 = 0.981283, its mathematical maximum possible gain is only 0.018717.
+Any later ranking gate must instead use normalized remaining-headroom recovery,
+`(NDCG_adapted - NDCG_shared) / (1 - NDCG_shared)`, with a 25% threshold and
+four positive target-SUT gains.
+
+## E6: dual-mechanism Cut-in bank and Gate 0
+
+Per the E5 stop rule, the scenario was changed without changing the learning
+algorithm, total anchor count, SUTs, or fixed-budget protocol. The new bank
+contains exactly 64 `fast_intrusion` anchors (0.45 s lane change, then constant
+speed) and 64 `cutin_braking` anchors (1.5 s lane change, then fixed 4.5 m/s^2
+braking for 1 s), for another exact `6 x 128 = 768` episodes.
+
+Gate 0-A passes: all target failure rates lie in [14.06%, 50.00%]. Gate 0-B
+passes: each LOSO source fold has rank-2 EVR between 87.57% and 93.28%.
+Gate 0-C fails: even an outcome-oracle top-20 ranking has less than 10%
+CriticalScore headroom over the Shared Prior for every target SUT (the maximum
+is 7.69% for SUT-B; the requirement is 4/6 targets at at least 10%).
+
+This failure is decisive for this dual-mode configuration: knowing the target
+SUT exactly cannot materially increase fixed-budget failure discovery, so no
+support acquisition method can establish the claimed adaptation gain. E7 and
+E8 were therefore not run.
+
 ## Final decision
 
-The predefined stop rule applies. This Highway-env Cut-in MVP establishes transferable low-rank structure and physically valid heterogeneous failure regions, but does **not** establish the DIVA-Mine adaptation advantage. Do not claim a successful DIVA method result, and do not expand anchors, scan `K=1/2`, add a larger surrogate, change geometry, or transfer this method to MetaDrive on the basis of these data.
+The predefined stop rule applies. The Highway-env Cut-in MVP establishes
+transferable low-rank structure and physically valid heterogeneous failure
+regions, but does **not** establish the DIVA-Mine adaptation advantage. Do not
+claim a successful DIVA method result, and do not expand anchors, scan `K=1/2`,
+add a larger surrogate, change geometry, or transfer this method to MetaDrive
+on the basis of these data.
 
-The E2 directory contains the response bank, E1 comparison CSV, LOSO ranking/mining CSVs, four PNG figures, and six Cut-in GIF replays.
+The E2 directory contains the response bank, E1 comparison CSV, LOSO
+ranking/mining CSVs, figures, replays, and the E5 oracle-headroom CSV/JSON.
+The E6 directory contains the dual-mode response bank and the Gate 0 audit.
