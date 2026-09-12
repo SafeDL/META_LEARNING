@@ -1,6 +1,3 @@
-"""Map-aware vulnerability research for driving controllers."""
+"""Simulator-scoped MVR research implementations."""
 
-from .failure.signature import FailureSignature
-from .scenario.task_spec import ScenarioMiningTaskSpec
-
-__all__ = ("FailureSignature", "ScenarioMiningTaskSpec")
+__all__ = ("highway", "metadrive")

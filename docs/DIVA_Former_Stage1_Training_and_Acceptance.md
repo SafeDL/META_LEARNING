@@ -27,33 +27,33 @@
 
 当前可直接复用的核心资产包括：
 
-- `mvr/diva/types.py`
+- `mvr/metadrive/diva/types.py`
   - `DivaCutInDesign`
   - `DivaObservation`
   - `score`
   - `vulnerability_response`
-- `mvr/diva/response.py`
+- `mvr/metadrive/diva/response.py`
   - 连续 vulnerability learning signal
   - formal score 与 learning response 已解耦
-- `mvr/diva/source_bank.py`
+- `mvr/metadrive/diva/source_bank.py`
   - 对齐的 source-SUT × common-anchor response bank
-- `mvr/diva/factorization.py`
+- `mvr/metadrive/diva/factorization.py`
   - source vulnerability 的低秩结构
-- `mvr/diva/prior.py`
+- `mvr/metadrive/diva/prior.py`
   - `LowRankVulnerabilityPrior`
-- `mvr/diva/posterior.py`
+- `mvr/metadrive/diva/posterior.py`
   - `LatentVulnerabilityPosterior`
-- `mvr/diva/acquisition.py`
+- `mvr/metadrive/diva/acquisition.py`
   - 当前 `diagnostic_scores()` 与 `mining_scores()`
-- `mvr/diva/miner.py`
+- `mvr/metadrive/diva/miner.py`
   - 当前 DIVA 的在线选择状态机
-- `mvr/scripts/evaluate_diva_source_loso.py`
+- `mvr/metadrive/scripts/evaluate_diva_source_loso.py`
   - source-only LOSO protocol
-- `mvr/scripts/evaluate_diva_cutin.py`
+- `mvr/metadrive/scripts/evaluate_diva_cutin.py`
   - target 预算协议和物理执行入口
-- `mvr/evaluation/diva_protocol.py`
+- `mvr/metadrive/evaluation/diva_protocol.py`
   - fixed-budget ledger
-- `mvr/configs/diva_cutin.yaml`
+- `mvr/metadrive/configs/diva_cutin.yaml`
   - 当前冻结的 Cut-in source domain 与 B=20 协议
 
 当前 source v2 已经得到：
@@ -97,7 +97,7 @@
 
 允许使用的真实数据只有已经冻结的 source bank：
 
-`results/diva/cutin_g01/source_observations_v2.jsonl`
+`results/metadrive/diva/cutin_g01/source_observations_v2.jsonl`
 
 ---
 
@@ -184,10 +184,10 @@ x_t=\arg\max_x Q(x\mid D_t,B-t).
 
 # 4. 第一阶段新增代码结构
 
-不得破坏 `mvr/diva/` 当前 v2 baseline。建议新增独立包：
+不得破坏 `mvr/metadrive/diva/` 当前 v2 baseline。建议新增独立包：
 
 ```text
-mvr/diva_ai/
+mvr/metadrive/diva_ai/
     __init__.py
     state.py
     scenario_encoder.py
@@ -209,11 +209,11 @@ mvr/diva_ai/
 新增脚本：
 
 ```text
-mvr/scripts/build_diva_counterfactual_dataset.py
-mvr/scripts/pretrain_diva_former.py
-mvr/scripts/train_diva_former.py
-mvr/scripts/evaluate_diva_former_source_loso.py
-mvr/scripts/validate_diva_former_stage1.py
+mvr/metadrive/scripts/build_diva_counterfactual_dataset.py
+mvr/metadrive/scripts/pretrain_diva_former.py
+mvr/metadrive/scripts/train_diva_former.py
+mvr/metadrive/scripts/evaluate_diva_former_source_loso.py
+mvr/metadrive/scripts/validate_diva_former_stage1.py
 ```
 
 新增测试：
@@ -232,7 +232,7 @@ mvr/tests/test_diva_former_source_loso_contract.py
 建议单独新建配置：
 
 ```text
-mvr/configs/diva_former_stage1.yaml
+mvr/metadrive/configs/diva_former_stage1.yaml
 ```
 
 不要把 AI 实验超参数写回冻结的 `diva_cutin.yaml`。
@@ -475,7 +475,7 @@ TeacherState:
 
 需要新增可复制/可重放的 belief state，禁止直接依赖不可复制的 `DivaMiner` mutable instance。
 
-建议 `mvr/diva_ai/state.py` 提供：
+建议 `mvr/metadrive/diva_ai/state.py` 提供：
 
 ```python
 clone()
@@ -780,7 +780,7 @@ held-out fold 只运行一次最终评估。
 
 ```yaml
 schema: diva_former_stage1_v1
-base_config: mvr/configs/diva_cutin.yaml
+base_config: mvr/metadrive/configs/diva_cutin.yaml
 
 model:
   d_model: 128
@@ -1240,7 +1240,7 @@ no budget overrun
 所有新产物单独保存：
 
 ```text
-results/diva_former/cutin_g01/stage1/
+results/metadrive/diva_former/cutin_g01/stage1/
 ```
 
 建议：

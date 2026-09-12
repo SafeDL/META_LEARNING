@@ -1,32 +1,35 @@
 # META_LEARNING
 
-本仓库实现面向黑盒驾驶控制器的可迁移少样本脆弱性场景挖掘：在多几何 MetaDrive 任务上训练，并以 R1–R4 分离评估 SUT 与道路几何 OOD。当前不宣称独立 ADS 或真实车辆泛化。
+面向黑盒驾驶控制器的可迁移少样本脆弱场景挖掘研究代码库。项目按仿真器
+隔离实现：MetaDrive 用于完整的地图感知场景实验，Highway-env 用于快速的
+DIVA-Mine MVP 机制验证；两者的代码、测试和结果互不覆盖。
 
-| 目录 | 作用 |
+| 目录 | 用途 |
 | --- | --- |
-| `mvr/` | 当前 active MVR 方法、配置和测试 |
-| `archives/pearl_learning/` | 归档的 merge-only PEARL 基线 |
-| `archives/sac_scenario_mining/` | 归档的 SAC 场景挖掘基线 |
-| `docs/` | 方法、实验与维护说明 |
-| `results/` | 可追溯的最终 JSON/CSV 指标和 manifest |
+| `mvr/metadrive/` | MetaDrive 的 MVR、DIVA-Mine / DIVA-Former 实现、脚本和测试 |
+| `mvr/highway/` | Highway-env 的 DIVA-Mine MVP 实现、脚本和测试 |
+| `archives/` | 冻结的 PEARL 与 SAC 历史基线 |
+| `docs/` | 方法、实验设计与执行说明 |
+| `results/metadrive/` | MetaDrive 的可追溯实验工件 |
+| `results/diva_highway/` | Highway-env MVP 指标、图表与 GIF 回放 |
 
-## 复现
+## 复现与验证
 
-使用仓库根目录的 [`environment.yml`](environment.yml) 创建 `metadrive` Conda 环境，然后运行：
+使用根目录的 `environment.yml` 创建 `metadrive` Conda 环境后，在仓库根目录运行：
 
 ```powershell
-conda run -n metadrive python -m pytest mvr/tests -q
+conda run -n metadrive python -m pytest mvr/metadrive/tests mvr/highway/tests -q
 conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
-conda run -n metadrive python -m compileall -q mvr archives/pearl_learning archives/sac_scenario_mining
+conda run -n metadrive python -m compileall -q mvr/metadrive mvr/highway archives/pearl_learning archives/sac_scenario_mining
 ```
 
-MVR 的正式入口只有：
+重新构建 Highway-env 的响应库、指标、图表与 GIF：
 
 ```powershell
-python -m mvr.scripts.validate_mvr --output results/mvr/stage1/g3.json
-python -m mvr.scripts.build_taskbook --output mvr/configs/taskbook.json
-python -m mvr.scripts.train_mvr --output results/mvr/stage1
-python -m mvr.scripts.evaluate_mvr --checkpoint results/mvr/stage1/outer.pt --output results/mvr/stage1/evaluation.json
+conda run -n metadrive python -m mvr.highway.scripts.run_diva_highway_mvp --rebuild-bank
+conda run -n metadrive python -m mvr.highway.scripts.render_diva_highway_mvp
 ```
 
-训练严格按 `inner_pretrain → posterior → inner_latent_calibration → outer` 执行。中间 checkpoint、rollout 和日志可由 manifest 与配置重建，不应提交。
+Highway-env 的具体实验协议和已执行结果分别见
+[`docs/highway_env_DIVA_Mine_MVP_experiment_design.md`](docs/highway_env_DIVA_Mine_MVP_experiment_design.md)
+和 [`docs/highway_env_DIVA_Mine_MVP_execution.md`](docs/highway_env_DIVA_Mine_MVP_execution.md)。

@@ -2,19 +2,27 @@
 
 ## Project Structure & Module Organization
 
-`mvr/` is the active map-aware MVR implementation; keep its simulator contracts, policy/context modules, training code, and tests together under that package. `archives/pearl_learning/` and `archives/sac_scenario_mining/` are frozen legacy baselines and should not receive new method features. Store design notes in `docs/`, durable experiment artifacts in `results/`, and reusable cross-package helpers in root `tools/`.
+`mvr/metadrive/` is the active map-aware MetaDrive implementation, and
+`mvr/highway/` is the isolated Highway-env implementation; keep each simulator's
+contracts, policy/context modules, scripts, and tests inside its own package.
+`archives/pearl_learning/` and `archives/sac_scenario_mining/` are frozen legacy
+baselines and should not receive new method features. Store design notes in
+`docs/`, durable simulator-scoped experiment artifacts in `results/`, and reusable
+cross-package helpers in root `tools/`.
 
 ## Build, Test, and Development Commands
 
 Use the MetaDrive Conda environment:
 
 ```powershell
-conda run -n metadrive python -m pytest mvr/tests -q
+conda run -n metadrive python -m pytest mvr/metadrive/tests mvr/highway/tests -q
 conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
-conda run -n metadrive python -m compileall -q mvr archives/pearl_learning archives/sac_scenario_mining
+conda run -n metadrive python -m compileall -q mvr/metadrive mvr/highway archives/pearl_learning archives/sac_scenario_mining
 ```
 
-The first command exercises active MVR contracts, including headless MetaDrive fixtures. Run the second before changing shared legacy utilities. Compile after structural edits when a formatter or linter is unavailable.
+The first command exercises both active simulator packages, including headless
+MetaDrive fixtures. Run the second before changing shared legacy utilities.
+Compile after structural edits when a formatter or linter is unavailable.
 
 ## Coding Style & Naming Conventions
 

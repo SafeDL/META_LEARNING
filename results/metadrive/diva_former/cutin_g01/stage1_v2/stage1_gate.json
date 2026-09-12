@@ -1,0 +1,44 @@
+{
+  "schema": "diva_former_stage1_gate_v2",
+  "source_only": true,
+  "new_simulator_calls": 0,
+  "manifest_sha256": "acd7cc9395cfc1f00ce24a7cdc459c7c57e7d505f83fa58e202bb5a41ecb2a52",
+  "g1_a_headroom": {
+    "pass": false,
+    "report": "headroom_audit.json"
+  },
+  "g1_b_diagnosis": {
+    "pass": true,
+    "report": "diagnosis_gate.json"
+  },
+  "g1_c_formal_alignment": {
+    "pass": false,
+    "report": "formal_alignment_gate.json"
+  },
+  "g1_d_mining_utility": {
+    "pass": false,
+    "report": "teacher/teacher_gate.json"
+  },
+  "transformer": {
+    "trained": false,
+    "status": "prohibited_by_v2_gate"
+  },
+  "decision": "stop_before_transformer",
+  "failure_reasons": {
+    "g1_a": [
+      "score_headroom_at_10"
+    ],
+    "g1_c": [
+      "positive_paired_ndcg_ci_vs_random"
+    ],
+    "g1_d": [
+      "score_at_10_gain",
+      "auc_at_10_gain",
+      "auc_at_20_gain"
+    ]
+  },
+  "sealed_sut_refs": [
+    "idm_fast_small_gap",
+    "idm_late_response"
+  ]
+}
