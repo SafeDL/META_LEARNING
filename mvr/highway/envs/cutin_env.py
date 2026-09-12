@@ -10,7 +10,7 @@ from highway_env.envs.common.abstract import AbstractEnv
 from highway_env.road.road import Road, RoadNetwork
 from highway_env.vehicle.controller import ControlledVehicle
 
-from mvr.highway.sut.idm_profiles import IDMProfile, ProfiledIDMVehicle
+from mvr.highway.sut.idm_profiles import SUTProfile, create_profiled_vehicle
 
 
 @dataclass(frozen=True)
@@ -80,7 +80,7 @@ class CutInEnv(AbstractEnv):
 
     def __init__(
         self,
-        profile: IDMProfile,
+        profile: SUTProfile,
         scenario: CutInScenario,
         render_mode: str | None = None,
     ) -> None:
@@ -129,7 +129,7 @@ class CutInEnv(AbstractEnv):
         adjacent_lane = ("0", "1", 1)
         ego_road_lane = self.road.network.get_lane(ego_lane)
         ego_position = ego_road_lane.position(60.0, 0.0)
-        ego = ProfiledIDMVehicle(
+        ego = create_profiled_vehicle(
             self.road,
             ego_position,
             heading=ego_road_lane.heading_at(60.0),
@@ -214,7 +214,7 @@ class CutInEnv(AbstractEnv):
 
 
 def run_cutin_episode(
-    profile: IDMProfile, scenario: CutInScenario, seed: int = 0
+    profile: SUTProfile, scenario: CutInScenario, seed: int = 0
 ) -> EpisodeResult:
     """Run one deterministic scenario episode and return only its safety response."""
     env = CutInEnv(profile, scenario)

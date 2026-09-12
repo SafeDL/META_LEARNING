@@ -1,4 +1,4 @@
-"""Heterogeneous IDM-style controllers used as systems under test."""
+"""Heterogeneous IDM and FVDM controllers used as systems under test."""
 
 from __future__ import annotations
 
@@ -7,36 +7,48 @@ from dataclasses import dataclass
 import numpy as np
 
 from highway_env import utils
-from highway_env.vehicle.behavior import IDMVehicle
 from highway_env.vehicle.controller import ControlledVehicle
 from highway_env.vehicle.kinematics import Vehicle
 
 
 @dataclass(frozen=True)
-class IDMProfile:
+class SUTProfile:
     """A controller profile with a distinct safety failure mode."""
 
     name: str
-    time_wanted: float
-    max_brake: float
-    reaction_delay: float
-    desired_gap: float
+    controller: str
+    time_wanted: float = 1.5
+    max_brake: float = 5.0
+    reaction_delay: float = 0.0
+    desired_gap: float = 5.0
     comfort_acceleration: float = 3.0
     target_speed: float = 27.0
+    fvdm_sensitivity: float = 0.6
+    fvdm_velocity_gain: float = 0.6
+    fvdm_transition_gap: float = 5.0
 
 
 PROFILES = (
-    IDMProfile("SUT-A", 2.4, 3.0, 0.0, 8.0),
-    IDMProfile("SUT-B", 0.8, 9.0, 0.0, 3.0),
-    IDMProfile("SUT-C", 1.3, 4.5, 0.7, 5.0),
-    IDMProfile("SUT-D", 1.8, 8.0, 0.0, 8.0),
-    IDMProfile("SUT-E", 0.7, 10.0, 0.2, 3.0, comfort_acceleration=4.0),
-    IDMProfile("SUT-F", 1.5, 5.0, 1.2, 5.0),
+    SUTProfile("SUT-A", "IDM", time_wanted=2.4, max_brake=3.0, desired_gap=8.0),
+    SUTProfile("SUT-B", "IDM", time_wanted=0.8, max_brake=9.0, desired_gap=3.0),
+    SUTProfile("SUT-C", "IDM", time_wanted=1.3, max_brake=4.5, reaction_delay=0.7, desired_gap=5.0),
+    SUTProfile(
+        "SUT-D", "FVDM", max_brake=3.5, desired_gap=8.0,
+        fvdm_sensitivity=0.32, fvdm_velocity_gain=0.25, fvdm_transition_gap=4.0,
+    ),
+    SUTProfile(
+        "SUT-E", "FVDM", max_brake=8.0, desired_gap=2.5,
+        fvdm_sensitivity=0.9, fvdm_velocity_gain=1.2, fvdm_transition_gap=9.0,
+    ),
+    SUTProfile(
+        "SUT-F", "FVDM", max_brake=4.5, reaction_delay=0.4, desired_gap=6.0,
+        fvdm_sensitivity=0.6, fvdm_velocity_gain=0.35, fvdm_transition_gap=3.0,
+    ),
 )
 PROFILE_NAMES = tuple(profile.name for profile in PROFILES)
 
 
-def get_profile(name: str) -> IDMProfile:
+def get_profile(name: str) -> SUTProfile:
     """Return a named profile, rejecting accidental controller substitutions."""
     for profile in PROFILES:
         if profile.name == name:
@@ -44,15 +56,30 @@ def get_profile(name: str) -> IDMProfile:
     raise KeyError(f"Unknown SUT profile: {name}")
 
 
-class ProfiledIDMVehicle(IDMVehicle):
+class ProfiledIDMVehicle(ControlledVehicle):
     """An IDM vehicle whose longitudinal behaviour is fixed by one profile."""
 
-    def __init__(self, *args, profile: IDMProfile, **kwargs) -> None:
-        super().__init__(*args, enable_lane_change=False, **kwargs)
+    SPEED_EXPONENT = 4.0
+
+    def __init__(self, *args, profile: SUTProfile, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.profile = profile
         self.elapsed = 0.0
-        self.ACC_MAX = max(self.ACC_MAX, profile.max_brake)
         self._front_seen_at: float | None = None
+
+    def act(self, action: dict | str = None) -> None:
+        if self.crashed:
+            return
+        self.follow_road()
+        front_vehicle, rear_vehicle = self.road.neighbour_vehicles(self, self.lane_index)
+        command = {
+            "steering": self.steering_control(self.target_lane_index),
+            "acceleration": self.acceleration(self, front_vehicle, rear_vehicle),
+        }
+        command["steering"] = np.clip(
+            command["steering"], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE
+        )
+        Vehicle.act(self, command)
 
     def step(self, dt: float) -> None:
         self.elapsed += dt
@@ -79,7 +106,7 @@ class ProfiledIDMVehicle(IDMVehicle):
         acceleration = self.profile.comfort_acceleration * (
             1
             - (max(ego_vehicle.speed, 0.0) / utils.not_zero(target_speed))
-            ** self.DELTA
+            ** self.SPEED_EXPONENT
         )
         if front_vehicle is not None:
             distance = ego_vehicle.lane_distance_to(front_vehicle)
@@ -87,7 +114,7 @@ class ProfiledIDMVehicle(IDMVehicle):
             acceleration -= self.profile.comfort_acceleration * (
                 desired_gap / utils.not_zero(distance)
             ) ** 2
-        return float(np.clip(acceleration, -self.profile.max_brake, self.ACC_MAX))
+        return float(np.clip(acceleration, -self.profile.max_brake, self.profile.comfort_acceleration))
 
     def desired_gap(
         self,
@@ -111,3 +138,82 @@ class ProfiledIDMVehicle(IDMVehicle):
             * relative_speed
             / (2 * np.sqrt(braking_product))
         )
+
+
+class ProfiledFVDMVehicle(ControlledVehicle):
+    """A full-velocity-difference car-following controller with fixed parameters."""
+
+    def __init__(self, *args, profile: SUTProfile, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.profile = profile
+        self.elapsed = 0.0
+        self._front_seen_at: float | None = None
+
+    def step(self, dt: float) -> None:
+        self.elapsed += dt
+        super().step(dt)
+
+    def act(self, action: dict | str = None) -> None:
+        if self.crashed:
+            return
+        self.follow_road()
+        front_vehicle, rear_vehicle = self.road.neighbour_vehicles(self, self.lane_index)
+        command = {
+            "steering": self.steering_control(self.target_lane_index),
+            "acceleration": self.acceleration(self, front_vehicle, rear_vehicle),
+        }
+        command["steering"] = np.clip(
+            command["steering"], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE
+        )
+        Vehicle.act(self, command)
+
+    def acceleration(
+        self,
+        ego_vehicle: ControlledVehicle,
+        front_vehicle: Vehicle = None,
+        rear_vehicle: Vehicle = None,
+    ) -> float:
+        """Apply the FVDM optimal-velocity and relative-velocity feedback terms."""
+        if front_vehicle is not None and self._front_seen_at is None:
+            self._front_seen_at = self.elapsed
+        if (
+            self._front_seen_at is not None
+            and self.elapsed - self._front_seen_at < self.profile.reaction_delay
+        ):
+            front_vehicle = None
+        target_speed = min(self.profile.target_speed, ego_vehicle.lane.speed_limit)
+        if front_vehicle is None:
+            return float(
+                np.clip(
+                    self.profile.fvdm_sensitivity * (target_speed - ego_vehicle.speed),
+                    -self.profile.max_brake,
+                    self.profile.comfort_acceleration,
+                )
+            )
+        gap = ego_vehicle.lane_distance_to(front_vehicle)
+        transition = self.profile.fvdm_transition_gap
+        desired = self.profile.desired_gap
+        normalized_optimal_speed = (
+            np.tanh((gap - desired) / transition) + np.tanh(desired / transition)
+        ) / (1.0 + np.tanh(desired / transition))
+        optimal_speed = target_speed * normalized_optimal_speed
+        acceleration = (
+            self.profile.fvdm_sensitivity * (optimal_speed - ego_vehicle.speed)
+            + self.profile.fvdm_velocity_gain * (front_vehicle.speed - ego_vehicle.speed)
+        )
+        return float(
+            np.clip(
+                acceleration,
+                -self.profile.max_brake,
+                self.profile.comfort_acceleration,
+            )
+        )
+
+
+def create_profiled_vehicle(*args, profile: SUTProfile, **kwargs) -> ControlledVehicle:
+    """Instantiate exactly the controller family named by a SUT profile."""
+    if profile.controller == "IDM":
+        return ProfiledIDMVehicle(*args, profile=profile, **kwargs)
+    if profile.controller == "FVDM":
+        return ProfiledFVDMVehicle(*args, profile=profile, **kwargs)
+    raise ValueError(f"Unsupported controller family: {profile.controller}")

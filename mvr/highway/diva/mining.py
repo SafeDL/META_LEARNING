@@ -89,6 +89,27 @@ def adapted_mining(
     return _trace(method, queries, collisions, near_misses)
 
 
+def highest_risk_support_mining(
+    prior: LowRankPrior,
+    vulnerability: np.ndarray,
+    collisions: np.ndarray,
+    near_misses: np.ndarray,
+    support_budget: int,
+    total_budget: int,
+) -> MiningTrace:
+    """Adapt after probing the K highest-risk scenarios under the shared prior."""
+    support = highest_risk_indices(prior.mean, support_budget)
+    return adapted_mining(
+        "Highest-Risk Support + Adaptation",
+        prior,
+        vulnerability,
+        collisions,
+        near_misses,
+        support,
+        total_budget,
+    )
+
+
 def diagnostic_mining(
     prior: LowRankPrior,
     vulnerability: np.ndarray,
@@ -97,9 +118,9 @@ def diagnostic_mining(
     support_budget: int,
     total_budget: int,
 ) -> MiningTrace:
-    support = diagnostic_support_indices(prior, support_budget)
+    support = diagnostic_support_indices(prior, vulnerability, support_budget)
     return adapted_mining(
-        "Diagnostic Support + Adaptation",
+        "DIVA Diagnostic + Adaptation",
         prior,
         vulnerability,
         collisions,

@@ -14,6 +14,7 @@ from mvr.highway.diva.low_rank_prior import LowRankPrior
 from mvr.highway.diva.mining import (
     adapted_mining,
     diagnostic_mining,
+    highest_risk_support_mining,
     random_mining,
     shared_prior_mining,
 )
@@ -43,6 +44,9 @@ def run_loso_mining(bank: ResponseBank, config: ExperimentConfig) -> list[dict]:
         near_misses = bank.near_misses[target_index]
         rows.append(_row(target_name, 0, shared_prior_mining(prior, collisions, near_misses, config.total_budget)))
         rows.append(_row(target_name, 0, diagnostic_mining(
+            prior, vulnerability, collisions, near_misses, config.support_budget, config.total_budget
+        )))
+        rows.append(_row(target_name, 0, highest_risk_support_mining(
             prior, vulnerability, collisions, near_misses, config.support_budget, config.total_budget
         )))
         rng = np.random.default_rng(seeds[target_index])

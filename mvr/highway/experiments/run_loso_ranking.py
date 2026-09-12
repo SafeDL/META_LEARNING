@@ -10,13 +10,24 @@ import numpy as np
 
 from mvr.highway.config import ExperimentConfig
 from mvr.highway.data.response_bank import ResponseBank
-from mvr.highway.diva.acquisition import diagnostic_support_indices
+from mvr.highway.diva.acquisition import (
+    diagnostic_support_indices,
+    highest_risk_indices,
+    variance_support_indices,
+)
 from mvr.highway.diva.low_rank_prior import LowRankPrior
 from mvr.highway.diva.posterior import adapt_posterior
 from mvr.highway.experiments.metrics import ndcg_at_k, spearman_correlation, top_k_recall
 
 
-def _metric_row(method: str, target: str, prediction: np.ndarray, truth: np.ndarray, repeat: int) -> dict:
+def _metric_row(
+    method: str,
+    target: str,
+    prediction: np.ndarray,
+    truth: np.ndarray,
+    repeat: int,
+    support: np.ndarray | None = None,
+) -> dict:
     return {
         "method": method,
         "target_sut": target,
@@ -24,11 +35,12 @@ def _metric_row(method: str, target: str, prediction: np.ndarray, truth: np.ndar
         "ndcg_at_10": ndcg_at_k(prediction, truth),
         "top_10_recall": top_k_recall(prediction, truth),
         "spearman": spearman_correlation(prediction, truth),
+        "support_indices": "" if support is None else ";".join(map(str, support)),
     }
 
 
 def run_loso_ranking(bank: ResponseBank, config: ExperimentConfig) -> list[dict]:
-    """Evaluate K=0, random K=4, and diagnostic K=4 for every held-out SUT."""
+    """Evaluate the four K=0/K=4 ranking methods for every held-out SUT."""
     config.validate()
     rows: list[dict] = []
     seeds = np.random.SeedSequence(config.seed).spawn(len(bank.sut_names))
@@ -37,17 +49,32 @@ def run_loso_ranking(bank: ResponseBank, config: ExperimentConfig) -> list[dict]
         prior = LowRankPrior.fit(source, config.prior_rank)
         truth = bank.vulnerability[target_index]
         rows.append(_metric_row("Shared Prior", target_name, prior.mean, truth, 0))
-        diagnostic = diagnostic_support_indices(prior, config.support_budget)
+        highest_risk = highest_risk_indices(prior.mean, config.support_budget)
+        highest_risk_prediction = adapt_posterior(
+            prior, highest_risk, truth[highest_risk]
+        ).prediction
+        rows.append(
+            _metric_row(
+                "Highest-Risk Support + Adaptation",
+                target_name,
+                highest_risk_prediction,
+                truth,
+                0,
+                highest_risk,
+            )
+        )
+        diagnostic = diagnostic_support_indices(prior, truth, config.support_budget)
         diagnostic_prediction = adapt_posterior(
             prior, diagnostic, truth[diagnostic]
         ).prediction
         rows.append(
             _metric_row(
-                "Diagnostic Support + Adaptation",
+                "DIVA Diagnostic + Adaptation",
                 target_name,
                 diagnostic_prediction,
                 truth,
                 0,
+                diagnostic,
             )
         )
         rng = np.random.default_rng(seeds[target_index])
@@ -55,8 +82,50 @@ def run_loso_ranking(bank: ResponseBank, config: ExperimentConfig) -> list[dict]
             support = rng.choice(len(truth), config.support_budget, replace=False)
             prediction = adapt_posterior(prior, support, truth[support]).prediction
             rows.append(
-                _metric_row("Random Support + Adaptation", target_name, prediction, truth, repeat)
+                _metric_row(
+                    "Random Support + Adaptation",
+                    target_name,
+                    prediction,
+                    truth,
+                    repeat,
+                    support,
+                )
             )
+    return rows
+
+
+def run_e1_diagnostic_comparison(
+    bank: ResponseBank, config: ExperimentConfig
+) -> list[dict]:
+    """Compare sequential DIVA support with the retired variance-only rule."""
+    config.validate()
+    rows: list[dict] = []
+    for target_index, target_name in enumerate(bank.sut_names):
+        source = np.delete(bank.vulnerability, target_index, axis=0)
+        prior = LowRankPrior.fit(source, config.prior_rank)
+        truth = bank.vulnerability[target_index]
+        variance_only = variance_support_indices(prior, config.support_budget)
+        rows.append(
+            _metric_row(
+                "Variance-Only Support + Adaptation",
+                target_name,
+                adapt_posterior(prior, variance_only, truth[variance_only]).prediction,
+                truth,
+                0,
+                variance_only,
+            )
+        )
+        diagnostic = diagnostic_support_indices(prior, truth, config.support_budget)
+        rows.append(
+            _metric_row(
+                "DIVA Diagnostic + Adaptation",
+                target_name,
+                adapt_posterior(prior, diagnostic, truth[diagnostic]).prediction,
+                truth,
+                0,
+                diagnostic,
+            )
+        )
     return rows
 
 
