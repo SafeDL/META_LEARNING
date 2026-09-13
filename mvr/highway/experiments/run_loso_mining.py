@@ -34,7 +34,7 @@ def _row(target: str, repeat: int, trace) -> dict:
 
 def run_loso_mining(bank: ResponseBank, config: ExperimentConfig) -> list[dict]:
     """Evaluate all four methods, never revealing a target row before its support."""
-    config.validate()
+    config.validate_legacy_mining()
     rows: list[dict] = []
     seeds = np.random.SeedSequence(config.seed).spawn(len(bank.sut_names))
     for target_index, target_name in enumerate(bank.sut_names):
