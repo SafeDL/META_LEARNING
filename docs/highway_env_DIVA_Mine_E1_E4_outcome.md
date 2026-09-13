@@ -74,7 +74,7 @@ Any later ranking gate must instead use normalized remaining-headroom recovery,
 `(NDCG_adapted - NDCG_shared) / (1 - NDCG_shared)`, with a 25% threshold and
 four positive target-SUT gains.
 
-## E6: dual-mechanism Cut-in bank and Gate 0
+## Historical E6: dual-mechanism Cut-in bank and Gate 0
 
 Per the E5 stop rule, the scenario was changed without changing the learning
 algorithm, total anchor count, SUTs, or fixed-budget protocol. The new bank
@@ -88,15 +88,51 @@ Gate 0-C fails: even an outcome-oracle top-20 ranking has less than 10%
 CriticalScore headroom over the Shared Prior for every target SUT (the maximum
 is 7.69% for SUT-B; the requirement is 4/6 targets at at least 10%).
 
-This failure is decisive for this dual-mode configuration: knowing the target
-SUT exactly cannot materially increase fixed-budget failure discovery, so no
-support acquisition method can establish the claimed adaptation gain. E7 and
-E8 were therefore not run.
+This historical result is retained, but is not decisive: the scheduled braking
+action was overwritten by `ControlledVehicle.act()` before reaching the
+low-level dynamics. It is therefore evidence only for the unbraked
+implementation, not for the stated Cut-in + braking mechanism.
+
+## E6 action-semantics correction and rerun
+
+`ScheduledCutInVehicle` now sends its already computed steering and
+acceleration command directly to `Vehicle.act()`. This preserves the scheduled
+`-4.5 m/s^2` braking command while retaining road following, lane control, and
+the simulator's collision and action clipping logic. A safe, complete
+per-simulation-step trace on SUT-A records lead acceleration, speed, and
+lateral position for both modes and an unbraked control. It verifies 20
+simulation samples of `-4.5 m/s^2`, exactly 1.0 s of braking, a 4.5 m/s speed
+drop, no corresponding unbraked speed drop, and actual cut-in timings for both
+modes. The durable trace is
+`results/diva_highway/cutin_mvp_e6_action_fix/mechanism_validation.json`.
+
+The corrected implementation required a complete rebuild of the original
+6-by-128 E6 design: the six SUTs, 128 anchors, Sobol construction, score, and
+B=20 budget are unchanged; no model was trained. The resulting outcome-oracle
+audit is stored separately in
+`results/diva_highway/cutin_mvp_e6_action_fix/gate_zero_e6.json`.
+
+| SUT | Failure rate | Rank-2 LOSO EVR | Shared Score@20 | Outcome Oracle@20 |
+|---|---:|---:|---:|---:|
+| SUT-A | 22.66% | 87.38% | 19.5 | 20.0 |
+| SUT-B | 14.06% | 87.16% | 13.0 | 14.0 |
+| SUT-C | 27.34% | 88.84% | 20.0 | 20.0 |
+| SUT-D | 38.28% | 92.69% | 19.5 | 20.0 |
+| SUT-E | 19.53% | 88.16% | 17.0 | 17.0 |
+| SUT-F | 53.13% | 87.68% | 20.0 | 20.0 |
+
+The corrected bank still has only 2 total score points of oracle headroom
+across all six targets: mean Shared Score@20 is 18.167 and mean outcome Oracle
+Score@20 is 18.500, or 1.835%. No target reaches the preselected 10% headroom
+criterion (SUT-B remains the maximum at 7.692%), so the required 4-of-6 target
+criterion is impossible. SUT-F also exceeds the E6 difficulty upper bound at
+53.13%. Thus the correction does not support a fixed-K=4 adaptation comparison;
+E7/E8 remain intentionally unrun.
 
 ## Final decision
 
 The predefined stop rule applies. The Highway-env Cut-in MVP establishes
-transferable low-rank structure and physically valid heterogeneous failure
+transferable low-rank structure and physically enacted heterogeneous failure
 regions, but does **not** establish the DIVA-Mine adaptation advantage. Do not
 claim a successful DIVA method result, and do not expand anchors, scan `K=1/2`,
 add a larger surrogate, change geometry, or transfer this method to MetaDrive
@@ -104,4 +140,6 @@ on the basis of these data.
 
 The E2 directory contains the response bank, E1 comparison CSV, LOSO
 ranking/mining CSVs, figures, replays, and the E5 oracle-headroom CSV/JSON.
-The E6 directory contains the dual-mode response bank and the Gate 0 audit.
+The historical E6 directory is retained unchanged. The action-corrected E6
+directory contains the validation trace, rebuilt response bank, and Gate 0
+audit.

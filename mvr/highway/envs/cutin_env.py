@@ -9,6 +9,7 @@ import numpy as np
 from highway_env.envs.common.abstract import AbstractEnv
 from highway_env.road.road import Road, RoadNetwork
 from highway_env.vehicle.controller import ControlledVehicle
+from highway_env.vehicle.kinematics import Vehicle
 
 from mvr.highway.sut.idm_profiles import SUTProfile, create_profiled_vehicle
 
@@ -38,8 +39,30 @@ class EpisodeResult:
     vulnerability: float
 
 
+@dataclass(frozen=True)
+class LeadVehicleTrace:
+    """Per-simulation-step low-level state of the scheduled lead vehicle."""
+
+    time: np.ndarray
+    acceleration: np.ndarray
+    speed: np.ndarray
+    lateral_position: np.ndarray
+
+
+@dataclass(frozen=True)
+class _ModeSchedule:
+    """Fixed timing and braking parameters for one interaction mode."""
+
+    cutin_duration: float
+    brake_start: float | None = None
+    brake_duration: float = 0.0
+    braking_deceleration: float = 0.0
+
+
 class ScheduledCutInVehicle(ControlledVehicle):
     """A lead vehicle that executes one scheduled lane change into the ego lane."""
+
+    _TIME_EPSILON = 1e-9
 
     def __init__(
         self,
@@ -63,13 +86,12 @@ class ScheduledCutInVehicle(ControlledVehicle):
         self.KP_LATERAL = 2.0 / cutin_duration
 
     def act(self, action: dict | str = None) -> None:
-        if self.elapsed >= self.cutin_start:
+        """Apply the scheduled low-level action without re-running controller logic."""
+        self.follow_road()
+        if self.elapsed + self._TIME_EPSILON >= self.cutin_start:
             self.target_lane_index = self.cutin_target_lane_index
         acceleration = self.speed_control(self.target_speed)
-        if (
-            self.brake_start is not None
-            and self.brake_start <= self.elapsed < self.brake_start + self.brake_duration
-        ):
+        if self._is_braking():
             acceleration = -self.braking_deceleration
         action = {
             "steering": self.steering_control(self.target_lane_index),
@@ -78,7 +100,19 @@ class ScheduledCutInVehicle(ControlledVehicle):
         action["steering"] = np.clip(
             action["steering"], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE
         )
-        super().act(action)
+        # ControlledVehicle.act() regenerates acceleration from target_speed and
+        # would overwrite the scheduled braking command. Vehicle.act() stores
+        # this already constrained low-level action for the next dynamics step.
+        Vehicle.act(self, action)
+
+    def _is_braking(self) -> bool:
+        """Return whether the current simulation interval is in the brake window."""
+        if self.brake_start is None:
+            return False
+        return (
+            self.brake_start - self._TIME_EPSILON <= self.elapsed
+            < self.brake_start + self.brake_duration - self._TIME_EPSILON
+        )
 
     def step(self, dt: float) -> None:
         self.elapsed += dt
@@ -90,6 +124,10 @@ class CutInEnv(AbstractEnv):
 
     EGO_SPEED = 25.0
     CUTIN_START = 1.0
+    FAST_CUTIN_DURATION = 0.45
+    DEFAULT_CUTIN_DURATION = 1.5
+    BRAKE_DURATION = 1.0
+    BRAKING_DECELERATION = 4.5
     FAST_INTRUSION = "fast_intrusion"
     CUTIN_BRAKING = "cutin_braking"
 
@@ -104,6 +142,7 @@ class CutInEnv(AbstractEnv):
         self._min_ttc = np.inf
         self._min_distance = np.inf
         self._cutin_vehicle: ScheduledCutInVehicle | None = None
+        self._lead_trace: list[tuple[float, float, float, float]] = []
         super().__init__(render_mode=render_mode)
 
     @classmethod
@@ -117,7 +156,7 @@ class CutInEnv(AbstractEnv):
                 "simulation_frequency": 20,
                 "policy_frequency": 5,
                 "road_length": 400.0,
-                "cutin_duration": 1.5,
+                "cutin_duration": cls.DEFAULT_CUTIN_DURATION,
             }
         )
         return config
@@ -125,6 +164,7 @@ class CutInEnv(AbstractEnv):
     def _reset(self) -> None:
         self._min_ttc = np.inf
         self._min_distance = np.inf
+        self._lead_trace = []
         self._create_road()
         self._create_vehicles()
 
@@ -160,12 +200,7 @@ class CutInEnv(AbstractEnv):
             - self.scenario.relative_speed * self.CUTIN_START
         )
         adjacent_road_lane = self.road.network.get_lane(adjacent_lane)
-        (
-            cutin_duration,
-            brake_start,
-            brake_duration,
-            braking_deceleration,
-        ) = self._mode_parameters()
+        schedule = self._mode_schedule()
         lead = ScheduledCutInVehicle(
             self.road,
             adjacent_road_lane.position(lead_longitudinal, 0.0),
@@ -174,37 +209,55 @@ class CutInEnv(AbstractEnv):
             target_lane_index=adjacent_lane,
             target_speed=lead_speed,
             cutin_start=self.CUTIN_START,
-            cutin_duration=cutin_duration,
+            cutin_duration=schedule.cutin_duration,
             cutin_target_lane_index=ego_lane,
-            brake_start=brake_start,
-            brake_duration=brake_duration,
-            braking_deceleration=braking_deceleration,
+            brake_start=schedule.brake_start,
+            brake_duration=schedule.brake_duration,
+            braking_deceleration=schedule.braking_deceleration,
         )
         self.vehicle = ego
         self._cutin_vehicle = lead
         self.road.vehicles = [ego, lead]
 
-    def _mode_parameters(self) -> tuple[float, float | None, float, float]:
+    def _mode_schedule(self) -> _ModeSchedule:
         """Map a declared discrete mode to its fixed interaction mechanism."""
-        if self.scenario.mode in ("single", self.FAST_INTRUSION):
-            duration = (
-                0.45
-                if self.scenario.mode == self.FAST_INTRUSION
-                else self.config["cutin_duration"]
-            )
-            return duration, None, 0.0, 0.0
+        if self.scenario.mode == "single":
+            return _ModeSchedule(cutin_duration=self.config["cutin_duration"])
+        if self.scenario.mode == self.FAST_INTRUSION:
+            return _ModeSchedule(cutin_duration=self.FAST_CUTIN_DURATION)
         if self.scenario.mode == self.CUTIN_BRAKING:
-            duration = self.config["cutin_duration"]
-            return duration, self.CUTIN_START + duration, 1.0, 4.5
+            return _ModeSchedule(
+                cutin_duration=self.config["cutin_duration"],
+                brake_start=self.CUTIN_START + self.config["cutin_duration"],
+                brake_duration=self.BRAKE_DURATION,
+                braking_deceleration=self.BRAKING_DECELERATION,
+            )
         raise ValueError(f"Unsupported Cut-in interaction mode: {self.scenario.mode}")
 
     def _simulate(self, action: int | None = None) -> None:
-        frames = int(self.config["simulation_frequency"] // self.config["policy_frequency"])
+        frames = int(
+            self.config["simulation_frequency"] // self.config["policy_frequency"]
+        )
+        simulation_dt = 1 / self.config["simulation_frequency"]
         for _ in range(frames):
             self.road.act()
-            self.road.step(1 / self.config["simulation_frequency"])
+            self.road.step(simulation_dt)
             self.steps += 1
+            self._record_lead_trace()
             self._update_safety_metrics()
+
+    def _record_lead_trace(self) -> None:
+        lead = self._cutin_vehicle
+        if lead is None:
+            return
+        self._lead_trace.append(
+            (
+                float(lead.elapsed),
+                float(lead.action["acceleration"]),
+                float(lead.speed),
+                float(lead.position[1]),
+            )
+        )
 
     def _update_safety_metrics(self) -> None:
         lead = self._cutin_vehicle
@@ -237,9 +290,12 @@ class CutInEnv(AbstractEnv):
         )
         ttc = float(self._min_ttc)
         risk_scale = 0.0 if np.isinf(ttc) else float(np.exp(-ttc / 3.0))
-        vulnerability = (
-            1.0 if collision else 0.75 + 0.25 * risk_scale if near_miss else 0.75 * risk_scale
-        )
+        if collision:
+            vulnerability = 1.0
+        elif near_miss:
+            vulnerability = 0.75 + 0.25 * risk_scale
+        else:
+            vulnerability = 0.75 * risk_scale
         return EpisodeResult(
             collision=collision,
             near_miss=near_miss,
@@ -250,16 +306,50 @@ class CutInEnv(AbstractEnv):
             vulnerability=float(vulnerability),
         )
 
+    def lead_vehicle_trace(self) -> LeadVehicleTrace:
+        """Return the complete lead trace after an episode has run."""
+        if not self._lead_trace:
+            raise RuntimeError("No lead-vehicle trace is available before simulation")
+        values = np.asarray(self._lead_trace, dtype=float)
+        return LeadVehicleTrace(
+            time=values[:, 0],
+            acceleration=values[:, 1],
+            speed=values[:, 2],
+            lateral_position=values[:, 3],
+        )
+
 
 def run_cutin_episode(
     profile: SUTProfile, scenario: CutInScenario, seed: int = 0
 ) -> EpisodeResult:
     """Run one deterministic scenario episode and return only its safety response."""
-    env = CutInEnv(profile, scenario)
-    env.reset(seed=seed)
-    terminated = truncated = False
-    while not (terminated or truncated):
-        _, _, terminated, truncated, _ = env.step(1)
-    result = env.episode_result()
-    env.close()
+    result, _ = _run_cutin_episode(profile, scenario, seed, capture_trace=False)
     return result
+
+
+def run_cutin_episode_with_trace(
+    profile: SUTProfile, scenario: CutInScenario, seed: int = 0
+) -> tuple[EpisodeResult, LeadVehicleTrace]:
+    """Run an episode and retain every low-level lead-vehicle state sample."""
+    result, trace = _run_cutin_episode(profile, scenario, seed, capture_trace=True)
+    assert trace is not None
+    return result, trace
+
+
+def _run_cutin_episode(
+    profile: SUTProfile,
+    scenario: CutInScenario,
+    seed: int,
+    capture_trace: bool,
+) -> tuple[EpisodeResult, LeadVehicleTrace | None]:
+    """Run one episode and optionally return its complete lead-vehicle trace."""
+    env = CutInEnv(profile, scenario)
+    try:
+        env.reset(seed=seed)
+        terminated = truncated = False
+        while not (terminated or truncated):
+            _, _, terminated, truncated, _ = env.step(1)
+        trace = env.lead_vehicle_trace() if capture_trace else None
+        return env.episode_result(), trace
+    finally:
+        env.close()
