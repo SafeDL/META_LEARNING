@@ -70,3 +70,36 @@ class RegressionExperimentConfig:
             raise ValueError("Beta smoothing parameters must be positive")
         if not 0.0 < self.critical_threshold < 1.0:
             raise ValueError("critical_threshold must be in (0, 1)")
+
+
+@dataclass(frozen=True)
+class VersionRegressionConfig:
+    """Frozen settings for chronological version-regression replay."""
+
+    num_anchors: int = 128
+    calibration_anchors: int = 32
+    prior_rank: int = 2
+    total_budget: int = 20
+    random_repeats: int = 20
+    evaluation_seed: int = 2026091303
+    calibration_seed: int = 2026091301
+    critical_threshold: float = 0.75
+    observation_noise: float = 0.03
+    target_orders: tuple[int, ...] = (4, 5, 6)
+
+    def validate(self) -> None:
+        """Reject settings that would violate the frozen protocol."""
+        if self.num_anchors < 1 or self.calibration_anchors < 1:
+            raise ValueError("anchor counts must be positive")
+        if not 0 < self.total_budget <= self.num_anchors:
+            raise ValueError("total_budget must be in [1, num_anchors]")
+        if self.prior_rank < 1:
+            raise ValueError("prior_rank must be positive")
+        if self.random_repeats < 1:
+            raise ValueError("random_repeats must be positive")
+        if not 0.0 < self.critical_threshold < 1.0:
+            raise ValueError("critical_threshold must be in (0, 1)")
+        if self.observation_noise <= 0:
+            raise ValueError("observation_noise must be positive")
+        if not self.target_orders or min(self.target_orders) < 2:
+            raise ValueError("target_orders must contain version orders from 2 onward")

@@ -10,7 +10,7 @@ import numpy as np
 
 from mvr.highway.data.generate_anchor_bank import generate_anchor_bank
 from mvr.highway.envs.cutin_env import CutInScenario, run_cutin_episode
-from mvr.highway.sut.idm_profiles import PROFILE_NAMES, get_profile
+from mvr.highway.sut.idm_profiles import PROFILE_NAMES, SUTProfile, get_profile
 
 
 @dataclass(frozen=True)
@@ -85,10 +85,23 @@ class ResponseBank:
 
 
 def build_response_bank(
-    anchors: np.ndarray, seed: int, modes: np.ndarray | None = None
+    anchors: np.ndarray,
+    seed: int,
+    modes: np.ndarray | None = None,
+    profiles: tuple[SUTProfile, ...] | None = None,
 ) -> ResponseBank:
     """Run all six deterministic SUTs on exactly the same anchor bank."""
-    shape = (len(PROFILE_NAMES), len(anchors))
+    selected_profiles = (
+        tuple(get_profile(name) for name in PROFILE_NAMES)
+        if profiles is None
+        else tuple(profiles)
+    )
+    names = tuple(profile.name for profile in selected_profiles)
+    if not names or len(set(names)) != len(names):
+        raise ValueError("profiles must have unique names")
+    if any(profile.controller not in {"IDM", "FVDM"} for profile in selected_profiles):
+        raise ValueError("profiles must use a supported controller family")
+    shape = (len(selected_profiles), len(anchors))
     vulnerability = np.empty(shape, dtype=float)
     collisions = np.empty(shape, dtype=bool)
     near_misses = np.empty(shape, dtype=bool)
@@ -102,8 +115,7 @@ def build_response_bank(
     )
     if interaction_modes.shape != (len(anchors),):
         raise ValueError("modes must contain one value per anchor")
-    for sut_index, sut_name in enumerate(PROFILE_NAMES):
-        profile = get_profile(sut_name)
+    for sut_index, profile in enumerate(selected_profiles):
         for anchor_index, (initial_gap, relative_speed) in enumerate(anchors):
             result = run_cutin_episode(
                 profile,
@@ -122,7 +134,7 @@ def build_response_bank(
             completed[sut_index, anchor_index] = result.completed
     return ResponseBank(
         anchors=np.asarray(anchors, dtype=float),
-        sut_names=PROFILE_NAMES,
+        sut_names=names,
         vulnerability=vulnerability,
         collisions=collisions,
         near_misses=near_misses,
