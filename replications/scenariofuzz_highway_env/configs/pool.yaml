@@ -1,0 +1,34 @@
+event: collision
+task_kind: failure_discovery
+method_name: SEM-Pool-H
+mode_set: [fast_intrusion, cutin_braking, lead_braking]
+bounds:
+  initial_gap: [5.0, 40.0]
+  relative_speed: [-8.0, 2.0]
+bounds_hash: runtime_sha256
+Nc: 3
+Nm: 100
+Ne: 3
+neighbor_step:
+  initial_gap: 0.5
+  relative_speed: 0.25
+filter_threshold: 0.5
+empty_filter_policy: resample
+history_source: generated_actual_source_bank
+train_schedule: paper_schedule_early_stop
+graph_schema: node_gat_plus_line_graph_gat_v1
+driving_score_type: margin_proxy_1_minus_vulnerability
+budget: 20
+random_seed: 20260917
+source_suts: [SUT-A, SUT-B, SUT-D, SUT-E, SUT-F]
+target_sut: SUT-C
+source_scenarios: 128
+epochs: 1000
+early_stopping_patience: 60
+learning_rate: 0.001
+weight_decay: 0.0001
+hidden: 64
+heads: 2
+dropout: 0.1
+history_sizes: [100, 300, all]
+

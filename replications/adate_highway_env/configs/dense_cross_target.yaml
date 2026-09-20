@@ -1,0 +1,43 @@
+# Cross-target confirmation of the adapted DenseRL protocol.  Source profiles
+# are frozen before any target interaction and never overlap held-out targets.
+seed: 20260915
+batch_seeds: [20260915, 20260916]
+source_profiles: [SUT-A, SUT-B, SUT-D]
+target_profiles: [SUT-C, SUT-E, SUT-F]
+scenario_design:
+  modes: [fast_intrusion, cutin_braking, lead_braking, stop_and_go, slow_lead_following]
+  gaps: [5.0, 10.0, 18.0, 30.0, 45.0]
+  relative_speeds: [-10.0, -6.0, -2.0, 1.0]
+source_rollouts_per_scenario: 4
+source_td_epochs: 4
+criticality_threshold: 1.0e-8
+critical_pool_limit: 0
+adaptation_episodes: 60
+horizon: 35
+natural_policy: [0.1, 0.8, 0.1]
+learning_rate: 0.25
+gamma: 1.0
+exploration: 2.0
+qp_update_every: 5
+asd_window: 10
+asd_threshold: 0.02
+min_adaptation_episodes: 20
+stop_on_asd: false
+support_epsilon: 0.05
+mixture_definition: mixture_of_policies
+evaluation_draws: 192
+adaptation_variants:
+  - {name: Uniform-Equal-H, behavior_policy: uniform, optimize_alpha: false}
+  - {name: Uniform-QP-H, behavior_policy: uniform, optimize_alpha: true}
+  - {name: AdaTE-Equal-H, behavior_policy: adaptive, optimize_alpha: false}
+  - {name: AdaTE-QP-H, behavior_policy: adaptive, optimize_alpha: true}
+state_encoder:
+  position_bin: 4.0
+  speed_bin: 2.0
+  lateral_bin: 2.0
+  time_bin: 0.2
+  heading_bin: 0.5
+  clip_longitudinal: 80.0
+  clip_speed: 40.0
+  clip_heading: 3.2
+notes: "Cross-target confirmation: 2 source seeds x 3 held-out targets. Each seed trains one target-hidden source stage (1200 episodes) shared across its three targets; each target has 240 adaptation episodes and 1344 frozen-policy IS draws. Cross-seed SD never replaces the recorded per-run IS CI/RHW."

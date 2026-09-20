@@ -1,0 +1,178 @@
+{
+  "benchmark": "physical function-shift releases",
+  "seed": 20260914,
+  "sut_names": [
+    "Modular-Atlas",
+    "Modular-Boreal",
+    "Modular-Cascade",
+    "Modular-Delta",
+    "Modular-Estuary",
+    "Modular-Fjord"
+  ],
+  "anchor_count": 240,
+  "functional_modes": [
+    "fast_intrusion",
+    "cutin_braking",
+    "lead_braking",
+    "stop_and_go",
+    "slow_lead_following"
+  ],
+  "balanced_count_per_mode": 48,
+  "loso_source_count": 5,
+  "scenario_controls": "timing and intensity",
+  "config": {
+    "num_anchors": 240,
+    "prior_rank": 2,
+    "support_budget": 10,
+    "total_budget": 50,
+    "random_repeats": 20,
+    "seed": 20260914,
+    "local_shrinkage": 0.5,
+    "gate_error_scale": 0.3,
+    "hierarchy_weight": 0.1
+  },
+  "design": {
+    "release_modules": {
+      "Modular-Atlas": {
+        "fast_intrusion": "SUT-B",
+        "cutin_braking": "SUT-B",
+        "lead_braking": "SUT-B",
+        "stop_and_go": "SUT-C",
+        "slow_lead_following": "SUT-F"
+      },
+      "Modular-Boreal": {
+        "fast_intrusion": "SUT-B",
+        "cutin_braking": "SUT-C",
+        "lead_braking": "SUT-F",
+        "stop_and_go": "SUT-B",
+        "slow_lead_following": "SUT-C"
+      },
+      "Modular-Cascade": {
+        "fast_intrusion": "SUT-C",
+        "cutin_braking": "SUT-F",
+        "lead_braking": "SUT-B",
+        "stop_and_go": "SUT-C",
+        "slow_lead_following": "SUT-B"
+      },
+      "Modular-Delta": {
+        "fast_intrusion": "SUT-C",
+        "cutin_braking": "SUT-B",
+        "lead_braking": "SUT-C",
+        "stop_and_go": "SUT-F",
+        "slow_lead_following": "SUT-F"
+      },
+      "Modular-Estuary": {
+        "fast_intrusion": "SUT-F",
+        "cutin_braking": "SUT-C",
+        "lead_braking": "SUT-F",
+        "stop_and_go": "SUT-F",
+        "slow_lead_following": "SUT-B"
+      },
+      "Modular-Fjord": {
+        "fast_intrusion": "SUT-F",
+        "cutin_braking": "SUT-F",
+        "lead_braking": "SUT-C",
+        "stop_and_go": "SUT-B",
+        "slow_lead_following": "SUT-C"
+      }
+    },
+    "archetype_profiles": [
+      "SUT-B",
+      "SUT-C",
+      "SUT-F"
+    ],
+    "mode_bounds": {
+      "fast_intrusion": {
+        "initial_gap_m": [
+          8.0,
+          38.0
+        ],
+        "relative_speed_mps": [
+          -7.0,
+          1.0
+        ],
+        "timing": [
+          0.0,
+          1.0
+        ],
+        "intensity": [
+          0.0,
+          1.0
+        ]
+      },
+      "cutin_braking": {
+        "initial_gap_m": [
+          10.0,
+          40.0
+        ],
+        "relative_speed_mps": [
+          -6.0,
+          1.0
+        ],
+        "timing": [
+          0.0,
+          1.0
+        ],
+        "intensity": [
+          0.0,
+          1.0
+        ]
+      },
+      "lead_braking": {
+        "initial_gap_m": [
+          8.0,
+          40.0
+        ],
+        "relative_speed_mps": [
+          -5.0,
+          2.0
+        ],
+        "timing": [
+          0.0,
+          1.0
+        ],
+        "intensity": [
+          0.0,
+          1.0
+        ]
+      },
+      "stop_and_go": {
+        "initial_gap_m": [
+          8.0,
+          36.0
+        ],
+        "relative_speed_mps": [
+          -4.0,
+          2.0
+        ],
+        "timing": [
+          0.0,
+          1.0
+        ],
+        "intensity": [
+          0.0,
+          1.0
+        ]
+      },
+      "slow_lead_following": {
+        "initial_gap_m": [
+          5.0,
+          32.0
+        ],
+        "relative_speed_mps": [
+          -8.0,
+          -1.0
+        ],
+        "timing": [
+          0.0,
+          1.0
+        ],
+        "intensity": [
+          0.0,
+          1.0
+        ]
+      }
+    },
+    "physical_execution": "Every distinct controller-module and scenario pair is executed in highway-env; no target response row is assembled after simulation."
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "status": "frozen independent confirmation",
+  "scenario_seeds": [
+    20261103,
+    20261117,
+    20261201,
+    20261213,
+    20261229
+  ],
+  "scenario_count_per_seed": 600,
+  "modes": [
+    "fast_intrusion",
+    "cutin_braking",
+    "lead_braking",
+    "stop_and_go",
+    "slow_lead_following",
+    "passing_cutin"
+  ],
+  "regimes_per_mode": {
+    "core": 40,
+    "benign": 30,
+    "boundary": 15,
+    "outside": 15
+  },
+  "source_suts": [
+    "Source-Atlas",
+    "Source-Boreal",
+    "Source-Cascade",
+    "Source-Delta",
+    "Source-Estuary",
+    "Source-Fjord"
+  ],
+  "target_count": 18,
+  "target_factorial": {
+    "coverage": [
+      "exact",
+      "interpolated",
+      "unseen"
+    ],
+    "heterogeneity": [
+      "global",
+      "partial",
+      "full"
+    ],
+    "replicates": 2
+  },
+  "budgets": [
+    10,
+    20,
+    30,
+    50
+  ],
+  "support_budget": 10,
+  "random_repeats": 20,
+  "noise_scales": [
+    0.05,
+    0.15,
+    0.3
+  ],
+  "hyperparameter_visibility": "source releases only; one selection per scenario seed",
+  "target_visibility": "only selected target responses; full labels used for offline scoring",
+  "event_oracle": "collision OR near_miss",
+  "primary_endpoint": "target-macro critical-event Recall@50: adaptive posterior search minus Function-Conditioned DIVA",
+  "bootstrap": "10000 paired hierarchical resamples: scenario seed, then targets within seed",
+  "physical_execution": "all distinct controller-module and scenario pairs in highway-env",
+  "new_simulator_banks": 5,
+  "physical_episodes_per_seed": 8200,
+  "total_new_physical_episodes": 41000
+}

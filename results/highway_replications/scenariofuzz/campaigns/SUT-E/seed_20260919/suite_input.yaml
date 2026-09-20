@@ -1,0 +1,39 @@
+event: collision
+task_kind: online_fuzzing
+method_name: ScenarioFuzz-H
+mode_set:
+- fast_intrusion
+- cutin_braking
+- lead_braking
+bounds:
+  initial_gap:
+  - 5.0
+  - 40.0
+  relative_speed:
+  - -8.0
+  - 2.0
+bounds_hash: runtime_sha256
+Nc: 3
+Nm: 100
+Ne: 3
+neighbor_step:
+  initial_gap: 0.5
+  relative_speed: 0.25
+filter_threshold: 0.5
+empty_filter_policy: resample
+max_candidate_batches: 12
+history_source: actual_source_highway_env_episodes
+train_schedule: paper_schedule_early_stop
+graph_schema: node_gat_plus_line_graph_gat_v1
+driving_score_type: margin_proxy_1_minus_vulnerability
+budget: 20
+random_seed: 20260919
+target_sut: SUT-E
+variants:
+- RMS-H
+- 2SMS-H
+- RMS+SEM-H
+- 2SMS+SEM-H
+protocols:
+- paper_nm
+- matched_nm100

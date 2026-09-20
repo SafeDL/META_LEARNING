@@ -1,0 +1,45 @@
+# Low-cost gate before the multi-target, multi-seed passing experiment.
+seed: 20260917
+source_profiles: [SM-Normal-IDM, SM-Limited-FVDM, SM-Strong-FVDM]
+target_profiles: [AV-Reference-IDM]
+scenario_design:
+  modes: [passing_cutin]
+  mode_probabilities: [1.0]
+  gaps: [10.0, 18.0, 26.0, 34.0, 42.0]
+  gap_probabilities: [0.08, 0.12, 0.18, 0.27, 0.35]
+  relative_speeds: [-8.0, -5.0, -2.0, 1.0]
+  relative_speed_probabilities: [0.04, 0.08, 0.28, 0.60]
+source_rollouts_per_scenario: 3
+source_td_epochs: 8
+criticality_threshold: 1.0e-8
+critical_pool_limit: 0
+adaptation_episodes: 400
+horizon: 35
+natural_policy: [0.01, 0.98, 0.01]
+learning_rate: 0.20
+gamma: 1.0
+exploration: 2.0
+qp_update_every: 5
+asd_window: 10
+asd_threshold: 0.02
+min_adaptation_episodes: 40
+stop_on_asd: false
+support_epsilon: 0.10
+initial_support_epsilon: 0.20
+action_support_epsilon: 0.90
+mixture_definition: mixture_of_policies
+evaluation_draws: 256
+adaptation_variants:
+  - {name: Uniform-QP-H, behavior_policy: uniform, optimize_alpha: true}
+  - {name: AdaTE-QP-H, behavior_policy: adaptive, optimize_alpha: true}
+state_encoder:
+  representation: passing
+  position_bin: 8.0
+  speed_bin: 4.0
+  lateral_bin: 4.0
+  time_bin: 0.4
+  heading_bin: 1.0
+  clip_longitudinal: 96.0
+  clip_speed: 40.0
+  clip_heading: 3.2
+notes: "Single-target screening gate; not the final cross-target confirmation."

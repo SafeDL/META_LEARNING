@@ -1,0 +1,45 @@
+schema: diva_former_formal_teacher
+base_config: diva_metadrive/configs/diva_cutin.yaml
+source_observations: results/metadrive/diva/cutin_g01/source_observations_v2.jsonl
+source_loso_reference: results/metadrive/diva/cutin_g01/source_loso_g1_v2.json
+results_dir: results/metadrive/diva_former/cutin_g01/formal_teacher
+
+protocol:
+  primary_budget: 10
+  final_budget: 20
+  reporting_budgets: [5, 8, 10, 20]
+  event_bearing_sources: [idm_defensive, idm_normal, idm_assertive]
+
+formal_calibration:
+  context_sizes: [0, 1, 2, 4]
+  l2: 0.001
+  max_iterations: 500
+
+teacher:
+  rank: 2
+  signal_context_sizes_b10: [0, 1, 2, 4, 6]
+  signal_context_sizes_b20: [0, 1, 2, 4, 8, 12]
+
+formal_alignment:
+  support_shots: 4
+  ndcg_k: 10
+  seeds: [1801, 1802, 1803, 1804, 1805, 1806, 1807, 1808, 1809, 1810, 1811, 1812, 1813, 1814, 1815, 1816]
+
+gates:
+  g1_a:
+    min_score_headroom_at_10: 0.5
+    min_event_sources_with_auc_headroom: 2
+  g1_b:
+    min_ndcg_gain_vs_k0: 0.05
+    max_rmse_relative_degradation_vs_random: 0.05
+  g1_c:
+    min_formal_ndcg_gain_vs_k0: 0.05
+    max_brier_relative_degradation_vs_k0: 0.05
+  g1_d:
+    min_score_absolute_gain_at_10: 0.5
+    min_relative_gain: 0.05
+    min_positive_fold_count: 3
+    min_formal_signal_rate: 0.30
+    min_vulnerability_signal_rate: 0.50
+    min_formal_normalized_p90_p10: 0.025
+    min_vulnerability_normalized_p90_p10: 0.05
