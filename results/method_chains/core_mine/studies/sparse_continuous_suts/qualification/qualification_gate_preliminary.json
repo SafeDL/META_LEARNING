@@ -1,0 +1,81 @@
+{
+  "proposal": "v4_sparse_continuous",
+  "gate_version": "v2_branch_disagreement",
+  "seeds": [
+    20280203
+  ],
+  "gates": {
+    "two_targets_with_source_discordant_failures_in_two_modes": true,
+    "no_three_sut_all_pairwise_jaccard_above_0_90": true,
+    "no_target_more_than_75_percent_in_one_gap_quartile": false
+  },
+  "qualified_targets": [
+    "idm_mobil",
+    "ppo_ece"
+  ],
+  "target_diagnostics": [
+    {
+      "target": "idm_mobil",
+      "source_safe_target_failures": 68,
+      "source_safe_modes": [
+        "fast_intrusion",
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "source_discordant_target_failures": 21,
+      "source_discordant_modes": [
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    },
+    {
+      "target": "mcts_cv",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "source_discordant_target_failures": 1,
+      "source_discordant_modes": [
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1"
+      ]
+    },
+    {
+      "target": "ppo_ece",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "source_discordant_target_failures": 20,
+      "source_discordant_modes": [
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    }
+  ],
+  "pairwise_event_jaccard": {
+    "idm_mobil~mcts_cv": 0.03296703296703297,
+    "idm_mobil~ppo_ece": 0.24175824175824176,
+    "mcts_cv~ppo_ece": 0.08695652173913043
+  },
+  "critical_gap_quartile_max_share": {
+    "idm_mobil": 0.34065934065934067,
+    "mcts_cv": 1.0,
+    "ppo_ece": 0.5454545454545454
+  },
+  "redundant_triplets": [],
+  "passed": false
+}

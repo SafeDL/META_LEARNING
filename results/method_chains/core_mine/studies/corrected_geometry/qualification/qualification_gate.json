@@ -1,0 +1,97 @@
+{
+  "proposal": "v5_corrected_geometry",
+  "gate_version": "v3_branch_disagreement_min10_dispersion",
+  "seeds": [
+    20280909
+  ],
+  "gates": {
+    "two_targets_with_source_discordant_failures_in_two_modes": true,
+    "no_three_sut_all_pairwise_jaccard_above_0_90": true,
+    "no_eligible_target_more_than_75_percent_in_one_gap_quartile": true
+  },
+  "qualified_targets": [
+    "idm_mobil",
+    "mcts_cv",
+    "ppo_ece"
+  ],
+  "target_diagnostics": [
+    {
+      "target": "idm_mobil",
+      "source_safe_target_failures": 3,
+      "source_safe_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "slow_lead_following"
+      ],
+      "source_discordant_target_failures": 18,
+      "source_discordant_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3"
+      ]
+    },
+    {
+      "target": "mcts_cv",
+      "source_safe_target_failures": 28,
+      "source_safe_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "source_discordant_target_failures": 24,
+      "source_discordant_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    },
+    {
+      "target": "ppo_ece",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "source_discordant_target_failures": 6,
+      "source_discordant_modes": [
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3"
+      ]
+    }
+  ],
+  "pairwise_event_jaccard": {
+    "idm_mobil~mcts_cv": 0.63,
+    "idm_mobil~ppo_ece": 0.625,
+    "mcts_cv~ppo_ece": 0.5257731958762887
+  },
+  "critical_event_count": {
+    "idm_mobil": 66,
+    "mcts_cv": 97,
+    "ppo_ece": 51
+  },
+  "critical_gap_quartile_max_share": {
+    "idm_mobil": 0.7272727272727273,
+    "mcts_cv": 0.5257731958762887,
+    "ppo_ece": 0.7058823529411765
+  },
+  "redundant_triplets": [],
+  "passed": true
+}

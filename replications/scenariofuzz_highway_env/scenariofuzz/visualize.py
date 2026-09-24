@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import confusion_matrix, precision_recall_curve
 
-from diva_highway_env.sut.idm_profiles import get_profile
+from sut_algorithms.highway_env.idm_profiles import get_profile
 
 from .corpus import ScenarioSpec, build_default_corpus
 from .graph_builder import EDGE_FEATURE_NAMES, GLOBAL_FEATURE_NAMES, NODE_FEATURE_NAMES, build_graph

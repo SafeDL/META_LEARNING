@@ -9,14 +9,14 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import qmc
 
-from diva_highway_env.data.response_bank import ResponseBank
-from diva_highway_env.envs.cutin_env import (
+from highway_env_benchmark.data.response_bank import ResponseBank
+from highway_env_benchmark.envs.cutin_env import (
     CutInScenario,
     EpisodeResult,
     run_cutin_episode,
 )
-from diva_highway_env.sut.idm_profiles import SUTProfile, get_profile
-from method_chains.diva_function_conditioned_routing.benchmark import (
+from sut_algorithms.highway_env.idm_profiles import SUTProfile, get_profile
+from method_chains.function_conditioned_routing.benchmark import (
     ARCHETYPE_NAMES,
     MODE_BOUNDS,
     RELEASE_CODES,

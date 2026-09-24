@@ -10,9 +10,9 @@ from time import perf_counter
 
 import numpy as np
 
-from diva_highway_env.data.response_bank import ResponseBank
-from diva_highway_env.diva.low_rank_prior import LowRankPrior
-from diva_highway_env.diva.mining import diagnostic_mining, random_mining
+from highway_env_benchmark.data.response_bank import ResponseBank
+from highway_env_benchmark.mining.low_rank_prior import LowRankPrior
+from highway_env_benchmark.mining.mining import diagnostic_mining, random_mining
 from method_chains.function_posterior_search.benchmark import (
     CONFIRMATION_SEEDS,
     HETEROGENEITY_LEVELS,
@@ -27,14 +27,14 @@ from method_chains.function_posterior_search.benchmark import (
     release_manifest,
     target_releases,
 )
-from method_chains.diva_detour_fusion.fusion import (
+from method_chains.detour_fusion.fusion import (
     detour_guided_diagnostic_mining,
     detour_static_mining,
     hierarchy_prior,
 )
-from method_chains.diva_function_conditioned_routing.config import RoutingExperimentConfig
-from method_chains.diva_function_conditioned_routing.experiment import severity_response
-from method_chains.diva_function_conditioned_routing.routing import functional_routed_mining
+from method_chains.function_conditioned_routing.config import RoutingExperimentConfig
+from method_chains.function_conditioned_routing.experiment import severity_response
+from method_chains.function_conditioned_routing.routing import functional_routed_mining
 from replications.adate_highway_env.adate.mixture_selector import MixtureSelector
 from replications.detour_highway_env.detour.features import encode_scenarios
 from replications.detour_highway_env.detour.history import scenario_specs, source_history
@@ -57,10 +57,10 @@ BOOTSTRAP_SAMPLES = 10000
 METHODS = (
     "Random",
     "DETOUR",
-    "DIVA",
-    "DIVA-DETOUR",
+    "Mining",
+    "Mining-DETOUR",
     "AdaTE Global",
-    "Function-Conditioned DIVA",
+    "Function-Conditioned Mining",
     ADAPTIVE_METHOD,
 )
 
@@ -216,13 +216,13 @@ def evaluate_bank(
                                  release.heterogeneity, "DETOUR",
                                  detour.queried_indices, collisions, near_misses, elapsed))
         started = perf_counter()
-        diva = diagnostic_mining(
+        mining = diagnostic_mining(
             prior, target, collisions, near_misses, SUPPORT_BUDGET, TOTAL_BUDGET,
         )
         elapsed = perf_counter() - started
         rows.extend(_record_rows(seed, release.name, release.coverage,
-                                 release.heterogeneity, "DIVA",
-                                 diva.queried_indices, collisions, near_misses, elapsed))
+                                 release.heterogeneity, "Mining",
+                                 mining.queried_indices, collisions, near_misses, elapsed))
         started = perf_counter()
         fused = detour_guided_diagnostic_mining(
             prior, hierarchy, target, collisions, near_misses,
@@ -230,7 +230,7 @@ def evaluate_bank(
         )
         elapsed = perf_counter() - started
         rows.extend(_record_rows(seed, release.name, release.coverage,
-                                 release.heterogeneity, "DIVA-DETOUR",
+                                 release.heterogeneity, "Mining-DETOUR",
                                  fused.queried_indices, collisions, near_misses, elapsed))
         started = perf_counter()
         adate = _adate_indices(sources, target)
@@ -240,7 +240,7 @@ def evaluate_bank(
                                  collisions, near_misses, elapsed))
         started = perf_counter()
         routed = functional_routed_mining(
-            "Function-Conditioned DIVA",
+            "Function-Conditioned Mining",
             sources,
             bank.modes,
             prior,
@@ -254,7 +254,7 @@ def evaluate_bank(
         )
         elapsed = perf_counter() - started
         rows.extend(_record_rows(seed, release.name, release.coverage,
-                                 release.heterogeneity, "Function-Conditioned DIVA",
+                                 release.heterogeneity, "Function-Conditioned Mining",
                                  routed.trace.queried_indices, collisions, near_misses, elapsed))
         started = perf_counter()
         posterior, audit = run_adaptive_campaign(
@@ -535,7 +535,7 @@ def write_report(
         "was used to define a controller, scenario, source-only hyperparameter, or baseline.",
         "",
         "Primary endpoint: target-macro critical-event Recall@50 for adaptive-support posterior "
-        "search versus Function-Conditioned DIVA. Random uses 20 repeats; all other methods "
+        "search versus Function-Conditioned Mining. Random uses 20 repeats; all other methods "
         "are deterministic. Collision OR near miss is the critical-event oracle.",
         "",
         "## Overall results",
@@ -547,10 +547,10 @@ def write_report(
         values = [_lookup(summary, method, budget)["mean_critical_recall"] for budget in BUDGETS]
         lines.append(f"| {method} | " + " | ".join(f"{value:.4f}" for value in values) + " |")
     lines += ["", "## Recall@50 by source coverage", "",
-              "| Coverage | Function-Conditioned DIVA | Posterior search | Difference |",
+              "| Coverage | Function-Conditioned Mining | Posterior search | Difference |",
               "| --- | ---: | ---: | ---: |"]
     for coverage in TARGET_COVERAGES:
-        baseline = _lookup(summary, "Function-Conditioned DIVA", 50, coverage=coverage)
+        baseline = _lookup(summary, "Function-Conditioned Mining", 50, coverage=coverage)
         proposed = _lookup(summary, ADAPTIVE_METHOD, 50, coverage=coverage)
         difference = proposed["mean_critical_recall"] - baseline["mean_critical_recall"]
         lines.append(
@@ -558,10 +558,10 @@ def write_report(
             f"{proposed['mean_critical_recall']:.4f} | {difference:+.4f} |"
         )
     lines += ["", "## Recall@50 by functional heterogeneity", "",
-              "| Heterogeneity | Function-Conditioned DIVA | Posterior search | Difference |",
+              "| Heterogeneity | Function-Conditioned Mining | Posterior search | Difference |",
               "| --- | ---: | ---: | ---: |"]
     for heterogeneity in HETEROGENEITY_LEVELS:
-        baseline = _lookup(summary, "Function-Conditioned DIVA", 50,
+        baseline = _lookup(summary, "Function-Conditioned Mining", 50,
                            heterogeneity=heterogeneity)
         proposed = _lookup(summary, ADAPTIVE_METHOD, 50,
                            heterogeneity=heterogeneity)
@@ -571,13 +571,13 @@ def write_report(
             f"{proposed['mean_critical_recall']:.4f} | {difference:+.4f} |"
         )
     primary = next(row for row in comparisons if row["scope"] == "overall"
-                   and row["reference"] == "Function-Conditioned DIVA"
+                   and row["reference"] == "Function-Conditioned Mining"
                    and row["budget"] == 50)
     lines += [
         "",
         "## Confirmatory comparison",
         "",
-        f"Adaptive posterior search minus Function-Conditioned DIVA at Recall@50: "
+        f"Adaptive posterior search minus Function-Conditioned Mining at Recall@50: "
         f"{primary['mean_recall_difference']:+.4f}, hierarchical 95% bootstrap interval "
         f"[{primary['hierarchical_bootstrap_low']:+.4f}, "
         f"{primary['hierarchical_bootstrap_high']:+.4f}], with "
@@ -586,14 +586,14 @@ def write_report(
         "",
         "## Descriptive function audit at Recall@50",
         "",
-        "| Function | Event prevalence | Function-Conditioned DIVA | Posterior search |",
+        "| Function | Event prevalence | Function-Conditioned Mining | Posterior search |",
         "| --- | ---: | ---: | ---: |",
     ]
     for mode in MODES:
         baseline = next(
             row for row in subgroup_summary
             if row["subgroup"] == "mode" and row["value"] == mode
-            and row["method"] == "Function-Conditioned DIVA" and row["budget"] == 50
+            and row["method"] == "Function-Conditioned Mining" and row["budget"] == 50
         )
         proposed = next(
             row for row in subgroup_summary
@@ -609,14 +609,14 @@ def write_report(
         "",
         "## Descriptive scenario-regime audit at Recall@50",
         "",
-        "| Regime | Event prevalence | Function-Conditioned DIVA | Posterior search |",
+        "| Regime | Event prevalence | Function-Conditioned Mining | Posterior search |",
         "| --- | ---: | ---: | ---: |",
     ]
     for regime in REGIME_COUNTS:
         baseline = next(
             row for row in subgroup_summary
             if row["subgroup"] == "regime" and row["value"] == regime
-            and row["method"] == "Function-Conditioned DIVA" and row["budget"] == 50
+            and row["method"] == "Function-Conditioned Mining" and row["budget"] == 50
         )
         proposed = next(
             row for row in subgroup_summary
@@ -709,7 +709,7 @@ def run(workers: int = 12) -> Path:
         "event_oracle": "collision OR near_miss",
         "primary_endpoint": (
             "target-macro critical-event Recall@50: adaptive posterior search minus "
-            "Function-Conditioned DIVA"
+            "Function-Conditioned Mining"
         ),
         "bootstrap": (
             "10000 paired hierarchical resamples: scenario seed, then targets within seed"

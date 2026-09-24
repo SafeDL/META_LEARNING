@@ -1,6 +1,6 @@
 from replications.scenariofuzz_highway_env.scenariofuzz.corpus import ScenarioSpec
 from replications.scenariofuzz_highway_env.scenariofuzz.execution import TRACE_FIELDS, execute_scenario
-from diva_highway_env.sut.idm_profiles import get_profile
+from sut_algorithms.highway_env.idm_profiles import get_profile
 
 
 def test_actual_highway_episode_records_both_vehicles(tmp_path):

@@ -13,11 +13,11 @@ import numpy as np
 import torch
 import yaml
 
-from diva_highway_env.data.generate_anchor_bank import (
+from highway_env_benchmark.data.generate_anchor_bank import (
     FUNCTIONAL_MODES,
     generate_multifunction_anchor_bank,
 )
-from diva_highway_env.data.response_bank import ResponseBank, build_response_bank
+from highway_env_benchmark.data.response_bank import ResponseBank, build_response_bank
 from replications.scenariofuzz_highway_env.scenariofuzz.corpus import (
     ScenarioSpec,
     build_default_corpus,

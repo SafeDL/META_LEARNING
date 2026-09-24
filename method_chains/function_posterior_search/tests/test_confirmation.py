@@ -6,8 +6,8 @@ from dataclasses import fields
 
 import numpy as np
 
-from diva_highway_env.data.response_bank import ResponseBank
-from diva_highway_env.sut.idm_profiles import SUTProfile
+from highway_env_benchmark.data.response_bank import ResponseBank
+from sut_algorithms.highway_env.idm_profiles import SUTProfile
 from method_chains.function_posterior_search.benchmark import (
     CONFIRMATION_SEEDS,
     HETEROGENEITY_LEVELS,
@@ -111,7 +111,7 @@ def test_confirmation_artifacts_recompute_queries_and_metrics() -> None:
                         expected = truth[queried].sum() / max(1, truth.sum())
                         assert np.isclose(float(row["critical_recall"]), expected)
                         previous = queried
-                    if method in {ADAPTIVE_METHOD, "Function-Conditioned DIVA"}:
+                    if method in {ADAPTIVE_METHOD, "Function-Conditioned Mining"}:
                         support = [
                             int(value)
                             for value in by_budget[10]["queried_indices"].split(";")

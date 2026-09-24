@@ -13,7 +13,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-from diva_highway_env.sut.idm_profiles import get_profile
+from sut_algorithms.highway_env.idm_profiles import get_profile
 
 from .corpus import ScenarioSpec, build_default_corpus
 from .filter import load_checkpoint

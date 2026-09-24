@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageDraw
 
-from diva_highway_env.envs.cutin_env import CutInEnv, CutInScenario
+from highway_env_benchmark.envs.cutin_env import CutInEnv, CutInScenario
 from replications.detour_highway_env.detour.features import RoadCurvatureFeatures
 from replications.detour_highway_env.detour.contracts import ScenarioSpec
-from diva_highway_env.sut.idm_profiles import get_profile
+from sut_algorithms.highway_env.idm_profiles import get_profile
 
 
 def plot_road_features(path: Path) -> None:

@@ -1,0 +1,114 @@
+{
+  "proposal": "v7_corrected_balanced",
+  "gate_version": "v3_branch_disagreement_min10_dispersion",
+  "seeds": [
+    20290325
+  ],
+  "gates": {
+    "two_targets_with_source_discordant_failures_in_two_modes": true,
+    "no_three_sut_all_pairwise_jaccard_above_0_90": true,
+    "no_eligible_target_more_than_75_percent_in_one_gap_quartile": false
+  },
+  "qualified_targets": [
+    "idm_mobil",
+    "mcts_cv",
+    "ppo_ece",
+    "vi_ttc"
+  ],
+  "target_diagnostics": [
+    {
+      "target": "idm_mobil",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "source_discordant_target_failures": 9,
+      "source_discordant_modes": [
+        "cutin_braking",
+        "fast_intrusion"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2"
+      ]
+    },
+    {
+      "target": "mcts_cv",
+      "source_safe_target_failures": 14,
+      "source_safe_modes": [
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "source_discordant_target_failures": 21,
+      "source_discordant_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    },
+    {
+      "target": "ppo_ece",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "source_discordant_target_failures": 5,
+      "source_discordant_modes": [
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3"
+      ]
+    },
+    {
+      "target": "vi_ttc",
+      "source_safe_target_failures": 43,
+      "source_safe_modes": [
+        "cutin_braking",
+        "fast_intrusion"
+      ],
+      "source_discordant_target_failures": 21,
+      "source_discordant_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    }
+  ],
+  "pairwise_event_jaccard": {
+    "idm_mobil~mcts_cv": 0.543859649122807,
+    "idm_mobil~ppo_ece": 0.6111111111111112,
+    "idm_mobil~vi_ttc": 0.36046511627906974,
+    "mcts_cv~ppo_ece": 0.47368421052631576,
+    "mcts_cv~vi_ttc": 0.43,
+    "ppo_ece~vi_ttc": 0.313953488372093
+  },
+  "critical_event_count": {
+    "idm_mobil": 31,
+    "mcts_cv": 57,
+    "ppo_ece": 27,
+    "vi_ttc": 86
+  },
+  "critical_gap_quartile_max_share": {
+    "idm_mobil": 0.8064516129032258,
+    "mcts_cv": 0.49122807017543857,
+    "ppo_ece": 0.7037037037037037,
+    "vi_ttc": 0.47674418604651164
+  },
+  "redundant_triplets": [],
+  "passed": false
+}

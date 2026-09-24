@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from diva_highway_env.sut.idm_profiles import get_profile
+from sut_algorithms.highway_env.idm_profiles import get_profile
 
 from .corpus import ScenarioSpec, build_default_corpus
 from .execution import execute_scenario

@@ -32,7 +32,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 
-from diva_highway_env.sut.idm_profiles import PROFILE_NAMES
+from sut_algorithms.highway_env.idm_profiles import PROFILE_NAMES
 
 from .corpus import ScenarioSpec, build_default_corpus
 from .filter import load_checkpoint, predict_scores

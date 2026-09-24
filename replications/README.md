@@ -1,7 +1,7 @@
 # Highway-env paper replications
 
 This directory contains independent adaptations of representative testing
-methods. Every implementation uses the repository's `diva_highway_env`
+methods. Every implementation uses the repository's `highway_env_benchmark`
 simulator, SUT profiles, and response-bank schema. Method-specific logic stays
 inside its package; datasets and final artifacts stay under
 `results/highway_replications/`.
@@ -30,6 +30,7 @@ replications/
   detour_highway_env/          DETOUR adaptation
   fst_highway_env/             FST similarity adaptation
   scenariofuzz_highway_env/    ScenarioFuzz adaptation
+  highway_sut_selection/       heterogeneous driving-policy qualification
 
 results/highway_replications/
   shared/                      common response bank and manifest
@@ -38,6 +39,7 @@ results/highway_replications/
   fst/                         FST results on the shared pool
   scenariofuzz/                deterministic paper-aligned suite
   evaluation/                  cross-replication records, figures, and report
+  sut_selection/               retained SUT bank and screening evidence
 ```
 
 ## Run
@@ -49,4 +51,3 @@ conda run -n metadrive python -m pytest replications -q -p no:cacheprovider
 ```
 
 Each method README contains its exact reconstruction command.
-

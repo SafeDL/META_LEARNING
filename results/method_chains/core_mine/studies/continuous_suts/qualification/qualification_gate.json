@@ -1,0 +1,81 @@
+{
+  "proposal": "v3_continuous_borderline",
+  "seeds": [
+    20271103
+  ],
+  "gates": {
+    "two_targets_with_source_safe_failures_in_two_modes": false,
+    "no_three_sut_all_pairwise_jaccard_above_0_90": true,
+    "no_target_more_than_75_percent_in_one_gap_quartile": true
+  },
+  "qualified_targets": [
+    "vi_ttc"
+  ],
+  "target_diagnostics": [
+    {
+      "target": "idm_mobil",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    },
+    {
+      "target": "vi_ttc",
+      "source_safe_target_failures": 326,
+      "source_safe_modes": [
+        "cutin_braking",
+        "fast_intrusion",
+        "lead_braking",
+        "slow_lead_following",
+        "stop_and_go"
+      ],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    },
+    {
+      "target": "mcts_cv",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3"
+      ]
+    },
+    {
+      "target": "ppo_ece",
+      "source_safe_target_failures": 0,
+      "source_safe_modes": [],
+      "critical_gap_quartiles": [
+        "gap_q1",
+        "gap_q2",
+        "gap_q3",
+        "gap_q4"
+      ]
+    }
+  ],
+  "pairwise_event_jaccard": {
+    "idm_mobil~vi_ttc": 0.3373493975903614,
+    "idm_mobil~mcts_cv": 0.05917159763313609,
+    "idm_mobil~ppo_ece": 0.30409356725146197,
+    "vi_ttc~mcts_cv": 0.02208835341365462,
+    "vi_ttc~ppo_ece": 0.11044176706827309,
+    "mcts_cv~ppo_ece": 0.13793103448275862
+  },
+  "critical_gap_quartile_max_share": {
+    "idm_mobil": 0.30952380952380953,
+    "vi_ttc": 0.25100401606425704,
+    "mcts_cv": 0.45454545454545453,
+    "ppo_ece": 0.3090909090909091
+  },
+  "redundant_triplets": [],
+  "passed": false
+}

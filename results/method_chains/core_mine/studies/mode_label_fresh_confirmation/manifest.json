@@ -1,0 +1,73 @@
+{
+  "schema": "mode_label_fresh_confirmation_v1",
+  "protocol": "docs/core_mine_mode_label_fresh_confirmation_protocol.md",
+  "seeds": [
+    20330911,
+    20330925,
+    20331009,
+    20331023
+  ],
+  "targets": [
+    "vi_ttc",
+    "fvdm_delay05_brake3"
+  ],
+  "methods": [
+    "ModeLabelShift-Risk",
+    "SourceMeanRaw-Static",
+    "ModeQuantile-Static",
+    "ModeUCB1"
+  ],
+  "budget_per_method_seed_target": 50,
+  "support_budget": 10,
+  "target_outcomes_precomputed": false,
+  "new_physical_source_episodes": 2560,
+  "new_physical_target_episodes": 1600,
+  "ucb1": {
+    "reward": "0.5 * event + 0.5 * ego_collision",
+    "exploration_bonus": "sqrt(2 * log(observed_queries) / mode_queries)",
+    "within_mode_ranking": "mean_historical_response",
+    "mode_tie_break": "frozen BOUNDS insertion order"
+  },
+  "source_gates": {
+    "20330911": {
+      "eligible_candidates": 275,
+      "eligible_by_mode": {
+        "fast_intrusion": 56,
+        "cutin_braking": 53,
+        "lead_braking": 59,
+        "stop_and_go": 52,
+        "slow_lead_following": 55
+      }
+    },
+    "20330925": {
+      "eligible_candidates": 274,
+      "eligible_by_mode": {
+        "fast_intrusion": 53,
+        "cutin_braking": 54,
+        "lead_braking": 60,
+        "stop_and_go": 52,
+        "slow_lead_following": 55
+      }
+    },
+    "20331009": {
+      "eligible_candidates": 274,
+      "eligible_by_mode": {
+        "fast_intrusion": 53,
+        "cutin_braking": 55,
+        "lead_braking": 59,
+        "stop_and_go": 51,
+        "slow_lead_following": 56
+      }
+    },
+    "20331023": {
+      "eligible_candidates": 270,
+      "eligible_by_mode": {
+        "fast_intrusion": 53,
+        "cutin_braking": 53,
+        "lead_braking": 60,
+        "stop_and_go": 51,
+        "slow_lead_following": 53
+      }
+    }
+  }
+}

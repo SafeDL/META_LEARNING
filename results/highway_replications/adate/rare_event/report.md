@@ -68,12 +68,12 @@ between sparse source Q tables and the target Q learned on a differently
 visited state-action subset. More target budget alone did not resolve that
 identifiability problem.
 
-## DIVA-Mine and DETOUR transfer
+## Risk Mining and DETOUR transfer
 
 On the same passing layout, the independent discovery chain uses a uniform
 240-scenario candidate library and evaluates only the three AV targets. At
 B=50, mean critical-event recall is 21.48% for Random, 73.15% for DETOUR, and
-100% for DIVA-Mine. At B=20, direct DIVA-DETOUR fusion reaches 32.56% versus
-31.52% for DIVA-Mine; by B=50 all DIVA variants tie. The revised benchmark
-therefore reveals strong DIVA-Mine transfer but only a small intermediate-budget
+100% for Risk Mining. At B=20, direct Mining-DETOUR fusion reaches 32.56% versus
+31.52% for Risk Mining; by B=50 all Mining variants tie. The revised benchmark
+therefore reveals strong Risk Mining transfer but only a small intermediate-budget
 fusion benefit.

@@ -1,0 +1,468 @@
+"""One outer action maps to one verified physical simulator episode."""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Mapping, Protocol
+
+import numpy as np
+
+from ..map.metadrive_tokenizer import tokenize_road_network
+from ..safety.dynamics import CUTIN_NOMINAL_VEHICLE_LENGTH_M, CUTIN_VEHICLE_CONFIG
+from .catalog import (
+    CUTIN_MIN_INITIAL_GAP_M,
+    CUTIN_POST_MANEUVER_FOLLOW_THROUGH_M,
+    valid_cutin_initial_state,
+)
+from sut_algorithms.metadrive.registry import SUTRegistry, default_registry
+from .applied import AppliedScenario, ExecutableEpisode
+from .layout import ScenarioLayout
+from .interaction import InteractionCandidate
+from .parameter_space import NormalizedScenarioAction, ParameterSpace
+from .roles import spawn_sut
+from .route_geometry import RoutePolyline
+from .task_spec import logical_parameter_names, ScenarioMiningTaskSpec
+
+
+class ScenarioAdapter(Protocol):
+    family: str
+
+    def build_env(
+        self,
+        task: ScenarioMiningTaskSpec,
+        config: Mapping[str, float | str],
+        layout: ScenarioLayout | None = None,
+        environment_overrides: Mapping[str, Any] | None = None,
+    ) -> Any:
+        ...
+
+    def reset(self, env: Any, task: ScenarioMiningTaskSpec, config: Mapping[str, float | str],
+              seed: int) -> tuple[Any, Mapping[str, Any]]:
+        ...
+
+    def resolve_layout(self, env: Any, task: ScenarioMiningTaskSpec, config: Mapping[str,
+                                                                                     float | str],
+                       candidates: tuple[str, ...]) -> ScenarioLayout:
+        ...
+
+    def validate_runtime(self, env: Any, task: ScenarioMiningTaskSpec,
+                         config: Mapping[str, float | str]) -> None:
+        ...
+
+    def spawn_from_conflict_distance(self, route: RoutePolyline, conflict_xy: tuple[float, float],
+                                     distance_to_conflict_m: float) -> float:
+        ...
+
+
+@dataclass(frozen=True)
+class _CachedLayout:
+    layout: ScenarioLayout
+    adversary_route: RoutePolyline
+    sut_route: RoutePolyline
+
+
+@dataclass(frozen=True)
+class _StaticScene:
+    map_tokens: Any
+    candidates: tuple[InteractionCandidate, ...]
+    layouts: Mapping[str, _CachedLayout]
+
+
+@dataclass
+class ScenarioExecutor:
+    adapters: Mapping[str, ScenarioAdapter]
+    spaces: Mapping[str, ParameterSpace]
+    sut_registry: SUTRegistry = field(default_factory=default_registry)
+    _static_scenes: dict[tuple[str, str], _StaticScene] = field(default_factory=dict,
+                                                                init=False,
+                                                                repr=False)
+
+    @staticmethod
+    def _route_spawn_lane(route: RoutePolyline,
+                          route_s_m: float) -> tuple[tuple[Any, Any, int], float]:
+        """Map a global route coordinate to one concrete lane-local spawn."""
+        if not 0.0 <= float(route_s_m) <= route.length_m:
+            raise ValueError("Cut-in spawn lies outside its declared route")
+        previous_end = 0.0
+        for lane_index, end in zip(route.lane_indices, route.lane_end_s_m):
+            if float(route_s_m) <= float(end) + 1e-6:
+                return lane_index, max(0.0, float(route_s_m) - previous_end)
+            previous_end = float(end)
+        return route.lane_indices[-1], max(0.0, float(route_s_m) - previous_end)
+
+    @staticmethod
+    def _adversary(env: Any) -> Any:
+        agents = env.engine.agent_manager.active_agents
+        if "default_agent" not in agents:
+            raise RuntimeError("MetaDrive episode has no default adversary agent")
+        return agents["default_agent"]
+
+    @staticmethod
+    def _speed_mps(vehicle: Any) -> float:
+        return float(getattr(vehicle, "speed_km_h", 0.0)) / 3.6
+
+    @staticmethod
+    def _assert_vehicle_applied(vehicle: Any, lane_index: tuple[Any, Any, int], spawn_m: float,
+                                speed_mps: float, destination: Any) -> None:
+        config = vehicle.config
+        if tuple(config["spawn_lane_index"]) != tuple(lane_index):
+            raise RuntimeError("runtime vehicle spawn lane differs from resolved scenario layout")
+        if not np.isclose(float(config["spawn_longitude"]), float(spawn_m), atol=1e-5):
+            raise RuntimeError(
+                "runtime vehicle spawn longitudinal position differs from outer output")
+        if config.get("destination") != destination:
+            raise RuntimeError("runtime vehicle destination differs from resolved candidate route")
+        if not np.isclose(ScenarioExecutor._speed_mps(vehicle), float(speed_mps), atol=0.25):
+            raise RuntimeError("runtime vehicle initial speed differs from outer output")
+
+    @staticmethod
+    def _assert_vehicle_route(
+        vehicle: Any,
+        expected: tuple[Any, ...],
+        *,
+        lane_stable: bool = False,
+    ) -> None:
+        actual = tuple(vehicle.navigation.checkpoints)
+        if actual != expected:
+            raise RuntimeError("native navigation checkpoints differ from scenario contract")
+        if lane_stable and int(vehicle.lane.index[2]) != int(
+                vehicle.config["spawn_lane_index"][2]):
+            raise RuntimeError("lane-stable SUT route changed lanes during native initialization")
+
+    @staticmethod
+    def sut_lane_status(episode: ExecutableEpisode, *,
+                        require_routing_target: bool) -> dict[str, Any]:
+        """Validate the SUT's physical and controller lane targets at this step."""
+        contract = episode.layout.native_navigation
+        if contract is None:
+            raise RuntimeError("scenario layout has no native navigation contract")
+        navigation_lane = episode.sut.navigation.current_lane
+        actual_lane = episode.sut.lane
+        expected_number = contract.expected_sut_lane_number(navigation_lane.index[:2])
+        policy = episode.env.engine.get_policy(episode.sut.id)
+        routing_lane = getattr(policy, "routing_target_lane", None)
+        status = {
+            "sut_current_lane":
+            tuple(actual_lane.index),
+            "sut_navigation_lane":
+            tuple(navigation_lane.index),
+            "sut_current_ref_lanes":
+            tuple(tuple(lane.index) for lane in episode.sut.navigation.current_ref_lanes),
+            "sut_routing_target_lane":
+            None if routing_lane is None else tuple(routing_lane.index),
+            "sut_expected_lane_number":
+            int(expected_number),
+        }
+        if int(actual_lane.index[2]) != expected_number or int(
+                navigation_lane.index[2]) != expected_number:
+            raise RuntimeError(f"SUT lane number violates lane-stable route: {status!r}")
+        if require_routing_target:
+            # Policies act before navigation localization is advanced by the
+            # same physics tick.  At a road boundary the concrete road index
+            # can therefore lag by one tick, but the lane number must never
+            # deviate from the declared lane-stable sequence.
+            if routing_lane is None or int(routing_lane.index[2]) != expected_number:
+                raise RuntimeError(f"SUT routing target violates lane-stable route: {status!r}")
+        return status
+
+    @staticmethod
+    def _assert_cutin_initial_physics(
+        cached: _CachedLayout,
+        adversary: Any,
+        sut: Any,
+        config: Mapping[str, float | str],
+    ) -> dict[str, float]:
+        """Verify the reset state matches the declared physical Cut-in scene."""
+        adversary_s = cached.adversary_route.projection(adversary.position,
+                                                        adversary.heading_theta).s_m
+        sut_s = cached.sut_route.projection(sut.position, sut.heading_theta).s_m
+        centre_gap = float(adversary_s - sut_s)
+        initial_gap = centre_gap - 0.5 * (
+            float(getattr(adversary, "LENGTH", CUTIN_NOMINAL_VEHICLE_LENGTH_M)) +
+            float(getattr(sut, "LENGTH", CUTIN_NOMINAL_VEHICLE_LENGTH_M)))
+        requested = float(config["initial_gap_m"])
+        if not np.isclose(initial_gap, requested, atol=0.35):
+            raise RuntimeError("runtime Cut-in initial gap differs from the declared "
+                               f"bumper-to-bumper distance: declared={requested:.3f}, "
+                               f"actual={initial_gap:.3f}")
+        if initial_gap < CUTIN_MIN_INITIAL_GAP_M:
+            raise RuntimeError("runtime Cut-in reset overlaps or nearly overlaps vehicles")
+        adversary_speed = ScenarioExecutor._speed_mps(adversary)
+        sut_speed = ScenarioExecutor._speed_mps(sut)
+        if not np.isclose(
+                adversary_speed - sut_speed, float(config["relative_speed_mps"]), atol=0.35):
+            raise RuntimeError(
+                "runtime Cut-in initial relative speed differs from the Logical scene")
+        return {
+            "actual_initial_gap_m": float(initial_gap),
+            "actual_initial_center_gap_m": float(centre_gap),
+            "actual_ego_initial_speed_mps": float(sut_speed),
+            "actual_adversary_initial_speed_mps": float(adversary_speed),
+            "actual_relative_speed_mps": float(adversary_speed - sut_speed),
+        }
+
+    @staticmethod
+    def _static_key(task: ScenarioMiningTaskSpec) -> tuple[str, str]:
+        return task.adapter_id, task.geometry_hash
+
+    @staticmethod
+    def _assert_task_domain(
+        task: ScenarioMiningTaskSpec,
+        action: NormalizedScenarioAction,
+        space: ParameterSpace,
+    ) -> None:
+        """Make task-local Logical bounds the final execution authority."""
+        action.validate(space.continuous_dim)
+        names = logical_parameter_names(task.functional_scenario)
+        if space.continuous_dim != len(names):
+            raise RuntimeError("scenario parameter space no longer matches task Logical schema")
+        for name, active, value in zip(names, task.logical_parameter_mask, action.continuous):
+            if not active:
+                if not np.isclose(float(value), 0.0, atol=1e-6):
+                    raise ValueError(f"inactive Logical parameter {name!r} must be zero")
+                continue
+            lower, upper = task.logical_domain_bounds[name]
+            if not float(lower) <= float(value) <= float(upper):
+                raise ValueError(f"{name} is outside task Logical domain")
+
+    @staticmethod
+    def _resolve_spawn_config(
+        adapter: ScenarioAdapter,
+        cached: _CachedLayout,
+        candidate: InteractionCandidate,
+        config: Mapping[str, float | str],
+        action: NormalizedScenarioAction,
+    ) -> dict[str, float | str]:
+        resolved = dict(config)
+        if cached.layout.traffic_contract.adversary_intent == "cut_in_to_sut_lane":
+            sut_speed = float(resolved["ego_initial_speed_mps"])
+            relative_speed = float(resolved["relative_speed_mps"])
+            adversary_speed = sut_speed + relative_speed
+            initial_gap = float(resolved["initial_gap_m"])
+            path_length = float(resolved["cutin_path_length_m"])
+            if not valid_cutin_initial_state(sut_speed, relative_speed, initial_gap, path_length):
+                raise ValueError(
+                    "Cut-in reset violates the coupled speed, initial-gap, or lateral "
+                    "acceleration constraints")
+            merge_start, merge_end = cached.layout.traffic_contract.merge_window_m
+            start = merge_start + float(resolved["cutin_start_offset_m"])
+            if not (merge_start <= start and start + path_length <= merge_end):
+                raise ValueError(
+                    "Cut-in start and path length must lie inside the legal merge window")
+            completion_s = start + path_length + CUTIN_POST_MANEUVER_FOLLOW_THROUGH_M
+            if completion_s > cached.sut_route.length_m - CUTIN_NOMINAL_VEHICLE_LENGTH_M:
+                raise ValueError(
+                    "Cut-in path leaves no legal post-maneuver test-completion position")
+            # The red vehicle only needs a short straight segment before its
+            # prescribed spatial lane change. Tying this distance to the
+            # path length delayed every onset enough for the SUT to remove
+            # the intended challenge before the Cut-in began.
+            lead_in_m = 12.0
+            adversary_spawn = float(start - lead_in_m)
+            center_gap = initial_gap + CUTIN_NOMINAL_VEHICLE_LENGTH_M
+            sut_spawn = float(adversary_spawn - center_gap)
+            if min(adversary_spawn, sut_spawn) < 0.0:
+                raise ValueError(
+                    "Cut-in Logical parameters cannot produce a positive executable spawn")
+            adversary_lane, adversary_local = ScenarioExecutor._route_spawn_lane(
+                cached.adversary_route, adversary_spawn)
+            sut_lane, sut_local = ScenarioExecutor._route_spawn_lane(cached.sut_route, sut_spawn)
+            resolved.update({
+                "adversary_initial_speed_mps": adversary_speed,
+                "initial_center_gap_m": center_gap,
+                "cutin_start_s_m": start,
+                "test_completion_s_m": completion_s,
+                "adversary_spawn_m": adversary_local,
+                "sut_spawn_m": sut_local,
+                "adversary_spawn_lane": adversary_lane,
+                "sut_spawn_lane": sut_lane,
+            })
+            return resolved
+        for index, (name, route) in enumerate(
+            (("adversary", cached.adversary_route), ("sut", cached.sut_route))):
+            distance_key = f"{name}_distance_to_conflict_m"
+            lower = float(getattr(candidate, f"{name}_distance_min_m"))
+            upper = float(getattr(candidate, f"{name}_distance_available_m"))
+            if not 0.0 <= lower <= upper:
+                raise RuntimeError(
+                    f"{candidate.candidate_id} has no executable {name} spawn interval")
+            applied_distance = float(lower + 0.5 * (float(action.continuous[index]) + 1.0) *
+                                     (upper - lower))
+            resolved[distance_key] = applied_distance
+            resolved[f"{name}_spawn_m"] = adapter.spawn_from_conflict_distance(
+                route, cached.layout.conflict_xy, applied_distance)
+        return resolved
+
+    def _static_scene(self, task: ScenarioMiningTaskSpec) -> _StaticScene:
+        key = self._static_key(task)
+        if key not in self._static_scenes:
+            self.enumerate_interactions(task)
+        return self._static_scenes[key]
+
+    def enumerate_interactions(
+            self, task: ScenarioMiningTaskSpec) -> tuple[Any, tuple[InteractionCandidate, ...]]:
+        """Inspect the runtime map before policy selection without exposing labels."""
+        task.validate()
+        key = self._static_key(task)
+        cached = self._static_scenes.get(key)
+        if cached is not None:
+            return cached.map_tokens, cached.candidates
+        try:
+            adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario]
+        except KeyError as error:
+            raise ValueError(f"no executable contract for task {task.task_id}") from error
+        base = space.decode(NormalizedScenarioAction(0, (0.0, ) * space.continuous_dim))
+        env = adapter.build_env(task, base)
+        try:
+            adapter.reset(env, task, base, task.geometry_seed)
+            tokens = tokenize_road_network(env.current_map.road_network)
+            if tokens.map_hash != task.geometry_hash:
+                raise RuntimeError(f"runtime map hash mismatch for {task.task_id}")
+            candidates = []
+            layouts: dict[str, _CachedLayout] = {}
+            for index in range(len(space.candidates)):
+                config = space.decode(
+                    NormalizedScenarioAction(index, (0.0, ) * space.continuous_dim))
+                layout = adapter.resolve_layout(env, task, config, space.candidates)
+                adversary_route = RoutePolyline.from_env(env, {
+                    "route_id": "adversary",
+                    "lane_sequence": layout.adversary_route
+                })
+                sut_route = RoutePolyline.from_env(env, {
+                    "route_id": "sut",
+                    "lane_sequence": layout.sut_route
+                })
+                layouts[layout.candidate] = _CachedLayout(layout, adversary_route, sut_route)
+                candidates.append(
+                    InteractionCandidate.from_routes(layout, adversary_route, sut_route))
+            static = _StaticScene(tokens, tuple(candidates), layouts)
+            self._static_scenes[key] = static
+            return static.map_tokens, static.candidates
+        finally:
+            env.close()
+
+    def reset(
+        self,
+        task: ScenarioMiningTaskSpec,
+        action: NormalizedScenarioAction,
+        *,
+        episode_seed: int | None = None,
+        environment_overrides: Mapping[str, Any] | None = None,
+    ) -> ExecutableEpisode:
+        task.validate()
+        run_seed = task.geometry_seed if episode_seed is None else int(episode_seed)
+        try:
+            adapter, space = self.adapters[task.adapter_id], self.spaces[task.functional_scenario]
+        except KeyError as error:
+            raise ValueError(f"no executable contract for task {task.task_id}") from error
+        self._assert_task_domain(task, action, space)
+        config = space.decode(action)
+        static = self._static_scene(task)
+        candidate = str(config["route_or_conflict_candidate"])
+        try:
+            cached = static.layouts[candidate]
+        except KeyError as error:
+            raise RuntimeError(f"static layout is missing candidate {candidate!r}") from error
+        interaction = next(row for row in static.candidates if row.candidate_id == candidate)
+        config = self._resolve_spawn_config(adapter, cached, interaction, config, action)
+        if environment_overrides:
+            env = adapter.build_env(task, config, cached.layout, environment_overrides)
+        else:
+            env = adapter.build_env(task, config, cached.layout)
+        try:
+            observation, _ = adapter.reset(env, task, config, task.geometry_seed)
+            adapter.validate_runtime(env, task, config)
+            runtime_tokens = tokenize_road_network(env.current_map.road_network)
+            if runtime_tokens.map_hash != task.map_hash:
+                raise RuntimeError(
+                    f"runtime map hash changed between layout and execution: expected {task.map_hash}, got {runtime_tokens.map_hash}"
+                )
+            map_tokens = static.map_tokens
+            adversary = self._adversary(env)
+            sut_adapter, sut_profile = self.sut_registry.create(task.sut_ref)
+            sut_adapter.reset(env, task, config, run_seed)
+            layout = cached.layout
+            sut_speed_key = ("ego_initial_speed_mps"
+                             if task.functional_scenario == "cutin" else "sut_initial_speed_mps")
+            sut = spawn_sut(
+                env,
+                lane_index=tuple(config.get("sut_spawn_lane", layout.sut_lane)),
+                longitudinal_m=float(config["sut_spawn_m"]),
+                speed_mps=float(config[sut_speed_key]),
+                destination=layout.sut_destination,
+                adapter=sut_adapter,
+                profile=sut_profile,
+                seed=run_seed,
+                speed_limit_mps=layout.traffic_contract.speed_limit_mps,
+                nominal_speed_mps=layout.traffic_contract.sut_nominal_speed_mps,
+                vehicle_config=(CUTIN_VEHICLE_CONFIG
+                                if task.functional_scenario == "cutin" else None),
+            )
+            self._assert_vehicle_applied(
+                adversary, tuple(config.get("adversary_spawn_lane", layout.adversary_lane)),
+                float(config["adversary_spawn_m"]), float(config["adversary_initial_speed_mps"]),
+                layout.adversary_destination)
+            self._assert_vehicle_applied(sut, tuple(config.get("sut_spawn_lane", layout.sut_lane)),
+                                         float(config["sut_spawn_m"]),
+                                         float(config[sut_speed_key]), layout.sut_destination)
+            cutin_physics: dict[str, float] = {}
+            if task.functional_scenario == "cutin":
+                cutin_physics = self._assert_cutin_initial_physics(cached, adversary, sut, config)
+            navigation = layout.native_navigation
+            if navigation is None:
+                raise RuntimeError("scenario layout has no native navigation contract")
+            if task.functional_scenario != "cutin":
+                self._assert_vehicle_route(adversary, navigation.adversary_checkpoints)
+                self._assert_vehicle_route(
+                    sut,
+                    navigation.sut_checkpoints,
+                    lane_stable=navigation.sut_lane_stable,
+                )
+            logical_parameters = {
+                name: float(config[name])
+                for name in logical_parameter_names(task.functional_scenario)
+            }
+            if task.functional_scenario == "cutin":
+                # This value is derived only from the declared 5-D Logical
+                # scene and the audited legal corridor; retaining it makes a
+                # reset independently reconstructible in artifacts.
+                logical_parameters["cutin_start_s_m"] = float(config["cutin_start_s_m"])
+                logical_parameters["test_completion_s_m"] = float(config["test_completion_s_m"])
+                logical_parameters["declared_initial_center_gap_m"] = float(
+                    config["initial_center_gap_m"])
+                logical_parameters.update(cutin_physics)
+            applied = AppliedScenario(
+                str(adversary.id),
+                str(sut.id),
+                layout.adversary_lane,
+                layout.sut_lane,
+                float(config["adversary_spawn_m"]),
+                float(config["sut_spawn_m"]),
+                float(config["adversary_initial_speed_mps"]),
+                float(config[sut_speed_key]),
+                logical_parameters,
+                layout.candidate,
+                layout.conflict_zone_id,
+                layout.adversary_route,
+                layout.sut_route,
+                tuple(float(value) for value in action.continuous),
+            )
+            setattr(env, "_mvr_episode", applied)
+            episode = ExecutableEpisode(
+                env,
+                observation,
+                adversary,
+                sut,
+                sut_adapter,
+                sut_profile,
+                applied,
+                map_tokens,
+                layout,
+                cached.adversary_route,
+                cached.sut_route,
+                run_seed,
+            )
+            self.sut_lane_status(episode, require_routing_target=False)
+            return episode
+        except Exception:
+            env.close()
+            raise

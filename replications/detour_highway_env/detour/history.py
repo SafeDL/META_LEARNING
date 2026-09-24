@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import numpy as np
 
-from diva_highway_env.data.response_bank import ResponseBank
+from highway_env_benchmark.data.response_bank import ResponseBank
 from replications.detour_highway_env.detour.contracts import HistoricalOutcome, ScenarioSpec
 
 

@@ -12,10 +12,10 @@
 
 确认实验包含五个新场景种子、每种子 600 个场景、六种功能，以及 18 个按
 “源覆盖程度 × 功能异质性”组成的目标系统，共执行 41,000 个物理 episode。
-预先声明的主指标是相对 Function-Conditioned DIVA 的 Recall@50。
+预先声明的主指标是相对 Function-Conditioned Mining 的 Recall@50。
 
 - Posterior Search：42.60%
-- Function-Conditioned DIVA：41.83%
+- Function-Conditioned Mining：41.83%
 - 配对差异：+0.78 个百分点
 - 分层 bootstrap 95% 区间：+0.46 至 +1.16 个百分点
 

@@ -1,0 +1,99 @@
+{
+  "seed": 20291118,
+  "status": "development_only",
+  "frequency_hz": 20,
+  "physics_frequency_hz": 20,
+  "original_scenarios": 80,
+  "physical_episodes": 400,
+  "reference_adapter_parity": true,
+  "reference_safe_candidates": 57,
+  "reference_safe_modes": [
+    "cutin_braking",
+    "fast_intrusion",
+    "lead_braking",
+    "slow_lead_following",
+    "stop_and_go"
+  ],
+  "frozen_versions": {
+    "vi_reference": {
+      "collision_reward_scale": 1.0,
+      "ttc_quantization": 1.0,
+      "lane_change_cost_scale": 1.0
+    },
+    "vi_risk035": {
+      "collision_reward_scale": 0.35,
+      "ttc_quantization": 1.0,
+      "lane_change_cost_scale": 1.0
+    },
+    "vi_coarse2": {
+      "collision_reward_scale": 1.0,
+      "ttc_quantization": 2.0,
+      "lane_change_cost_scale": 1.0
+    },
+    "vi_lane10": {
+      "collision_reward_scale": 1.0,
+      "ttc_quantization": 1.0,
+      "lane_change_cost_scale": 10.0
+    }
+  },
+  "variants": [
+    {
+      "build": "vi_reference",
+      "eligible_reference_safe": 57,
+      "new_failures": 0,
+      "ego_collisions": 0,
+      "failure_modes": [],
+      "by_mode": {
+        "fast_intrusion": 0,
+        "cutin_braking": 0,
+        "lead_braking": 0,
+        "stop_and_go": 0,
+        "slow_lead_following": 0
+      }
+    },
+    {
+      "build": "vi_risk035",
+      "eligible_reference_safe": 57,
+      "new_failures": 1,
+      "ego_collisions": 1,
+      "failure_modes": [
+        "cutin_braking"
+      ],
+      "by_mode": {
+        "fast_intrusion": 0,
+        "cutin_braking": 1,
+        "lead_braking": 0,
+        "stop_and_go": 0,
+        "slow_lead_following": 0
+      }
+    },
+    {
+      "build": "vi_coarse2",
+      "eligible_reference_safe": 57,
+      "new_failures": 0,
+      "ego_collisions": 0,
+      "failure_modes": [],
+      "by_mode": {
+        "fast_intrusion": 0,
+        "cutin_braking": 0,
+        "lead_braking": 0,
+        "stop_and_go": 0,
+        "slow_lead_following": 0
+      }
+    },
+    {
+      "build": "vi_lane10",
+      "eligible_reference_safe": 57,
+      "new_failures": 0,
+      "ego_collisions": 0,
+      "failure_modes": [],
+      "by_mode": {
+        "fast_intrusion": 0,
+        "cutin_braking": 0,
+        "lead_braking": 0,
+        "stop_and_go": 0,
+        "slow_lead_following": 0
+      }
+    }
+  ]
+}

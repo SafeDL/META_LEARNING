@@ -2,7 +2,7 @@
 
 This is a frozen physical confirmation experiment. It uses five previously unused scenario seeds, 600 scenarios per seed, six functions, and 18 targets arranged as a 3 (source coverage) x 3 (functional heterogeneity) x 2 factorial. No target outcome was used to define a controller, scenario, source-only hyperparameter, or baseline.
 
-Primary endpoint: target-macro critical-event Recall@50 for adaptive-support posterior search versus Function-Conditioned DIVA. Random uses 20 repeats; all other methods are deterministic. Collision OR near miss is the critical-event oracle.
+Primary endpoint: target-macro critical-event Recall@50 for adaptive-support posterior search versus Function-Conditioned Mining. Random uses 20 repeats; all other methods are deterministic. Collision OR near miss is the critical-event oracle.
 
 ## Overall results
 
@@ -10,15 +10,15 @@ Primary endpoint: target-macro critical-event Recall@50 for adaptive-support pos
 | --- | ---: | ---: | ---: | ---: |
 | Random | 0.0164 | 0.0330 | 0.0499 | 0.0834 |
 | DETOUR | 0.0699 | 0.1416 | 0.1991 | 0.3064 |
-| DIVA | 0.0210 | 0.1061 | 0.1913 | 0.3606 |
-| DIVA-DETOUR | 0.0215 | 0.1067 | 0.1920 | 0.3612 |
+| Mining | 0.0210 | 0.1061 | 0.1913 | 0.3606 |
+| Mining-DETOUR | 0.0215 | 0.1067 | 0.1920 | 0.3612 |
 | AdaTE Global | 0.0851 | 0.1698 | 0.2510 | 0.4143 |
-| Function-Conditioned DIVA | 0.0825 | 0.1677 | 0.2527 | 0.4183 |
+| Function-Conditioned Mining | 0.0825 | 0.1677 | 0.2527 | 0.4183 |
 | Posterior Search (adaptive support) | 0.0853 | 0.1704 | 0.2557 | 0.4260 |
 
 ## Recall@50 by source coverage
 
-| Coverage | Function-Conditioned DIVA | Posterior search | Difference |
+| Coverage | Function-Conditioned Mining | Posterior search | Difference |
 | --- | ---: | ---: | ---: |
 | exact | 0.3645 | 0.3683 | +0.0038 |
 | interpolated | 0.4750 | 0.4906 | +0.0155 |
@@ -26,7 +26,7 @@ Primary endpoint: target-macro critical-event Recall@50 for adaptive-support pos
 
 ## Recall@50 by functional heterogeneity
 
-| Heterogeneity | Function-Conditioned DIVA | Posterior search | Difference |
+| Heterogeneity | Function-Conditioned Mining | Posterior search | Difference |
 | --- | ---: | ---: | ---: |
 | global | 0.4587 | 0.4682 | +0.0095 |
 | partial | 0.3983 | 0.4037 | +0.0054 |
@@ -34,11 +34,11 @@ Primary endpoint: target-macro critical-event Recall@50 for adaptive-support pos
 
 ## Confirmatory comparison
 
-Adaptive posterior search minus Function-Conditioned DIVA at Recall@50: +0.0078, hierarchical 95% bootstrap interval [+0.0046, +0.0116], with 45 wins, 41 ties, and 4 losses over 90 seed-target units.
+Adaptive posterior search minus Function-Conditioned Mining at Recall@50: +0.0078, hierarchical 95% bootstrap interval [+0.0046, +0.0116], with 45 wins, 41 ties, and 4 losses over 90 seed-target units.
 
 ## Descriptive function audit at Recall@50
 
-| Function | Event prevalence | Function-Conditioned DIVA | Posterior search |
+| Function | Event prevalence | Function-Conditioned Mining | Posterior search |
 | --- | ---: | ---: | ---: |
 | fast_intrusion | 20.5% | 0.5124 | 0.4719 |
 | cutin_braking | 17.3% | 0.4828 | 0.4714 |
@@ -49,7 +49,7 @@ Adaptive posterior search minus Function-Conditioned DIVA at Recall@50: +0.0078,
 
 ## Descriptive scenario-regime audit at Recall@50
 
-| Regime | Event prevalence | Function-Conditioned DIVA | Posterior search |
+| Regime | Event prevalence | Function-Conditioned Mining | Posterior search |
 | --- | ---: | ---: | ---: |
 | core | 19.6% | 0.4190 | 0.2636 |
 | benign | 0.0% | n/a | n/a |

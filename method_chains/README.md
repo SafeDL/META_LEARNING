@@ -6,14 +6,14 @@
 
 当前保留三条方法链：
 
-- `diva_detour_fusion/`：DIVA-Mine 与 DETOUR 历史层次的固定融合对照；
-- `diva_function_conditioned_routing/`：功能条件化历史先验路由及双基准验证；
+- `detour_fusion/`：Risk Mining 与 DETOUR 历史层次的固定融合对照；
+- `function_conditioned_routing/`：功能条件化历史先验路由及双基准验证；
 - `function_posterior_search/`：通过独立物理确认的自适应功能后验搜索。
 
 依赖方向固定为：
 
 ```text
-diva_highway_env/ + replications/  ->  method_chains/
+highway_env_benchmark/ + replications/  ->  method_chains/
 ```
 
 基础实现和独立复现不得反向导入方法链。各方法链自行拥有实验入口和专属基准；

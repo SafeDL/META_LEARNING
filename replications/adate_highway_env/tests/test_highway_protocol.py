@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from diva_highway_env.envs.cutin_env import CutInScenario
-from diva_highway_env.sut.idm_profiles import get_profile
+from highway_env_benchmark.envs.cutin_env import CutInScenario
+from sut_algorithms.highway_env.idm_profiles import get_profile
 from replications.adate_highway_env.adate.dense_env import DenseCutInEnv
 from replications.adate_highway_env.adate.dense_protocol import (
     _scenario_pool,
