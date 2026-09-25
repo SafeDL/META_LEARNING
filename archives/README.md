@@ -14,4 +14,7 @@ repository root with:
 conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
 ```
 
-Historical outputs remain under `results/` and are not moved by this archive.
+Archived source code is kept separate from results. The current `results/` tree
+does not contain a `pearl_learning/` result archive; the PEARL commands above
+test the archived package. Its reconstruction commands do not refer to
+retained formal outputs.

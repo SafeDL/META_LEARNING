@@ -1,23 +1,32 @@
-# 本文方法链
+# 方法链
 
-`method_chains/` 只保存由基础方法或论文复现组合形成、且已完成有效验证的方法链。
-源码目录仅包含实现、配置、测试和说明；正式结果统一位于
+`method_chains/` 保存组合方法及其独立研究链。当前主线是 FBRT；其他方法链和
+CoRe-Mine 历史实验各自保留，不与 FBRT 的数据或结果合并。正式结果统一位于
 `results/method_chains/`。
 
-当前保留三条方法链：
+| 目录 | 当前定位 |
+| --- | --- |
+| `failure_memory_regression/` | 当前 FBRT 回归测试主链；使用历史失败边界为目标版本挑选测试场景 |
+| `detour_fusion/` | Risk Mining 与 DETOUR 的独立融合研究链 |
+| `function_conditioned_routing/` | 功能条件化历史迁移研究及双基准验证 |
+| `function_posterior_search/` | 经独立物理确认的自适应功能后验搜索 |
+| `core_mine/` | CoRe-Mine 历史实验；FBRT 复用其中 IDM 参考配置与受控修改实现 |
 
-- `detour_fusion/`：Risk Mining 与 DETOUR 历史层次的固定融合对照；
-- `function_conditioned_routing/`：功能条件化历史先验路由及双基准验证；
-- `function_posterior_search/`：通过独立物理确认的自适应功能后验搜索。
+FBRT 的职责、实验设置和运行命令见
+[`failure_memory_regression/README.md`](failure_memory_regression/README.md)；方法设计与实测结果分别见
+[`docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md`](../docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md) 和
+[`results/method_chains/failure_memory_regression/standard_aligned/core/report.md`](../results/method_chains/failure_memory_regression/standard_aligned/core/report.md)。
 
-依赖方向固定为：
+依赖方向为：
 
 ```text
-highway_env_benchmark/ + replications/  ->  method_chains/
+highway_env_benchmark/ + replications/  ->  method_chains/*
+method_chains/core_mine/ IDM reference and local faults  ->  failure_memory_regression/
 ```
 
-基础实现和独立复现不得反向导入方法链。各方法链自行拥有实验入口和专属基准；
+基础实现和独立复现不得反向导入方法链。FBRT 只复用 CoRe-Mine 的 IDM 参考配置
+与受控修改实现，不读取其历史实验结果。各方法链自行拥有实验入口和专属基准；
 功能后验搜索的 SUT 与场景因子设计集中在其 `benchmark.py`，避免复制控制器、
 场景生成器或评价条件。
 
-已由完整对齐实验确认无竞争力、且没有成为论文主张的中间方法，不在本目录保留。
+每个目录至多保留一个 `README.md`，在该文件中集中记录职责、入口和结果位置。已由完整对齐实验确认无效、且没有成为研究主张的中间方法不在本目录保留。

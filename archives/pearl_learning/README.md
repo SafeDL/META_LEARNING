@@ -53,4 +53,4 @@ conda run -n metadrive python -m archives.pearl_learning.scripts.build_taskbook 
 conda run -n metadrive python -m archives.pearl_learning.scripts.evaluate_fewshot --config archives/pearl_learning/configs/posterior_adaptation_protocol.yaml --checkpoint <checkpoint> --taskbook results/pearl_learning/posterior_adaptation/taskbooks --casebook-root results/pearl_learning/posterior_adaptation --split meta_test_all --run-name <run-name> --validation-freeze-manifest <freeze.json>
 ```
 
-当前结果状态见 [`../../results/pearl_learning/README.md`](../../results/pearl_learning/README.md)。
+当前工作树没有保留 `results/pearl_learning/` 正式结果目录；本包是冻结的复现代码。上面的构建和训练命令是重建入口，不代表已有正式结果。

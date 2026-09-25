@@ -1,24 +1,25 @@
 # META_LEARNING
 
-面向黑盒驾驶控制器的可迁移少样本脆弱场景挖掘研究代码库。项目按仿真器
-隔离实现：MetaDrive 用于完整的地图感知场景实验，Highway-env 用于快速的
-Risk Mining MVP 机制验证；两者的代码、测试和结果互不覆盖。
+面向黑盒驾驶控制器测试的研究代码库。当前方法主线是基于历史失效边界的
+功能场景回归测试（FBRT），运行在 Highway-env 上；MetaDrive 的 Risk Mining /
+Formal Teacher 实验、其他方法链和论文复现作为独立研究记录保留，不混入 FBRT 结果。
 
 | 目录 | 用途 |
 | --- | --- |
-| `metadrive_benchmark/` | 本文 Risk Mining / Formal Teacher 的 MetaDrive 实现 |
-| `highway_env_benchmark/` | 本文 Mining 的 highway-env 实现与共享仿真底座 |
+| `metadrive_benchmark/` | MetaDrive 仿真底座与 Risk Mining / Formal Teacher 历史实现 |
+| `highway_env_benchmark/` | Highway-env 共享仿真底座及 FBRT 功能场景实现 |
 | `sut_algorithms/` | 两套仿真器共用的被测驾驶算法与控制器 registry |
 | `archives/` | 冻结的 PEARL 与 SAC 历史基线 |
 | `docs/` | 方法、实验设计与执行说明 |
-| `results/metadrive/` | MetaDrive 的可追溯实验工件 |
+| `results/metadrive/` | MetaDrive Risk Mining / Formal Teacher 实验工件 |
 | `replications/` | AdaTE、DETOUR、FST、ScenarioFuzz 的独立 highway-env 复现与统一评测 |
 | `results/highway_replications/` | 共享响应库、各方法唯一正式结果与跨方法评价 |
-| `results/method_chains/` | 本文组合方法的唯一正式结果根目录 |
-| `method_chains/detour_fusion/` | 本文 Risk Mining 与 DETOUR 的独立融合链及专属结果 |
-| `method_chains/function_conditioned_routing/` | 本文功能条件化历史迁移方法、双基准与危险场景回放 |
+| `results/method_chains/` | 组合方法的正式结果根目录，按方法分开保存 |
+| `method_chains/detour_fusion/` | Risk Mining 与 DETOUR 的独立融合研究链 |
+| `method_chains/function_conditioned_routing/` | 功能条件化历史迁移方法及危险场景回放 |
 | `method_chains/function_posterior_search/` | 经独立物理确认的自适应功能后验搜索 |
-| `method_chains/core_mine/` | 组合残差脆弱区域挖掘及其冻结负结果 |
+| `method_chains/failure_memory_regression/` | 当前 FBRT 回归测试主链：历史失效边界、预算选例与结果分析 |
+| `method_chains/core_mine/` | CoRe-Mine 历史实验；FBRT 复用其中的 IDM 基线和受控修改实现 |
 
 ## 复现与验证
 
@@ -43,18 +44,29 @@ conda run -n metadrive python -m highway_env_benchmark.data.response_bank
 [`replications/README.md`](replications/README.md)。各方法的论文对齐范围和偏差
 分别记录在其包内 README 与 `results/highway_replications/` 的最终报告中。
 
+方法链的当前主线、历史分支和依赖关系见
+[`method_chains/README.md`](method_chains/README.md)。
+
 Highway-env 驾驶算法的接入、筛选和风险差异审计位于
 `replications/highway_sut_selection/`，正式结果位于
 `results/highway_replications/sut_selection/`。
 
-融合方法的目录所有权和修改边界见
+其他方法链的范围和依赖边界见
 [`method_chains/detour_fusion/README.md`](method_chains/detour_fusion/README.md)。
 
-本文功能条件化方法及五类危险场景 GIF 见
+功能条件化历史迁移方法及五类危险场景 GIF 见
 [`method_chains/function_conditioned_routing/README.md`](method_chains/function_conditioned_routing/README.md)。
 
 独立确认的功能后验搜索见
 [`method_chains/function_posterior_search/README.md`](method_chains/function_posterior_search/README.md)。
 
-CoRe-Mine 的冻结协议、运行入口和负结果边界见
+当前 FBRT 的实施方案、实际运行入口和正式结果见
+[`docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md`](docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md)
+及 [`正式结果报告`](results/method_chains/failure_memory_regression/standard_aligned/core/report.md)。
+离线重放选择实验可运行 `conda run -n metadrive python -m method_chains.failure_memory_regression.experiment --replay-measured-bank`；
+完整报告和图表入口为 `conda run -n metadrive python -m method_chains.failure_memory_regression.report --reuse-replay`。
+方法包的文件职责、实验范围和入口见
+[`method_chains/failure_memory_regression/README.md`](method_chains/failure_memory_regression/README.md)。
+
+CoRe-Mine 的历史实验及其保留原因见
 [`method_chains/core_mine/README.md`](method_chains/core_mine/README.md)。
