@@ -9,9 +9,9 @@ from highway_env.vehicle.controller import MDPVehicle
 
 from method_chains.failure_memory_regression.schema_v2 import BuildSpec
 from sut_algorithms.highway_env.idm_profiles import SUTProfile, create_profiled_vehicle
+from sut_algorithms.highway_env.mcts_cv import MCTSCVPolicy
 from sut_algorithms.highway_env.ppo_ece import PPOPolicy
 from sut_algorithms.highway_env.value_iteration import ValueIterationPolicy
-from sut_algorithms.highway_env.mcts_cv import MCTSCVPolicy
 from sut_algorithms.highway_env.regression_builds import make_native_vehicle
 
 

@@ -92,7 +92,6 @@ def _objective(theta: np.ndarray, features: np.ndarray, labels: np.ndarray,
 
 
 def source_fits(records: list[dict], dictionary: RBFDictionary) -> dict[str, LogisticFit]:
-    dim = 1 + dictionary.feature_dim + len(dictionary.centers) + len(dictionary.coverage_centers)
     output = {}
     build_ids = sorted({row["build_id"] for row in records})
     for build_id in build_ids:

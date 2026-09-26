@@ -8,12 +8,11 @@ from collections import defaultdict
 import numpy as np
 
 from method_chains.failure_memory_regression.bayes_model import (
-    LogisticFit, build_source_prior, extend_prior, posterior_failure_probabilities,
-    source_fits, target_posterior,
+    build_source_prior, extend_prior, posterior_failure_probabilities, source_fits,
+    target_posterior,
 )
 from method_chains.failure_memory_regression.pattern_memory import (
-    RBFDictionary, active_values, build_dictionaries, build_pattern_cards,
-    new_failure_card,
+    active_values, build_dictionaries, build_pattern_cards, new_failure_card,
 )
 from method_chains.failure_memory_regression.schema_v2 import stable_hash
 
@@ -191,7 +190,6 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
                                        if np.isclose(value, maximum)], rng)]
             reason = "history_risk_percentile_ucb"
         elif method == "FailureDistance-v2":
-            known = [active_values(_scenario(row)) for row in history if _failure(row)]
             failed_by_template: dict[str, list[np.ndarray]] = defaultdict(list)
             for row in history:
                 if _failure(row):

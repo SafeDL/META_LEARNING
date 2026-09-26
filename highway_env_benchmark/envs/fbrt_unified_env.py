@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import asdict
 
-import numpy as np
-from shapely.geometry import Polygon
 from highway_env.envs.common.abstract import AbstractEnv
-from highway_env.envs.common.observation import observation_factory
 from highway_env.envs.common.finite_mdp import compute_ttc_grid
+from highway_env.envs.common.observation import observation_factory
 from highway_env.road.road import Road, RoadNetwork
 from highway_env.vehicle.kinematics import Vehicle
+import numpy as np
+from shapely.geometry import Polygon
 
 from highway_env_benchmark.envs.fbrt_metrics import (
     longitudinal_bumper_clearance, time_to_collision,
@@ -44,7 +43,6 @@ class FBRTUnifiedEnv(AbstractEnv):
         self.control_actions: list[dict] = []
         self.initial_observation = None
         self.observation_history = deque(maxlen=64)
-        self.mutation_diff_count = 0
         config = {"duration": float(self._context().get("duration_s", 12.0))}
         super().__init__(config=config)
 
@@ -85,6 +83,7 @@ class FBRTUnifiedEnv(AbstractEnv):
         return compute_ttc_grid(self, time_quantization=1.0, horizon=6.0)
 
     def _reset(self) -> None:
+        self.adapter.reset()
         self.actors = {}
         self.event_times = {}
         self.trace = []

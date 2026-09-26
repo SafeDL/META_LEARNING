@@ -74,10 +74,8 @@ def _existing_recipe(root: Path = ROOT) -> str | None:
         return None
     if not episode_path.read_text(encoding="utf-8").strip():
         return None
-    try:
-        return json.loads(protocol_path.read_text(encoding="utf-8")).get("selected_recipe")
-    except json.JSONDecodeError:
-        return None
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    return protocol.get("selected_recipe")
 
 
 def resolve_recipe(capability: dict, root: Path = ROOT) -> tuple[str, str]:
@@ -94,16 +92,20 @@ def write_capability_and_recipe(root: Path = ROOT) -> tuple[dict, dict]:
     catalogue = load_catalogue()
     capability = static_capabilities()
     recipe, reason = resolve_recipe(capability, root)
-    scenario_by_id = {item["id"]: item for item in catalogue["scenarios"]}
-    selected = [scenario_by_id[key] for key in RECIPES[recipe]]
+    selected_ids = set(RECIPES[recipe])
     builds = catalogue["new_builds"]
     rows = []
     for build in builds:
         kind = "native_mobil" if build.startswith("mobil_") else "ppo"
+        if kind == "native_mobil":
+            can_stop = capability["native_mobil_can_command_full_stop"]
+            can_lane = capability["native_mobil_can_change_lane"]
+        else:
+            can_stop = capability["can_command_full_stop"]
+            can_lane = capability["can_change_lane"]
         for item in catalogue["scenarios"]:
             required = set(item.get("required_capability", []))
-            can_stop = capability["native_mobil_can_command_full_stop"] if kind == "native_mobil" else capability["can_command_full_stop"]
-            can_lane = capability["native_mobil_can_change_lane"] if kind == "native_mobil" else capability["can_change_lane"]
+            selected = item["id"] in selected_ids
             applicable = True
             reason_text = ""
             if "full_stop" in required and not can_stop:
@@ -112,13 +114,13 @@ def write_capability_and_recipe(root: Path = ROOT) -> tuple[dict, dict]:
                 applicable, reason_text = False, "NOT_APPLICABLE_ACTION_CAPABILITY"
             if "autonomous_lane_change" in required and not can_lane:
                 applicable, reason_text = False, "NOT_APPLICABLE_ACTION_CAPABILITY"
-            if item["id"] in RECIPES[recipe] and kind == "ppo" and not capability["ppo_checkpoint_available"]:
+            if selected and kind == "ppo" and not capability["ppo_checkpoint_available"]:
                 reason_text = "PPO_UNAVAILABLE_CHECKPOINT_MISSING" if not reason_text else reason_text + ";PPO_UNAVAILABLE_CHECKPOINT_MISSING"
             rows.append({"build_id": build, "adapter_kind": kind,
                          "scenario_id": item["id"], "template_id": item["template_id"],
-                         "selected": item["id"] in RECIPES[recipe],
+                         "selected": selected,
                          "applicable_by_static_capability": applicable,
-                         "execution_status": "selected" if item["id"] in RECIPES[recipe] else "not_selected",
+                         "execution_status": "selected" if selected else "not_selected",
                          "reason": reason_text})
     with (root / "capability_matrix.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))

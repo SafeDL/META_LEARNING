@@ -120,9 +120,6 @@ def _write_pattern_support_figure(root: Path, bank: list[dict], cards: list[dict
         local = [row for row in bank if row.get("template_id") == template]
         for build in sorted({row.get("build_id", "") for row in local}):
             points = [row for row in local if row.get("build_id") == build]
-            x = [row["scenario"].get("active_parameters", {}).get(
-                next(iter(row["scenario"].get("active_parameters", {})), ""), np.nan)
-                 for row in points]
             # Plot normalized coordinates from only the two active physical inputs.
             coords = []
             for row in points:

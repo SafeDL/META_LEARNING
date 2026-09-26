@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import hashlib
+from pathlib import Path
 
 from .base import Policy
-from .fbrt_adapters import adapter_for
 from .idm_mobil import IDMMobilPolicy
 from .mcts_cv import MCTSCVPolicy
 from .ppo_ece import PPOPolicy
@@ -33,8 +32,6 @@ def build_spec_factory(build_id: str, assets_root: Path = Path("assets")):
     from method_chains.failure_memory_regression.schema_v2 import BuildSpec
     from sut_algorithms.highway_env.idm_profiles import SUTProfile
 
-    profile = None
-    checkpoint = None
     if build_id == "idm_ref":
         from method_chains.core_mine.idm_revision_pilot import REFERENCE
         reference = REFERENCE if REFERENCE.name == build_id else SUTProfile("idm_ref", "IDM")
@@ -68,8 +65,3 @@ def build_spec_factory(build_id: str, assets_root: Path = Path("assets")):
         return BuildSpec(build_id, "mcts_cv", None, "external_meta_policy",
                          "MCTS-CV", 5.0)
     raise KeyError(f"Unsupported FBRT build: {build_id}")
-
-
-def fbrt_adapter_factory(build_id: str, assets_root: Path = Path("assets")):
-    """BuildSpec -> adapter route used by the unified FBRT execution contract."""
-    return adapter_for(build_spec_factory(build_id, assets_root))

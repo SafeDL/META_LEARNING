@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 from highway_env.vehicle.behavior import IDMVehicle
-from highway_env.vehicle.controller import ControlledVehicle
 
 
 class RearGuardIDMVehicle(IDMVehicle):

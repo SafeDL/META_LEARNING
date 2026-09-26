@@ -19,8 +19,7 @@ from highway_env_benchmark.envs.fbrt_unified_env import (
     EXECUTION_CONTRACT, run_build_episode,
 )
 from method_chains.failure_memory_regression.archive_v2 import (
-    CORE, ROOT, SnapshotStore, build_visibility_view, load_legacy_archive,
-    read_jsonl, records_to_jsonl, row_to_record,
+    CORE, ROOT, SnapshotStore, load_legacy_archive, read_jsonl, row_to_record,
 )
 from method_chains.failure_memory_regression.bayes_model import source_fits
 from method_chains.failure_memory_regression.catalogue_v2 import (

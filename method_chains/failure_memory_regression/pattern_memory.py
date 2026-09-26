@@ -13,7 +13,6 @@ from highway_env_benchmark.envs.fbrt_scenarios import ACTIVE_PARAMETERS, BOUNDS
 from method_chains.failure_memory_regression.schema_v2 import PatternCard, stable_hash
 
 
-CATALOGUE_PATH = Path("configs/fbrt/scenario_catalogue_v2.yaml")
 NEW_BOUNDS = {
     "fbrt_cutin": ((8.0, 60.0), (1.5, 3.0)),
     "fbrt_cutout_static": ((8.0, 40.0), (2.0, 4.5)),
@@ -173,7 +172,6 @@ def build_pattern_cards(records: list[dict], session_id: str = "archive_import")
             pass_ids: list[str] = []
             if len(pass_points):
                 for index in reps:
-                    local_index = component.index(index)
                     nearest = int(np.argmin(np.linalg.norm(pass_points - points[index], axis=1)))
                     passed = passes[nearest]
                     failed_id = failures[index]["execution_id"]

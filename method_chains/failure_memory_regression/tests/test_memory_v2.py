@@ -6,7 +6,6 @@ from collections import deque
 
 import numpy as np
 
-from highway_env.envs.common.action import DiscreteMetaAction
 from highway_env.road.road import Road, RoadNetwork
 from method_chains.failure_memory_regression.archive_v2 import (
     SnapshotStore, build_visibility_view, row_to_record,
