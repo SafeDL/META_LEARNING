@@ -1,0 +1,43 @@
+schema: fbrt_ego_initial_state_audit_v3
+purpose: Validate the existing frozen v2 bank and exercise ego initial state as active input.
+old_bank_immutable: true
+initial_state_bounds:
+  ego_initial_x_m: [100.0, 140.0]
+  ego_initial_lateral_offset_m: [-0.25, 0.25]
+  ego_initial_heading_offset_rad: [-0.035, 0.035]
+  ego_initial_lane_id: [0, 1]
+  ego_initial_speed_mps_by_template:
+    fbrt_cutin: [20.0, 30.0]
+    fbrt_cutout_static: [15.0, 25.0]
+    fbrt_lane_change_rear: [20.0, 30.0]
+    fbrt_moving_lead: [20.0, 30.0]
+    fbrt_cutin_then_brake: [20.0, 30.0]
+audit:
+  simulator_seed: 4179901
+  scene_representatives: [S01, S02, S05, S06, S08]
+  all_template_initial_state_corners:
+    low:
+      ego_initial_x_m: 100.0
+      ego_initial_lane_id: 0
+      ego_initial_lateral_offset_m: -0.2
+      ego_initial_heading_offset_rad: -0.025
+      speed_bound: lower
+    high:
+      ego_initial_x_m: 140.0
+      ego_initial_lane_id: 1
+      ego_initial_lateral_offset_m: 0.2
+      ego_initial_heading_offset_rad: 0.025
+      speed_bound: upper
+  ego_sweep_template: S05
+  ego_sweep:
+    speed_low: {ego_initial_speed_mps: 20.0}
+    speed_high: {ego_initial_speed_mps: 30.0}
+    position_shift: {ego_initial_x_m: 140.0}
+    adjacent_lane: {ego_initial_lane_id: 1}
+    lateral_offset: {ego_initial_lateral_offset_m: 0.2}
+    heading_offset: {ego_initial_heading_offset_rad: 0.03}
+  ppo_ego_sweep_template: S02
+  ppo_ego_sweep:
+    speed_high: {ego_initial_speed_mps: 25.0}
+    lane_1: {ego_initial_lane_id: 1}
+    lane_1_speed_high: {ego_initial_lane_id: 1, ego_initial_speed_mps: 25.0}

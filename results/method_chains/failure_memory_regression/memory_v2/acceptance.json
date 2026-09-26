@@ -1,0 +1,105 @@
+{
+  "schema_version": "fbrt-memory-v2",
+  "checks": {
+    "E1_unified_runner_and_registry": {
+      "status": "implemented",
+      "evidence": "BuildSpec registry; legacy/native/PPO adapter routing"
+    },
+    "E2_single_ego_action_owner": {
+      "status": "implemented",
+      "evidence": "external high-level decision applied once; low-level action ticks separated"
+    },
+    "E3_real_pattern_and_same_source_contrasts": {
+      "status": "implemented",
+      "pattern_cards": 52
+    },
+    "E4_pattern_changes_prediction_or_selection": {
+      "status": "implemented_with_tests",
+      "query_rows_with_contributing_patterns": 102
+    },
+    "E5_new_failure_and_no_history_fallback": {
+      "status": "implemented_with_tests"
+    },
+    "E6_no_double_count_and_full_observation_update": {
+      "status": "implemented_with_tests"
+    },
+    "E7_snapshot_reuse_by_next_session": {
+      "status": "observed_two_session_persistence"
+    },
+    "E8_visibility_candidate_budget_consistency": {
+      "status": "implemented",
+      "task_rows": 728
+    },
+    "E9_experiments_complete_or_resource_block_recorded": {
+      "status": "complete",
+      "compact_build_episode_counts": {
+        "mobil_ref_v2": 80,
+        "mobil_rear_guard_off_v2": 80,
+        "ppo_ref_v2": 80,
+        "ppo_obs_age020_v2": 80
+      },
+      "task_status": [
+        {
+          "task_id": "compact_regression_mobil_ref_to_rear_guard_off",
+          "status": "complete",
+          "candidate_count": 80,
+          "regression_pool_failures": 12
+        },
+        {
+          "task_id": "compact_regression_ppo_ref_to_obs_age020",
+          "status": "no_observed_regression_in_pool",
+          "candidate_count": 61,
+          "regression_pool_failures": 0
+        },
+        {
+          "task_id": "cross_agent_FBRT-NoMemory_mobil_to_next",
+          "status": "complete",
+          "queried": 20,
+          "committed_observations": 20,
+          "snapshot_before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "snapshot_after": "f77c52af714c39cf65c6ee5eb7b45d65968b8986c5b41b3a3110cbff705a374e"
+        },
+        {
+          "task_id": "cross_agent_FBRT-NoMemory_ppo_ref_after_mobil",
+          "status": "complete",
+          "queried": 20,
+          "committed_observations": 20,
+          "snapshot_before": "f77c52af714c39cf65c6ee5eb7b45d65968b8986c5b41b3a3110cbff705a374e",
+          "snapshot_after": "a35dcfb3c487f548d651fe2bcce15a8ff680536c2a75070df13fd908ab049ecf"
+        },
+        {
+          "task_id": "cross_agent_FBRT-Memory_mobil_to_next",
+          "status": "complete",
+          "queried": 20,
+          "committed_observations": 20,
+          "snapshot_before": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "snapshot_after": "f77c52af714c39cf65c6ee5eb7b45d65968b8986c5b41b3a3110cbff705a374e"
+        },
+        {
+          "task_id": "cross_agent_FBRT-Memory_ppo_ref_after_mobil",
+          "status": "complete",
+          "queried": 20,
+          "committed_observations": 20,
+          "snapshot_before": "f77c52af714c39cf65c6ee5eb7b45d65968b8986c5b41b3a3110cbff705a374e",
+          "snapshot_after": "19bb156afb6441f1dfefe660dd46517d0e85ba8767132ba3d92b969fb573a777"
+        }
+      ]
+    },
+    "E10_global_physical_cap": {
+      "status": "pass",
+      "used": 400,
+      "cap": 400
+    }
+  },
+  "diagnostic_limits": {
+    "mobil_reference_failures": 0,
+    "mobil_initial_failure_cards": 0,
+    "ppo_regression_pool_failures": 0,
+    "s02_invalid_zero_first_exit_timestamps": 64,
+    "s02_episode_count": 64,
+    "ppo_s02_lead_collisions": 31
+  },
+  "method_effect_observation": "local_gain_observed",
+  "delivery_level": "IMPLEMENTED_WITH_GAIN",
+  "interpretation": "Engineering completion and empirical gain are reported separately; no significance claim is required."
+}

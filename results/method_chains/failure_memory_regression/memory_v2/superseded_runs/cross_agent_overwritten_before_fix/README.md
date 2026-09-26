@@ -1,0 +1,1 @@
+﻿These files came from the earlier cross-agent directory layout, where the PPO session overwrote the MOBIL session for each method. Canonical two-session logs are now under sessions/compact_cross_agent/cross_agent_*/. These superseded files are excluded from compute-ledger query counts.

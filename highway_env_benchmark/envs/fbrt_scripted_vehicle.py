@@ -13,7 +13,10 @@ class ScriptedVehicle(ControlledVehicle):
                  lane_change_duration_s: float = 0.8,
                  destination_lane: tuple | None = None,
                  deceleration_mps2: float = 0.0, hold_s: float = 0.0,
-                 restart_acceleration_mps2: float = 0.0, **kwargs) -> None:
+                 restart_acceleration_mps2: float = 0.0,
+                 brake_after_measured_merge_s: float = 0.3,
+                 brake_duration_s: float = 1.5,
+                 speed_floor_mps: float = 5.0, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.event = event
         self.event_start_s = event_start_s
@@ -22,11 +25,15 @@ class ScriptedVehicle(ControlledVehicle):
         self.deceleration_mps2 = deceleration_mps2
         self.hold_s = hold_s
         self.restart_acceleration_mps2 = restart_acceleration_mps2
+        self.brake_after_measured_merge_s = brake_after_measured_merge_s
+        self.brake_duration_s = brake_duration_s
+        self.speed_floor_mps = speed_floor_mps
         self.cruise_speed = float(self.speed)
         self.elapsed = 0.0
         self.stopped_at: float | None = None
         self.event_log: list[dict] = []
         self._last_phase = "CRUISE"
+        self.merge_completed_at: float | None = None
         self.KP_LATERAL = 2.0 / lane_change_duration_s
 
     def act(self, action=None) -> None:
@@ -34,9 +41,27 @@ class ScriptedVehicle(ControlledVehicle):
             return
         phase = "CRUISE"
         acceleration = self.speed_control(self.cruise_speed)
-        if self.event in ("cutin", "cutout") and self.elapsed >= self.event_start_s:
+        if self.event in ("cutin", "cutout", "cutin_then_brake") and self.elapsed >= self.event_start_s:
             self.target_lane_index = self.destination_lane
             phase = "LANE_CHANGE"
+            if self.event == "cutin_then_brake":
+                lane = self.road.network.get_lane(self.destination_lane)
+                lateral_offset = lane.local_coordinates(self.position)[1]
+                if self.merge_completed_at is None and abs(lateral_offset) < 0.2:
+                    self.merge_completed_at = self.elapsed
+                    self.event_log.append({"time_s": round(self.elapsed, 3),
+                                           "phase": "LANE_CHANGE_COMPLETE"})
+                if self.merge_completed_at is not None:
+                    since_merge = self.elapsed - self.merge_completed_at
+                    if since_merge >= self.brake_after_measured_merge_s:
+                        if (since_merge < self.brake_after_measured_merge_s + self.brake_duration_s
+                                and self.speed > self.speed_floor_mps):
+                            phase = "BRAKE_AFTER_MERGE"
+                            acceleration = -min(self.deceleration_mps2,
+                                                (self.speed - self.speed_floor_mps) / 0.05)
+                        else:
+                            phase = "POST_BRAKE_CRUISE"
+                            acceleration = self.speed_control(self.speed_floor_mps)
         elif self.event in ("brake", "stop_hold_go") and self.elapsed >= self.event_start_s:
             if self.speed > 0.02 and self.stopped_at is None:
                 phase = "BRAKE_TO_STOP"
