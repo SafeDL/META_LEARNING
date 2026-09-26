@@ -9,8 +9,9 @@ from pathlib import Path
 
 import numpy as np
 
-from highway_env_benchmark.envs.fbrt_scenarios import ACTIVE_PARAMETERS, BOUNDS
+from highway_env_benchmark.fbrt_parameters import ACTIVE_PARAMETERS, BOUNDS
 from method_chains.failure_memory_regression.schema_v2 import PatternCard, stable_hash
+from method_chains.failure_memory_regression.replay_utils import is_parent_pass, is_usable_outcome
 
 
 NEW_BOUNDS = {
@@ -114,7 +115,7 @@ def _segment_distance(point: np.ndarray, start: np.ndarray, end: np.ndarray) -> 
 def build_pattern_cards(records: list[dict], session_id: str = "archive_import") -> list[PatternCard]:
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for record in records:
-        if record.get("inconclusive") or record.get("ego_collision") not in (True, False):
+        if record.get("visibility") == "evaluator_only" or not is_usable_outcome(record):
             continue
         key = (record.get("build_id", "unknown"),) + semantic_key(record)
         groups[key].append(record)
@@ -122,8 +123,7 @@ def build_pattern_cards(records: list[dict], session_id: str = "archive_import")
     cards: list[PatternCard] = []
     for (build_id, template, _interaction, context_id), group in sorted(groups.items()):
         failures = [item for item in group if item.get("ego_collision") is True]
-        passes = [item for item in group if item.get("completed") is True and
-                  item.get("ego_collision") is False]
+        passes = [item for item in group if is_parent_pass(item)]
         if not failures:
             continue
         points = np.asarray([active_values(_read_scenario(item)) for item in failures])
@@ -206,6 +206,13 @@ def build_pattern_cards(records: list[dict], session_id: str = "archive_import")
                 created_in_session=session_id,
                 evidence_status="observed_region" if len(component) > 1 else
                 "contrast_available" if pass_ids else "singleton",
+                observed_partner_roles=sorted({
+                    str(failures[index].get("collision_partner_role") or
+                        failures[index].get("collision_partner"))
+                    for index in component
+                    if failures[index].get("collision_partner_role") or
+                    failures[index].get("collision_partner")
+                }),
             ))
     # Retain cross-source spatial associations without merging any system labels.
     for card in cards:
@@ -223,10 +230,52 @@ class RBFDictionary:
     centers: list[dict]
     coverage_centers: list[dict]
     feature_dim: int = 2
+    context_id: str = "legacy_unspecified"
+    parameterization_version: str = "legacy_unspecified"
+    coordinate_names: tuple[str, ...] = ()
+    coordinate_bounds: tuple[tuple[float, float], ...] = ()
 
     @property
     def feature_ids(self) -> list[str]:
+        """Legacy RBF-only IDs; use ordered_feature_ids() for the complete schema."""
         return [item["center_id"] for item in self.centers + self.coverage_centers]
+
+    def ordered_feature_ids(self) -> list[str]:
+        coordinates = list(self.coordinate_names)
+        if len(coordinates) != self.feature_dim:
+            coordinates = [f"coordinate_{index}" for index in range(self.feature_dim)]
+        return ["bias", *(f"coord:{name}" for name in coordinates),
+                *(f"failure:{item['center_id']}" for item in self.centers),
+                *(f"coverage:{item['center_id']}" for item in self.coverage_centers)]
+
+    @property
+    def schema_identity(self) -> str:
+        return stable_hash({"template_id": self.template_id,
+                            "context_id": self.context_id,
+                            "parameterization_version": self.parameterization_version,
+                            "coordinate_names": list(self.coordinate_names),
+                            "coordinate_bounds": [list(bounds) for bounds in self.coordinate_bounds],
+                            "feature_dim": self.feature_dim})
+
+    def ordered_feature_specs(self) -> dict[str, dict]:
+        specs = {"bias": {"kind": "bias"}}
+        names = list(self.coordinate_names)
+        if len(names) != self.feature_dim:
+            names = [f"coordinate_{index}" for index in range(self.feature_dim)]
+        for index, name in enumerate(names):
+            feature_id = f"coord:{name}"
+            specs[feature_id] = {"kind": "coordinate", "name": name,
+                                 "bounds": (list(self.coordinate_bounds[index])
+                                            if index < len(self.coordinate_bounds) else None),
+                                 "schema_identity": self.schema_identity}
+        for prefix, items in (("failure", self.centers), ("coverage", self.coverage_centers)):
+            for item in items:
+                specs[f"{prefix}:{item['center_id']}"] = {
+                    "kind": prefix, "center": [float(value) for value in item["center"]],
+                    "bandwidth": float(item["bandwidth"]),
+                    "schema_identity": self.schema_identity,
+                }
+        return specs
 
     def features(self, scenario: dict) -> np.ndarray:
         z = np.asarray(active_values(_read_scenario(scenario)), dtype=float)
@@ -246,9 +295,11 @@ def build_dictionaries(records: list[dict], cards: list[PatternCard],
     dictionaries = {}
     templates = sorted({record.get("template_id", "unknown") for record in records + candidate_records})
     for template in templates:
-        candidate_contexts = {_read_scenario(item).get("context_id", "legacy_unspecified")
+        candidate_contexts = {(item.get("context_id") or
+                               _read_scenario(item).get("context_id", "legacy_unspecified"))
                               for item in candidate_records if item.get("template_id") == template}
-        source_contexts = {_read_scenario(item).get("context_id", "legacy_unspecified")
+        source_contexts = {(item.get("context_id") or
+                            _read_scenario(item).get("context_id", "legacy_unspecified"))
                            for item in records if item.get("template_id") == template}
         active_contexts = candidate_contexts or source_contexts
         if len(active_contexts) > 1:
@@ -294,7 +345,37 @@ def build_dictionaries(records: list[dict], cards: list[PatternCard],
             if any(item.get("template_id") == template for item in records) else 2)
         if any(len(point) != feature_dim for point in pool):
             raise ValueError(f"mixed ego initial parameterization in {template}")
-        dictionaries[template] = RBFDictionary(template, centers, coverage, feature_dim)
+        exemplar = next((item for item in candidate_records + records
+                         if item.get("template_id") == template), {})
+        exemplar_scenario = _read_scenario(exemplar)
+        coordinate_names = tuple(PARAMS.get(template, ()))
+        if exemplar_scenario.get("parameterization_version") == "research_v3_ego_initial":
+            coordinate_names += tuple(
+                name for name in ("ego_initial_speed_mps", "ego_initial_lane_id",
+                                  "ego_initial_lateral_offset_m", "ego_initial_heading_offset_rad",
+                                  "ego_initial_x_m")
+                if name in exemplar_scenario and name in exemplar_scenario.get("research_bounds", {}))
+        coordinate_names = coordinate_names[:feature_dim]
+        if len(coordinate_names) < feature_dim:
+            coordinate_names += tuple(f"coordinate_{index}" for index in
+                                      range(len(coordinate_names), feature_dim))
+        coordinate_bounds = tuple(tuple(float(value) for value in bound)
+                                  for bound in bounds_for(template)[:min(feature_dim, 2)])
+        if len(coordinate_bounds) < feature_dim:
+            declared = exemplar_scenario.get("research_bounds", {})
+            extra_bounds = tuple(tuple(float(value) for value in declared[name])
+                                 for name in coordinate_names[len(coordinate_bounds):]
+                                 if name in declared)
+            coordinate_bounds += extra_bounds
+        if len(coordinate_bounds) < feature_dim:
+            coordinate_bounds += tuple((0.0, 1.0) for _ in
+                                       range(feature_dim - len(coordinate_bounds)))
+        dictionaries[template] = RBFDictionary(
+            template, centers, coverage, feature_dim,
+            context_id=context_id,
+            parameterization_version=str(exemplar_scenario.get(
+                "parameterization_version", "legacy_unspecified")),
+            coordinate_names=coordinate_names, coordinate_bounds=coordinate_bounds)
     return dictionaries
 
 
@@ -316,6 +397,10 @@ def new_failure_card(record: dict, dictionaries: dict[str, RBFDictionary],
         boundary_edges=[], occurrence_by_build={record["build_id"]: {
             "observed": 1, "failures": 1, "passes": 0, "status": "new_region_observed"}},
         created_in_session=session_id, evidence_status="singleton",
+        observed_partner_roles=([str(record.get("collision_partner_role") or
+                                     record.get("collision_partner"))]
+                               if record.get("collision_partner_role") or
+                               record.get("collision_partner") else []),
     )
     if is_new_region and sum(item.get("session_added", False)
                              for item in dictionary.centers) < max_new:

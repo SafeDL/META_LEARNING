@@ -81,6 +81,7 @@ class PatternCard:
     created_in_session: str
     parent_pattern_ids: list[str] = field(default_factory=list)
     evidence_status: str = "observed_region"
+    observed_partner_roles: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         item = asdict(self)

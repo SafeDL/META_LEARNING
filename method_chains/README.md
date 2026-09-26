@@ -13,9 +13,10 @@ CoRe-Mine 历史实验各自保留，不与 FBRT 的数据或结果合并。正�
 | `core_mine/` | CoRe-Mine 历史实验；FBRT 复用其中 IDM 参考配置与受控修改实现 |
 
 FBRT 的职责、实验设置和运行命令见
-[`failure_memory_regression/README.md`](failure_memory_regression/README.md)；方法设计与实测结果分别见
-[`docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md`](../docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md) 和
-[`results/method_chains/failure_memory_regression/standard_aligned/core/report.md`](../results/method_chains/failure_memory_regression/standard_aligned/core/report.md)。
+[`failure_memory_regression/README.md`](failure_memory_regression/README.md)；当前代码修复方案与最新缓存回放分别见
+[`docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md`](../docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md) 和
+[`results/method_chains/failure_memory_regression/repair_20260926/repair_report.md`](../results/method_chains/failure_memory_regression/repair_20260926/repair_report.md)。
+标准对齐结果和 `memory_v2` 数据库保留作基准及回放输入，不与最新修复报告混作同一结果版本。
 
 依赖方向为：
 

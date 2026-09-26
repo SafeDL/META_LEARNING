@@ -8,13 +8,16 @@ from collections import defaultdict
 import numpy as np
 
 from method_chains.failure_memory_regression.bayes_model import (
-    build_source_prior, extend_prior, posterior_failure_probabilities, source_fits,
+    build_source_prior, posterior_failure_probabilities, source_fits,
     target_posterior,
 )
 from method_chains.failure_memory_regression.pattern_memory import (
     active_values, build_dictionaries, build_pattern_cards, new_failure_card,
 )
 from method_chains.failure_memory_regression.schema_v2 import stable_hash
+from method_chains.failure_memory_regression.replay_utils import (
+    is_parent_pass, is_usable_outcome, task_reward,
+)
 
 
 METHODS = ("Random", "HistoryRank-UCB-v2", "FailureDistance-v2",
@@ -49,8 +52,10 @@ def _failure(row: dict) -> bool:
 
 def _parent_pass(item: dict) -> bool:
     if "parent_pass" in item:
-        return bool(item["parent_pass"])
-    return item.get("completed") is True and item.get("ego_collision") is False
+        if not isinstance(item["parent_pass"], bool):
+            raise ValueError("regression candidates require a normalized parent_pass boolean")
+        return item["parent_pass"]
+    return is_parent_pass(item)
 
 
 def _art_choice(available: list[dict], selected: list[dict], rng: np.random.Generator) -> dict:
@@ -117,6 +122,11 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
                     initial_cards=None) -> tuple[list[dict], list[dict], list[dict]]:
     if method not in METHODS:
         raise ValueError(f"unknown v2 method {method}")
+    if mode not in {"regression", "cross_agent"}:
+        raise ValueError(f"unsupported task mode: {mode}")
+    if mode == "regression" and any(not isinstance(row.get("parent_pass"), bool)
+                                     for row in candidates):
+        raise ValueError("regression tasks require an explicit parent-pass label")
     rng = np.random.default_rng(random_seed)
     candidate_map = {row["scenario_id"]: row for row in candidates}
     available_ids = set(candidate_map)
@@ -125,30 +135,37 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
     queries: list[dict] = []
     observations: list[dict] = []
     updates: list[dict] = []
+    fit_counter = {"model_fit_count": 0}
     if method == "FBRT-NoMemory":
         cards = []
     else:
         cards = list(initial_cards) if initial_cards is not None else build_pattern_cards(history)
     dictionaries = build_dictionaries(history if method != "FBRT-NoMemory" else [], cards,
                                        candidates, seed=7319)
-    fits_by_template = {template: source_fits(history if method != "FBRT-NoMemory" else [], dictionary)
+    fits_by_template = {template: source_fits(
+        history if method != "FBRT-NoMemory" else [], dictionary, fit_counter=fit_counter)
                         for template, dictionary in dictionaries.items()}
     families = family_by_build or {row["build_id"]: row.get("family", row["build_id"])
                                    for row in history}
     priors = {}
     source_ids = {}
+    source_prior_ids = {}
+    source_feature_specs = {}
+    source_schema_ids = {}
     for template, dictionary in dictionaries.items():
         fits = fits_by_template[template]
+        feature_ids = tuple(dictionary.ordered_feature_ids())
+        source_prior_ids[template] = feature_ids
+        source_feature_specs[template] = dictionary.ordered_feature_specs()
+        source_schema_ids[template] = dictionary.schema_identity
         if method == "FBRT-NoMemory":
-            dim = 1 + dictionary.feature_dim + len(dictionary.centers) + len(dictionary.coverage_centers)
+            dim = len(feature_ids)
             priors[template] = (np.zeros(dim), np.full(dim, 4.0))
             source_ids[template] = []
         else:
             mean, variance, used = build_source_prior(
                 fits, families, parent_build_id=parent_build_id,
-                regression=(mode == "regression"))
-            mean, variance = extend_prior(mean, variance,
-                1 + dictionary.feature_dim + len(dictionary.centers) + len(dictionary.coverage_centers))
+                regression=(mode == "regression"), feature_ids=feature_ids)
             priors[template] = (mean, variance)
             source_ids[template] = used
 
@@ -221,7 +238,12 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
                 for template_name in {item["template_id"] for item in pool}:
                     dictionary = dictionaries[template_name]
                     prior_mean, prior_variance = priors[template_name]
-                    fit = target_posterior(dictionary, observations, prior_mean, prior_variance)
+                    fit = target_posterior(
+                        dictionary, observations, source_prior_ids[template_name],
+                        prior_mean, prior_variance,
+                        source_feature_specs=source_feature_specs[template_name],
+                        source_schema_identity=source_schema_ids[template_name],
+                        fit_counter=fit_counter)
                     subset_indices = [i for i, item in enumerate(pool)
                                       if item["template_id"] == template_name]
                     subset = [pool[i] for i in subset_indices]
@@ -243,7 +265,9 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
         outcome = oracle.query(scene["scenario_id"])
         parent = parent_by_id.get(scene["scenario_id"], {})
         collision = outcome.get("ego_collision") is True and not outcome.get("inconclusive", False)
-        regression = bool(_parent_pass(parent) and collision)
+        regression = (bool(_parent_pass(parent) and collision) if mode == "regression" else None)
+        reward = task_reward(mode, outcome,
+                             parent.get("parent_pass") if mode == "regression" else None)
         execution_id = outcome.get("execution_id") or "target-" + stable_hash({
             "build_id": target_build_id, "scenario_id": scene["scenario_id"],
             "seed": outcome.get("simulator_seed", outcome.get("seed")),
@@ -258,8 +282,15 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
             "inconclusive": bool(outcome.get("inconclusive", False)),
             "min_ttc": outcome.get("min_ttc"), "min_clearance": outcome.get("min_clearance"),
             "visibility": "historical", "episode_cost": int(outcome.get("episode_cost", 0)),
+            "collision_partner_role": (outcome.get("collision_partner_role") or
+                                        outcome.get("collision_partner")),
+            "collision_time_s": outcome.get("collision_time_s"),
+            "public_signature": outcome.get("public_signature"),
+            "event_times": outcome.get("event_times"),
+            "execution_contract_version": outcome.get("execution_contract_version"),
+            "trajectory_path": outcome.get("trajectory_path"),
         }
-        if not observed["inconclusive"] and observed["ego_collision"] in (True, False):
+        if is_usable_outcome(observed):
             observations.append(observed)
         created_card_id = None
         feature_added = False
@@ -283,15 +314,15 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
                             "nearby_observed_pass_ids": card.pass_contrast_record_ids})
         if method == "HistoryRank-UCB-v2":
             ucb_count[scene["template_id"]] += 1
-            ucb_reward[scene["template_id"]] += int(regression)
+            ucb_reward[scene["template_id"]] += reward
         if method in ("FBRT-Memory", "FBRT-NoMemory") and not outcome.get("inconclusive", False):
             updates.append({"rank": rank, "event": "posterior_refit",
                             "template_id": scene["template_id"],
                             "observations_in_template": sum(
                                 row["template_id"] == scene["template_id"] for row in observations),
-                            "feature_count": 1 + dictionaries[scene["template_id"]].feature_dim +
-                            len(dictionaries[scene["template_id"]].centers) +
-                            len(dictionaries[scene["template_id"]].coverage_centers),
+                            "feature_count": len(dictionaries[scene["template_id"]].ordered_feature_ids()),
+                            "feature_ids": dictionaries[scene["template_id"]].ordered_feature_ids(),
+                            "schema_identity": dictionaries[scene["template_id"]].schema_identity,
                             "contributing_pattern_ids": contributing if method == "FBRT-Memory" and
                             rank not in (10, 20) else [],
                             "source_build_ids": source_ids[scene["template_id"]]})
@@ -301,16 +332,23 @@ def run_selector_v2(method: str, candidates: list[dict], history: list[dict],
             "selected_build_id": target_build_id, "session_id": session_id,
             "mode": mode, "ego_collision": outcome.get("ego_collision"),
             "inconclusive": bool(outcome.get("inconclusive", False)),
-            "regression": regression, "execution_id": execution_id,
+            "valid_collision": bool(collision), "regression": regression,
+            "selection_reward": reward, "execution_id": execution_id,
             "episode_cost": observed["episode_cost"],
             "contributing_pattern_ids": (contributing if method == "FBRT-Memory" and
                                           rank not in (10, 20) else []),
             "new_pattern_id": created_card_id or "",
             "target_observations_before_query": len(observations) -
-            int(not observed["inconclusive"] and observed["ego_collision"] in (True, False)),
+            int(is_usable_outcome(observed)),
             "history_source_count": len(source_ids.get(scene["template_id"], [])),
+            "ucb_count_after": ucb_count[scene["template_id"]]
+            if method == "HistoryRank-UCB-v2" else None,
+            "ucb_reward_after": ucb_reward[scene["template_id"]]
+            if method == "HistoryRank-UCB-v2" else None,
         }
         selected.append(scene)
         queries.append(query)
         available_ids.remove(scene["scenario_id"])
+    updates.append({"event": "model_fit_ledger",
+                    "model_fit_count": int(fit_counter["model_fit_count"])})
     return queries, observations, cards, updates

@@ -60,11 +60,13 @@ Highway-env 驾驶算法的接入、筛选和风险差异审计位于
 独立确认的功能后验搜索见
 [`method_chains/function_posterior_search/README.md`](method_chains/function_posterior_search/README.md)。
 
-当前 FBRT 的实施方案、实际运行入口和正式结果见
-[`docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md`](docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md)
-及 [`正式结果报告`](results/method_chains/failure_memory_regression/standard_aligned/core/report.md)。
-离线重放选择实验可运行 `conda run -n metadrive python -m method_chains.failure_memory_regression.experiment --replay-measured-bank`；
-完整报告和图表入口为 `conda run -n metadrive python -m method_chains.failure_memory_regression.report --reuse-replay`。
+当前 FBRT 的代码修复与零新增仿真回放方案见
+[`docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md`](docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md)，最近一次回放结果见
+[`修复回放报告`](results/method_chains/failure_memory_regression/repair_20260926/repair_report.md)。
+此前的标准对齐实验报告仍保留为基准结果：
+[`standard_aligned/core/report.md`](results/method_chains/failure_memory_regression/standard_aligned/core/report.md)。
+重放现有缓存且不新增仿真的命令为
+`conda run -n metadrive python -m method_chains.failure_memory_regression.repair_replay --offline-only --output results/method_chains/failure_memory_regression/repair_20260926`。
 方法包的文件职责、实验范围和入口见
 [`method_chains/failure_memory_regression/README.md`](method_chains/failure_memory_regression/README.md)。
 

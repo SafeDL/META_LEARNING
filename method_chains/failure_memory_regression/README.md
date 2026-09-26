@@ -2,6 +2,9 @@
 
 这是当前方法主链：用旧版本的失败场景及其附近的通过场景估计局部失效边界，再从共同候选集中优先挑选边界附近的场景，测试新版本是否出现回归。每次查询只揭示一个已测目标版本的结果。
 
+截至 2026-09-26，最近一次代码修复和离线缓存回放结果位于
+[`repair_20260926/repair_report.md`](../../results/method_chains/failure_memory_regression/repair_20260926/repair_report.md)。该次回放新增物理仿真为 0，结果为 mixed；旧缓存仅作为输入和历史对照。
+
 ## 实验范围
 
 - 仿真器：`highway-env`；参考 SUT 是 IDM，目标是三个受控 IDM 修改版本。
@@ -16,7 +19,7 @@
 
 `boundary_memory.py` 从参考执行构建失败—通过局部配对；`selectors.py` 实现预算内的场景选择；`experiment.py` 运行或重放选择实验；`report.py` 校验结果并生成图表和回放。场景与执行器位于 `highway_env_benchmark/envs/fbrt_scenarios.py`、`fbrt_env.py` 和 `fbrt_scripted_vehicle.py`。IDM 参考配置和局部修改复用自 [`../core_mine/README.md`](../core_mine/README.md) 所列实现。
 
-正式结果位于 [`results/method_chains/failure_memory_regression/standard_aligned/core/`](../../results/method_chains/failure_memory_regression/standard_aligned/core/)，方法设计与详细实验设置见 [`docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md`](../../docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md)。
+标准对齐基准结果位于 [`standard_aligned/core/`](../../results/method_chains/failure_memory_regression/standard_aligned/core/)；最新修复方案见 [`docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md`](../../docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md)。
 
 离线重放已保存的实测库（不新增仿真）：
 

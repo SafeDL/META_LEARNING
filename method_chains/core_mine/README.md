@@ -9,4 +9,4 @@ FBRT 仍复用本目录中的 IDM 参考配置和受控故障实现：
 
 这两份实现被当前主链直接导入，不能作为废弃代码删除。其余 CoRe-Mine 脚本与结果属于独立的历史实验，不参与 FBRT 的正式结果生成。
 
-CoRe-Mine 的旧开发协议已从 `docs/` 清理；当前 FBRT 的入口和结果说明见根目录 `README.md` 与 `docs/FBRT_STANDARD_ALIGNED_CODEX_PLAN.md`。
+CoRe-Mine 的旧开发协议已从 `docs/` 清理；当前 FBRT 的入口和结果说明见根目录 `README.md` 与 `docs/FBRT_CODE_FIXES_ZERO_SIM_CODEX_PLAN.md`。

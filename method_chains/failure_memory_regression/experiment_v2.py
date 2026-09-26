@@ -28,6 +28,9 @@ from method_chains.failure_memory_regression.catalogue_v2 import (
 from method_chains.failure_memory_regression.pattern_memory import (
     build_dictionaries, build_pattern_cards, cards_jsonl,
 )
+from method_chains.failure_memory_regression.replay_utils import (
+    contextual_history, is_parent_pass, is_usable_outcome,
+)
 from method_chains.failure_memory_regression.schema_v2 import Session, stable_hash
 from method_chains.failure_memory_regression.selector_v2 import (
     CHECKPOINTS, METHODS, TargetOracle, run_selector_v2,
@@ -100,18 +103,7 @@ def _rows_for_family(records: list[dict]) -> list[dict]:
 
 
 def _contextual_history(history: list[dict], candidates: list[dict]) -> list[dict]:
-    contexts: dict[str, set[str]] = defaultdict(set)
-    for item in candidates:
-        scenario = item.get("scenario", {})
-        context = item.get("context_id") or scenario.get("context_id", "legacy_unspecified")
-        contexts[item["template_id"]].add(context)
-    if any(len(values) > 1 for values in contexts.values()):
-        raise ValueError(f"a selector task contains multiple contexts: {contexts}")
-    allowed = {template: next(iter(values)) for template, values in contexts.items()}
-    return [row for row in history if row.get("visibility") != "evaluator_only" and
-            row.get("template_id") in allowed and
-            row.get("context_id", row.get("scenario", {}).get("context_id", "legacy_unspecified"))
-            == allowed[row["template_id"]]]
+    return contextual_history(history, candidates)
 
 
 def _cross_agent_seed_records(records: list[dict], bank_rows: list[dict]) -> list[dict]:
@@ -239,6 +231,7 @@ def import_stage() -> dict:
 def _save_source_models(records: list[dict], cards) -> None:
     params = {}
     means, covariances, names = [], [], []
+    feature_schemas = []
     contexts = sorted({(row["template_id"], row.get("context_id", "legacy_unspecified"))
                        for row in records})
     for template, context in contexts:
@@ -256,6 +249,11 @@ def _save_source_models(records: list[dict], cards) -> None:
             names.append(name)
             means.append(fit.mean)
             covariances.append(np.diag(fit.covariance))
+            feature_schemas.append(json.dumps({
+                "schema_identity": dictionary.schema_identity,
+                "ordered_feature_ids": dictionary.ordered_feature_ids(),
+                "feature_specs": dictionary.ordered_feature_specs()},
+                ensure_ascii=False, sort_keys=True))
     params["source_names"] = np.asarray(names, dtype="U256")
     max_dim = max((len(item) for item in means), default=0)
     mean_matrix = np.full((len(means), max_dim), np.nan, dtype=float)
@@ -268,6 +266,7 @@ def _save_source_models(records: list[dict], cards) -> None:
     params["source_means"] = mean_matrix
     params["source_variance_diagonals"] = covariance_matrix
     params["source_dimensions"] = np.asarray(dimensions, dtype=int)
+    params["source_feature_schemas"] = np.asarray(feature_schemas, dtype="U32768")
     path = ROOT / "source_models.npz"
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **params)
@@ -463,13 +462,14 @@ def _candidate_records_for_legacy() -> tuple[list[dict], dict[str, dict]]:
     candidates = []
     for row in _read_csv(CORE / "candidate_pool.csv"):
         parent = parent_by_id[row["scenario_id"]]
+        if not is_parent_pass(parent):
+            continue
         scenario = dict(parent["scenario"])
         scenario["context_id"] = parent["context_id"]
         candidates.append({"scenario_id": row["scenario_id"],
                            "template_id": row["template_id"], "scenario": scenario,
                            "context_id": parent["context_id"],
-                           "parent_pass": bool(parent["completed"] and
-                                               not parent["ego_collision"]),
+                           "parent_pass": is_parent_pass(parent),
                            "completed": parent["completed"],
                            "ego_collision": parent["ego_collision"],
                            "min_ttc": parent["min_ttc"],
@@ -615,8 +615,13 @@ def cache_stage() -> dict:
     for seed in reference_ids:
         candidates = [item for item in candidates_all
                       if int(item["scenario_id"].split(":", 1)[0]) == seed]
-        parent_history = [row for row in root_records if row["build_id"] == "idm_ref" and
-                          row.get("simulator_seed") == seed and row.get("completed") is True]
+        parent_history = [row for row in root_records
+                          if row.get("build_id") == "idm_ref"
+                          and row.get("simulator_seed") == seed
+                          and (row.get("visibility") == "historical" or
+                               (row.get("visibility") is None and
+                                row.get("source_file") == "reference_archive.csv"))
+                          and is_usable_outcome(row)]
         task_targets = [build for build in ("merge_blind06", "merge_brake2", "slow_front_brake2")
                         if any(int(sid.split(":", 1)[0]) == seed for sid in banks.get(build, {}))]
         for target in task_targets:
