@@ -1,5 +1,5 @@
-from highway_env_benchmark.envs.cutin_env import CutInScenario
-from highway_env_benchmark.envs.external_cutin import ExternalCutInEnv
+from highway_sim_env.envs.cutin_env import CutInScenario
+from highway_sim_env.envs.external_cutin import ExternalCutInEnv
 from replications.highway_sut_selection.runner import common_scenarios
 
 

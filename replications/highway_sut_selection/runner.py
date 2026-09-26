@@ -15,15 +15,15 @@ from typing import Iterable
 import numpy as np
 from scipy.stats import spearmanr
 
-from highway_env_benchmark.data.generate_anchor_bank import generate_anchor_bank
-from highway_env_benchmark.envs.cutin_env import CutInScenario
-from highway_env_benchmark.envs.external_cutin import ExternalCutInEnv
+from highway_sim_env.data.generate_anchor_bank import generate_anchor_bank
+from highway_sim_env.envs.cutin_env import CutInScenario
+from highway_sim_env.envs.external_cutin import ExternalCutInEnv
 from sut_algorithms.highway_env.base import Policy
-from sut_algorithms.highway_env.ppo_ece import PPOPolicy
+from sut_algorithms.highway_env.ppo_ece import PPO_CHECKPOINT, PPOPolicy
 from sut_algorithms.highway_env.registry import RETAINED_SUTS, policy_factory
 
 ROOT = Path("results/highway_replications/sut_selection")
-ASSETS = Path("external_assets/highway_sut")
+ASSETS = PPO_CHECKPOINT.parents[1]
 DEFAULT_SUTS = RETAINED_SUTS
 COMMON_MODES = (
     "fast_intrusion",

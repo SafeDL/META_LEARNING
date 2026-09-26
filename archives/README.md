@@ -1,20 +1,17 @@
-# Archived baselines
+# 历史基线
 
-This directory contains frozen comparison implementations that are not part of
-the active method. Current simulator code stays in `metadrive_benchmark/` and
-`highway_env_benchmark/`; current composed methods stay in `method_chains/`.
+本目录保存已冻结的历史对照实现，不承载当前 FBRT 方法代码或正式结果。当前仿真底座分别位于 `metadrive_sim_env/` 和 `highway_sim_env/`，活动方法位于 `methods/`。
 
-- `pearl_learning/`: merge-only PEARL baseline and its contract tests.
-- `sac_scenario_mining/`: legacy SAC scenario-mining baseline.
+| 目录 | 内容 |
+| --- | --- |
+| `pearl_learning/` | 仅用于合流任务的 PEARL 历史基线、重建脚本和契约测试 |
+| `sac_scenario_mining/` | 早期 SAC 场景挖掘基线 |
+| [`experimental_results/`](experimental_results/README.md) | 从正式结果区移出的中间实验和无效尝试，原始文件可恢复 |
 
-Do not add new method code to this directory. Run archived PEARL tests from the
-repository root with:
+在仓库根目录验证 PEARL 归档代码：
 
 ```powershell
 conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
 ```
 
-Archived source code is kept separate from results. The current `results/` tree
-does not contain a `pearl_learning/` result archive; the PEARL commands above
-test the archived package. Its reconstruction commands do not refer to
-retained formal outputs.
+归档结果与基线源码分别放在各自子目录；当前 `results/` 中没有 PEARL 正式结果目录。

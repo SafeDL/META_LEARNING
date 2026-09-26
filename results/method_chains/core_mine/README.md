@@ -14,8 +14,9 @@ updated where the old paths included stage-version suffixes.
 - [Fresh-seed comparison with static and UCB1 allocators](studies/mode_label_fresh_confirmation/research_decision.md)
 - [Retrospective replay across paired IDM/FVDM controller revisions](studies/mode_label_revision_offline/research_decision.md)
 - [Corrected evidence-gate development](studies/evidence_gate_development/research_decision.md)
-- [Invalidated first evidence-gate run, retained for provenance](studies/evidence_gate_invalidated/research_decision.md)
 - [Prior-art scope](studies/prior_art/scope.md)
+
+The invalid first evidence-gate attempt was replaced by the corrected development run; its original files are stored under `archives/experimental_results/` outside the current result root.
 
 The fresh-seed result supports a simulator-specific gain over static
 rankings, but it does not show a reliable advantage over UCB1. The result

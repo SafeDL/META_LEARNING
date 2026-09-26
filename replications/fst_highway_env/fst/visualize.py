@@ -15,8 +15,8 @@ import numpy as np
 import yaml
 from PIL import Image, ImageDraw
 
-from highway_env_benchmark.data.response_bank import ResponseBank
-from highway_env_benchmark.envs.cutin_env import CutInEnv, CutInScenario
+from highway_sim_env.data.response_bank import ResponseBank
+from highway_sim_env.envs.cutin_env import CutInEnv, CutInScenario
 from sut_algorithms.highway_env.idm_profiles import get_profile
 
 

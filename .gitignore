@@ -1,32 +1,19 @@
+# Local interpreter, test and editor caches
 __pycache__/
 .pytest_cache/
-task_cache/
-runs/
-checkpoints/
-.idea/
-Panda3D-1.10/
-external_assets/
 *.pyc
 *.pyo
 *.pyd
+.idea/
 .DS_Store
+
+# Local environments and credentials
 .env
+.env.*
+!.env.example
 .venv/
 venv/
 
-# Archive checkpoints (SAC policy zips etc.) — large and regenerable by
-# re-running the baselines.
-*.zip
-*.log
-*.pt
-*.pth
-*.pkl
-
-# Everything else is deliberately tracked — experiment reports, JSON/CSV
-# metrics, configurations, logs, figures, model checkpoints, pickles,
-# and other binary assets — so results remain reproducible in Git.
-#
-# Git has no size-based ignore rules. GitHub rejects files >= 100 MB on
-# push, so if an artifact ever grows past that limit, move it to Git LFS
-# or re-add a pattern for it here:
-#   git lfs track "results/path/to/large_file.pt"
+# Keep experiment results, logs, archives and model weights eligible for Git.
+# Gitignore cannot filter by file size; add a specific path here only when an
+# individual artifact is too large to store in the repository.

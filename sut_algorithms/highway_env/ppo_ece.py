@@ -5,8 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+PPO_CHECKPOINT = Path("sut_algorithms/highway_env/checkpoints/ppo_ece/vd_1_5_trial_1.zip")
+
 if TYPE_CHECKING:
-    from highway_env_benchmark.envs.external_cutin import ExternalCutInEnv
+    from highway_sim_env.envs.external_cutin import ExternalCutInEnv
 
 
 class PPOPolicy:
@@ -31,4 +33,3 @@ class PPOPolicy:
         observation = env.observation_type.observe()
         action, _ = self.model.predict(observation, deterministic=True)
         return int(action)
-

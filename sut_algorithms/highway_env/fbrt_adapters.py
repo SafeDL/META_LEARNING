@@ -7,10 +7,10 @@ from pathlib import Path
 
 from highway_env.vehicle.controller import MDPVehicle
 
-from method_chains.failure_memory_regression.schema_v2 import BuildSpec
+from methods.failure_memory_regression.schema import BuildSpec
 from sut_algorithms.highway_env.idm_profiles import SUTProfile, create_profiled_vehicle
 from sut_algorithms.highway_env.mcts_cv import MCTSCVPolicy
-from sut_algorithms.highway_env.ppo_ece import PPOPolicy
+from sut_algorithms.highway_env.ppo_ece import PPO_CHECKPOINT, PPOPolicy
 from sut_algorithms.highway_env.value_iteration import ValueIterationPolicy
 from sut_algorithms.highway_env.regression_builds import make_native_vehicle
 
@@ -33,13 +33,15 @@ class PolicyAdapter:
                                                           "controller": "IDM"}))
             fault = (self.spec.mutation or {}).get("legacy_fault")
             if fault:
-                from method_chains.core_mine.local_fault_idm import LocalFault, LocalFaultIDMVehicle
+                from methods.core_mine.local_fault_idm import LocalFault, LocalFaultIDMVehicle
                 return LocalFaultIDMVehicle(env.road, position, profile=profile,
                                             fault=LocalFault(fault), **common)
             return create_profiled_vehicle(env.road, position, profile=profile, **common)
         if self.spec.adapter_kind == "native_vehicle":
             return make_native_vehicle(self.spec.build_id, env.road, position,
-                                       target_speed=target_speed, **common)
+                                       target_speed=target_speed,
+                                       rear_state_age_s=float((self.spec.mutation or {}).get(
+                                           "rear_state_age_s", 0.0)), **common)
         if self.spec.adapter_kind == "external_meta_policy":
             return MDPVehicle(env.road, position, target_speeds=env.action_type.target_speeds,
                               target_speed=initial_speed, **common)
@@ -55,7 +57,7 @@ class PolicyAdapter:
                 self.policy = MCTSCVPolicy()
                 self.policy.reset()
             else:
-                checkpoint = Path(self.spec.profile.get("checkpoint_path", "assets/ppo_ece/vd_1_5_trial_1.zip"))
+                checkpoint = Path(self.spec.profile.get("checkpoint_path", str(PPO_CHECKPOINT)))
                 self.policy = PPOPolicy(checkpoint)
         obs = env.observation_type.observe() if observation is None else observation
         if self.spec.family in {"vi_ttc", "mcts_cv"}:

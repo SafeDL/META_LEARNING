@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from highway_env_benchmark.data.generate_anchor_bank import generate_anchor_bank
-from highway_env_benchmark.data.response_bank import ResponseBank, build_response_bank
+from highway_sim_env.data.generate_anchor_bank import generate_anchor_bank
+from highway_sim_env.data.response_bank import ResponseBank, build_response_bank
 from sut_algorithms.highway_env.idm_profiles import get_profile
 
 from .dense_protocol import _scenario_pool, _scenario_probabilities

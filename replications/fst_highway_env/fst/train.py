@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import yaml
 
-from highway_env_benchmark.data.response_bank import ResponseBank
+from highway_sim_env.data.response_bank import ResponseBank
 
 from .reference_distribution import (
     scenario_ids,
@@ -234,9 +234,9 @@ def train(config_path: Path, bank_path: Path | None, output: Path) -> dict[str, 
         "bank_sha256": sha256_file(resolved_bank),
         "candidate_hash": sha256_json(candidate_records),
         "source_profile_hash": sha256_json(train_names + dev_names),
-        "env_hash": sha256_file(Path("highway_env_benchmark/envs/cutin_env.py")),
-        "oracle_hash": sha256_file(Path("highway_env_benchmark/envs/cutin_env.py")),
-        "response_bank_code_hash": sha256_file(Path("highway_env_benchmark/data/response_bank.py")),
+        "env_hash": sha256_file(Path("highway_sim_env/envs/cutin_env.py")),
+        "oracle_hash": sha256_file(Path("highway_sim_env/envs/cutin_env.py")),
+        "response_bank_code_hash": sha256_file(Path("highway_sim_env/data/response_bank.py")),
         "sut_profile_code_hash": sha256_file(Path("sut_algorithms/highway_env/idm_profiles.py")),
         "upstream_git_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True

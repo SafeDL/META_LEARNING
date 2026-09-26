@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from highway_env_benchmark.envs.external_cutin import ExternalCutInEnv
+    from highway_sim_env.envs.external_cutin import ExternalCutInEnv
 
 
 @dataclass

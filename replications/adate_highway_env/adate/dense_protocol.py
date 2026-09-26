@@ -18,7 +18,7 @@ from typing import Callable
 
 import numpy as np
 
-from highway_env_benchmark.envs.cutin_env import CutInScenario
+from highway_sim_env.envs.cutin_env import CutInScenario
 from sut_algorithms.highway_env.idm_profiles import get_profile
 
 from .adaptive_policy import select_gap_action

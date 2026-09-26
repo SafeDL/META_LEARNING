@@ -3,7 +3,7 @@
 This package adapts AdaTE to the repository's real highway-env harness. It
 implements response-mixture adaptation, DenseRL source-model transfer,
 target-hidden updates, simplex QP, importance sampling, and diagnostic replay.
-The simulator and SUT definitions come from `highway_env_benchmark`; no environment
+The simulator and SUT definitions come from `highway_sim_env`; no environment
 or controller copy is maintained here.
 
 Canonical artifacts are under `results/highway_replications/adate/`:

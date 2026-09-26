@@ -17,7 +17,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from highway_env_benchmark.data.response_bank import ResponseBank
+from highway_sim_env.data.response_bank import ResponseBank
 from replications.detour_highway_env.detour.features import encode_scenarios
 from replications.detour_highway_env.detour.retrieve import Retriever
 from replications.detour_highway_env.detour.selector import prioritize, select

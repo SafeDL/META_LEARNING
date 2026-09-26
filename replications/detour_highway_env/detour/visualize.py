@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image, ImageDraw
 
-from highway_env_benchmark.envs.cutin_env import CutInEnv, CutInScenario
+from highway_sim_env.envs.cutin_env import CutInEnv, CutInScenario
 from replications.detour_highway_env.detour.features import RoadCurvatureFeatures
 from replications.detour_highway_env.detour.contracts import ScenarioSpec
 from sut_algorithms.highway_env.idm_profiles import get_profile

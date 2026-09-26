@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from highway_env_benchmark.envs.cutin_env import CutInEnv, CutInScenario
+from highway_sim_env.envs.cutin_env import CutInEnv, CutInScenario
 from sut_algorithms.highway_env.idm_profiles import SUTProfile
 
 from .corpus import ScenarioSpec

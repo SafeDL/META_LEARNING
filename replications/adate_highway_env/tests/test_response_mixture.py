@@ -5,7 +5,7 @@ import json
 
 import numpy as np
 
-from highway_env_benchmark.data.response_bank import ResponseBank
+from highway_sim_env.data.response_bank import ResponseBank
 from replications.adate_highway_env.adate.experiment import run_mixture
 from replications.adate_highway_env.adate.mixture import simplex_least_squares
 from replications.adate_highway_env.adate.mixture_selector import MixtureSelector

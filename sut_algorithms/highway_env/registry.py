@@ -8,7 +8,7 @@ from pathlib import Path
 from .base import Policy
 from .idm_mobil import IDMMobilPolicy
 from .mcts_cv import MCTSCVPolicy
-from .ppo_ece import PPOPolicy
+from .ppo_ece import PPO_CHECKPOINT, PPOPolicy
 from .value_iteration import ValueIterationPolicy
 
 RETAINED_SUTS = ("idm_mobil", "vi_ttc", "mcts_cv", "ppo_ece")
@@ -27,13 +27,13 @@ def policy_factory(sut: str, assets_root: Path) -> Policy:
     raise KeyError(f"Unsupported SUT: {sut}")
 
 
-def build_spec_factory(build_id: str, assets_root: Path = Path("assets")):
+def build_spec_factory(build_id: str):
     """Resolve the unified FBRT build description without changing legacy factories."""
-    from method_chains.failure_memory_regression.schema_v2 import BuildSpec
+    from methods.failure_memory_regression.schema import BuildSpec
     from sut_algorithms.highway_env.idm_profiles import SUTProfile
 
     if build_id == "idm_ref":
-        from method_chains.core_mine.idm_revision_pilot import REFERENCE
+        from methods.core_mine.idm_revision_pilot import REFERENCE
         reference = REFERENCE if REFERENCE.name == build_id else SUTProfile("idm_ref", "IDM")
         profile = reference.__dict__.copy()
         return BuildSpec(build_id, "profiled_idm", None, "legacy_profile",
@@ -42,16 +42,26 @@ def build_spec_factory(build_id: str, assets_root: Path = Path("assets")):
         return BuildSpec(build_id, "profiled_idm_faults", "idm_ref", "legacy_profile",
                          "Profiled-IDM", 20.0, profile=SUTProfile("legacy", "IDM").__dict__.copy(),
                          mutation={"legacy_fault": build_id})
-    if build_id in {"mobil_ref_v2", "mobil_rear_guard_off_v2"}:
-        mutation = None if build_id == "mobil_ref_v2" else {
-            "rear_guard": "off",
-            "guard_condition": "new_following_pred_a < -LANE_CHANGE_MAX_BRAKING_IMPOSED",
-        }
+    if build_id in {"mobil_ref_v2", "mobil_rear_guard_off_v2",
+                    "mobil_rear_state_age", "mobil_rear_state_age080"}:
+        if build_id == "mobil_ref_v2":
+            mutation = None
+        elif build_id == "mobil_rear_guard_off_v2":
+            mutation = {
+                "rear_guard": "off",
+                "guard_condition": "new_following_pred_a < -LANE_CHANGE_MAX_BRAKING_IMPOSED",
+            }
+        else:
+            mutation = {
+                "rear_state_age_s": {"mobil_rear_state_age": 0.30,
+                                     "mobil_rear_state_age080": 0.80}[build_id],
+                "scope": "candidate_lane_rear_predicted_braking_only",
+            }
         return BuildSpec(build_id, "native_idm_mobil", None if not mutation else "mobil_ref_v2",
                          "native_vehicle", "highway-env IDM+MOBIL", 20.0,
                          mutation=mutation)
     if build_id in {"ppo_ref_v2", "ppo_obs_age020_v2"}:
-        checkpoint = assets_root / "ppo_ece" / "vd_1_5_trial_1.zip"
+        checkpoint = PPO_CHECKPOINT
         digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest() if checkpoint.is_file() else None
         mutation = None if build_id == "ppo_ref_v2" else {"observation_delay_s": 0.20}
         return BuildSpec(build_id, "ppo_ece", None if not mutation else "ppo_ref_v2",

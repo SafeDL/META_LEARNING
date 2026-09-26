@@ -23,7 +23,7 @@ def test_method_packages_reuse_the_project_highway_environment() -> None:
         source = "\n".join(
             path.read_text(encoding="utf-8") for path in package.rglob("*.py")
         )
-        assert "highway_env_benchmark" in source
+        assert "highway_sim_env" in source
         assert not (package / "results").exists()
         assert not list(package.rglob("__pycache__"))
 
@@ -55,7 +55,7 @@ def test_sut_algorithms_have_one_root_outside_simulator_packages() -> None:
         "highway_env",
         "metadrive",
     }
-    assert not (ROOT / "highway_env_benchmark" / "sut").exists()
-    assert not (ROOT / "metadrive_benchmark" / "sut").exists()
+    assert not (ROOT / "highway_sim_env" / "sut").exists()
+    assert not (ROOT / "metadrive_sim_env" / "sut").exists()
     assert (SUT_ALGORITHMS / "highway_env" / "registry.py").is_file()
     assert (SUT_ALGORITHMS / "metadrive" / "registry.py").is_file()

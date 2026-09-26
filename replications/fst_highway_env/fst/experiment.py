@@ -13,7 +13,7 @@ import numpy as np
 import torch
 import yaml
 
-from highway_env_benchmark.data.response_bank import ResponseBank
+from highway_sim_env.data.response_bank import ResponseBank
 
 from .fluctuation_audit import signed_fluctuation
 from .fusion import inverse_distance_attention, weights_from_attention

@@ -1,6 +1,6 @@
 """A genuinely multi-step highway-env adaptation environment for AdaTE A1.
 
-It deliberately leaves :mod:`highway_env_benchmark.envs.cutin_env` untouched.  The
+It deliberately leaves :mod:`highway_sim_env.envs.cutin_env` untouched.  The
 background vehicle receives one discrete residual-acceleration action per
 policy step, and the trace records the *stored* low-level acceleration after
 the scheduled controller and residual have been combined.
@@ -14,7 +14,7 @@ import numpy as np
 
 from highway_env.vehicle.kinematics import Vehicle
 
-from highway_env_benchmark.envs.cutin_env import CutInEnv, CutInScenario, ScheduledCutInVehicle
+from highway_sim_env.envs.cutin_env import CutInEnv, CutInScenario, ScheduledCutInVehicle
 from sut_algorithms.highway_env.idm_profiles import SUTProfile, create_profiled_vehicle
 
 MODE_CODES = {

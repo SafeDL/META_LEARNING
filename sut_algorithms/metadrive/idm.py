@@ -7,7 +7,7 @@ from typing import Any, Mapping
 import numpy as np
 from metadrive.policy.idm_policy import FrontBackObjects, IDMPolicy
 
-from metadrive_benchmark.safety.dynamics import VehicleActionProjector
+from metadrive_sim_env.safety.dynamics import VehicleActionProjector
 from .base import ControllerProfile
 
 

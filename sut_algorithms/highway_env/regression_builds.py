@@ -9,9 +9,14 @@ from highway_env.vehicle.behavior import IDMVehicle
 class RearGuardIDMVehicle(IDMVehicle):
     """IDM+MOBIL with the new-lane rear-braking veto optionally bypassed."""
 
-    def __init__(self, *args, rear_guard_enabled: bool = True, **kwargs):
+    def __init__(self, *args, rear_guard_enabled: bool = True,
+                 rear_state_age_s: float = 0.0, **kwargs):
         self.rear_guard_enabled = rear_guard_enabled
+        self.rear_state_age_s = rear_state_age_s
         self.rear_guard_bypassed_count = 0
+        self.rear_guard_rejected_count = 0
+        self.aged_rear_prediction_count = 0
+        self.lane_change_accepted_count = 0
         self.mobil_decision_count = 0
         self.act_call_count = 0
         # highway-env otherwise phases lane-change decisions from absolute x+y.
@@ -29,11 +34,18 @@ class RearGuardIDMVehicle(IDMVehicle):
         new_following_a = self.acceleration(
             ego_vehicle=new_following, front_vehicle=new_preceding
         )
+        predicted_following = (new_following.observed_snapshot(self.rear_state_age_s)
+                               if new_following is not None and self.rear_state_age_s > 0
+                               and hasattr(new_following, "observed_snapshot")
+                               else new_following)
+        if predicted_following is not new_following:
+            self.aged_rear_prediction_count += 1
         new_following_pred_a = self.acceleration(
-            ego_vehicle=new_following, front_vehicle=self
+            ego_vehicle=predicted_following, front_vehicle=self
         )
         guard_would_reject = new_following_pred_a < -self.LANE_CHANGE_MAX_BRAKING_IMPOSED
         if guard_would_reject and self.rear_guard_enabled:
+            self.rear_guard_rejected_count += 1
             return False
         if guard_would_reject:
             self.rear_guard_bypassed_count += 1
@@ -64,15 +76,17 @@ class RearGuardIDMVehicle(IDMVehicle):
             )
             if jerk < self.LANE_CHANGE_MIN_ACC_GAIN:
                 return False
+        self.lane_change_accepted_count += 1
         return True
 
 
 def make_native_vehicle(build_id: str, road, position, *, heading: float,
                         speed: float, target_lane_index: tuple,
-                        target_speed: float):
+                        target_speed: float, rear_state_age_s: float = 0.0):
     guard_enabled = build_id != "mobil_rear_guard_off_v2"
     return RearGuardIDMVehicle(
         road, position, heading=heading, speed=speed,
         target_lane_index=target_lane_index, target_speed=target_speed,
         rear_guard_enabled=guard_enabled,
+        rear_state_age_s=rear_state_age_s,
     )

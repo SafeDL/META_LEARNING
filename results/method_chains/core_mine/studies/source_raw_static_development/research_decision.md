@@ -32,8 +32,8 @@ algorithmic contribution: this selector is closely related to simple
 per-mode adaptive allocation, the seeds were already inspected, and both
 targets use the same simulator family and scenario grammar. A new-seed,
 prior-art-matched confirmation remains necessary before making a broader
-claim. The wider method boundary and failed component tests are summarized
-in [the revised research position](../../../../../docs/core_mine_revised_research_position.md).
+claim. Related component studies are indexed in the
+[CoRe-Mine results](../../README.md).
 
 Per-run ledgers and all metrics are in `analysis50.json` and the two
 seed-target subdirectories. Reproduce the frozen analysis with:

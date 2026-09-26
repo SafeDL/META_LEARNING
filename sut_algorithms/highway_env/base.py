@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from highway_env_benchmark.envs.external_cutin import ExternalCutInEnv
+    from highway_sim_env.envs.external_cutin import ExternalCutInEnv
 
 
 class Policy(Protocol):

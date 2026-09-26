@@ -1,53 +1,23 @@
-# Highway-env paper replications
+# Highway-env 论文复现
 
-This directory contains independent adaptations of representative testing
-methods. Every implementation uses the repository's `highway_env_benchmark`
-simulator, SUT profiles, and response-bank schema. Method-specific logic stays
-inside its package; datasets and final artifacts stay under
-`results/highway_replications/`.
+本目录保存代表性测试方法的独立复现。各方法共用 `highway_sim_env/` 的仿真环境、`sut_algorithms/` 的被测控制器及统一响应数据契约；方法实现留在各自目录，正式结果统一写入 `results/highway_replications/`。
 
-## Reproduction contract
+| 路径 | 职责 |
+| --- | --- |
+| `benchmark.py`、`benchmark.yaml` | 构建共享候选与响应库，规定跨方法评价的数据和预算 |
+| `adate_highway_env/` | AdaTE 方法复现 |
+| `detour_highway_env/` | DETOUR 方法复现 |
+| `fst_highway_env/` | FST 相似度方法复现 |
+| `scenariofuzz_highway_env/` | ScenarioFuzz 方法复现 |
+| `highway_sut_selection/` | 异构驾驶策略筛选、PPO-ECE 权重获取与风险结构审计 |
+| `tests/` | 共享协议和复现契约测试 |
 
-1. Preserve the source paper's information boundary, update rule, baselines,
-   ablations, and conclusion-bearing measurements whenever highway-env
-   supports them. Name every unsupported feature as a deviation.
-2. Use `benchmark.yaml` for cross-method data and budgets. The shared bank has
-   three interaction modes, 64 Sobol candidates per mode, and six SUTs: 192
-   scenarios and 1,152 actual simulator responses.
-3. Compare only like tasks. Failure discovery uses collision precision and
-   recall at budgets 5/10/20. Performance estimation uses collision-rate error
-   at the same budgets. Paper-specific metrics remain in each method report.
-4. Keep source packages free of generated results, caches, dated folders, and
-   superseded attempts. Each method has one canonical result directory.
+共享基准包含三种交互模式，每种模式 64 个 Sobol 候选，共 192 个场景；六种 SUT 产生 1,152 条真实仿真响应。失效发现使用预算 5/10/20 下的碰撞精确率与召回率，性能估计使用相同预算下的碰撞率误差。论文特有指标保留在各方法报告中，不将不同任务混为同一排名。
 
-## Layout
-
-```text
-replications/
-  benchmark.py                 shared bank builder and evaluator
-  benchmark.yaml               shared data/evaluation contract
-  adate_highway_env/           AdaTE adaptation
-  detour_highway_env/          DETOUR adaptation
-  fst_highway_env/             FST similarity adaptation
-  scenariofuzz_highway_env/    ScenarioFuzz adaptation
-  highway_sut_selection/       heterogeneous driving-policy qualification
-
-results/highway_replications/
-  shared/                      common response bank and manifest
-  adate/                       AdaTE paper-specific and shared-pool results
-  detour/                      DETOUR results on the shared pool
-  fst/                         FST results on the shared pool
-  scenariofuzz/                deterministic paper-aligned suite
-  evaluation/                  cross-replication records, figures, and report
-  sut_selection/               retained SUT bank and screening evidence
-```
-
-## Run
+复现时保持原论文的信息边界、更新规则、基线和消融；Highway-env 无法支持的部分在方法报告中标明偏差。共享结果入口见 [`results/highway_replications/README.md`](../results/highway_replications/README.md)，各方法目录的 README 给出具体重建命令。
 
 ```powershell
 conda run -n metadrive python -m replications.benchmark build
 conda run -n metadrive python -m replications.benchmark evaluate
 conda run -n metadrive python -m pytest replications -q -p no:cacheprovider
 ```
-
-Each method README contains its exact reconstruction command.

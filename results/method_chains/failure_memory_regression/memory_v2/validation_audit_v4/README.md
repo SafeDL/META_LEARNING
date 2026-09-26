@@ -32,7 +32,7 @@
 
 ## 3. 主车初始状态进入参数空间
 
-新 [参数定义](../../../../../configs/fbrt/ego_initial_state_audit_v3.yaml)和[已执行参数表](ego_initial_state_manifest.csv)包含：
+新 [参数定义](../../../../../methods/failure_memory_regression/configs/ego_initial_audit.yaml)和[已执行参数表](ego_initial_state_manifest.csv)包含：
 
 | 主车参数 | 审计范围 | 说明 |
 |---|---:|---|
@@ -49,8 +49,8 @@
 ## 复现与范围
 
 ```powershell
-conda run -n metadrive python -m method_chains.failure_memory_regression.audit_v4
-conda run -n metadrive python -m pytest method_chains/failure_memory_regression/tests/test_ego_initial_v4.py -q -p no:cacheprovider
+conda run -n metadrive python -m methods.failure_memory_regression.audit
+conda run -n metadrive python -m pytest methods/failure_memory_regression/tests/test_ego_initial.py -q -p no:cacheprovider
 ```
 
 原银行 320 次、v3 诊断 26 次、v4 修正审计 54 次，共 **400/400** 次新增物理执行。重复运行审计会读取缓存并重绘 GIF，不再增加物理执行。主方法实验的 80 个原场景仍只固定主车初始状态，因此其 Memory/NoMemory 排名尚未检验扩展后的七维场景空间。

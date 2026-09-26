@@ -1,8 +1,8 @@
 # Highway-env SUT selection
 
 This package qualifies heterogeneous driving policies against the shared
-`highway_env_benchmark` CutIn simulator. The simulator extension lives in
-`highway_env_benchmark/envs/external_cutin.py`; retained policy implementations and
+`highway_sim_env` CutIn simulator. The simulator extension lives in
+`highway_sim_env/envs/external_cutin.py`; retained policy implementations and
 their registry live in `sut_algorithms/highway_env/`.
 
 The active set contains IDM+MOBIL, VI-TTC, MCTS-CV, and the verified PPO-ECE

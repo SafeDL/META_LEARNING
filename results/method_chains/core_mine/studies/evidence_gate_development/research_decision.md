@@ -1,8 +1,8 @@
 # Corrected evidence-gate development decision
 
 The first implementation accidentally ranked static percentiles over
-ineligible source proposals. Its output remains under
-`../evidence_gate_invalidated/` and is explicitly invalidated.
+ineligible source proposals. That preliminary run was invalidated and its
+intermediate output archived outside the current result root.
 This corrected run ranks only the exact source-safe eligible pool, while
 preserving the frozen Beta(1,1) Bayes-factor model, BF > 1 threshold,
 first-ten static prefix, B=50 budget, and endpoints. The analysis has
