@@ -8,4 +8,4 @@
 | [`metadrive/`](metadrive/README.md) | MetaDrive Risk Mining 与 Formal Teacher 的源数据和评价记录；独立于当前 FBRT |
 | `method_chains/` | FBRT、CoRe-Mine 及其他组合方法的结果；按方法分目录保存 |
 
-当前 FBRT 的完整离线回放与方法比较见 [`algorithm_comparison.md`](method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)，独立交互验证见 [`validation_report.md`](method_chains/failure_memory_regression/interaction_holdout_age080/validation_report.md)。`method_chains/` 作为历史结果路径保留，以便冻结清单中的路径和哈希仍可核对；活动源码位于 `methods/`。
+当前 FBRT 的六方法冻结银行离线比较见 [`algorithm_comparison.md`](method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)，后车状态滞后 800 ms 交互留出验证见 [`validation_report.md`](method_chains/failure_memory_regression/interaction_holdout_age080/validation_report.md)。`method_chains/` 作为历史结果路径保留，以便冻结清单中的路径和哈希仍可核对；活动源码位于 `methods/`。

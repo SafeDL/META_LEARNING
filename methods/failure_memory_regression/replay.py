@@ -17,7 +17,7 @@ from typing import Any
 from methods.failure_memory_regression.archive import read_jsonl, row_to_record
 from methods.failure_memory_regression.pattern_memory import build_pattern_cards
 from methods.failure_memory_regression.replay_utils import (
-    contextual_history, excluded_history_counts, history_kind, is_parent_pass,
+    build_family, contextual_history, excluded_history_counts, history_kind, is_parent_pass,
     is_usable_outcome,
 )
 from methods.failure_memory_regression.schema import Session, stable_hash
@@ -114,21 +114,9 @@ def _atomic_csv(path: Path, rows: list[dict]) -> None:
     os.replace(temporary, path)
 
 
-def _family(build_id: str) -> str:
-    if build_id == "idm_ref":
-        return "legacy_profiled_idm_reference"
-    if build_id in LEGACY_TARGETS:
-        return f"legacy_profiled_idm_fault:{build_id}"
-    if build_id.startswith("mobil_"):
-        return "native_idm_mobil"
-    if build_id.startswith("ppo_"):
-        return "ppo_ece"
-    return build_id
-
-
 def _record(row: dict, source: str) -> dict:
     result = row_to_record(row, source).as_dict()
-    result["family"] = _family(result["build_id"])
+    result["family"] = build_family(result["build_id"])
     return result
 
 
@@ -374,7 +362,7 @@ def _run_selector_task(output: Path, task_id: str, target_build: str,
                 history, session_id=f"{task_id}:{method}:{repeat}")
             oracle = TargetOracle({key: evaluator[key] for key in
                                    {row["scenario_id"] for row in candidates}})
-            method_families = {row["build_id"]: row.get("family", _family(row["build_id"]))
+            method_families = {row["build_id"]: row.get("family", build_family(row["build_id"]))
                                for row in history}
             run_seed = seed_for(method, repeat)
             queries, observations, learned_cards, updates = run_selector(
@@ -507,7 +495,7 @@ def _load_compact(memory: Path) -> tuple[list[dict], dict[str, dict[str, dict]]]
     bank: dict[str, dict[str, dict]] = defaultdict(dict)
     for row in bank_rows:
         bank[row["build_id"]][row["scenario_id"]] = dict(row)
-        bank[row["build_id"]][row["scenario_id"]]["family"] = _family(row["build_id"])
+        bank[row["build_id"]][row["scenario_id"]]["family"] = build_family(row["build_id"])
     return list(candidates_by_id.values()), bank
 
 
@@ -540,7 +528,7 @@ def _compact_regressions(output: Path, memory: Path, fingerprint: str,
             results.append(_missing_summary(task_id, target_build, "regression",
                                             candidates, missing))
             continue
-        history = [{**row, "visibility": "historical", "family": _family(parent_build)}
+        history = [{**row, "visibility": "historical", "family": build_family(parent_build)}
                    for row in parent_bank.values()]
         evaluator = {row["scenario_id"]: target_bank[row["scenario_id"]]
                      for row in candidates}
@@ -617,7 +605,7 @@ def _compact_cross_agent(output: Path, memory: Path, fingerprint: str) -> list[d
                 pair_result["model_fit_count"] += first["model_fit_count"]
                 pair_result["logical_query_count"] += first["logical_query_count"]
 
-                first_memory = [dict(row, family=_family("mobil_ref_v2"))
+                first_memory = [dict(row, family=build_family("mobil_ref_v2"))
                                 for run in first["run_results"] if run["method"] == method
                                 and run["repeat"] == repeat for row in run["observations"]]
                 branch = {row["execution_id"]: row for row in base_records}
@@ -665,7 +653,7 @@ def _compact_cross_agent(output: Path, memory: Path, fingerprint: str) -> list[d
                                          run["repeat"] == repeat), None)
                 first_observations = (first_method_run or {}).get("observations", [])
                 branch = {row["execution_id"]: row for row in base_records}
-                branch.update((row["execution_id"], dict(row, family=_family("mobil_ref_v2")))
+                branch.update((row["execution_id"], dict(row, family=build_family("mobil_ref_v2")))
                               for row in first_observations)
                 branch_rows = list(branch.values())
                 after_hash = _snapshot_hash(branch_rows)

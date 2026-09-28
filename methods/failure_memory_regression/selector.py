@@ -14,10 +14,10 @@ from methods.failure_memory_regression.bayes_model import (
 from methods.failure_memory_regression.pattern_memory import (
     active_values, build_dictionaries, build_pattern_cards, new_failure_card,
 )
-from methods.failure_memory_regression.schema import stable_hash
 from methods.failure_memory_regression.replay_utils import (
     contextual_history, is_parent_pass, is_usable_outcome, task_reward,
 )
+from methods.failure_memory_regression.schema import stable_hash
 
 
 METHODS = ("Random", "HistoryRank-UCB-v2", "FailureDistance-v2",

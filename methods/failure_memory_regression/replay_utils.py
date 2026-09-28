@@ -7,6 +7,20 @@ from collections.abc import Mapping
 from typing import Any
 
 
+def build_family(build_id: str) -> str:
+    if build_id in {"nl_v0", "nl_v1", "nl_v2"}:
+        return "profiled_idm_release"
+    if build_id == "idm_ref":
+        return "legacy_profiled_idm_reference"
+    if build_id in {"merge_blind06", "merge_brake2", "slow_front_brake2"}:
+        return f"legacy_profiled_idm_fault:{build_id}"
+    if build_id.startswith("mobil_"):
+        return "native_idm_mobil"
+    if build_id.startswith("ppo_"):
+        return "ppo_ece"
+    return build_id
+
+
 def is_usable_outcome(row: Mapping[str, Any]) -> bool:
     """Whether a normalized, observed outcome can train the failure model."""
     if row.get("inconclusive", False):

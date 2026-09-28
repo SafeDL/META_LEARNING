@@ -140,7 +140,8 @@ def test_snapshot_memory_changes_predictions_on_nearby_candidate():
     )
     prior_fit = source_fits([remote_pass], dictionary_before)
     mu0, var0, _ = build_source_prior(prior_fit, {"agent-a": "agent-a"})
-    before = target_posterior(dictionary_before, [], mu0, var0)
+    before = target_posterior(dictionary_before, [],
+                              dictionary_before.ordered_feature_ids(), mu0, var0)
     before_probability = posterior_failure_probabilities(
         dictionary_before, [candidate], before, seed=1)[0]
     cards_after = build_pattern_cards([remote_pass, close_fail])
@@ -148,7 +149,8 @@ def test_snapshot_memory_changes_predictions_on_nearby_candidate():
         "fbrt_cutin"]
     fits_after = source_fits([remote_pass, close_fail], dictionary_after)
     mu1, var1, _ = build_source_prior(fits_after, {"agent-a": "agent-a"})
-    after = target_posterior(dictionary_after, [], mu1, var1)
+    after = target_posterior(dictionary_after, [],
+                             dictionary_after.ordered_feature_ids(), mu1, var1)
     after_probability = posterior_failure_probabilities(
         dictionary_after, [candidate], after, seed=1)[0]
     assert not np.isclose(before_probability, after_probability)
@@ -172,10 +174,10 @@ def test_imported_target_labels_stay_evaluator_only_in_contextual_history():
                               "reference_archive.csv").as_dict()
     assert target["visibility"] == "evaluator_only"
     assert reference["visibility"] == "historical"
-    from methods.failure_memory_regression.experiment import _contextual_history
+    from methods.failure_memory_regression.replay_utils import contextual_history
     history = [_record("parent", "parent", False),
                {**_record("hidden", "target", True), "visibility": "evaluator_only"}]
-    assert [row["execution_id"] for row in _contextual_history(history, [_candidate(0)])] == [
+    assert [row["execution_id"] for row in contextual_history(history, [_candidate(0)])] == [
         "parent"]
 
 
@@ -236,6 +238,7 @@ def test_only_one_high_level_action_is_applied_per_external_decision_tick():
     env.vehicle = Vehicle()
     env.actors = {"ego": env.vehicle}
     env.action_type = ActionType()
+    env.action_space = type("ActionSpace", (), {"contains": lambda _self, action: action in (0, 1)})()
     env.road = Road()
     env.steps = 0
     env.time = 0.0

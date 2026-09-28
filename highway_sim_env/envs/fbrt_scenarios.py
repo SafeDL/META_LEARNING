@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from highway_sim_env.fbrt_parameters import ACTIVE_PARAMETERS, BOUNDS
+
+from highway_sim_env.fbrt_parameters import ACTIVE_PARAMETERS
 
 
 @dataclass(frozen=True)

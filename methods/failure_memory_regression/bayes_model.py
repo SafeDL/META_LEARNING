@@ -175,32 +175,14 @@ def align_diagonal_prior(old_ids: Sequence[str], old_mean: np.ndarray,
     return aligned_mean, aligned_variance
 
 
-def extend_prior(prior_mean: np.ndarray, prior_variance: np.ndarray,
-                 new_dim: int) -> tuple[np.ndarray, np.ndarray]:
-    """Compatibility helper for unchanged schemas; positional extension is rejected."""
-    if new_dim != len(prior_mean) or np.asarray(prior_variance).shape != np.asarray(prior_mean).shape:
-        raise ValueError("feature growth requires ID-based align_diagonal_prior")
-    return np.asarray(prior_mean, dtype=float), np.asarray(prior_variance, dtype=float)
-
-
 def target_posterior(dictionary: RBFDictionary, observations: list[dict],
-                     source_prior_ids: Sequence[str] | np.ndarray,
+                     source_prior_ids: Sequence[str],
                      source_prior_mean: np.ndarray,
-                     source_prior_variance: np.ndarray | None = None,
+                     source_prior_variance: np.ndarray,
                      max_iter: int = 25,
                      source_feature_specs: dict[str, dict] | None = None,
                      source_schema_identity: str | None = None,
                      fit_counter: dict[str, int] | None = None) -> LogisticFit:
-    # Preserve the old exact-schema call shape. It cannot grow or reorder a schema.
-    if source_prior_variance is None:
-        legacy_mean = np.asarray(source_prior_ids, dtype=float)
-        legacy_variance = np.asarray(source_prior_mean, dtype=float)
-        current_ids = tuple(dictionary.ordered_feature_ids())
-        if legacy_mean.shape != (len(current_ids),) or legacy_variance.shape != legacy_mean.shape:
-            raise ValueError("unlabelled prior is only valid for an exact current feature schema")
-        source_prior_ids = current_ids
-        source_prior_mean = legacy_mean
-        source_prior_variance = legacy_variance
     current_ids = tuple(dictionary.ordered_feature_ids())
     if source_schema_identity is not None and source_schema_identity != dictionary.schema_identity:
         raise ValueError("source prior schema context does not match the target dictionary")

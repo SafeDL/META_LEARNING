@@ -29,7 +29,7 @@ from methods.failure_memory_regression.pattern_memory import (
     build_dictionaries, build_pattern_cards, cards_jsonl,
 )
 from methods.failure_memory_regression.replay_utils import (
-    contextual_history, is_parent_pass, is_usable_outcome,
+    build_family, contextual_history, is_parent_pass, is_usable_outcome,
 )
 from methods.failure_memory_regression.schema import Session, stable_hash
 from methods.failure_memory_regression.selector import (
@@ -43,18 +43,6 @@ MAIN_BANK_CAP = 320
 BUDGET = 20
 RANDOM_REPEATS = 10
 SIMULATOR_SEED = 4179901
-
-
-def _family(build_id: str) -> str:
-    if build_id == "idm_ref":
-        return "legacy_profiled_idm_reference"
-    if build_id in {"merge_blind06", "merge_brake2", "slow_front_brake2"}:
-        return f"legacy_profiled_idm_fault:{build_id}"
-    if build_id.startswith("mobil_"):
-        return "native_idm_mobil"
-    if build_id.startswith("ppo_"):
-        return "ppo_ece"
-    return build_id
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -97,13 +85,9 @@ def _rows_for_family(records: list[dict]) -> list[dict]:
     result = []
     for row in records:
         item = dict(row)
-        item["family"] = _family(item.get("build_id", "unknown"))
+        item["family"] = build_family(item.get("build_id", "unknown"))
         result.append(item)
     return result
-
-
-def _contextual_history(history: list[dict], candidates: list[dict]) -> list[dict]:
-    return contextual_history(history, candidates)
 
 
 def _cross_agent_seed_records(records: list[dict], bank_rows: list[dict]) -> list[dict]:
@@ -483,7 +467,7 @@ def _legacy_eval_bank() -> tuple[dict[str, dict[str, dict]], dict[str, dict]]:
     banks: dict[str, dict[str, dict]] = defaultdict(dict)
     for row in rows:
         record = row_to_record(row, "target_response_bank.csv").as_dict()
-        record["family"] = _family(record["build_id"])
+        record["family"] = build_family(record["build_id"])
         # Historical measured targets are evaluation-only for this replay.
         record["visibility"] = "evaluator_only"
         banks[record["build_id"]][record["scenario_id"]] = record
@@ -564,7 +548,7 @@ def _run_methods(task_id: str, target_build: str, candidates: list[dict],
                  snapshot_hash: str, directory: Path,
                  repeats_random: int = RANDOM_REPEATS) -> tuple[list[dict], list[dict], list[dict]]:
     candidates = [dict(row) for row in candidates]
-    history = _contextual_history(history, candidates)
+    history = contextual_history(history, candidates)
     cards = build_pattern_cards(history, session_id=task_id)
     bank = {key: value for key, value in evaluator_bank.items()
             if key in {row["scenario_id"] for row in candidates}}
@@ -578,7 +562,7 @@ def _run_methods(task_id: str, target_build: str, candidates: list[dict],
     all_queries, all_summaries, session_observations = [], [], []
     store = SnapshotStore(ROOT)
     before_hash = stable_hash(store.load_records())
-    families = {row["build_id"]: row.get("family", _family(row["build_id"])) for row in history}
+    families = {row["build_id"]: row.get("family", build_family(row["build_id"])) for row in history}
     for method in METHODS:
         for repeat in range(repeats_random if method == "Random" else 1):
             oracle = TargetOracle(bank)
@@ -597,7 +581,7 @@ def _run_methods(task_id: str, target_build: str, candidates: list[dict],
             _write_session(directory, method, repeat, task_id, target_build, mode,
                            before_hash, candidates, queries, observations, learned_cards, updates)
             if method == "FBRT-Memory":
-                session_observations = [{**row, "family": _family(target_build)}
+                session_observations = [{**row, "family": build_family(target_build)}
                                         for row in observations]
     return all_queries, all_summaries, session_observations
 
@@ -683,7 +667,7 @@ def evaluate_compact_bank() -> tuple[list[dict], list[dict], list[dict]]:
         evaluator = bank.get("mobil_rear_guard_off_v2", {})
         if candidates and all(row["scenario_id"] in evaluator for row in candidates):
             task_id = "compact_regression_mobil_ref_to_rear_guard_off"
-            history = [{**row, "visibility": "historical", "family": _family("mobil_ref_v2")}
+            history = [{**row, "visibility": "historical", "family": build_family("mobil_ref_v2")}
                        for row in bank["mobil_ref_v2"].values()]
             queries, summaries, _ = _run_methods(
                 task_id, "mobil_rear_guard_off_v2", candidates, history, evaluator,
@@ -716,7 +700,7 @@ def evaluate_compact_bank() -> tuple[list[dict], list[dict], list[dict]]:
         evaluator = bank.get("ppo_obs_age020_v2", {})
         task_id = "compact_regression_ppo_ref_to_obs_age020"
         if candidates and all(row["scenario_id"] in evaluator for row in candidates):
-            history = [{**row, "visibility": "historical", "family": _family("ppo_ref_v2")}
+            history = [{**row, "visibility": "historical", "family": build_family("ppo_ref_v2")}
                        for row in bank["ppo_ref_v2"].values()]
             queries, summaries, _ = _run_methods(
                 task_id, "ppo_obs_age020_v2", candidates, history, evaluator,
@@ -754,13 +738,13 @@ def evaluate_compact_bank() -> tuple[list[dict], list[dict], list[dict]]:
                 for repeat in range(RANDOM_REPEATS if method == "Random" else 1):
                     method_root = cross_root / "branches" / method / f"repeat_{repeat}"
                     branch_store = SnapshotStore(method_root / "history_branch")
-                    seed_history = _contextual_history(base_records, candidates)
+                    seed_history = contextual_history(base_records, candidates)
                     branch_store.save_records(seed_history)
                     first_oracle = TargetOracle(evaluator)
                     first_task = f"cross_agent_{method}_mobil_to_next"
-                    filtered_first = _contextual_history(seed_history, candidates)
+                    filtered_first = contextual_history(seed_history, candidates)
                     initial_cards = build_pattern_cards(filtered_first, session_id=first_task)
-                    family_by_build = {row["build_id"]: row.get("family", _family(row["build_id"]))
+                    family_by_build = {row["build_id"]: row.get("family", build_family(row["build_id"]))
                                        for row in filtered_first}
                     first_queries, first_observations, first_cards, first_updates = run_selector(
                         method, candidates, filtered_first, first_oracle, BUDGET,
@@ -772,17 +756,17 @@ def evaluate_compact_bank() -> tuple[list[dict], list[dict], list[dict]]:
                                    base_snapshot, candidates, first_queries, first_observations,
                                    first_cards, first_updates)
                     before_hash, after_hash, inserted = branch_store.commit(
-                        [{**row, "family": _family("mobil_ref_v2")} for row in first_observations])
+                        [{**row, "family": build_family("mobil_ref_v2")} for row in first_observations])
                     first_session_path = cross_root / first_task / method / f"repeat_{repeat}" / "session.json"
                     first_session = json.loads(first_session_path.read_text(encoding="utf-8"))
                     first_session["history_snapshot_after"] = after_hash
                     _write_json(first_session_path, first_session)
                     if method == "FBRT-Memory":
                         canonical_memory_observations.extend(
-                            {**row, "family": _family("mobil_ref_v2")}
+                            {**row, "family": build_family("mobil_ref_v2")}
                             for row in first_observations)
                         global_store = SnapshotStore(ROOT)
-                        global_store.commit([{**row, "family": _family("mobil_ref_v2")}
+                        global_store.commit([{**row, "family": build_family("mobil_ref_v2")}
                                              for row in first_observations])
                     if method in ("FBRT-Memory", "FBRT-NoMemory"):
                         task_status.append({"task_id": first_task, "status": "complete",
@@ -802,7 +786,7 @@ def evaluate_compact_bank() -> tuple[list[dict], list[dict], list[dict]]:
                                             "status": "incomplete_bank"})
                         continue
                     history = _rows_for_family(branch_store.load_records())
-                    history = _contextual_history(history, candidates)
+                    history = contextual_history(history, candidates)
                     ppo_oracle = TargetOracle(ppo_evaluator)
                     next_task = f"cross_agent_{method}_ppo_ref_after_mobil"
                     next_cards = build_pattern_cards(history, session_id=next_task)
@@ -810,24 +794,24 @@ def evaluate_compact_bank() -> tuple[list[dict], list[dict], list[dict]]:
                         method, candidates, history, ppo_oracle, BUDGET,
                         random_seed=99002 + repeat, target_build_id="ppo_ref_v2", mode="cross_agent",
                         session_id=next_task,
-                        family_by_build={row["build_id"]: row.get("family", _family(row["build_id"]))
+                        family_by_build={row["build_id"]: row.get("family", build_family(row["build_id"]))
                                          for row in history}, initial_cards=next_cards)
                     _write_session(cross_root / next_task, method, repeat, next_task,
                                    "ppo_ref_v2", "cross_agent",
                                    after_hash, candidates, next_queries, next_observations,
                                    next_pattern_cards, next_updates)
                     before_next_hash, after_next_hash, inserted_next = branch_store.commit(
-                        [{**row, "family": _family("ppo_ref_v2")} for row in next_observations])
+                        [{**row, "family": build_family("ppo_ref_v2")} for row in next_observations])
                     next_session_path = cross_root / next_task / method / f"repeat_{repeat}" / "session.json"
                     next_session = json.loads(next_session_path.read_text(encoding="utf-8"))
                     next_session["history_snapshot_after"] = after_next_hash
                     _write_json(next_session_path, next_session)
                     if method == "FBRT-Memory":
                         canonical_memory_observations.extend(
-                            {**row, "family": _family("ppo_ref_v2")}
+                            {**row, "family": build_family("ppo_ref_v2")}
                             for row in next_observations)
                         global_store = SnapshotStore(ROOT)
-                        global_store.commit([{**row, "family": _family("ppo_ref_v2")}
+                        global_store.commit([{**row, "family": build_family("ppo_ref_v2")}
                                              for row in next_observations])
                     if method in ("FBRT-Memory", "FBRT-NoMemory"):
                         task_status.append({"task_id": next_task, "status": "complete",

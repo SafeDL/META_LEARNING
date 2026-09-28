@@ -9,9 +9,10 @@ import json
 from pathlib import Path
 
 from methods.failure_memory_regression.replay import (
-    DEFAULT_CORE, DEFAULT_MEMORY, LEGACY_TARGETS, _family, _load_legacy,
+    DEFAULT_CORE, DEFAULT_MEMORY, LEGACY_TARGETS, _load_legacy,
     _regression_seed,
 )
+from methods.failure_memory_regression.replay_utils import build_family
 from methods.failure_memory_regression.selector import (
     EXPLOIT_METHOD, TargetOracle, run_selector,
 )
@@ -68,7 +69,7 @@ def _hits(task: dict, method: str, repeat: int,
         method, task["candidates"], history, oracle, BUDGET, seed,
         target_build_id=task["target"], parent_build_id="idm_ref",
         mode="regression", session_id=session_id,
-        family_by_build={row["build_id"]: row.get("family", _family(row["build_id"]))
+        family_by_build={row["build_id"]: row.get("family", build_family(row["build_id"]))
                          for row in history},
         coverage_slots=coverage_slots if method == METHOD else None)
     return sum(row.get("regression") is True for row in queries)

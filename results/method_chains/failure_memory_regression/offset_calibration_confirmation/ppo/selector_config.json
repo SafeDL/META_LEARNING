@@ -1,0 +1,74 @@
+{
+  "contexts_per_family": 3,
+  "direction_budget": 20,
+  "families": [
+    "S01",
+    "S02",
+    "S08"
+  ],
+  "grid_resolution": 11,
+  "manifest_sha256": "bcbc21d5b6e3c61a7b707ca8178b60a4063abe33fd231c2db83c4a1ec8c97128",
+  "method_parameters": {
+    "coordinate_offset_calibrated_ucb": {
+      "improvement_score": "posterior mean complement",
+      "parent_offset_slope_correction_prior_mean": 0.0,
+      "parent_offset_slope_correction_prior_variance": 0.5,
+      "regression_ucb_standard_deviations": 1.0
+    },
+    "directed_offset_calibrated_ucb": {
+      "improvement_score": "posterior mean complement",
+      "parent_offset_slope_correction_prior_mean": 0.0,
+      "parent_offset_slope_correction_prior_variance": 0.5,
+      "regression_ucb_standard_deviations": 1.0
+    }
+  },
+  "methods": [
+    "random",
+    "static_risk",
+    "static_boundary",
+    "center_residual",
+    "coordinate_residual",
+    "target_only",
+    "directed_residual",
+    "coordinate_context_ucb_pure",
+    "directed_context_ucb_pure",
+    "directed_context_ucb_loose",
+    "coordinate_offset_calibrated_ucb",
+    "directed_offset_calibrated_ucb"
+  ],
+  "physical_episodes_by_build": {
+    "ppo_release_v0": 1089,
+    "ppo_release_v1": 1089,
+    "ppo_release_v2": 1089
+  },
+  "ppo_checkpoint_sha256": {
+    "ppo_release_v0": "ff02dbd00a216818ed6b15baff219304717fc87a563f0b19be8b4f917baf76b7",
+    "ppo_release_v1": "16abf95f800e199f69e174d440e4f1886be7a959464e4867757a392dd967c517",
+    "ppo_release_v2": "6d7fed6da31a08d7b8eedc32a0c564a9b5c3554234ca1e9f715a9824eae395e2"
+  },
+  "primary_baselines": [
+    "static_risk",
+    "coordinate_residual",
+    "coordinate_context_ucb_pure",
+    "directed_context_ucb_pure",
+    "directed_context_ucb_loose",
+    "coordinate_offset_calibrated_ucb",
+    "target_only"
+  ],
+  "primary_method": "directed_offset_calibrated_ucb",
+  "protocol_sha256": "4bd7fae5c3404c93b8140f39a02455d3512f0f95ab3222324a2d4dc085bf83dc",
+  "random_repeats": 10,
+  "scenes": 1089,
+  "selection": "one shared context-local target-risk posterior with parent-risk logit offset; queried outcomes estimate a context-local additive residual and a parent-offset slope correction centered at zero; regression uses deterministic +1 posterior standard deviation, improvement uses posterior-mean complement; no forced context probes or neighborhood-frontier override",
+  "source_sha256": {
+    "build_registry": "73d341c50499bda1f44feef9adb483967ccf6ed7cbfdc9d4de211e3b15b8c33f",
+    "nl_release_profiles": "42bf4ec1e48fad2f6d9c89e336699992b422570255f33edf68db13de8546bbec",
+    "physical_runner": "41f254cbc06c80b76437a6a0f3515bff137cf014525accb7b1c72ae456e20453",
+    "ppo_loader": "c7adb39df79065f12880874dea94a4c0b4d9ab0b782d350ce397e63a2e880a2e",
+    "protocol_freezer": "2a72ed07052f8f4793760e60480d9fce77ded9b0896a3e6afa890e4dbb814e74",
+    "selector": "ce4234939871ae9e4200737bccfb0981ffda1e0966e73eb974ae36177973223f"
+  },
+  "split": "offset_calibration_confirmation",
+  "status": "frozen before target outcome measurement",
+  "total_budget": 40
+}
