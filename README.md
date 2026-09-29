@@ -60,7 +60,12 @@ Highway-env 驾驶算法的接入、筛选和风险差异审计位于
 独立确认的功能后验搜索见
 [`methods/function_posterior_search/README.md`](methods/function_posterior_search/README.md)。
 
-当前 FBRT 的六方法冻结银行离线比较见
+当前 S01 四维场景的全量真值开发试验见
+[`S01 实验报告`](results/method_chains/failure_memory_regression/fm2_s01_full_history/report.md)：
+六个历史构建与目标 `merge_blind06` 各测完同一份 2,048 场景，
+选择方法各使用 50 次目标查询。FM²-FBT 在该库上未超过最强基线。
+
+此前 FBRT 的六方法冻结银行离线比较见
 [`算法比较`](results/method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)
 和 [`修复回放报告`](results/method_chains/failure_memory_regression/repair_exploit_v3_fullbank/repair_report.md)。
 此前的标准对齐实验报告仍保留为基准结果：

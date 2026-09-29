@@ -109,7 +109,8 @@ def compile_manifest(split: str = "confirmation", resolution: int | None = None,
                       "context_bootstrap_confirmation",
                       "regression_bootstrap_confirmation",
                       "superiority_replication_confirmation",
-                      "role_gated_generalization_confirmation"}:
+                      "role_gated_generalization_confirmation",
+                      "single_context_grid_development"}:
         raise ValueError("unsupported frozen scenario split")
     n = resolution or (5 if split in {"development", "calibration", "development2",
                                         "development3"} else 11)
@@ -161,6 +162,7 @@ def compile_manifest(split: str = "confirmation", resolution: int | None = None,
         "role_gated_generalization_confirmation": ((-0.75, 2.5, 0.25),
                                                      (2.75, -2.25, 0.20),
                                                      (-2.25, -2.5, -0.20)),
+        "single_context_grid_development": ((0.0, 0.0, 0.0),),
     }
     contexts = contexts_by_split[split]
     rows = []
@@ -252,6 +254,10 @@ def freeze(root: Path, split: str = "confirmation", resolution: int | None = Non
         protocol_version = ("ppo-role-gated-generalization-bidirectional-v1"
                             if builds[0].startswith("ppo")
                             else "nl-role-gated-generalization-bidirectional-v1")
+    elif split == "single_context_grid_development":
+        protocol_version = ("ppo-single-context-grid-development-v1"
+                            if builds[0].startswith("ppo")
+                            else "nl-single-context-grid-development-v1")
     else:
         protocol_version = ("ppo-bidirectional-v1" if builds[0].startswith("ppo")
                             else PROTOCOL_VERSION)
@@ -1189,7 +1195,8 @@ def main() -> None:
                                               "context_bootstrap_confirmation",
                                               "regression_bootstrap_confirmation",
                                               "superiority_replication_confirmation",
-                                              "role_gated_generalization_confirmation"),
+                                              "role_gated_generalization_confirmation",
+                                              "single_context_grid_development"),
                         default="development")
     parser.add_argument("--resolution", type=int)
     parser.add_argument("--builds", nargs=3, default=list(BUILDS))

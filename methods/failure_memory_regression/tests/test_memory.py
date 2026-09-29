@@ -6,6 +6,7 @@ from collections import deque
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from highway_env.road.road import Road, RoadNetwork
 from methods.failure_memory_regression.archive import (
@@ -276,13 +277,15 @@ def test_rear_state_age_vehicle_uses_registered_mutation():
     road = Road(network=RoadNetwork.straight_road_network(2), np_random=np.random.default_rng(1))
     lane = road.network.get_lane(("0", "1", 0))
     env = SimpleNamespace(road=road, ego_lane_index=("0", "1", 0))
-    for build_id in ("mobil_ref_v2", "mobil_rear_state_age",
-                     "mobil_rear_state_age080"):
+    for build_id in ("mobil_ref_v2", "mobil_rear_state_age"):
         spec = build_spec_factory(build_id)
         vehicle = adapter_for(spec).create_vehicle(env, lane, 30.0, 20.0, 25.0)
         assert vehicle.rear_state_age_s == (spec.mutation or {}).get(
             "rear_state_age_s", 0.0)
         assert vehicle.rear_guard_enabled is True
+
+    with pytest.raises(KeyError, match="Unsupported FBRT build"):
+        build_spec_factory("mobil_rear_state_age080")
 
 
 def test_physical_geometry_uses_bumper_clearance_and_closing_speed_units():

@@ -16,6 +16,9 @@ FBRT 的职责、实验设置和运行命令见
 [`failure_memory_regression/README.md`](failure_memory_regression/README.md)；六方法冻结银行离线比较见
 [`algorithm_comparison.md`](../results/method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)。
 标准对齐结果和 `memory_v2` 数据库保留作基准及回放输入。
+当前 S01 四维场景的全量真值开发试验见
+[`S01 实验报告`](../results/method_chains/failure_memory_regression/fm2_s01_full_history/report.md)；
+六个历史构建与目标构建各测完 2,048 个相同场景，方法各限 50 次目标查询。
 
 FBRT 的物理运行器位于 `highway_sim_env/`，被测控制器位于
 `sut_algorithms/highway_env/`，选择器和数据契约位于

@@ -4,11 +4,12 @@
 
 | 实验名称 | 冻结路径 | 内容 |
 | --- | --- | --- |
+| S01 全量真值失效发现开发试验 | [`fm2_s01_full_history/`](fm2_s01_full_history/report.md) | 六个历史构建和目标构建各测完 2,048 个相同的四维场景；方法各限 50 次目标查询，见报告与成本账本 |
 | 旧场景响应库 | `standard_aligned/core/` | 参考、候选与目标响应银行，供离线回放读取 |
 | 历史失效记忆基线 | `memory_v2/` | 失效档案、MOBIL/PPO 测量银行、原始 Memory 基线及初始状态审计 |
 | 覆盖槽留一物理种子簇评测 | `memory_exploit_v3/` | 当前策略的覆盖次数分析与 compact 检查 |
 | 六方法冻结银行离线比较 | `repair_exploit_v3_fullbank/` | 完整银行回放、逐任务结果、清单和算法比较 |
-| 后车状态滞后 800 ms 交互留出验证 | `interaction_holdout_age080/` | 事前冻结的八种子独立物理验证；目标回归池为零 |
+| 后车状态滞后 800 ms 交互留出验证 | `interaction_holdout_age080/` | 已退役 IA/IB 支线的历史阴性结果；目标回归池为零，不纳入当前主结论 |
 | 六方法统计比较 | `current_method_statistical_comparison.md` | 当前方法与五种对照的统计解释和适用边界 |
 | NL-IDM 双向 release chain | [`nl_release/`](nl_release/) | V6.1 的三版本配对库、双向回放与独立开发/确认记录 |
 | PPO 权重继承 release chain | [`ppo_release/`](ppo_release/) | 三个真实继承权重检查点、训练账本、验证及首次确认的负面结果 |
@@ -23,6 +24,8 @@
 | Regression-only context bootstrap | [regression_bootstrap_confirmation/](regression_bootstrap_confirmation/) | Stage five completed in NL/PPO; direction-specific gains were not consistent across transitions. See [findings](regression_bootstrap_confirmation/findings.md). |
 | Independent context replication | [superiority_replication_confirmation/](superiority_replication_confirmation/) | Complete 3,267-episode NL/PPO banks and frozen replay; primary found 45 changes at D@20 versus 54 for coordinate role-gated search, without statistical evidence of superiority. See [findings](superiority_replication_confirmation/findings.md). |
 | Role-gated fresh-family confirmation | [role_gated_generalization_confirmation/](role_gated_generalization_confirmation/) | Candidate frozen across eight executable families and 24 new contexts; measurement paused before evaluation at NL 4,153/8,712 and PPO 3,951/8,712 valid cached episodes. |
+| 单上下文网格开发测试 | [single_context_grid_development/](single_context_grid_development/) | 8 个可执行场景族×1 个基准上下文×11×11 网格；NL/PPO 各 968 个场景，待物理测量。 |
+| 变维参数空间开发候选 | [scenario_sampling_development/](scenario_sampling_development/) | 3/4/5 维各按 1,024/2,048/4,096 点取样；8 族共 19,456 个候选，尚无物理结果。 |
 
 当前方法在旧银行预算 20 的发现总数为 1106，原 Memory 为 1056；三个独立旧物理种子簇的精确双侧检验为 `p=0.25`，不能宣称显著提升。后车状态滞后 800 ms 的交互留出验证中，目标回归池为零，也不能作为方法优势证据。详见 [`统计对比`](current_method_statistical_comparison.md) 和 [`独立验证`](interaction_holdout_age080/validation_report.md)。
 

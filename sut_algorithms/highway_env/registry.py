@@ -66,7 +66,7 @@ def build_spec_factory(build_id: str):
                          "Profiled-IDM", 20.0, profile=SUTProfile("legacy", "IDM").__dict__.copy(),
                          mutation={"legacy_fault": build_id})
     if build_id in {"mobil_ref_v2", "mobil_rear_guard_off_v2",
-                    "mobil_rear_state_age", "mobil_rear_state_age080"}:
+                    "mobil_rear_state_age"}:
         if build_id == "mobil_ref_v2":
             mutation = None
         elif build_id == "mobil_rear_guard_off_v2":
@@ -76,8 +76,7 @@ def build_spec_factory(build_id: str):
             }
         else:
             mutation = {
-                "rear_state_age_s": {"mobil_rear_state_age": 0.30,
-                                     "mobil_rear_state_age080": 0.80}[build_id],
+                "rear_state_age_s": 0.30,
                 "scope": "candidate_lane_rear_predicted_braking_only",
             }
         return BuildSpec(build_id, "native_idm_mobil", None if not mutation else "mobil_ref_v2",

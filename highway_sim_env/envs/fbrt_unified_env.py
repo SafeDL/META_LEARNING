@@ -15,7 +15,7 @@ from shapely.geometry import Polygon
 from highway_sim_env.envs.fbrt_metrics import (
     longitudinal_bumper_clearance, time_to_collision,
 )
-from highway_sim_env.envs.fbrt_scripted_vehicle import ScriptedVehicle, TimedIDMVehicle
+from highway_sim_env.envs.fbrt_scripted_vehicle import ScriptedVehicle
 from methods.failure_memory_regression.schema import BuildSpec, stable_hash
 from sut_algorithms.highway_env.fbrt_adapters import adapter_for
 from sut_algorithms.highway_env.registry import build_spec_factory
@@ -26,8 +26,6 @@ DT = 1.0 / PHYSICS_HZ
 EXECUTION_CONTRACT = ("fbrt-unified-v4;highway-env-1.9.1;20Hz;"
                       "buildspec-control-v1;ego-initial-v1;event-detector-v2;"
                       "native-mobil-timer-fixed-v1")
-INTERACTION_EXECUTION_CONTRACT = EXECUTION_CONTRACT + ";interaction-v1"
-INTERACTION_EXECUTION_CONTRACT_V2 = EXECUTION_CONTRACT + ";interaction-v2"
 
 
 class FBRTUnifiedEnv(AbstractEnv):
@@ -74,6 +72,12 @@ class FBRTUnifiedEnv(AbstractEnv):
 
     def _parameters(self) -> dict:
         return dict(self.scenario.get("active_parameters", {}))
+
+    def _parameter_or_context(self, name: str, default=None):
+        params = self._parameters()
+        if name in params:
+            return params[name]
+        return self._context().get(name, default)
 
     def _lane(self, lane_id: int):
         return self.road.network.get_lane(("0", "1", lane_id))
@@ -141,18 +145,18 @@ class FBRTUnifiedEnv(AbstractEnv):
         if template == "fbrt_cutin":
             lane_id, event = adjacent_lane_id, "cutin"
             self._add_scripted("lead", lane_id, lead_center(params["initial_clearance_m"]),
-                               float(ctx["lead_speed_mps"]), event=event,
+                               float(self._parameter_or_context("lead_speed_mps")), event=event,
                                destination_lane=self.ego_lane_index,
                                lane_change_duration_s=float(params["lane_change_time_scale_s"]),
-                               event_start_s=float(ctx.get("event_start_s", 1.0)))
+                               event_start_s=float(self._parameter_or_context("event_start_s", 1.0)))
         elif template == "fbrt_cutout_static":
-            lead_speed = float(ctx["lead_speed_mps"])
-            event_start = float(ctx.get("event_start_s", 1.0))
+            lead_speed = float(self._parameter_or_context("lead_speed_mps"))
+            event_start = float(self._parameter_or_context("event_start_s", 1.0))
             gap = float(params["lead_to_static_ttc_start_s"]) * lead_speed
             lead_x = lead_center(params["initial_clearance_m"])
             self._add_scripted("lead", ego_lane_id, lead_x, lead_speed, event="cutout",
                                destination_lane=("0", "1", adjacent_lane_id),
-                               lane_change_duration_s=float(ctx.get("lane_change_time_scale_s", 0.8)),
+                               lane_change_duration_s=float(self._parameter_or_context("lane_change_time_scale_s", 0.8)),
                                event_start_s=event_start)
             static_x = (lead_x + lead_speed * event_start + 5.0 / 2.0 +
                         gap + 5.0 / 2.0)
@@ -161,8 +165,8 @@ class FBRTUnifiedEnv(AbstractEnv):
                              heading=static_lane.heading_at(static_x), speed=0.0)
             self.actors["static"] = static
         elif template == "fbrt_lane_change_rear":
-            self._add_scripted("lead", ego_lane_id, lead_center(float(ctx["lead_clearance_m"])),
-                               float(ctx["lead_speed_mps"]), event="cruise")
+            self._add_scripted("lead", ego_lane_id, lead_center(float(self._parameter_or_context("lead_clearance_m"))),
+                               float(self._parameter_or_context("lead_speed_mps")), event="cruise")
             clearance = float(params["rear_clearance_m"])
             rear_speed = ego_speed + float(params["rear_closing_speed_mps"])
             rear_length = 5.0
@@ -174,77 +178,40 @@ class FBRTUnifiedEnv(AbstractEnv):
         elif template == "fbrt_lead_emergency_brake":
             self._add_scripted(
                 "lead", ego_lane_id, lead_center(params["initial_clearance_m"]),
-                float(ctx["lead_speed_mps"]), event="brake",
-                event_start_s=float(ctx["event_start_s"]),
+                float(self._parameter_or_context("lead_speed_mps")), event="brake",
+                event_start_s=float(self._parameter_or_context("event_start_s")),
                 deceleration_mps2=float(params["lead_deceleration_mps2"]))
         elif template == "fbrt_stop_hold_go":
             self._add_scripted(
                 "lead", ego_lane_id, lead_center(params["initial_clearance_m"]),
-                float(ctx["lead_speed_mps"]), event="stop_hold_go",
-                event_start_s=float(ctx["event_start_s"]),
+                float(self._parameter_or_context("lead_speed_mps")), event="stop_hold_go",
+                event_start_s=float(self._parameter_or_context("event_start_s")),
                 deceleration_mps2=float(params["lead_deceleration_mps2"]),
-                hold_s=float(ctx["hold_s"]),
-                restart_acceleration_mps2=float(ctx["restart_acceleration_mps2"]))
+                hold_s=float(self._parameter_or_context("hold_s")),
+                restart_acceleration_mps2=float(self._parameter_or_context("restart_acceleration_mps2")))
         elif template == "fbrt_cutout_release":
             self._add_scripted(
                 "lead", ego_lane_id, lead_center(params["initial_clearance_m"]),
-                float(ctx["lead_speed_mps"]), event="cutout",
+                float(self._parameter_or_context("lead_speed_mps")), event="cutout",
                 destination_lane=("0", "1", adjacent_lane_id),
-                lane_change_duration_s=float(ctx["lane_change_time_scale_s"]),
-                event_start_s=float(ctx["event_start_s"]))
+                lane_change_duration_s=float(self._parameter_or_context("lane_change_time_scale_s")),
+                event_start_s=float(self._parameter_or_context("event_start_s")))
             rear_x = (ego_x - ego_length / 2.0 -
                       float(params["adjacent_rear_clearance_m"]) - 2.5)
             self._add_scripted("rear", adjacent_lane_id, rear_x,
-                               float(ctx["adjacent_speed_mps"]), event="cruise")
+                               float(self._parameter_or_context("adjacent_speed_mps")), event="cruise")
         elif template == "fbrt_cutin_then_brake":
             lead_x = lead_center(params["initial_clearance_m"])
             self._add_scripted(
-                "lead", adjacent_lane_id, lead_x, float(ctx["lead_speed_mps"]), event="cutin_then_brake",
+                "lead", adjacent_lane_id, lead_x, float(self._parameter_or_context("lead_speed_mps")), event="cutin_then_brake",
                 destination_lane=self.ego_lane_index,
-                lane_change_duration_s=float(ctx["lane_change_time_scale_s"]),
-                event_start_s=float(ctx.get("event_start_s", 1.0)),
+                lane_change_duration_s=float(self._parameter_or_context("lane_change_time_scale_s")),
+                event_start_s=float(self._parameter_or_context("event_start_s", 1.0)),
                 deceleration_mps2=float(params["lead_deceleration_mps2"]),
-                brake_after_measured_merge_s=float(ctx["brake_after_measured_merge_s"]),
+                brake_after_measured_merge_s=float(self._parameter_or_context("brake_after_measured_merge_s")),
                 brake_duration_s=float(ctx["brake_duration_s"]),
                 speed_floor_mps=float(ctx["lead_speed_floor_mps"]),
             )
-        elif template in {"fbrt_interaction_front_rear", "fbrt_interaction_cutin_escape"}:
-            front_key = ("front_clearance_m" if template == "fbrt_interaction_front_rear"
-                         else "initial_front_clearance_m")
-            lead_speed = ego_speed - float(params["front_closing_speed_mps"])
-            front_x = lead_center(float(params[front_key]))
-            if template == "fbrt_interaction_front_rear":
-                self._add_scripted(
-                    "lead", ego_lane_id, front_x, lead_speed, event="brake_to_floor",
-                    event_start_s=float(ctx["front_event_start_s"]),
-                    deceleration_mps2=float(ctx["lead_deceleration_mps2"]),
-                    speed_floor_mps=float(ctx["lead_speed_floor_mps"]))
-                rear_event_start = (float(ctx["front_event_start_s"])
-                                    + float(params["rear_event_offset_s"]))
-            else:
-                self._add_scripted(
-                    "lead", adjacent_lane_id, front_x, lead_speed,
-                    event="cutin_then_brake", destination_lane=self.ego_lane_index,
-                    event_start_s=float(ctx["event_start_s"]),
-                    lane_change_duration_s=float(params["lane_change_time_scale_s"]),
-                    brake_after_measured_merge_s=float(params["brake_after_measured_merge_s"]),
-                    deceleration_mps2=float(ctx["lead_deceleration_mps2"]),
-                    brake_duration_s=float(ctx["brake_duration_s"]),
-                    speed_floor_mps=float(ctx["lead_speed_floor_mps"]))
-                rear_event_start = None
-            rear_x = ego_x - ego_length / 2.0 - float(params["rear_clearance_m"]) - 2.5
-            self._add_timed_idm(
-                "rear", adjacent_lane_id, rear_x,
-                ego_speed + float(params["rear_closing_speed_mps"]),
-                event_start_s=rear_event_start,
-                target_speed_increment_mps=float(ctx.get("rear_target_speed_increment_mps", 0)),
-                max_acceleration_mps2=float(ctx.get("rear_max_acceleration_mps2", 1.5)),
-                max_speed_mps=float(ctx.get("rear_max_speed_mps", 35)))
-            self._add_scripted(
-                "adjacent_front", adjacent_lane_id,
-                lead_center(float(params.get("adjacent_front_clearance_m",
-                                             ctx.get("adjacent_front_clearance_m", 80)))),
-                float(ctx["adjacent_front_speed_mps"]), event="cruise")
         else:
             raise ValueError(f"scenario template is not implemented in v2 runner: {template}")
         self.road.vehicles = list(self.actors.values())
@@ -263,16 +230,6 @@ class FBRTUnifiedEnv(AbstractEnv):
             target_lane_index=("0", "1", lane_id), target_speed=speed,
             event=event, destination_lane=destination_lane, **schedule,
         )
-        self.actors[role] = vehicle
-        return vehicle
-
-    def _add_timed_idm(self, role: str, lane_id: int, longitudinal_position: float,
-                       speed: float, **schedule) -> TimedIDMVehicle:
-        lane = self._lane(lane_id)
-        vehicle = TimedIDMVehicle(
-            self.road, lane.position(longitudinal_position, 0.0),
-            heading=lane.heading_at(longitudinal_position), speed=speed,
-            target_lane_index=("0", "1", lane_id), target_speed=speed, **schedule)
         self.actors[role] = vehicle
         return vehicle
 
@@ -399,7 +356,7 @@ class FBRTUnifiedEnv(AbstractEnv):
                 origin_lateral = origin_lane.local_coordinates(lead.position)[1]
                 if abs(origin_lateral) > float(ego.WIDTH):
                     self.event_times.setdefault("first_exit_s", stamp)
-            elif template in {"fbrt_cutin_then_brake", "fbrt_interaction_cutin_escape"} and abs(lateral) < float(ego.WIDTH):
+            elif template == "fbrt_cutin_then_brake" and abs(lateral) < float(ego.WIDTH):
                 self.event_times.setdefault("first_intrusion_s", stamp)
             if abs(lateral) < 0.2:
                 self.event_times.setdefault("lead_lane_change_complete_s", stamp)
@@ -436,12 +393,7 @@ class FBRTUnifiedEnv(AbstractEnv):
             "scenario_id": self.scenario["scenario_id"],
             "template_id": self.scenario["template_id"],
             "scenario": self.scenario,
-            "execution_contract_version": (
-                INTERACTION_EXECUTION_CONTRACT_V2
-                if self.scenario.get("parameterization_version") == "interaction_v2"
-                else INTERACTION_EXECUTION_CONTRACT
-                if self.scenario["template_id"].startswith("fbrt_interaction_")
-                else EXECUTION_CONTRACT),
+            "execution_contract_version": EXECUTION_CONTRACT,
             "completed": completed,
             "ego_collision": ego_collision,
             "inconclusive": background_only or not completed and not ego_collision,
@@ -451,11 +403,7 @@ class FBRTUnifiedEnv(AbstractEnv):
             "observed_maneuver_phase": self.observed_maneuver_phase,
             "interaction_family": self.scenario.get("interaction_family"),
             "actor_roles": list(self.actors),
-            "event_order": ("rear_before_front" if self._parameters().get(
-                "rear_event_offset_s", 0) < 0 else "rear_after_or_with_front")
-            if self.scenario["template_id"] == "fbrt_interaction_front_rear" else
-            "merge_then_brake" if self.scenario["template_id"] == "fbrt_interaction_cutin_escape"
-            else None,
+            "event_order": None,
             "min_ttc": None if not np.isfinite(self.min_ttc) else float(self.min_ttc),
             "min_clearance": None if not np.isfinite(self.min_clearance) else float(self.min_clearance),
             "scenario_parameters": self._parameters(),

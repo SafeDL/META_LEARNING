@@ -74,11 +74,7 @@ def _assert_new_contexts(rows: list[dict], root: Path) -> None:
         # The paired NL/PPO manifests share contexts within this frozen split.
         if SPLIT in manifest.parts:
             continue
-        try:
-            manifest.resolve().relative_to(root.resolve())
-        except ValueError:
-            pass
-        else:
+        if manifest.resolve().is_relative_to(root.resolve()):
             continue
         for line in manifest.read_text(encoding="utf-8").splitlines():
             if line.strip():

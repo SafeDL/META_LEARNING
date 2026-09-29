@@ -29,7 +29,6 @@ PARAMS = {
     "fbrt_moving_lead": ("initial_clearance_m", "lead_speed_mps"),
     "fbrt_cutin_then_brake": ("initial_clearance_m", "lead_deceleration_mps2"),
 }
-INTERACTION_TEMPLATES = {"fbrt_interaction_front_rear", "fbrt_interaction_cutin_escape"}
 LEGACY_ALIASES = {
     "lane_change_time_scale_s": "lane_change_duration_s",
     "lead_to_static_ttc_start_s": "static_target_ttc_s",
@@ -53,10 +52,10 @@ def _read_scenario(item: dict) -> dict:
 def active_values(scenario: dict) -> tuple[float, ...]:
     scenario = _read_scenario(scenario)
     template = scenario.get("template_id", "unknown")
-    if template in INTERACTION_TEMPLATES:
+    if scenario.get("parameterization_version") == "research_v3_mechanism":
         bounds = scenario.get("research_bounds", {})
         if not bounds or any(name not in scenario for name in bounds):
-            raise ValueError("interaction scenario is missing declared active parameters")
+            raise ValueError("v3 scenario is missing declared active parameters")
         return tuple((float(scenario[name]) - float(limits[0])) /
                      (float(limits[1]) - float(limits[0]))
                      for name, limits in bounds.items())
@@ -106,34 +105,12 @@ def semantic_key(record: dict) -> tuple[str, ...]:
         "fbrt_lane_change_rear": "ego_lane_change_rear_traffic",
         "fbrt_moving_lead": "same_lane_cruise",
         "fbrt_cutin_then_brake": "entering_lead_then_brake",
-        "fbrt_interaction_front_rear": "front_brake_rear_window",
-        "fbrt_interaction_cutin_escape": "cutin_brake_escape_window",
     }.get(template, "unknown_interaction")
     context_id = record.get("context_id") or scenario.get("context_id", "legacy_unspecified")
     base = (str(template), interaction, str(context_id))
     # Outcome-specific semantics are stored only after execution. Candidate
     # features and pre-query grouping never see these fields.
-    if template in INTERACTION_TEMPLATES and record.get("observed_maneuver_phase"):
-        return base + (str(record["observed_maneuver_phase"]),
-                       str(record.get("collision_partner_role") or "unknown"))
     return base
-
-
-def nominal_relation_features(scenario: dict) -> tuple[float, ...]:
-    """Only initial geometry and scheduled event order; never target rollout data."""
-    scenario = _read_scenario(scenario)
-    if scenario.get("template_id") not in INTERACTION_TEMPLATES:
-        return ()
-    front = float(scenario.get("front_clearance_m", scenario.get("initial_front_clearance_m")))
-    front_close = max(0.0, float(scenario["front_closing_speed_mps"]))
-    rear = float(scenario["rear_clearance_m"])
-    rear_close = max(0.0, float(scenario["rear_closing_speed_mps"]))
-    return (min(front / max(front_close, 1e-6), 100.0) / 100.0,
-            float(front_close <= 0),
-            min(rear / max(rear_close, 1e-6), 100.0) / 100.0,
-            float(rear_close <= 0),
-            float(scenario.get("rear_event_offset_s", 0.0)),
-            float(scenario.get("adjacent_front_clearance_m", 80.0)) / 80.0)
 
 
 def _segment_distance(point: np.ndarray, start: np.ndarray, end: np.ndarray) -> float:
@@ -290,13 +267,7 @@ class RBFDictionary:
         coordinates = list(self.coordinate_names)
         if len(coordinates) != self.feature_dim:
             coordinates = [f"coordinate_{index}" for index in range(self.feature_dim)]
-        relation_ids = (["front_nominal_ttc", "front_no_closing", "rear_nominal_ttc",
-                         "rear_no_closing", "rear_event_offset", "adjacent_front_space",
-                         "historical_margin_estimate", "historical_margin_missing",
-                         "historical_margin_uncertainty"]
-                        if self.template_id in INTERACTION_TEMPLATES else [])
         return ["bias", *(f"coord:{name}" for name in coordinates),
-                *(f"relation:{name}" for name in relation_ids),
                 *(f"failure:{item['center_id']}" for item in self.centers),
                 *(f"coverage:{item['center_id']}" for item in self.coverage_centers)]
 
@@ -307,8 +278,7 @@ class RBFDictionary:
                             "parameterization_version": self.parameterization_version,
                             "coordinate_names": list(self.coordinate_names),
                             "coordinate_bounds": [list(bounds) for bounds in self.coordinate_bounds],
-                            "historical_margin_support": stable_hash(self.historical_margin_samples)
-                            if self.template_id in INTERACTION_TEMPLATES else None,
+                            "historical_margin_support": None,
                             "feature_dim": self.feature_dim})
 
     def ordered_feature_specs(self) -> dict[str, dict]:
@@ -322,11 +292,6 @@ class RBFDictionary:
                                  "bounds": (list(self.coordinate_bounds[index])
                                             if index < len(self.coordinate_bounds) else None),
                                  "schema_identity": self.schema_identity}
-        for feature_id in self.ordered_feature_ids():
-            if feature_id.startswith("relation:"):
-                specs[feature_id] = {"kind": "nominal_initial_relation",
-                                     "name": feature_id.split(":", 1)[1],
-                                     "schema_identity": self.schema_identity}
         for prefix, items in (("failure", self.centers), ("coverage", self.coverage_centers)):
             for item in items:
                 specs[f"{prefix}:{item['center_id']}"] = {
@@ -346,21 +311,7 @@ class RBFDictionary:
             center = np.asarray(item["center"], dtype=float)
             bandwidth = float(item["bandwidth"])
             rbf.append(np.exp(-float(np.sum((z - center) ** 2)) / (2 * bandwidth**2)))
-        margin_features = []
-        if self.template_id in INTERACTION_TEMPLATES:
-            if self.historical_margin_samples:
-                points = np.asarray([row[0] for row in self.historical_margin_samples])
-                margins = np.asarray([row[1] for row in self.historical_margin_samples])
-                distances = np.linalg.norm(points - z, axis=1)
-                weights = np.exp(-0.5 * (distances / 0.3) ** 2)
-                estimate = float(np.dot(weights, margins) / max(float(weights.sum()), 1e-12))
-                uncertainty = float(1.0 - np.max(weights))
-                margin_features = [estimate, 0.0, uncertainty]
-            else:
-                margin_features = [0.0, 1.0, 1.0]
-        return np.asarray([1.0, *z.tolist(), *nominal_relation_features(scenario),
-                           *margin_features,
-                           *rbf], dtype=float)
+        return np.asarray([1.0, *z.tolist(), *rbf], dtype=float)
 
 
 def build_dictionaries(records: list[dict], cards: list[PatternCard],
@@ -421,8 +372,10 @@ def build_dictionaries(records: list[dict], cards: list[PatternCard],
         exemplar = next((item for item in candidate_records + records
                          if item.get("template_id") == template), {})
         exemplar_scenario = _read_scenario(exemplar)
+        variable_dimensions = (exemplar_scenario.get("parameterization_version") ==
+                               "research_v3_mechanism")
         coordinate_names = (tuple(exemplar_scenario.get("research_bounds", {}))
-                            if template in INTERACTION_TEMPLATES else tuple(PARAMS.get(template, ())))
+                            if variable_dimensions else tuple(PARAMS.get(template, ())))
         if exemplar_scenario.get("parameterization_version") == "research_v3_ego_initial":
             coordinate_names += tuple(
                 name for name in ("ego_initial_speed_mps", "ego_initial_lane_id",
@@ -435,7 +388,7 @@ def build_dictionaries(records: list[dict], cards: list[PatternCard],
                                       range(len(coordinate_names), feature_dim))
         coordinate_bounds = (tuple(tuple(float(value) for value in bound)
                                    for bound in exemplar_scenario["research_bounds"].values())
-                             if template in INTERACTION_TEMPLATES else
+                             if variable_dimensions else
                              tuple(tuple(float(value) for value in bound)
                                    for bound in bounds_for(template)[:min(feature_dim, 2)]))
         if len(coordinate_bounds) < feature_dim:
@@ -453,17 +406,7 @@ def build_dictionaries(records: list[dict], cards: list[PatternCard],
             parameterization_version=str(exemplar_scenario.get(
                 "parameterization_version", "legacy_unspecified")),
             coordinate_names=coordinate_names, coordinate_bounds=coordinate_bounds,
-            historical_margin_samples=tuple(
-                (active_values(_read_scenario(row)),
-                 1.0 / (1.0 + max(float(row["min_ttc"]), 0.0)))
-                for row in records
-                if template in INTERACTION_TEMPLATES and row.get("template_id") == template
-                and row.get("context_id", _read_scenario(row).get("context_id")) == context_id
-                and row.get("visibility") != "evaluator_only"
-                and is_usable_outcome(row) and row.get("min_ttc") is not None
-                and any(source.get("template_id") == template and
-                        source.get("ego_collision") is True and is_usable_outcome(source)
-                        for source in records)))
+            historical_margin_samples=())
     return dictionaries
 
 

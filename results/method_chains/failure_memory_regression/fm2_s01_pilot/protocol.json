@@ -1,0 +1,43 @@
+{
+  "family": "S01",
+  "target_build": "merge_blind06",
+  "historical_builds": [
+    "idm_ref",
+    "merge_brake2",
+    "slow_front_brake2",
+    "nl3_v0",
+    "nl3_v1",
+    "nl3_v2"
+  ],
+  "candidate_count": 128,
+  "budget": 50,
+  "budget_checkpoints": [
+    5,
+    10,
+    20,
+    30,
+    50
+  ],
+  "selector_repeats": 10,
+  "simulator_seed": 4179941,
+  "realization_rule": "same frozen seed and scenario for each build; one physical bank per build",
+  "source_manifest_sha256": "1099f297b42f6590c7c0ba9bbbfd2689baad3511e39eb9dc22edfd3ee6df0c61",
+  "manifest_sha256": "49d37600266b85e3a6ad2e0f0aecec34caef7271fba35f366697bbe023b7c6e8",
+  "scenario_schema_sha256": "34faa6a2d4aa53a5e2da4daf535c64714bf1d53d8106b7ee52281fef376ea545",
+  "runner_sha256": "bbf776ababe697416b3872bf2653595f27dc07a0e1262df850855b905fd7798b",
+  "selector_model_source_sha256": {
+    "fm2_dfe.py": "db9a09846a9d457048ef128c5fe71c5f7b601d5141a4580cae9f0e3e546ff186",
+    "fm2_features.py": "78bd52a1fc5f304dc26113616f647b7f84ac84d33ae876b2eddd3d3d6a965e56",
+    "fm2_memory.py": "b384f09410a553b14ca34b976dea096071fe2deefc0f751f8dcae90258910839",
+    "fm2_model.py": "c17b4292f9c9ba9f653d0be8fefbd6064aec5f8f9f68479049e8a5651c2e5b4b",
+    "fm2_s01_pilot.py": "260b2f9da01178a984881141b82b31088e8e7a99a77c1dda04df10102d1c8ef5",
+    "fm2_schema.py": "0d9d009aee658cb5dba663d1730a276ed64f1652fdb378c06118879ad40c995f",
+    "fm2_selector.py": "96e8f41b7b51b734156240246f1e8d4bb09ac2d68c5dbc1a59906f0169f37b0a",
+    "fm2_train.py": "5bc2c52d44daae93204516d0620423cef443e8ffb6964538938a792e42704d35"
+  },
+  "pilot_config_sha256": "93fd6921cdebb4e690dad2942e09fc8593a786f6f1862cb3e0a887c774e82529",
+  "checkpoint_selection_rule": "minimum held-out nl3_v2 pseudo-target validation loss; tie lower seed",
+  "status": "checkpoint_selected_before_target_measurement",
+  "selected_checkpoint_sha256": "942e8b2843beb9860fcbdea6667e705f496aaf79b9dc6611ac2b1d911c9ed57c",
+  "clear_advantage_rule": "FM2-FBT mean D@50 >= strongest baseline mean D@50 + 2, median D@50 higher, D@20 and D@30 no worse"
+}

@@ -21,8 +21,6 @@ from sut_algorithms.highway_env.ppo_ece import PPO_CHECKPOINT
 ROOT = Path("results/method_chains/failure_memory_regression/memory_v2")
 CONFIG_DIR = Path(__file__).resolve().parent / "configs"
 CATALOGUE = CONFIG_DIR / "scenario_catalogue.yaml"
-INTERACTION_CATALOGUE = CONFIG_DIR / "interaction_catalogue.yaml"
-INTERACTION_HOLDOUT_CATALOGUE = CONFIG_DIR / "interaction_holdout_catalogue.yaml"
 RECIPES = {
     "legacy_core_5": ["S01", "S02", "S03", "S04", "S05"],
     "highway_policy_compatible_5": ["S01", "S02", "S05", "S06", "S08"],
@@ -186,49 +184,8 @@ def _sample_parameters(item: dict, seed: int, sample_count: int = 16) -> list[di
                         json.dumps(item["fixed_context"], sort_keys=True).encode()).hexdigest()[:10]}
         if "context_id" in item:
             compiled["context_id"] = str(item["context_id"])
-        if "interaction_family" in item:
-            compiled["interaction_family"] = item["interaction_family"]
-            compiled["actor_roles"] = list(item["actor_roles"])
         output.append(compiled)
     return output
-
-
-def compile_interaction_scenarios(root: Path, seed: int = 4179901,
-                                  catalogue_path: Path = INTERACTION_CATALOGUE) -> list[dict]:
-    """Compile the independent A/B interaction contract without touching v2 banks."""
-    payload = yaml.safe_load(catalogue_path.read_text(encoding="utf-8"))
-    if payload.get("schema") not in {"fbrt_interaction_catalogue_v1",
-                                     "fbrt_interaction_catalogue_v2"}:
-        raise ValueError("unsupported interaction catalogue")
-    items = payload.get("scenarios", [])
-    if [item["id"] for item in items] != ["IA", "IB"]:
-        raise ValueError("interaction catalogue must contain exactly IA and IB")
-    count = int(payload.get("samples_per_preset", 16))
-    cases = [case for item in items for case in _sample_parameters(item, seed, count)]
-    errors = [(case["scenario_id"], error) for case in cases for error in _validate_geometry(case)]
-    if errors:
-        raise ValueError(f"interaction geometry validation failed: {errors}")
-    root.mkdir(parents=True, exist_ok=True)
-    protocol = {
-        "schema": payload["schema"],
-        "catalogue_sha256": hashlib.sha256(catalogue_path.read_bytes()).hexdigest(),
-        "seed": seed,
-        "candidate_count": len(cases),
-        "candidate_sha256": hashlib.sha256(json.dumps(
-            cases, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest(),
-        "target_outcome_filtering": False,
-    }
-    protocol_path = root / "protocol.json"
-    if protocol_path.is_file():
-        if json.loads(protocol_path.read_text(encoding="utf-8")) != protocol:
-            raise ValueError(f"interaction protocol changed after freezing: {root}")
-    else:
-        protocol_path.write_text(json.dumps(protocol, ensure_ascii=False, indent=2) + "\n",
-                                 encoding="utf-8")
-    (root / "scenario_cases.jsonl").write_text(
-        "".join(json.dumps(case, ensure_ascii=False, sort_keys=True) + "\n" for case in cases),
-        encoding="utf-8")
-    return cases
 
 
 def _validate_geometry(case: dict) -> list[str]:
@@ -244,12 +201,6 @@ def _validate_geometry(case: dict) -> list[str]:
     if template in {"fbrt_cutin", "fbrt_cutout_static", "fbrt_cutin_then_brake"}:
         if active["initial_clearance_m"] <= 0:
             errors.append("lead_initial_overlap")
-    if template in {"fbrt_interaction_front_rear", "fbrt_interaction_cutin_escape"}:
-        front = active.get("front_clearance_m", active.get("initial_front_clearance_m", 0))
-        if front <= 0 or active["rear_clearance_m"] <= 0:
-            errors.append("interaction_initial_overlap")
-        if float(context["ego_speed_mps"]) + active["rear_closing_speed_mps"] > 35:
-            errors.append("rear_speed_exceeds_limit")
     return errors
 
 

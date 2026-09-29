@@ -371,10 +371,7 @@ def run_selector(method: str, candidates: list[dict], history: list[dict],
             "trajectory_path": outcome.get("trajectory_path"),
             "interaction_family": scene.get("interaction_family") or _scenario(scene).get("interaction_family"),
             "actor_roles": outcome.get("actor_roles") or _scenario(scene).get("actor_roles", []),
-            "event_order": ("rear_before_front" if _scenario(scene).get("active_parameters", {}).get(
-                "rear_event_offset_s", 0) < 0 else "rear_after_or_with_front")
-            if scene["template_id"] == "fbrt_interaction_front_rear" else
-            "merge_then_brake" if scene["template_id"] == "fbrt_interaction_cutin_escape" else None,
+            "event_order": None,
             "observed_maneuver_phase": outcome.get("observed_maneuver_phase"),
         }
         if (prequery_weight > 0 and is_usable_outcome(observed)
@@ -461,16 +458,6 @@ def run_selector(method: str, candidates: list[dict], history: list[dict],
             "ucb_reward_after": ucb_reward[scene["template_id"]]
             if method == "HistoryRank-UCB-v2" else None,
         }
-        if scene["template_id"].startswith("fbrt_interaction_"):
-            dictionary = (dictionaries[scene["template_id"]]
-                          if source_ids[scene["template_id"]] else
-                          target_dictionaries[scene["template_id"]])
-            feature_ids = dictionary.ordered_feature_ids()
-            feature_values = dictionary.features(_scenario(scene))
-            query["historical_margin_prediction_before_query"] = {
-                name: float(feature_values[feature_ids.index("relation:" + name)])
-                for name in ("historical_margin_estimate", "historical_margin_missing",
-                             "historical_margin_uncertainty")}
         selected.append(scene)
         queries.append(query)
         available_ids.remove(scene["scenario_id"])

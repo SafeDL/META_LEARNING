@@ -473,6 +473,20 @@ def test_role_gated_generalization_confirmation_covers_fresh_supported_families(
     assert not (contexts(rows) & contexts(replication))
 
 
+def test_single_context_development_uses_one_full_grid_per_supported_family():
+    families = ("S01", "S02", "S03", "S04", "S05", "S06", "S08", "S09")
+    rows = compile_manifest(
+        "single_context_grid_development", resolution=11, families=families)
+
+    assert len(rows) == len(families) * 11 * 11
+    for family in families:
+        local = [row for row in rows if row["catalogue_id"] == family]
+        assert len(local) == 121
+        assert len({row["context_id"] for row in local}) == 1
+        assert {tuple(row["grid_index"]) for row in local} == {
+            (i, j) for i in range(11) for j in range(11)}
+
+
 def test_role_gated_improvement_probes_use_parent_collision_partner_only():
     cases = compile_manifest("confirmation", resolution=3)[:18]
     parent = {case["scenario_id"]: {**_outcome("old", case, True),

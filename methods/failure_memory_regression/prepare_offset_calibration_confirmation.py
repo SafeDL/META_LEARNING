@@ -68,11 +68,7 @@ def _assert_new_contexts(rows: list[dict], output_root: Path) -> None:
     for manifest in base.rglob("scenario_manifest.jsonl"):
         if SPLIT in manifest.parts:
             continue
-        try:
-            manifest.resolve().relative_to(output_root.resolve())
-        except ValueError:
-            pass
-        else:
+        if manifest.resolve().is_relative_to(output_root.resolve()):
             continue
         for line in manifest.read_text(encoding="utf-8").splitlines():
             if line.strip():

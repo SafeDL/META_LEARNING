@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-from collections import deque
-
-from highway_env.vehicle.behavior import IDMVehicle
 from highway_env.vehicle.controller import ControlledVehicle
 from highway_env.vehicle.kinematics import Vehicle
 
@@ -78,14 +75,6 @@ class ScriptedVehicle(ControlledVehicle):
                 else:
                     phase = "HOLD_STOP"
                     acceleration = 0.0
-        elif self.event == "brake_to_floor" and self.elapsed >= self.event_start_s:
-            if self.speed > self.speed_floor_mps + 0.02:
-                phase = "BRAKE_TO_FLOOR"
-                acceleration = -min(self.deceleration_mps2,
-                                    (self.speed - self.speed_floor_mps) / 0.05)
-            else:
-                phase = "FLOOR_CRUISE"
-                acceleration = self.speed_control(self.speed_floor_mps)
         if phase != self._last_phase:
             self.event_log.append({"time_s": round(self.elapsed, 3), "phase": phase})
             self._last_phase = phase
@@ -97,54 +86,3 @@ class ScriptedVehicle(ControlledVehicle):
     def step(self, dt: float) -> None:
         self.elapsed += dt
         super().step(dt)
-
-
-class TimedIDMVehicle(IDMVehicle):
-    """Lane-fixed IDM follower with a bounded target-speed event and observed history."""
-
-    def __init__(self, *args, event_start_s: float | None = None,
-                 target_speed_increment_mps: float = 0.0,
-                 max_acceleration_mps2: float = 1.5,
-                 max_speed_mps: float = 35.0, **kwargs):
-        kwargs["enable_lane_change"] = False
-        super().__init__(*args, **kwargs)
-        self.event_start_s = event_start_s
-        self.target_speed_increment_mps = target_speed_increment_mps
-        self.max_acceleration_mps2 = max_acceleration_mps2
-        self.max_speed_mps = max_speed_mps
-        self.elapsed = 0.0
-        self.event_log: list[dict] = []
-        self.state_history = deque(maxlen=64)
-        self._remember()
-        self._event_fired = False
-
-    def _remember(self) -> None:
-        self.state_history.append((self.elapsed, self.position.copy(),
-                                   float(self.heading), float(self.speed),
-                                   float(self.target_speed)))
-
-    def observed_snapshot(self, age_s: float) -> Vehicle:
-        threshold = self.elapsed - age_s
-        observed = [row for row in self.state_history if row[0] <= threshold + 1e-9]
-        _, position, heading, speed, target_speed = observed[-1] if observed else self.state_history[0]
-        proxy = Vehicle(self.road, position.copy(), heading=heading, speed=speed)
-        proxy.target_speed = target_speed
-        return proxy
-
-    def act(self, action=None) -> None:
-        if (not self._event_fired and self.event_start_s is not None
-                and self.elapsed >= self.event_start_s - 1e-9):
-            self.target_speed = min(self.max_speed_mps,
-                                    self.target_speed + self.target_speed_increment_mps)
-            self._event_fired = True
-            self.event_log.append({"time_s": round(self.elapsed, 3),
-                                   "phase": "TARGET_SPEED_INCREASE"})
-        super().act(action)
-        if isinstance(self.action, dict):
-            self.action["acceleration"] = min(float(self.action["acceleration"]),
-                                               self.max_acceleration_mps2)
-
-    def step(self, dt: float) -> None:
-        super().step(dt)
-        self.elapsed += dt
-        self._remember()

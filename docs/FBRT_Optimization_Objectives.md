@@ -15,6 +15,8 @@
 > Stage five confirmation (2026-09-28): NL and PPO each completed 1,089 scenes and 3,267 paired physical executions. Regression-only context bootstrap did not yield a consistent bidirectional advantage: NL regression recall rose over unbootstrapped calibration, but the method lost to role-gated or directed-calibration controls on other transitions. All Holm-adjusted p-values were 1.0 across three family clusters. Full counts: results/method_chains/failure_memory_regression/regression_bootstrap_confirmation/findings.md.
 > Stage six replication (2026-09-28): the same predeclared selector and controls were frozen on three fresh fixed contexts per supported family. NL/PPO source, manifest, protocol, and checkpoint hash audits passed; both 3,267-episode physical banks completed with zero new executions during replay. The primary found 45 changes at D@20 across six active directions, below coordinate role-gated search's 54; it won only on PPO V1→V2 regression among those direct comparisons. Three-family tests are descriptive and all Holm-adjusted p-values are 1.0. Post-confirmation exploratory screening found no clear aggregate edge-feature gain. This replication does not establish superiority; see `results/method_chains/failure_memory_regression/superiority_replication_confirmation/findings.md`.
 > **Stage seven candidate confirmation (2026-09-28)**: exploratory stage-five/six replays nominated `coordinate_role_gated` for fresh-family testing; that selection is post hoc and the prior banks are development evidence only. The protocol froze this candidate against static, coordinate, directed-bootstrap, and directed-edge role-gated controls across eight executable families × three new contexts × 11×11 scenes for both NL and PPO. Each chain requires 8,712 physical episodes. Hash and overlap audits passed. By explicit user request, physical measurement is paused before evaluation: NL has 4,153 valid rows (2,904 V0, 1,249 V1), PPO 3,951 (2,904 V0, 1,047 V1); neither has V2 results or selector comparisons. Resuming the frozen measurement command reuses cached episodes.
+
+> **场景参数空间修订**：此前准备的单上下文 11×11 二维开发清单（8 族、968 个具体场景）保留为原方案记录，不据此声称各族本来只有两个有效维度。下一轮开发采用按场景机理定义的 3–5 维可执行空间，按维数取 1,024／2,048／4,096 个 Sobol 候选，8 族共 19,456 个，尚无物理执行。其余 6 族也逐一定义了候选轴，但在执行器支持前不进入物理银行。完整设计、取值依据与限制见 `docs/FBRT_Scenario_Parameter_Space_V3.md`；此前冻结且部分测量的三上下文阶段七清单保持原有记录。
 > **覆盖关系**：本文件是后续研究的统一执行依据，并覆盖 V6 中“规则控制器仅作为机制对照”的安排。V4/V5 仅作为历史记录。V5 的 CARLA/TransFuser 路线、仅将 Unsafe→Safe 用于事后统计的限制，以及与之对应的成本计划，均不再执行。旧实验结果不得改写为新方案结果。
 
 ## 0. 固定六项决策
@@ -351,21 +353,23 @@ V1 可适应一组新的切入时序/相对速度条件；V2 可适应切入后�
 
 ## 6. 场景组织与完整结果库
 
-### 6.1 三个主场景族
+### 6.1 原首版三个主场景族
 
-| 显示名 | 规范语义 ID | 现有实现 ID | 二维参数建议 |
+| 显示名 | 规范语义 ID | 现有实现 ID | 原二维参数建议 |
 |---|---|---|---|
 | 邻车切入 | `scn_cut_in` | `fbrt_cutin` | 初始间隙×换道时间尺度 |
 | 前车切出显露静止目标 | `scn_cut_out_static` | `fbrt_cutout_static` | 初始间隙×现有名义静止目标时间参数 |
 | 邻车切入后制动 | `scn_cut_in_brake` | `fbrt_cutin_then_brake` | 初始间隙×实测并线后制动时间差 |
 
-S08 当前时间差从 fixed_context 读取；将其释放为网格参数需要实际代码与 schema 修改，不是改名即完成。[C05]
+原 `research_v2` 中 S08 的并线后制动时间差从 `fixed_context` 读取，原二维建议未实施。V3 已将该时间差接入活动参数，并与间隙、切入车速度、换道时间尺度和减速度组成五维开发候选；旧冻结清单仍按原值执行。[C05]
 
 S02 的状态输入可能提前观测到静止目标，不能称视觉遮挡感知实验。必须检查实际观测和事件日志，按其真实作用解释为交互/避碰条件。规则模型、状态 PPO、灰度 PPO的物理 manifest 可保持相同，但三者观测语义不同，分层报告。
 
-每类主场景设置若干实际不同的固定上下文，如相对速度、避让通道和事件时序。原 S03/S04 等停车场景暂不进入主 PPO 套件，先依据动作能力决定是否单列；S10/S12 不在首版继续扩展。IA/IB 的 age080 历史阴性结果保留，不继续调大延迟直到得到碰撞。
+每类主场景设置若干实际不同的固定上下文，如相对速度、避让通道和事件时序。原 S03/S04 等停车场景暂不进入主 PPO 套件，先依据动作能力决定是否单列；S10/S12 不在首版继续扩展。IA/IB 交互支线已从活动代码退役，其 age080 历史阴性结果仅保留为来源记录。
 
 ### 6.2 资格与空间冻结
+
+已准备的单上下文二维开发清单固定 8 个可执行场景族，每族 121 个场景、总计 968 个；这是原方案的独立记录。后续开发候选改按 `FBRT_Scenario_Parameter_Space_V3.md` 的场景专属维度取样，不能把 V3 参数空间回写到旧清单。NL 与 PPO 复用相同物理参数组合并分别建立三版本响应库。新增上下文应在新的实验清单中预先确定，不依据单上下文结果筛选有利条件。
 
 资格基于物理有效性、接口能力、事件定义与研究范围。在目标执行前冻结。
 
@@ -473,7 +477,7 @@ $$
 
 **这是新的第一正式阶段，不需要 GPU 训练。** 先在 3 个主场景族的冻结二维网格上完整执行 NL-V0/V1/V2，建立第一套双向 full bank；用它完成 Random、静态风险、静态边界、普通残差与本文有向边界模型的全部离线回放和消融。
 
-若采用与主规划相同的 `3 场景族 × 3 上下文 × 11×11` 网格，则 1089 个具体场景 × 3 个非学习型版本 = **3267 次基础执行**。这是一个上限式规模示例；正式网格在查看确认结果前冻结。非学习型链通过后，PPO 可以复用同一物理 manifest，从而直接比较“规则/参数更新”与“权重更新”下的测试难度。
+原单上下文二维开发清单为 `8 场景族 × 1 上下文 × 11×11`，即 **968 个具体场景 × 3 个非学习型版本 = 2904 次基础执行**；该数字不适用于新的变维 V3 候选。V3 八族共 19,456 个候选；若全部资格和终点检查通过并冻结，每条三版本链对应 58,368 次基础执行。PPO 可以复用相同物理参数清单，但需要另行执行其三个版本。
 
 Phase NL 的成功标准不是要求两个方向都人为出现，而是：协议可复现、版本变化来自冻结的正常更新、至少有足够有效变化可评价时能公平比较方法；若某方向真值为空则按 NA 规则报告。
 
@@ -485,9 +489,9 @@ Phase NL 的成功标准不是要求两个方向都人为出现，而是：协�
 
 ### 8.2 主 PPO 配对库规划
 
-示例：3 场景族×3 物理上下文×11×11 网格=1089 个场景。V0/V1/V2 各执行一次，共 3267 次基础执行。
+原单上下文二维清单：8 场景族×1 物理上下文×11×11 网格=968 个场景。新的变维 V3 仍是开发候选，尚无 PPO 物理测量；如果资格检查后全部 19,456 个候选均被预先冻结，PPO V0/V1/V2 各执行一次将是 58,368 次基础执行。
 
-两条增量训练链共享 V0 时，执行版本为 V0、V1a、V2a、V1b、V2b，共 5445 次基础执行；共享 V0 的相关性必须明确。固定 r 次物理重复则乘 r，另计开发/重跑。
+两条增量训练链共享 V0 时，执行版本为 V0、V1a、V2a、V1b、V2b，基础执行数等于冻结具体场景数乘 5；若采用全部 19,456 个 V3 候选则为 97,280 次。共享 V0 的相关性必须明确。固定 r 次物理重复则乘 r，另计开发/重跑。
 
 这两种是预算层级，不是先完成小样本、看显著性再决定扩样的规则。正式采用哪一层在查看确认目标结果前确定。
 
