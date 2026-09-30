@@ -6,6 +6,6 @@
 | --- | --- |
 | [`highway_replications/`](highway_replications/README.md) | Highway-env 论文复现的共享响应库、各方法结果、统一评价和 SUT 筛选证据 |
 | [`metadrive/`](metadrive/README.md) | MetaDrive Risk Mining 与 Formal Teacher 的源数据和评价记录；独立于当前 FBRT |
-| `method_chains/` | FBRT、CoRe-Mine 及其他组合方法的结果；按方法分目录保存 |
+| [`method_chains/`](method_chains/README.md) | 当前 RAS-FRT 的 A、D 两库和九方法比较 |
 
-当前 FBRT 的六方法冻结银行离线比较见 [`algorithm_comparison.md`](method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)，后车状态滞后 800 ms 交互留出验证见 [`validation_report.md`](method_chains/failure_memory_regression/interaction_holdout_age080/validation_report.md)。`method_chains/` 作为历史结果路径保留，以便冻结清单中的路径和哈希仍可核对；活动源码位于 `methods/`。
+当前论文的 A、D 数据及九方法 200 次预算比较见 [`ras_frt/`](method_chains/ras_frt/README.md)。旧方法链结果已移至 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)。

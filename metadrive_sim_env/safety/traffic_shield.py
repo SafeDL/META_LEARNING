@@ -179,8 +179,6 @@ class TrafficActionShield:
                 action[0] = np.clip(action[0], -steering_limit, steering_limit)
                 reasons.append("lateral_acceleration")
             available_acceleration, available_deceleration = self._longitudinal_capabilities()
-            acceleration = min(available_acceleration, self.max_acceleration_mps2)
-            deceleration = min(available_deceleration, self.max_deceleration_mps2)
             requested_acceleration = self._command_acceleration(float(action[1]),
                                                                 available_acceleration,
                                                                 available_deceleration)

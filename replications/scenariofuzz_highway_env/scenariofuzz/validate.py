@@ -7,7 +7,6 @@ import csv
 import json
 from pathlib import Path
 
-import numpy as np
 from PIL import Image
 
 from .sem_training import load_source_history

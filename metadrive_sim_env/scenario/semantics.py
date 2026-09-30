@@ -120,7 +120,6 @@ class ScenarioActionAdapter:
         """Advance the Logical onset independently of learned path shape."""
         self.state.maneuver_progress = self._route_progress()
         if not self.state.maneuver_latched:
-            parameters = self.episode.applied_scenario.logical_parameters
             projection = self.contract.spine.projection(
                 self.episode.adversary.position,
                 self.episode.adversary.heading_theta,

@@ -1,30 +1,9 @@
-# 方法链
+# 方法
 
-`methods/` 保存组合方法及其独立研究链。当前主线是 FBRT；其他方法链和
-CoRe-Mine 历史实验各自保留，不与 FBRT 的数据或结果合并。正式结果统一位于
-`results/method_chains/`。
+当前论文方法和九种选例器位于 [`ras_frt/`](ras_frt/README.md)。历史库 A 与候选库 D 的正式数据和比较结果位于 [`results/method_chains/ras_frt/`](../results/method_chains/ras_frt/README.md)。
 
-| 目录 | 当前定位 |
+| 目录 | 保留原因 |
 | --- | --- |
-| `failure_memory_regression/` | 当前 FBRT 回归测试主链；使用历史失败边界为目标版本挑选测试场景 |
-| `detour_fusion/` | Risk Mining 与 DETOUR 的独立融合研究链 |
-| `function_conditioned_routing/` | 功能条件化历史迁移研究及双基准验证 |
-| `function_posterior_search/` | 经独立物理确认的自适应功能后验搜索 |
-| `core_mine/` | CoRe-Mine 历史实验；FBRT 复用其中 IDM 参考配置与受控修改实现 |
+| [`ras_frt/`](ras_frt/README.md) | A→D 实验、RAS-FRT、RAS-FRT-UQ 和全部对比方法 |
 
-FBRT 的职责、实验设置和运行命令见
-[`failure_memory_regression/README.md`](failure_memory_regression/README.md)；六方法冻结银行离线比较见
-[`algorithm_comparison.md`](../results/method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)。
-标准对齐结果和 `memory_v2` 数据库保留作基准及回放输入。
-当前 S01 四维场景的全量真值开发试验见
-[`S01 实验报告`](../results/method_chains/failure_memory_regression/fm2_s01_full_history/report.md)；
-六个历史构建与目标构建各测完 2,048 个相同场景，方法各限 50 次目标查询。
-
-FBRT 的物理运行器位于 `highway_sim_env/`，被测控制器位于
-`sut_algorithms/highway_env/`，选择器和数据契约位于
-`failure_memory_regression/`；三者共享同一 `BuildSpec`，不复制仿真环境或控制器。
-各方法链自行拥有实验入口和专属基准；
-功能后验搜索的 SUT 与场景因子设计集中在其 `benchmark.py`，避免复制控制器、
-场景生成器或评价条件。
-
-每个目录至多保留一个 `README.md`，在该文件中集中记录职责、入口和结果位置。已由完整对齐实验确认无效、且没有成为研究主张的中间方法不在本目录保留。
+其他旧方法实现已按[归档清单](../docs/RAS_FRT_Cleanup_Manifest.md)移至 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)。共享仿真器、构建标识和 S01 参数规则位于 `highway_sim_env/`，被测控制器位于 `sut_algorithms/highway_env/`。

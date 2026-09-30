@@ -1,5 +1,7 @@
 # FBRT 功能场景参数空间 V3.1（开发候选；FM²-FBT 每族 B=50）
 
+> 历史候选方案。旧实现与结果现位于 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)；文中的原路径保留当时写法。当前 A→D 实验见 [`RAS_FRT_Technical_Design.md`](RAS_FRT_Technical_Design.md)。
+
 > 修订日期：2026-09-28。  
 > 修订范围：保留用户V3附件的14类场景名称、数值范围、维数及“已接线／候选／延后”声明；增加变维编码、证据记忆、Sobol局部搜索与B=50协议。**没有修改旧冻结银行，也没有产生新仿真结果。**  
 > 来源区分：场景轴和接线状态按本地配置、执行器及测试核对；早期远端快照没有包含这些尚未提交的文件。候选清单已生成，但尚无目标 SUT 物理响应。  

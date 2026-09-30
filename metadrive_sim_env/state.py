@@ -151,11 +151,9 @@ class PhysicalStateExtractor:
             active_beta_late = reference.active_beta_late
             blend_progress = reference.blend_progress
             replan_due = float(reference.replan_due)
-            parameters = schedule.episode.applied_scenario.logical_parameters
             projection = schedule.contract.spine.projection(adversary_position, heading)
             onset_remaining = max(0.0, schedule.contract.start_s_m - projection.s_m) / max(
                 adversary_speed, 0.25)
-            projection = schedule.contract.spine.projection(adversary_position, heading)
             corridor_margin = max(
                 0.0,
                 min(

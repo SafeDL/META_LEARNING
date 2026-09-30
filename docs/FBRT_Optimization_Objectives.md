@@ -1,5 +1,7 @@
 # FBRT 统一研究方案 V6.1：highway-env 中的分阶段双向版本变化测试
 
+> 历史研究方案。旧方法实现与测试结果现位于 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)；下文保留当时的冻结路径与结论。当前论文方案见 [`RAS_FRT_Technical_Design.md`](RAS_FRT_Technical_Design.md)。
+
 > GPU环境在系统的： conda activate metadrive
 > 原始方案快照的现有实现为 `FBRT-Memory-Exploit-v3`；当时的双向模式、持续更新训练接口及边界差异模型均待实现、待验证。
 > 原始方案快照仅核对历史方案、项目源码和官方接口文档，尚未执行新增驾驶训练、物理仿真或完整回放实验。

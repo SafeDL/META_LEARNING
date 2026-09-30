@@ -16,7 +16,7 @@ from highway_sim_env.envs.fbrt_metrics import (
     longitudinal_bumper_clearance, time_to_collision,
 )
 from highway_sim_env.envs.fbrt_scripted_vehicle import ScriptedVehicle
-from methods.failure_memory_regression.schema import BuildSpec, stable_hash
+from highway_sim_env.build_spec import BuildSpec, stable_hash
 from sut_algorithms.highway_env.fbrt_adapters import adapter_for
 from sut_algorithms.highway_env.registry import build_spec_factory
 

@@ -1,36 +1,44 @@
 # META_LEARNING
 
-面向黑盒驾驶控制器测试的研究代码库。当前方法主线是基于历史失效边界的
-功能场景回归测试（FBRT），运行在 Highway-env 上；MetaDrive 的 Risk Mining /
-Formal Teacher 实验、其他方法链和论文复现作为独立研究记录保留，不混入 FBRT 结果。
+面向黑盒驾驶控制器测试的研究代码库。当前论文主线是 RAS-FRT：使用历史库 A 中五组
+同模型不同参数的 IDM 响应，在 Highway-env 的新场景库 D 上寻找固定 FVDM 的碰撞场景。
+九种选例方法共享 D 的候选场景和 200 次查询预算。
 
 | 目录 | 用途 |
 | --- | --- |
 | `metadrive_sim_env/` | MetaDrive 仿真底座与 Risk Mining / Formal Teacher 历史实现 |
-| `highway_sim_env/` | Highway-env 共享仿真底座及 FBRT 功能场景实现 |
-| `sut_algorithms/` | 两套仿真器共用的被测驾驶算法与控制器 registry |
-| `archives/` | 冻结的 PEARL 与 SAC 历史基线 |
+| [`highway_sim_env/`](highway_sim_env/README.md) | Highway-env 共享仿真底座、构建标识与 S01 场景参数规则 |
+| [`sut_algorithms/`](sut_algorithms/README.md) | 两套仿真器共用的被测驾驶算法与控制器 registry |
+| [`archives/`](archives/README.md) | 历史基线、退出活动目录的研究链及其结果 |
 | `docs/` | 方法、实验设计与执行说明 |
 | `results/metadrive/` | MetaDrive Risk Mining / Formal Teacher 实验工件 |
 | `replications/` | AdaTE、DETOUR、FST、ScenarioFuzz 的独立 highway-env 复现与统一评测 |
 | `results/highway_replications/` | 共享响应库、各方法唯一正式结果与跨方法评价 |
-| `results/method_chains/` | 组合方法的正式结果根目录，按方法分开保存 |
-| `methods/detour_fusion/` | Risk Mining 与 DETOUR 的独立融合研究链 |
-| `methods/function_conditioned_routing/` | 功能条件化历史迁移方法及危险场景回放 |
-| `methods/function_posterior_search/` | 经独立物理确认的自适应功能后验搜索 |
-| `methods/failure_memory_regression/` | 当前 FBRT 回归测试主链：历史失效边界、预算选例与结果分析 |
-| `methods/core_mine/` | CoRe-Mine 历史实验；FBRT 复用其中的 IDM 基线和受控修改实现 |
+| [`results/method_chains/`](results/method_chains/README.md) | 当前 RAS-FRT 的 A、D 数据和九方法结果 |
+| [`methods/ras_frt/`](methods/ras_frt/README.md) | 当前 RAS-FRT 方法、九种选择器及 A→D 实验入口 |
 
-## 复现与验证
+## 当前实验与验证
 
-使用根目录的 `environment.yml` 创建 `metadrive` Conda 环境后，在仓库根目录运行：
+使用根目录的 `environment.yml` 创建 `metadrive` Conda 环境后，在仓库根目录重放 D 上的九方法比较。此命令读取已有的 A、D 数据；D 的 2,048 次物理执行已提前完成，200 次是每种方法可见的目标标签预算。
+
+```powershell
+conda run -n metadrive python -m methods.ras_frt.d_budget_200_experiment
+```
+
+RAS-FRT 的模块职责与结果索引见[方法说明](methods/ras_frt/README.md)和[A、D 数据说明](results/method_chains/ras_frt/README.md)。
+
+运行活动代码测试：
 
 ```powershell
 $env:PYTHONDONTWRITEBYTECODE = "1"
 conda run -n metadrive python -m pytest -q -p no:cacheprovider
 ```
 
-重新构建 Highway-env 的基础候选库与响应库：
+默认测试由 `pytest.ini` 排除归档目录；归档测试可显式指定路径单独运行。
+
+## 独立复现链
+
+以下命令重新构建 Highway-env 论文复现链的基础候选库与响应库；它们不是 RAS-FRT 的 A、D 数据生成入口。
 
 ```powershell
 conda run -n metadrive python -m highway_sim_env.data.generate_anchor_bank
@@ -44,36 +52,9 @@ conda run -n metadrive python -m highway_sim_env.data.response_bank
 [`replications/README.md`](replications/README.md)。各方法的论文对齐范围和偏差
 分别记录在其包内 README 与 `results/highway_replications/` 的最终报告中。
 
-方法链的当前主线、历史分支和依赖关系见
-[`methods/README.md`](methods/README.md)。
-
 Highway-env 驾驶算法的接入、筛选和风险差异审计位于
 `replications/highway_sut_selection/`，正式结果位于
 `results/highway_replications/sut_selection/`。
 
-其他方法链的范围和依赖边界见
-[`methods/detour_fusion/README.md`](methods/detour_fusion/README.md)。
-
-功能条件化历史迁移方法及五类危险场景 GIF 见
-[`methods/function_conditioned_routing/README.md`](methods/function_conditioned_routing/README.md)。
-
-独立确认的功能后验搜索见
-[`methods/function_posterior_search/README.md`](methods/function_posterior_search/README.md)。
-
-当前 S01 四维场景的全量真值开发试验见
-[`S01 实验报告`](results/method_chains/failure_memory_regression/fm2_s01_full_history/report.md)：
-六个历史构建与目标 `merge_blind06` 各测完同一份 2,048 场景，
-选择方法各使用 50 次目标查询。FM²-FBT 在该库上未超过最强基线。
-
-此前 FBRT 的六方法冻结银行离线比较见
-[`算法比较`](results/method_chains/failure_memory_regression/repair_exploit_v3_fullbank/algorithm_comparison.md)
-和 [`修复回放报告`](results/method_chains/failure_memory_regression/repair_exploit_v3_fullbank/repair_report.md)。
-此前的标准对齐实验报告仍保留为基准结果：
-[`standard_aligned/core/report.md`](results/method_chains/failure_memory_regression/standard_aligned/core/report.md)。
-重放现有缓存且不新增仿真的命令为
-`conda run -n metadrive python -m methods.failure_memory_regression.replay --offline-only --paired-repeats 10 --output results/method_chains/failure_memory_regression/memory_exploit`。
-方法包的文件职责、实验范围和入口见
-[`methods/failure_memory_regression/README.md`](methods/failure_memory_regression/README.md)。
-
-CoRe-Mine 的历史实验及其保留原因见
-[`methods/core_mine/README.md`](methods/core_mine/README.md)。
+旧方法实现与结果的归档位置和原路径映射见
+[`archives/retired_research_chains/README.md`](archives/retired_research_chains/README.md)。

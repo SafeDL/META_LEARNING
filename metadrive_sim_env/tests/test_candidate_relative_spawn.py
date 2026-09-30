@@ -14,7 +14,6 @@ def test_candidate_relative_spawn_round_trips_the_outer_distance_controls() -> N
         row for row in load_taskbook("metadrive_sim_env/configs/taskbook.json")
         if row.task_id == "roundabout-g04-fast_small_gap-interaction_core"
     )
-    space = mvr_parameter_spaces()[task.functional_scenario]
     action = NormalizedScenarioAction(2, (0.1, 0.2, 0.0, 0.0, 0.0))
     executor = ScenarioExecutor(load_adapters(), mvr_parameter_spaces())
     episode = executor.reset(task, action)

@@ -1,5 +1,7 @@
 # Codex 执行提示词：FM²-FBT 单场景 S01 首轮实现与验证
 
+> 历史执行提示词。所述旧方法实现与测试结果已移至 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)；文中的旧相对路径保留当时的协议写法。当前论文方案见 [`RAS_FRT_Technical_Design.md`](RAS_FRT_Technical_Design.md)。
+
 > 执行约定更新：S01 使用完整 2,048 点固定候选库；六个历史 source 与目标 SUT 均在该库全量物理执行。方法探索新目标时每次只可查询 50 点。本轮训练和选择器各先运行一个固定随机种子。
 
 ## 0. 你必须先阅读的两份规格

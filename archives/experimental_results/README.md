@@ -9,4 +9,4 @@
 | `method_chains/core_mine/studies/evidence_gate_invalidated/` | 首轮候选集不匹配，结论无效；已由修正实验取代 |
 | `method_chains/core_mine/studies/corrected_*_pilot/`、`corrected_pilot/` | 后续正式实验之前的场景试跑 |
 
-当前 FBRT 结果索引见 [`results/method_chains/failure_memory_regression/README.md`](../../results/method_chains/failure_memory_regression/README.md)。
+旧 FBRT 的正式结果及实现现位于 [`retired_research_chains/`](../retired_research_chains/README.md)。当前 RAS-FRT 结果见 [`results/method_chains/ras_frt/`](../../results/method_chains/ras_frt/README.md)。

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from highway_env.vehicle.controller import MDPVehicle
 
-from methods.failure_memory_regression.schema import BuildSpec
+from highway_sim_env.build_spec import BuildSpec
 from sut_algorithms.highway_env.idm_profiles import SUTProfile, create_profiled_vehicle
 from sut_algorithms.highway_env.mcts_cv import MCTSCVPolicy
 from sut_algorithms.highway_env.ppo_ece import PPO_CHECKPOINT, PPOPolicy
@@ -33,7 +33,7 @@ class PolicyAdapter:
                                                           "controller": "IDM"}))
             fault = (self.spec.mutation or {}).get("legacy_fault")
             if fault:
-                from methods.core_mine.local_fault_idm import LocalFault, LocalFaultIDMVehicle
+                from sut_algorithms.highway_env.local_fault_idm import LocalFault, LocalFaultIDMVehicle
                 return LocalFaultIDMVehicle(env.road, position, profile=profile,
                                             fault=LocalFault(fault), **common)
             return create_profiled_vehicle(env.road, position, profile=profile, **common)

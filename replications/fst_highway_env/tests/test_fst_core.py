@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from replications.fst_highway_env.fst.fluctuation_audit import signed_fluctuation
-from replications.fst_highway_env.fst.fusion import estimate, weights_from_attention
+from replications.fst_highway_env.fst.fusion import estimate
 from replications.fst_highway_env.fst.reference_distribution import (
     uniform_distribution,
     validate_distribution,

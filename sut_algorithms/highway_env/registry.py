@@ -13,7 +13,8 @@ from .value_iteration import ValueIterationPolicy
 
 RETAINED_SUTS = ("idm_mobil", "vi_ttc", "mcts_cv", "ppo_ece")
 PPO_RELEASE_CHECKPOINTS = Path(
-    "results/method_chains/failure_memory_regression/ppo_release/checkpoints")
+    "archives/retired_research_chains/results/method_chains/"
+    "failure_memory_regression/ppo_release/checkpoints")
 
 
 def policy_factory(sut: str, assets_root: Path) -> Policy:
@@ -31,8 +32,31 @@ def policy_factory(sut: str, assets_root: Path) -> Policy:
 
 def build_spec_factory(build_id: str):
     """Resolve the unified FBRT build description without changing legacy factories."""
-    from methods.failure_memory_regression.schema import BuildSpec
+    from highway_sim_env.build_spec import BuildSpec
     from sut_algorithms.highway_env.idm_profiles import SUTProfile
+
+    idm_source_parameters = {
+        "idm_source_short_headway": (1.0, 6.0, 5.0),
+        "idm_source_nominal": (1.5, 6.0, 5.0),
+        "idm_source_long_headway": (2.0, 6.0, 5.0),
+        "idm_source_limited_brake": (1.5, 6.0, 3.0),
+        "idm_source_strong_brake": (1.5, 6.0, 8.0),
+    }
+    if build_id in idm_source_parameters:
+        time_wanted, desired_gap, max_brake = idm_source_parameters[build_id]
+        profile = SUTProfile(
+            build_id, "IDM", time_wanted=time_wanted, desired_gap=desired_gap,
+            max_brake=max_brake,
+        )
+        return BuildSpec(build_id, "profiled_idm", None, "legacy_profile",
+                         "Profiled-IDM", 20.0, profile=profile.__dict__.copy())
+    if build_id == "fvdm_target":
+        from sut_algorithms.highway_env.idm_profiles import get_profile
+
+        profile = get_profile("SUT-D").__dict__.copy()
+        profile["name"] = build_id
+        return BuildSpec(build_id, "profiled_fvdm", None, "legacy_profile",
+                         "Profiled-FVDM", 20.0, profile=profile)
 
     if build_id in {"nl_v0", "nl_v1", "nl_v2"}:
         from sut_algorithms.highway_env.nl_release import NL_PARENTS, NL_RELEASES
@@ -56,8 +80,8 @@ def build_spec_factory(build_id: str):
                          profile=NL3_RELEASES[build_id].__dict__.copy())
 
     if build_id == "idm_ref":
-        from methods.core_mine.idm_revision_pilot import REFERENCE
-        reference = REFERENCE if REFERENCE.name == build_id else SUTProfile("idm_ref", "IDM")
+        from sut_algorithms.highway_env.reference_profiles import IDM_REFERENCE_PROFILE
+        reference = IDM_REFERENCE_PROFILE
         profile = reference.__dict__.copy()
         return BuildSpec(build_id, "profiled_idm", None, "legacy_profile",
                          "Profiled-IDM", 20.0, profile=profile)

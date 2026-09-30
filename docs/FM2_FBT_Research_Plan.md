@@ -1,5 +1,7 @@
 # FM²-FBT 研究方案 V7.2：证据化失效记忆、变维编码与每场景 50 次测试
 
+> 历史研究方案。旧实现与结果现位于 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)；文中的原路径保留当时写法。当前论文方案见 [`RAS_FRT_Technical_Design.md`](RAS_FRT_Technical_Design.md)。
+
 > 更新日期：2026-09-28。  
 > 修订基础：用户上传的 `FM2_FBT_Research_Plan(1).md`（V7.1）与最新的 `FBRT_Scenario_Parameter_Space_V3.md`。  
 > 环境：**highway-env**；研究目标：**有限预算内发现目标算法真实失效**。  

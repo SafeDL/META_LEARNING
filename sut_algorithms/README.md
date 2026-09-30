@@ -8,6 +8,8 @@
   IDM+MOBIL、VI-TTC、MCTS-CV 和 PPO-ECE。
 - `metadrive/`：MetaDrive 的黑盒 SUT 接口、IDM adapter 和 profile registry。
 
+`highway_env/reference_profiles.py` 保存共享仿真器与测试使用的参考 IDM、FVDM 配置；`highway_env/local_fault_idm.py` 保存旧构建适配器仍支持的局部故障车辆类。两者不属于当前 RAS-FRT 选例方法。
+
 PPO-ECE 权重保存在 `highway_env/checkpoints/`，可随项目提交到 Git。
 需要重新获取时，使用 `python -m replications.highway_sut_selection.cli fetch`
 下载并校验原始模型文件。

@@ -10,7 +10,7 @@ from highway_env.vehicle.kinematics import Vehicle
 
 from highway_sim_env.envs.fbrt_scenarios import FBRTScenario
 from highway_sim_env.envs.fbrt_scripted_vehicle import ScriptedVehicle
-from methods.core_mine.local_fault_idm import LocalFault, LocalFaultIDMVehicle
+from sut_algorithms.highway_env.local_fault_idm import LocalFault, LocalFaultIDMVehicle
 from sut_algorithms.highway_env.idm_profiles import SUTProfile, create_profiled_vehicle
 
 

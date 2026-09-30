@@ -2,7 +2,7 @@ from highway_sim_env.envs.cutin_env import CutInScenario
 from highway_sim_env.envs.single_lane_longitudinal import (
     SingleLaneExternalCutInEnv, SingleLaneLongitudinalEnv,
 )
-from methods.core_mine.fvdm_revision_pilot import BUILDS
+from sut_algorithms.highway_env.reference_profiles import FVDM_REFERENCE_PROFILE
 from sut_algorithms.highway_env.value_iteration import ValueIterationPolicy
 
 
@@ -37,7 +37,7 @@ def test_one_lane_vi_and_fvdm_execute_without_changing_old_env():
     finally:
         env.close()
 
-    source = SingleLaneLongitudinalEnv(BUILDS["fvdm_ref"], scenario)
+    source = SingleLaneLongitudinalEnv(FVDM_REFERENCE_PROFILE, scenario)
     try:
         source.reset(seed=712)
         terminated = truncated = False

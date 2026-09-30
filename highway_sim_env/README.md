@@ -11,6 +11,8 @@ AdaTE、DETOUR 和融合链可以读取这些稳定接口，但
 - `data/`：候选场景和响应库；
 - `mining/`：低秩先验、诊断采样和后验更新；
 - `tests/`：共享仿真契约。
+- `build_spec.py`：构建配置和稳定指纹；
+- `s01_parameters.py`、`configs/scenario_parameter_space.yaml`：S01 坐标、边界和有效响应标签。
 
 ```powershell
 conda run -n metadrive python -m pytest highway_sim_env/tests -q -p no:cacheprovider

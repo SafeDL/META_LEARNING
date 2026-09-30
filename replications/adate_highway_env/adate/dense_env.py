@@ -170,7 +170,6 @@ class DenseCutInEnv(CutInEnv):
             self._action_history.append(int(action))
         lead = self._cutin_vehicle
         assert isinstance(lead, ResidualScheduledCutInVehicle)
-        leading = self._leading_vehicle
         if self.scenario.mode == self.PASSING_CUTIN:
             lead.residual_acceleration = float(self.PASSING_ACTIONS[self._pending_action])
         else:
