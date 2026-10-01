@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from functools import lru_cache
 from pathlib import Path
 
 from .base import Policy
@@ -15,6 +16,12 @@ RETAINED_SUTS = ("idm_mobil", "vi_ttc", "mcts_cv", "ppo_ece")
 PPO_RELEASE_CHECKPOINTS = Path(
     "archives/retired_research_chains/results/method_chains/"
     "failure_memory_regression/ppo_release/checkpoints")
+
+
+@lru_cache(maxsize=8)
+def _checkpoint_fingerprint(path: Path, modified_ns: int, size: int) -> str:
+    """The modification time and size invalidate cached checkpoint identities."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def policy_factory(sut: str, assets_root: Path) -> Policy:
@@ -31,7 +38,7 @@ def policy_factory(sut: str, assets_root: Path) -> Policy:
 
 
 def build_spec_factory(build_id: str):
-    """Resolve the unified FBRT build description without changing legacy factories."""
+    """Resolve a controller build for the shared physical runner."""
     from highway_sim_env.build_spec import BuildSpec
     from sut_algorithms.highway_env.idm_profiles import SUTProfile
 
@@ -108,7 +115,8 @@ def build_spec_factory(build_id: str):
                          mutation=mutation)
     if build_id in {"ppo_ref_v2", "ppo_obs_age020_v2"}:
         checkpoint = PPO_CHECKPOINT
-        digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest() if checkpoint.is_file() else None
+        metadata = checkpoint.stat()
+        digest = _checkpoint_fingerprint(checkpoint, metadata.st_mtime_ns, metadata.st_size)
         mutation = None if build_id == "ppo_ref_v2" else {"observation_delay_s": 0.20}
         return BuildSpec(build_id, "ppo_ece", None if not mutation else "ppo_ref_v2",
                          "external_meta_policy", "PPO-ECE", 5.0,
@@ -118,7 +126,8 @@ def build_spec_factory(build_id: str):
         parent = {"ppo_release_v0": None, "ppo_release_v1": "ppo_release_v0",
                   "ppo_release_v2": "ppo_release_v1"}[build_id]
         checkpoint = PPO_RELEASE_CHECKPOINTS / f"{build_id}.zip"
-        digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest() if checkpoint.is_file() else None
+        metadata = checkpoint.stat()
+        digest = _checkpoint_fingerprint(checkpoint, metadata.st_mtime_ns, metadata.st_size)
         return BuildSpec(build_id, "ppo_weight_release", parent,
                          "external_meta_policy", "PPO-ECE-continued", 5.0,
                          profile={"checkpoint_path": str(checkpoint)},
@@ -129,4 +138,4 @@ def build_spec_factory(build_id: str):
     if build_id == "mcts_cv_ref_audit_v4":
         return BuildSpec(build_id, "mcts_cv", None, "external_meta_policy",
                          "MCTS-CV", 5.0)
-    raise KeyError(f"Unsupported FBRT build: {build_id}")
+    raise KeyError(f"Unsupported controller build: {build_id}")

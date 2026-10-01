@@ -1,6 +1,6 @@
 # META_LEARNING
 
-面向黑盒驾驶控制器测试的研究代码库。当前论文主线是 RAS-FRT：使用历史库 A 中五组
+面向黑盒驾驶控制器测试的研究代码库。当前论文主方法是 RAS-FRT-UQ：使用历史库 A 中五组
 同模型不同参数的 IDM 响应，在 Highway-env 的新场景库 D 上寻找固定 FVDM 的碰撞场景。
 九种选例方法共享 D 的候选场景和 200 次查询预算。
 
@@ -14,18 +14,18 @@
 | `results/metadrive/` | MetaDrive Risk Mining / Formal Teacher 实验工件 |
 | `replications/` | AdaTE、DETOUR、FST、ScenarioFuzz 的独立 highway-env 复现与统一评测 |
 | `results/highway_replications/` | 共享响应库、各方法唯一正式结果与跨方法评价 |
-| [`results/method_chains/`](results/method_chains/README.md) | 当前 RAS-FRT 的 A、D 数据和九方法结果 |
-| [`methods/ras_frt/`](methods/ras_frt/README.md) | 当前 RAS-FRT 方法、九种选择器及 A→D 实验入口 |
+| [`results/method_chains/`](results/method_chains/README.md) | 当前 RAS-FRT-UQ 的 A、D 数据和九方法结果 |
+| [`methods/ras_frt_uq/`](methods/ras_frt_uq/README.md) | RAS-FRT-UQ、九种选择器及 A→D 实验入口 |
 
 ## 当前实验与验证
 
 使用根目录的 `environment.yml` 创建 `metadrive` Conda 环境后，在仓库根目录重放 D 上的九方法比较。此命令读取已有的 A、D 数据；D 的 2,048 次物理执行已提前完成，200 次是每种方法可见的目标标签预算。
 
 ```powershell
-conda run -n metadrive python -m methods.ras_frt.d_budget_200_experiment
+conda run -n metadrive python -m methods.ras_frt_uq.experiment
 ```
 
-RAS-FRT 的模块职责与结果索引见[方法说明](methods/ras_frt/README.md)和[A、D 数据说明](results/method_chains/ras_frt/README.md)。
+RAS-FRT-UQ 的模块职责与结果索引见[方法说明](methods/ras_frt_uq/README.md)和[A、D 数据说明](results/method_chains/ras_frt_uq/README.md)。
 
 运行活动代码测试：
 

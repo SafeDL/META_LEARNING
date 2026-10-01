@@ -10,6 +10,8 @@
 | 功能条件路由 | [方法说明](methods/function_conditioned_routing/README.md) | [结果目录](results/method_chains/function_conditioned_routing/) |
 | 功能后验搜索 | [方法说明](methods/function_posterior_search/README.md) | [结果目录](results/method_chains/function_posterior_search/) |
 
-按清单迁入 6,222 个原始文件，合计 702,369,559 字节。14 个原有未提交代码改动随文件保留；另有[补丁备份](../../docs/RAS_FRT_Legacy_Worktree_Changes.patch)。旧冻结协议可能记录原位置的路径；如需重跑，应先把对应文件恢复到原路径并检查依赖。当前论文方法与结果分别位于 [`methods/ras_frt/`](../../methods/ras_frt/README.md) 和 [`results/method_chains/ras_frt/`](../../results/method_chains/ras_frt/README.md)。
+按首轮清单迁入 6,222 个原始文件，合计 702,369,559 字节。14 个原有未提交代码改动随文件保留；另有[补丁备份](../../docs/RAS_FRT_Legacy_Worktree_Changes.patch)。旧冻结协议可能记录原位置的路径；如需重跑，应先把对应文件恢复到原路径并检查依赖。当前论文方法与结果分别位于 [`methods/ras_frt_uq/`](../../methods/ras_frt_uq/README.md) 和 [`results/method_chains/ras_frt_uq/`](../../results/method_chains/ras_frt_uq/README.md)。
+
+共享仿真代码整理时，另将四个无活动引用的旧模块按原路径归档至 [`highway_sim_env/`](highway_sim_env/)：`fbrt_env.py`、`fbrt_scenarios.py`、`fbrt_training_env.py` 与 `fbrt_parameters.py`。当前执行器、脚本车辆和安全指标使用职责名称，位置见 [共享仿真说明](../../highway_sim_env/README.md)。
 
 本地归档保留全部文件；其中 11 个超过 10 MiB 的旧结果文件列在根目录 [`.gitignore`](../../.gitignore) 中，不随常规 Git 提交上传。其余归档文件可以提交。

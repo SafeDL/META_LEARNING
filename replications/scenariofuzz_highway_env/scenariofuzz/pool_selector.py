@@ -8,13 +8,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+import torch
 
 from sut_algorithms.highway_env.idm_profiles import get_profile
 
 from .corpus import ScenarioSpec, build_default_corpus
 from .execution import execute_scenario
 from .filter import load_checkpoint, predict_scores
-from .io_utils import file_hash, load_config, write_csv
+from .io_utils import load_config, write_csv
 from .sem_training import load_source_history
 
 
@@ -47,7 +48,7 @@ def run_pool(config_path: Path, source_bank: Path, sem_path: Path, output: Path)
         unique.setdefault(str(scenario_id), ScenarioSpec(str(scenario_id), float(gap), float(speed), str(mode)))
     specs = list(unique.values())
     seed = build_default_corpus(config)[0]
-    model, _ = load_checkpoint(sem_path, "cuda" if __import__("torch").cuda.is_available() else "cpu")
+    model, _ = load_checkpoint(sem_path, "cuda" if torch.cuda.is_available() else "cpu")
     scores = predict_scores(model, seed, specs, next(model.parameters()).device.type)
     selector = SEMPoolSelector.initialize(scores, np.arange(len(specs)))
     profile = get_profile(config["target_sut"])
@@ -74,7 +75,7 @@ def run_pool(config_path: Path, source_bank: Path, sem_path: Path, output: Path)
         "target_executions": len(rows), "collisions": int(sum(row["collision"] for row in rows)),
         "critical_events": int(sum(row["collision"] or row["near_miss"] for row in rows)),
         "first_collision_budget": next((row["step"] for row in rows if row["collision"]), None),
-        "source_bank_sha256": file_hash(source_bank), "sem_checkpoint_sha256": file_hash(sem_path),
+        "source_bank": source_bank.as_posix(), "sem_checkpoint": sem_path.as_posix(),
         "new_scenarios_generated": 0, "online_fuzzing_claimed": False,
     }
     (output / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -86,7 +87,8 @@ def main() -> None:
     parser.add_argument("--source-bank", type=Path, required=True)
     parser.add_argument("--sem", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args(); run_pool(args.config, args.source_bank, args.sem, args.output)
+    args = parser.parse_args()
+    run_pool(args.config, args.source_bank, args.sem, args.output)
     print(f"Wrote separate fixed-pool protocol to {args.output}")
 
 

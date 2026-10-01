@@ -10,14 +10,16 @@ import torch
 from sklearn.metrics import average_precision_score
 
 from highway_sim_env.s01_parameters import coordinates
-from methods.ras_frt.banks import labels
-from methods.ras_frt.coverage_selector import (
+from methods.ras_frt_uq.banks import labels
+from methods.ras_frt_uq.coverage_selector import (
     TargetOracle, history_rank, select_sequence, similarities,
 )
-from methods.ras_frt.protocol import (
-    BUDGET, REPEAT_SEEDS, ROOT, SOURCES, digest, manifest, write_json,
+from methods.ras_frt_uq.protocol import (
+    BUDGET, REPEAT_SEEDS, ROOT, SOURCES, historical_manifest, write_json,
 )
-from methods.ras_frt.response_encoder import fit_final, fit_response, predict_response
+from methods.ras_frt_uq.response_encoder import (
+    fit_full_history, fit_response, predict_response,
+)
 
 
 SIGMA_X = (0.15, 0.3, 0.6)
@@ -28,7 +30,7 @@ SPLIT_SEED = 20260929
 
 
 def historical_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    scenarios = manifest("history")
+    scenarios = historical_manifest()
     x = coordinates(scenarios)
     retrieved = [labels(build, scenarios) for build in SOURCES]
     columns = [item[0] for item in retrieved]
@@ -172,11 +174,11 @@ def freeze_training() -> None:
     epochs = int(np.median([fold["fit"]["best_epoch"] for fold in folds]))
     models = {}
     for seed in REPEAT_SEEDS:
-        model = fit_final(x, y, valid, seed, epochs)
+        model = fit_full_history(x, y, valid, seed, epochs)
         path = ROOT / "models" / f"response_seed_{seed}.pt"
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(model.cpu().state_dict(), path)
-        models[str(seed)] = {"path": str(path), "sha256": digest(path)}
+        models[str(seed)] = {"path": str(path)}
     disagreement = {}
     for i in range(len(SOURCES)):
         for j in range(i + 1, len(SOURCES)):
@@ -197,7 +199,5 @@ def freeze_training() -> None:
         "coverage_weight": 0.2,
         "final_training_epochs": epochs,
         "models": models,
-        "response_encoder_sha256": digest(Path("methods/ras_frt/response_encoder.py")),
-        "coverage_selector_sha256": digest(Path("methods/ras_frt/coverage_selector.py")),
         "target_labels_used": False,
     })

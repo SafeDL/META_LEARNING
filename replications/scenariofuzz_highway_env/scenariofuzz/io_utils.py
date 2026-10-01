@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 from pathlib import Path
 
@@ -28,13 +27,5 @@ def write_csv(path: Path, rows: list[dict]) -> None:
     fields = list(rows[0])
     with path.open("w", newline="", encoding="utf-8") as stream:
         writer = csv.DictWriter(stream, fields)
-        writer.writeheader(); writer.writerows(rows)
-
-
-def file_hash(path: Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
+        writer.writeheader()
+        writer.writerows(rows)

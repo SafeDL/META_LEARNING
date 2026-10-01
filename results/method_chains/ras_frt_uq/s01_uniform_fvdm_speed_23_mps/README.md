@@ -26,7 +26,7 @@ D 的被测对象是完整 FVDM 控制器 `fvdm_safety_speed_23_mps`，目标速
 
 查询到 100 次时，RAS-FRT-UQ 的碰撞命中率为 **79.8%**，全库碰撞召回率为 **68.8%**，四档网格碰撞覆盖率为 **31.8/33＝96.4%**。查询到 200 次时，Target-GP-UCB 平均找到 115.4/116 个碰撞，RAS-FRT-UQ 与 Transfer-UQ 各找到 114.2/116 个；三者平均均覆盖全部 33 个碰撞网格单元。五个种子共用同一候选库，不能当成五个独立数据集。
 
-从仓库根目录运行 `conda run -n metadrive python -m methods.ras_frt.d_budget_200_experiment` 可重放已有 A、D 上的九方法比较。此命令不重新执行 FVDM；200 次是每种选择器可见的标签预算。主要文件为 [`budget_200_protocol.json`](budget_200_protocol.json)、[`budget_200_method_replay.json`](budget_200_method_replay.json) 和 [`budget_200_method_evaluation.json`](budget_200_method_evaluation.json)。
+从仓库根目录运行 `conda run -n metadrive python -m methods.ras_frt_uq.experiment` 可重放已有 A、D 上的九方法比较。此命令不重新执行 FVDM；200 次是每种选择器可见的标签预算。主要文件为 [`budget_200_protocol.json`](budget_200_protocol.json)、[`budget_200_method_replay.json`](budget_200_method_replay.json) 和 [`budget_200_method_evaluation.json`](budget_200_method_evaluation.json)。
 
 ## 早期 100 次实验的来源记录
 
@@ -46,4 +46,4 @@ RAS-FRT 的初始配置在 A 内部选择；RAS-FRT-UQ 的机制与权重曾在�
 - [`budget_200_protocol.json`](budget_200_protocol.json)、[`budget_200_method_replay.json`](budget_200_method_replay.json)、[`budget_200_method_evaluation.json`](budget_200_method_evaluation.json)：当前九方法比较的协议、逐次查询与汇总。
 - `protocol.json`、`method_protocol.json`、`method_replay.json`、`method_evaluation.json`、`method_predictions/`：D 生成协议和最初的 100 次比较。
 - `fusion_protocol.json`、`fusion_replay.json`、`fusion_evaluation.json`、`fusion_predictions/`：融合方法在同一 D 上的早期开发记录。
-- `source_snapshot/`：迁移共享模块名称前的 `d_experiment.py` 与 `fusion_experiment.py` 源码字节，用于核对早期 100 次实验协议中的源码哈希；当前回放执行 `methods/ras_frt/` 中的代码。
+- `source_snapshot/`：早期 100 次实验的 `d_experiment.py` 与 `fusion_experiment.py` 源码字节；当前九方法回放执行 `methods/ras_frt_uq/` 中的代码。既有协议中的源码哈希保留为历史记录，活动回放不再逐次校验。

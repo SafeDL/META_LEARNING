@@ -44,22 +44,24 @@ def fit_response(
     patience = 0
     train_tensor = torch.as_tensor(train_indices, dtype=torch.long, device=device)
     val_tensor = torch.as_tensor(validation_indices, dtype=torch.long, device=device)
+    weights = mask[train_tensor]
+    val_weights = mask[val_tensor]
+    training_count = weights.sum()
+    validation_count = val_weights.sum()
+    if training_count.item() == 0 or validation_count.item() == 0:
+        raise ValueError("training and validation need observed historical responses")
     for epoch in range(max_epochs):
         model.train()
         optimizer.zero_grad()
         logits = model(x_tensor[train_tensor])
-        weights = mask[train_tensor]
-        if weights.sum().item() == 0:
-            raise ValueError("no observed historical training responses")
-        loss = (loss_fn(logits, y_tensor[train_tensor]) * weights).sum() / weights.sum()
+        loss = (loss_fn(logits, y_tensor[train_tensor]) * weights).sum() / training_count
         loss.backward()
         optimizer.step()
         model.eval()
         with torch.no_grad():
             val_logits = model(x_tensor[val_tensor])
-            val_weights = mask[val_tensor]
             val_loss = ((loss_fn(val_logits, y_tensor[val_tensor]) * val_weights).sum() /
-                        val_weights.sum()).item()
+                        validation_count).item()
         if val_loss < best_loss - 1e-5:
             best_loss = val_loss
             best_epoch = epoch + 1
@@ -85,8 +87,8 @@ def predict_response(model: ResponseEncoder, x: np.ndarray) -> np.ndarray:
     return prediction.cpu().numpy()
 
 
-def fit_final(x: np.ndarray, y: np.ndarray, observed: np.ndarray,
-              seed: int, epochs: int) -> ResponseEncoder:
+def fit_full_history(x: np.ndarray, y: np.ndarray, observed: np.ndarray,
+                     seed: int, epochs: int) -> ResponseEncoder:
     torch.manual_seed(seed)
     torch.set_num_threads(1)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,10 +98,11 @@ def fit_final(x: np.ndarray, y: np.ndarray, observed: np.ndarray,
     weights = torch.as_tensor(observed, dtype=torch.float32, device=device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-4)
     loss_fn = nn.BCEWithLogitsLoss(reduction="none")
+    observed_count = weights.sum()
     for _ in range(epochs):
         optimizer.zero_grad()
         logits = model(x_tensor)
-        loss = (loss_fn(logits, y_tensor) * weights).sum() / weights.sum()
+        loss = (loss_fn(logits, y_tensor) * weights).sum() / observed_count
         loss.backward()
         optimizer.step()
     model.eval()

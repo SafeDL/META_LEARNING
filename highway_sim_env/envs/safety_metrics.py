@@ -1,4 +1,4 @@
-"""Shared bumper-gap and TTC semantics for the FBRT v2 scenarios."""
+"""Bumper clearance and TTC for scripted highway interactions."""
 
 from __future__ import annotations
 
@@ -17,4 +17,3 @@ def time_to_collision(clearance_m: float, closing_speed_mps: float) -> float | N
     if closing_speed_mps <= 0:
         return None
     return float(clearance_m / closing_speed_mps)
-

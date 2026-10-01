@@ -1,10 +1,9 @@
-"""Reference-distribution and provenance helpers for finite candidate pools."""
+"""Reference distributions and stable scenario IDs for finite candidate pools."""
 
 from __future__ import annotations
 
 import csv
 import hashlib
-import json
 from pathlib import Path
 from typing import Iterable
 
@@ -52,17 +51,4 @@ def write_distribution(path: Path, identifiers: list[str], probability: np.ndarr
         writer = csv.writer(stream)
         writer.writerow(["scenario_id", "probability"])
         writer.writerows((identifier, f"{mass:.17g}") for identifier, mass in zip(identifiers, p))
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def sha256_json(value: object) -> str:
-    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 

@@ -1,11 +1,14 @@
-# RAS-FRT：基于历史场景响应的新 SUT 危险场景发现
+# RAS-FRT-UQ：基于历史场景响应的新 SUT 危险场景发现
 
-> **方法名称**：RAS-FRT（Response-Adaptive Search for Failure-Region Testing）  
+> **当前主方法**：RAS-FRT-UQ（第 32 节）
+> **原方案及对比方法**：RAS-FRT（Response-Adaptive Search for Failure-Region Testing）
 > **场景族**：S01 Cut-In  
 > **历史库 A**：同一 IDM 控制模型的五组参数配置，在 2048 个场景上的完整测试结果  
 > **新 SUT**：完整 FVDM 控制器 `fvdm_safety_speed_23_mps`  
 > **候选库 D**：2048 个 S01 场景，固定 FVDM 的完整实测结果  
 > **目标查询预算**：每种方法最多 200 次反馈；早期开发比较报告 100 次
+
+活动代码位于 `methods/ras_frt_uq/`；A、D 数据与九方法比较结果统一位于 `results/method_chains/ras_frt_uq/`。冻结协议和源码快照中的路径保留生成时的记录。
 
 本文的问题是：当一个新的驾驶控制器到来时，如何利用 A 中积累的历史测试结果和场景相似性，在受限查询预算内尽早发现真实危险场景。正式实验只使用历史库 A 和新 SUT 候选库 D。第 15～32 节保留 D 上 100 次预算的开发记录；第 33 节在同一个 D 上扩展至 200 次预算和九种方法。D 的真值来自 `highway-env` 执行器中的 FVDM 仿真。
 
@@ -625,16 +628,17 @@ FST：
 # 23. 当前代码与 A/D 资产
 
 ```text
-methods/ras_frt/protocol.py             # 冻结历史库 A 的校验
-methods/ras_frt/banks.py                # 读取 IDM 历史响应
-methods/ras_frt/training.py             # A 上的响应模型与历史排序参数
-methods/ras_frt/response_encoder.py     # 响应模型
-methods/ras_frt/coverage_selector.py    # HistoryRank、RAS-FRT 与查询接口
-methods/ras_frt/transfer_uncertainty.py # Transfer-UQ 对比方法
-methods/ras_frt/d_experiment.py         # D 上的预算回放和评价
+methods/ras_frt_uq/protocol.py             # A 的路径与序列化
+methods/ras_frt_uq/banks.py                # 读取 IDM 历史响应
+methods/ras_frt_uq/training.py             # A 上的响应模型与历史排序参数
+methods/ras_frt_uq/response_encoder.py     # 响应模型
+methods/ras_frt_uq/coverage_selector.py    # HistoryRank、原版 RAS-FRT 与查询接口
+methods/ras_frt_uq/transfer_uncertainty.py # Transfer-UQ 对比方法
+methods/ras_frt_uq/fusion_selector.py      # 当前主方法 RAS-FRT-UQ
+methods/ras_frt_uq/experiment.py           # D 上的九方法、200 次预算回放与评价
 ```
 
-历史库 A 位于 `results/method_chains/ras_frt/historical_idm/`；D 位于 `results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/`。复现实验的入口为 `conda run -n metadrive python -m methods.ras_frt.d_experiment`。结果目录包含冻结的对比协议、逐次查询记录、预测分数、汇总指标和 D 上全部 116 个危险场景的显式清单。
+历史库 A 位于 `results/method_chains/ras_frt_uq/historical_idm/`；D 位于 `results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/`。当前九方法、200 次预算复现实验的入口为 `conda run -n metadrive python -m methods.ras_frt_uq.experiment`。结果目录保留早期 100 次实验的协议与源码快照，以及逐次查询记录、汇总指标和 D 上全部 116 个危险场景的显式清单；活动回放不再逐次计算 SHA-256 校验。
 
 ---
 
@@ -785,7 +789,7 @@ Target residual correction 专门处理 historical prior 与 target response 的
 
 ## 31.1 D 的危险场景真值
 
-D 上 2048 次 FVDM 执行全部有效，发现 **116 个危险场景**，总体碰撞率为 **5.66%**。危险场景清单、完整 FVDM 响应、冻结协议和候选场景见[D 实验目录](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/README.md)。116 个场景覆盖四维等宽网格中的 33 个单元。这个网格表示参数空间分布，不等同于 33 种独立的物理碰撞机理。
+D 上 2048 次 FVDM 执行全部有效，发现 **116 个危险场景**，总体碰撞率为 **5.66%**。危险场景清单、完整 FVDM 响应、冻结协议和候选场景见[D 实验目录](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/README.md)。116 个场景覆盖四维等宽网格中的 33 个单元。这个网格表示参数空间分布，不等同于 33 种独立的物理碰撞机理。
 
 ## 31.2 受限预算下的发现与多样性
 
@@ -802,7 +806,7 @@ D 上 2048 次 FVDM 执行全部有效，发现 **116 个危险场景**，总体
 
 ## 31.3 复现与解释边界
 
-逐次选择记录、方法预测、预算曲线和汇总指标见 [`method_replay.json`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/method_replay.json)、[`method_predictions/`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/method_predictions/) 和 [`method_evaluation.json`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/method_evaluation.json)。D 上全部 116 个危险场景另存于 [`all_fvdm_dangerous_scenarios.jsonl`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/all_fvdm_dangerous_scenarios.jsonl)。
+逐次选择记录、方法预测、预算曲线和汇总指标见 [`method_replay.json`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/method_replay.json)、[`method_predictions/`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/method_predictions/) 和 [`method_evaluation.json`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/method_evaluation.json)。D 上全部 116 个危险场景另存于 [`all_fvdm_dangerous_scenarios.jsonl`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/all_fvdm_dangerous_scenarios.jsonl)。
 
 这些是已完整执行 D 后的离线回放结果：查询器看不到未查询 FVDM 标签，评价器在回放结束后使用全量真值。它们量化了不同策略在同一个真实标注库上、预算最多为 100 时的反事实选择表现；完整 D 真值的取得本身使用了 2048 次物理执行。若要主张一次新的部署仅需 100 次仿真就能找到这些场景，还需按在线流程运行新的盲测库，并在全部查询结束后才补齐真值。
 
@@ -838,7 +842,7 @@ a_t(z)=0.95\{0.8p_t(z)+0.2g_t(z)+0.2p_t(z)m_t(z)\}+0.05I_t(z).
 
 在当前 D 库上，融合方法的平均发现数在四个预算点均最高，100 次时平均找到 79.8 个真实碰撞场景，并覆盖 31.8/33 个危险网格。换成每维 3 档和 5 档的网格后，融合方法分别覆盖 13/15 和 42.8/57 个真实危险单元；原 RAS-FRT 为 12.6/15 和 39.4/57。全库 AP 包含已查询场景，只作辅助诊断；融合方法对各自未查询剩余场景的 AP 为 0.473 ± 0.091，不宜与其他方法不同的剩余场景直接比较。
 
-完整的[`fusion_protocol.json`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/fusion_protocol.json)、[`fusion_replay.json`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/fusion_replay.json)、[`fusion_evaluation.json`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/fusion_evaluation.json)和[`fusion_predictions/`](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/fusion_predictions/)可复现逐次轨迹、真实反馈、风险预测与汇总值。
+完整的[`fusion_protocol.json`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/fusion_protocol.json)、[`fusion_replay.json`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/fusion_replay.json)、[`fusion_evaluation.json`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/fusion_evaluation.json)和[`fusion_predictions/`](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/fusion_predictions/)可复现逐次轨迹、真实反馈、风险预测与汇总值。
 
 **证据边界：** 融合机制与 0.2、0.2、0.05 的权重是在已查看 D 基线结果后探索确定的。它在当前 S01 D 库上是开发结果，不能作为同一 D 上预先冻结的独立验证，也不能外推至其他 SUT 或场景族。第 33 节在同一 D 上扩展预算和对照方法，沿用这一证据边界。
 
@@ -848,7 +852,7 @@ a_t(z)=0.95\{0.8p_t(z)+0.2g_t(z)+0.2p_t(z)m_t(z)\}+0.05I_t(z).
 
 ## 33.1 执行条件与信息边界
 
-本节沿用第 31～32 节的**同一个 D**：scrambled Sobol 种子 `43105` 产生 2048 个 S01 场景，固定 FVDM 在 `FBRTUnifiedEnv` 中执行后得到 116 个真实碰撞（5.66%）。执行器使用 `highway-env` 1.9.1 的道路与车辆动力学，仿真频率为 20 Hz。没有生成第二个正式候选库。A 与 D 的场景坐标不重合。
+本节沿用第 31～32 节的**同一个 D**：scrambled Sobol 种子 `43105` 产生 2048 个 S01 场景，固定 FVDM 在 `UnifiedHighwayEnv` 中执行后得到 116 个真实碰撞（5.66%）。执行器使用 `highway-env` 1.9.1 的道路与车辆动力学，仿真频率为 20 Hz。没有生成第二个正式候选库。A 与 D 的场景坐标不重合。
 
 完整 D 已执行 2048 次 FVDM，用来建立评价真值。九种方法只通过逐次查询接口看到自己选中场景的标签，每种方法最多查询 **200** 个不同场景；完整标签仅供事后评价。因而 200 是回放中的可见标签预算，不是这次实验实际使用的 FVDM 仿真次数。九种方法共享 D 的候选点、SUT、标签接口和 10、30、50、100、150、200 六个检查点。
 
@@ -856,7 +860,7 @@ a_t(z)=0.95\{0.8p_t(z)+0.2g_t(z)+0.2p_t(z)m_t(z)\}+0.05I_t(z).
 
 ## 33.2 碰撞发现与查询效率
 
-下表给出已发现的**真实碰撞场景数**，五种子方法报告均值；全库分母固定为 116。逐种子记录和标准差见 [D 的 200 次比较结果](../results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation/README.md)。
+下表给出已发现的**真实碰撞场景数**，五种子方法报告均值；全库分母固定为 116。逐种子记录和标准差见 [D 的 200 次比较结果](../results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps/README.md)。
 
 | 方法 | @10 | @30 | @50 | @100 | @150 | @200 |
 |---|---:|---:|---:|---:|---:|---:|

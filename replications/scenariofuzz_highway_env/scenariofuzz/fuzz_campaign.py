@@ -16,7 +16,7 @@ from .corpus import ScenarioSpec, build_default_corpus, save_corpus
 from .driving_score import margin_score
 from .execution import execute_scenario
 from .filter import load_checkpoint, predict_scores, select_candidates
-from .io_utils import append_jsonl, file_hash, load_config, write_csv
+from .io_utils import append_jsonl, load_config, write_csv
 from .mutators import generate_candidates
 from .scheduler import FrequencyScheduler
 
@@ -163,8 +163,9 @@ def run_campaign(config_path: Path, sem_path: Path, output: Path) -> None:
     (output / "trajectory_manifest.json").write_text(json.dumps(trajectory_rows, indent=2), encoding="utf-8")
     manifest = {
         "method": "ScenarioFuzz-H", "task_kind": config["task_kind"], "target_sut": profile.name,
-        "sem_checkpoint": sem_path.as_posix(), "sem_checkpoint_sha256": file_hash(sem_path),
-        "bounds_hash": seeds[0].bounds_hash(), "environment": "highway-env==1.9.1",
+        "sem_checkpoint": sem_path.as_posix(),
+        "seed_corpus": (output / "seed_corpus.json").as_posix(),
+        "environment": "highway-env==1.9.1",
         "oracle": "collision; critical=collision_or_near_miss", "random_seed": config["random_seed"],
         "total_actual_target_executions": int(sum(row["executions"] for row in all_summary)),
         "total_wall_seconds": time.perf_counter() - started_all, "device": device,

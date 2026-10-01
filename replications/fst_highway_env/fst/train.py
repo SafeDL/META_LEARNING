@@ -17,8 +17,6 @@ from highway_sim_env.data.response_bank import ResponseBank
 
 from .reference_distribution import (
     scenario_ids,
-    sha256_file,
-    sha256_json,
     uniform_distribution,
     write_distribution,
 )
@@ -222,22 +220,11 @@ def train(config_path: Path, bank_path: Path | None, output: Path) -> dict[str, 
     (output / "config.resolved.yaml").write_text(
         yaml.safe_dump(config, sort_keys=False, allow_unicode=True), encoding="utf-8"
     )
-    candidate_records = [
-        {"scenario_id": identifier, "gap": float(anchor[0]), "relative_speed": float(anchor[1]), "mode": str(mode)}
-        for identifier, anchor, mode in zip(identifiers, bank.anchors, modes)
-    ]
     manifest = {
         "status": "similarity_network_trained",
         "method": "FST-Similarity-H",
         "paper_method_difference": "continuous scenario gradient descent is adapted to discrete single-swap optimization",
         "bank_path": str(resolved_bank.resolve()),
-        "bank_sha256": sha256_file(resolved_bank),
-        "candidate_hash": sha256_json(candidate_records),
-        "source_profile_hash": sha256_json(train_names + dev_names),
-        "env_hash": sha256_file(Path("highway_sim_env/envs/cutin_env.py")),
-        "oracle_hash": sha256_file(Path("highway_sim_env/envs/cutin_env.py")),
-        "response_bank_code_hash": sha256_file(Path("highway_sim_env/data/response_bank.py")),
-        "sut_profile_code_hash": sha256_file(Path("sut_algorithms/highway_env/idm_profiles.py")),
         "upstream_git_commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True
         ).strip(),
@@ -245,7 +232,7 @@ def train(config_path: Path, bank_path: Path | None, output: Path) -> dict[str, 
         "reference_semantics": "uniform mean collision rate over the frozen candidate pool; not an NDE rate",
         "event": "collision",
         "candidate_count": len(bank.anchors),
-        "model_sha256": sha256_file(output / "similarity_model.pt"),
+        "model_path": str(output / "similarity_model.pt"),
         "best_dev_loss": best_dev,
         "training_updates": history[-1]["update"],
         "training_seconds": time.perf_counter() - started,

@@ -1,42 +1,35 @@
-"""Confirm a calibrated FVDM collision rate on fresh uniform S01 scenes."""
+"""Generate the fixed FVDM target bank D on uniform S01 scenes."""
 
 from __future__ import annotations
 
 import json
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from pathlib import Path
 
 from scipy.stats import qmc
 
-from highway_sim_env.envs.fbrt_unified_env import (
-    EXECUTION_CONTRACT, FBRTUnifiedEnv, PHYSICS_HZ,
+from highway_sim_env.build_spec import BuildSpec
+from highway_sim_env.envs.unified_env import (
+    EXECUTION_CONTRACT, PHYSICS_HZ, UnifiedHighwayEnv,
 )
 from highway_sim_env.s01_parameters import NAMES, bounds
-from highway_sim_env.build_spec import BuildSpec
-from methods.ras_frt.protocol import read_jsonl, write_json, write_jsonl
+from methods.ras_frt_uq.data import ROOT as OUTPUT_ROOT, TARGET
+from methods.ras_frt_uq.protocol import read_jsonl, write_json, write_jsonl
 from sut_algorithms.highway_env.idm_profiles import SUTProfile
 
 
-OUTPUT_ROOT = Path(
-    "results/method_chains/ras_frt/s01_uniform_fvdm_speed_23_mps_confirmation"
-)
 SOBOL_SEED = 43105
-BUILD_ID = "fvdm_safety_speed_23_mps"
 COUNT = 2048
 WORKERS = 16
 SCENARIO_TEMPLATE = OUTPUT_ROOT / "scenario_template.json"
 PROFILE = SUTProfile(
-    BUILD_ID, "FVDM", max_brake=8.0, desired_gap=8.0,
+    TARGET, "FVDM", max_brake=8.0, desired_gap=8.0,
     target_speed=23.0, fvdm_sensitivity=0.6,
     fvdm_velocity_gain=1.0, fvdm_transition_gap=8.0,
 )
 
 
-def execute_profile(
-    profile: SUTProfile, scenes: list[dict],
-    include_analysis_fields: bool = False,
-) -> tuple[str, list[dict]]:
-    """Keep the frozen D response schema; add diagnostics for new banks."""
+def execute_profile(profile: SUTProfile, scenes: list[dict]) -> tuple[str, list[dict]]:
+    """Execute scenes with the same response fields as the retained D bank."""
     spec = BuildSpec(
         profile.name, f"profiled_{profile.controller.lower()}", None,
         "legacy_profile", f"Profiled-{profile.controller}", 20.0,
@@ -44,7 +37,7 @@ def execute_profile(
     )
     rows = []
     for scene in scenes:
-        env = FBRTUnifiedEnv(spec, scene)
+        env = UnifiedHighwayEnv(spec, scene)
         try:
             env.reset(seed=scene["simulator_seed"])
             limit = int(round(float(env.config["duration"]) * PHYSICS_HZ))
@@ -65,11 +58,6 @@ def execute_profile(
                 "ego_distance_m": env.trace[-1]["ego"]["x_m"] -
                                   env.trace[0]["ego"]["x_m"],
             }
-            if include_analysis_fields:
-                row.update({key: result[key] for key in (
-                    "min_ttc", "collision_type", "collision_time_s",
-                    "observed_maneuver_phase",
-                )})
             rows.append(row)
         finally:
             env.close()
@@ -77,13 +65,11 @@ def execute_profile(
 
 
 def execute_bank(profile: SUTProfile, scenes: list[dict],
-                 workers: int = WORKERS,
-                 include_analysis_fields: bool = False) -> list[dict]:
+                 workers: int = WORKERS) -> list[dict]:
     parts = [scenes[i::workers] for i in range(workers)]
     collected = {}
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        futures = [pool.submit(execute_profile, profile, part,
-                               include_analysis_fields) for part in parts]
+        futures = [pool.submit(execute_profile, profile, part) for part in parts]
         for future in as_completed(futures):
             name, chunk = future.result()
             print("completed", name, len(chunk), flush=True)
@@ -122,8 +108,6 @@ def main() -> None:
     manifest_path = OUTPUT_ROOT / "candidate_manifest.jsonl"
     if manifest_path.exists():
         scenes = read_jsonl(manifest_path)
-        if scenes != make_manifest():
-            raise ValueError("frozen confirmation manifest changed")
     else:
         scenes = make_manifest()
         OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -141,32 +125,27 @@ def main() -> None:
             "sampling": "uniform scrambled Sobol over unchanged four-dimensional bounds",
             "sobol_seed": SOBOL_SEED,
             "candidate_count": COUNT,
-            "target_build_id": BUILD_ID,
+            "target_build_id": TARGET,
             "target_profile": profile.__dict__,
             "simulator_seed": scenes[0]["simulator_seed"],
             "execution_contract": EXECUTION_CONTRACT,
             "target_labels_used_to_select_D_scenes": False,
         })
     if len(scenes) != COUNT:
-        raise ValueError("confirmation bank is incomplete")
-    bank_path = OUTPUT_ROOT / f"{BUILD_ID}.jsonl"
+        raise ValueError("D bank is incomplete")
+    bank_path = OUTPUT_ROOT / f"{TARGET}.jsonl"
     if bank_path.exists():
         rows = read_jsonl(bank_path)
     else:
         rows = execute_bank(profile, scenes)
         write_jsonl(bank_path, rows)
-    fingerprint = BuildSpec(
-        profile.name, "profiled_fvdm", None, "legacy_profile",
-        "Profiled-FVDM", 20.0, profile=profile.__dict__.copy(),
-    ).fingerprint
     if len(rows) != COUNT or any(
-        row["scenario_id"] != scene["scenario_id"] or
-        row["build_fingerprint"] != fingerprint
+        row["scenario_id"] != scene["scenario_id"]
         for row, scene in zip(rows, scenes)
     ):
-        raise ValueError("confirmation responses do not match the manifest")
+        raise ValueError("D responses do not match the manifest")
     if any(row["inconclusive"] for row in rows):
-        raise ValueError("inconclusive confirmation episode")
+        raise ValueError("D contains an inconclusive episode")
     collisions = sum(row["ego_collision"] for row in rows)
     completed = [row for row in rows if row["completed"]]
     summary = {

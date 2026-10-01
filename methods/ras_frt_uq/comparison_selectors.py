@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from methods.ras_frt.transfer_uncertainty import TransferUncertainty
+from methods.ras_frt_uq.transfer_uncertainty import TransferUncertainty
 
 
 GP_UCB_BETA = 0.5

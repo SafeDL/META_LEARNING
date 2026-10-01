@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from methods.ras_frt.transfer_uncertainty import TransferUncertainty
+from methods.ras_frt_uq.transfer_uncertainty import TransferUncertainty
 
 
 def test_initial_information_can_override_high_historical_risk():

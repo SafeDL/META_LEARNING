@@ -16,7 +16,8 @@ The paper optimizes continuous scenario coordinates with gradient descent.
 The P0 reproduction works on the finite executable bank and therefore uses a
 fully disclosed discrete single-swap optimizer. It recomputes the whole
 attention matrix and all weights after every proposal. No target response is
-used until every set and weight vector has been frozen and hashed.
+used until every set and weight vector has been saved. The experiment records
+data and model paths without recomputing file or source-code hashes.
 
 The main reference distribution is uniform over the 192 frozen candidates.
 It is a benchmark distribution, not a naturalistic-driving exposure model and

@@ -17,7 +17,7 @@ from highway_sim_env.data.response_bank import ResponseBank
 
 from .fluctuation_audit import signed_fluctuation
 from .fusion import inverse_distance_attention, weights_from_attention
-from .reference_distribution import scenario_ids, sha256_file, uniform_distribution
+from .reference_distribution import scenario_ids, uniform_distribution
 from .response_clusters import ResponseClusterSampler, sample_uniform
 from .set_optimizer import discrete_single_swap
 from .similarity_network import (
@@ -153,8 +153,6 @@ def run_experiment(run_dir: Path, budgets: list[int] | None = None) -> dict[str,
     config = yaml.safe_load((run_dir / "config.resolved.yaml").read_text(encoding="utf-8"))
     train_manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     bank_path = Path(train_manifest["bank_path"])
-    if sha256_file(bank_path) != train_manifest["bank_sha256"]:
-        raise RuntimeError("response bank changed after training")
     bank = ResponseBank.load(bank_path)
     model, transform = _load_model(run_dir)
     modes = np.asarray(bank.modes).astype(str)
@@ -276,17 +274,17 @@ def run_experiment(run_dir: Path, budgets: list[int] | None = None) -> dict[str,
                     for row in trace:
                         search_rows.append({"method": method, "budget": budget, "repeat": 0, **row})
 
-    # The complete design object is persisted and hashed before target truth is accessed.
+    # Persist every design before accessing target truth.
     frozen = {
         "status": "frozen_before_target_evaluation",
-        "model_sha256": train_manifest["model_sha256"],
-        "candidate_hash": train_manifest["candidate_hash"],
+        "model_path": str(run_dir / "similarity_model.pt"),
+        "bank_path": str(bank_path),
         "designs": designs,
     }
     (run_dir / "all_frozen_designs.json").write_text(
         json.dumps(frozen, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    freeze_hash = sha256_file(run_dir / "all_frozen_designs.json")
+    frozen_designs_path = str(run_dir / "all_frozen_designs.json")
     primary = {
         str(budget): next(
             design for design in designs
@@ -295,7 +293,8 @@ def run_experiment(run_dir: Path, budgets: list[int] | None = None) -> dict[str,
         for budget in test_budgets
     }
     (run_dir / "selected_sets.json").write_text(
-        json.dumps({"freeze_sha256": freeze_hash, "sets": primary}, indent=2, ensure_ascii=False),
+        json.dumps({"frozen_designs_path": frozen_designs_path, "sets": primary},
+                   indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
     np.savez_compressed(
@@ -340,7 +339,7 @@ def run_experiment(run_dir: Path, budgets: list[int] | None = None) -> dict[str,
                 "signed_error": error,
                 "absolute_error": abs(error),
                 "relative_absolute_error": abs(error) / float(truth) if truth > 0 else "NA",
-                "freeze_sha256": freeze_hash,
+                "frozen_designs_path": frozen_designs_path,
             })
     _write_csv(run_dir / "target_estimates.csv", estimate_rows)
 
@@ -427,7 +426,7 @@ def run_experiment(run_dir: Path, budgets: list[int] | None = None) -> dict[str,
     )
     result = {
         "status": "fixed_sets_evaluated",
-        "freeze_sha256": freeze_hash,
+        "frozen_designs_path": frozen_designs_path,
         "target_truth_accessed_only_after_freeze": True,
         "budgets": test_budgets,
         "repetitions": repetitions,

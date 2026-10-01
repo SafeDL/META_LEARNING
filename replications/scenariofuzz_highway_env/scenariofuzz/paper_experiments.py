@@ -37,7 +37,7 @@ from sut_algorithms.highway_env.idm_profiles import PROFILE_NAMES
 from .corpus import ScenarioSpec, build_default_corpus
 from .filter import load_checkpoint, predict_scores
 from .fuzz_campaign import run_campaign
-from .io_utils import file_hash, load_config, write_csv
+from .io_utils import load_config, write_csv
 from .paper_figures import build_paper_aligned_outputs
 from .sem_training import (
     _split_by_scenario,
@@ -269,7 +269,6 @@ def run_suite(pool_config_path: Path, online_config_path: Path, output: Path, re
         "algorithm_repeats": repeats,
         "base_random_seed": base_seed,
         "universal_history": universal_path.as_posix(),
-        "universal_history_sha256": file_hash(universal_path),
         "universal_actual_episodes": expected_universal,
         "source_episodes_per_loso_model": (len(PROFILE_NAMES) - 1) * int(pool_base["source_scenarios"]),
         "target_audit_records_per_sut": max(1, int(round(pool_base["source_scenarios"] * 0.20))),

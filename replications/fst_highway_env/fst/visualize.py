@@ -337,7 +337,7 @@ def visualize(run_dir: Path) -> dict[str, object]:
         ],
         "plots": outputs,
         "replays": replays,
-        "bank_sha256": manifest["bank_sha256"],
+        "bank_path": manifest["bank_path"],
         "rendering_note": (
             f"scatter values are measured at all {len(candidates)} anchors; "
             "no interpolated field is presented as truth"

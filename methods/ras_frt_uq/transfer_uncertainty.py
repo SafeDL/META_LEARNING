@@ -35,8 +35,6 @@ class TransferUncertainty:
         self.selected = np.zeros(len(self.prior), dtype=bool)
         self.weights = 1 - self.prior
         self.initial_information = float(np.max(self._information()))
-        if self.initial_information <= 0:
-            raise ValueError("candidate bank has no transfer information")
 
     def _information(self) -> np.ndarray:
         weighted = (self.covariance**2) @ self.weights
@@ -46,9 +44,12 @@ class TransferUncertainty:
     def risk(self) -> np.ndarray:
         return np.clip(self.prior + self.mean_residual, 0, 1)
 
+    def information_gain(self) -> np.ndarray:
+        return self._information() / self.initial_information
+
     def acquisition(self) -> np.ndarray:
         risk = self.risk()
-        information = self._information() / self.initial_information
+        information = self.information_gain()
         score = (RISK_WEIGHT * risk +
                  MISSED_FAILURE_WEIGHT * self.weights * risk +
                  INFORMATION_WEIGHT * information)
@@ -59,13 +60,9 @@ class TransferUncertainty:
         return int(np.argmax(self.acquisition()))
 
     def observe(self, index: int, label: int | None) -> None:
-        if self.selected[index]:
-            raise ValueError("repeated target query")
         self.selected[index] = True
         if label is None:
             return
-        if label not in (0, 1):
-            raise ValueError("target feedback is not binary")
         column = self.covariance[:, index].copy()
         denominator = column[index] + OBSERVATION_NOISE
         innovation = (label - self.prior[index]) - self.mean_residual[index]

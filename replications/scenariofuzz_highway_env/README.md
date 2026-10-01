@@ -4,7 +4,9 @@ This directory is a self-contained adaptation of *Dance of the ADS* to the
 repository's real `highway-env` Cut-in harness. It preserves local topology
 seeds, two-stage mutation, a node-GAT plus line-graph-edge-GAT SEM, threshold
 filtering, real simulation feedback, frequency-aware scheduling, source-only
-history isolation, ablations, and collision trajectory post-analysis.
+history isolation, ablations, and collision trajectory post-analysis. Run
+metadata records source-bank and model paths; only scenario identities and
+deduplication use content hashes.
 
 The canonical suite runs six target-specific leave-one-SUT-out models, three
 algorithm seeds, both candidate-count protocols, history-size growth, and

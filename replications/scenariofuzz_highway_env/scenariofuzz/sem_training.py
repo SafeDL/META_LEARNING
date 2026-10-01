@@ -23,7 +23,7 @@ from sut_algorithms.highway_env.idm_profiles import get_profile
 from .corpus import ScenarioSpec, build_default_corpus, save_corpus
 from .execution import execute_scenario
 from .graph_builder import build_graph, stack_graphs
-from .io_utils import file_hash, load_config, write_csv
+from .io_utils import load_config, write_csv
 from .sem_model import ScenarioEvaluationModel
 
 
@@ -224,7 +224,7 @@ def train(config_path: Path, source_bank: Path | None, output: Path) -> Path:
     checkpoint_path = output / "source_only_sem.pt"
     torch.save({"state_dict": final_model.state_dict(), "model_kwargs": model_kwargs, "graph_schema": config["graph_schema"], "source_suts": list(config["source_suts"]), "target_sut_excluded": config["target_sut"], "best_epoch": final_best_epoch}, checkpoint_path)
     manifest = {
-        "method": "ScenarioFuzz-H-SEM", "source_bank": bank_path.as_posix(), "source_bank_sha256": file_hash(bank_path),
+        "method": "ScenarioFuzz-H-SEM", "source_bank": bank_path.as_posix(),
         "independent_actual_episodes": int(len(data["scenario_id"])), "unique_scenarios": int(len(np.unique(data["scenario_id"]))),
         "source_suts": list(config["source_suts"]), "excluded_target_sut": config["target_sut"],
         "split_protocol": "scenario_id_grouped_train_dev_audit", "train_schedule": config["train_schedule"],

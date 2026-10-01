@@ -1,4 +1,4 @@
-"""Adapters that give legacy, native, and external SUTs one runner interface."""
+"""One physical-runner interface for profiled, native and external controllers."""
 
 from __future__ import annotations
 
@@ -29,8 +29,7 @@ class PolicyAdapter:
                   "speed": initial_speed,
                   "target_lane_index": env.ego_lane_index}
         if self.spec.adapter_kind == "legacy_profile":
-            profile = SUTProfile(**(self.spec.profile or {"name": self.spec.build_id,
-                                                          "controller": "IDM"}))
+            profile = SUTProfile(**self.spec.profile)
             fault = (self.spec.mutation or {}).get("legacy_fault")
             if fault:
                 from sut_algorithms.highway_env.local_fault_idm import LocalFault, LocalFaultIDMVehicle
@@ -70,8 +69,3 @@ class PolicyAdapter:
         if self.policy is not None:
             self.policy.reset()
 
-
-def adapter_for(spec: BuildSpec) -> PolicyAdapter:
-    if spec.adapter_kind not in {"legacy_profile", "native_vehicle", "external_meta_policy"}:
-        raise ValueError(f"unsupported build adapter: {spec.adapter_kind}")
-    return PolicyAdapter(spec)

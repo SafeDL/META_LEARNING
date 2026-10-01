@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
+from functools import cached_property
 from typing import Any
 
 
@@ -26,6 +27,6 @@ class BuildSpec:
     checkpoint_sha256: str | None = None
     mutation: dict | None = None
 
-    @property
+    @cached_property
     def fingerprint(self) -> str:
         return stable_hash(asdict(self))

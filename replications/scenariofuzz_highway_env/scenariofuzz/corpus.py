@@ -48,15 +48,6 @@ class LocalScenarioSeed:
     parent_seed_id: str | None = None
     sampling_rule: str = "uniform-within-frozen-contract"
 
-    def bounds_hash(self) -> str:
-        payload = {
-            "gap_bounds": self.gap_bounds,
-            "relative_speed_bounds": self.relative_speed_bounds,
-            "allowed_modes": self.allowed_modes,
-            "road_network_id": self.road_network_id,
-        }
-        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
-
     def validate(self, spec: ScenarioSpec) -> tuple[bool, str | None]:
         if spec.mode not in self.allowed_modes:
             return False, "unsupported_mode"
@@ -74,9 +65,7 @@ class LocalScenarioSeed:
         return True, None
 
     def to_dict(self) -> dict:
-        data = asdict(self)
-        data["bounds_hash"] = self.bounds_hash()
-        return data
+        return asdict(self)
 
 
 def build_default_corpus(config: dict) -> list[LocalScenarioSeed]:
@@ -99,4 +88,3 @@ def save_corpus(path: Path, seeds: list[LocalScenarioSeed]) -> None:
         json.dumps([seed.to_dict() for seed in seeds], indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-

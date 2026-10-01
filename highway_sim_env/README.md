@@ -13,6 +13,10 @@ AdaTE、DETOUR 和融合链可以读取这些稳定接口，但
 - `tests/`：共享仿真契约。
 - `build_spec.py`：构建配置和稳定指纹；
 - `s01_parameters.py`、`configs/scenario_parameter_space.yaml`：S01 坐标、边界和有效响应标签。
+- `envs/unified_env.py`：A、D 共用的 `UnifiedHighwayEnv`，按 20 Hz 执行控制器和脚本车辆；
+- `envs/scripted_vehicle.py`、`envs/safety_metrics.py`：背景车辆事件、净间距和 TTC。
+
+S01 直接读取 A、D 统一的四轴 `active_parameters` 字段。控制器构建指纹在同一构建对象中只计算一次；它用于响应身份。旧的 `fbrt_env.py`、`fbrt_scenarios.py`、`fbrt_training_env.py` 与 `fbrt_parameters.py` 已移至 [`archives/retired_research_chains/highway_sim_env/`](../archives/retired_research_chains/highway_sim_env/)。
 
 ```powershell
 conda run -n metadrive python -m pytest highway_sim_env/tests -q -p no:cacheprovider

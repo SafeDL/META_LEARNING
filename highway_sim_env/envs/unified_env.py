@@ -1,4 +1,4 @@
-"""One 20 Hz physical runner for the registered legacy/native/external FBRT builds."""
+"""Shared 20 Hz highway-env runner for controller builds and scripted interactions."""
 
 from __future__ import annotations
 
@@ -12,12 +12,12 @@ from highway_env.vehicle.kinematics import Vehicle
 import numpy as np
 from shapely.geometry import Polygon
 
-from highway_sim_env.envs.fbrt_metrics import (
+from highway_sim_env.build_spec import BuildSpec, stable_hash
+from highway_sim_env.envs.safety_metrics import (
     longitudinal_bumper_clearance, time_to_collision,
 )
-from highway_sim_env.envs.fbrt_scripted_vehicle import ScriptedVehicle
-from highway_sim_env.build_spec import BuildSpec, stable_hash
-from sut_algorithms.highway_env.fbrt_adapters import adapter_for
+from highway_sim_env.envs.scripted_vehicle import ScriptedVehicle
+from sut_algorithms.highway_env.policy_adapter import PolicyAdapter
 from sut_algorithms.highway_env.registry import build_spec_factory
 
 
@@ -28,11 +28,11 @@ EXECUTION_CONTRACT = ("fbrt-unified-v4;highway-env-1.9.1;20Hz;"
                       "native-mobil-timer-fixed-v1")
 
 
-class FBRTUnifiedEnv(AbstractEnv):
+class UnifiedHighwayEnv(AbstractEnv):
     def __init__(self, spec: BuildSpec, scenario: dict):
         self.spec = spec
         self.scenario = scenario
-        self.adapter = adapter_for(spec)
+        self.adapter = PolicyAdapter(spec)
         self.actors: dict[str, Vehicle] = {}
         self.event_times: dict[str, float] = {}
         self.trace: list[dict] = []
@@ -213,7 +213,7 @@ class FBRTUnifiedEnv(AbstractEnv):
                 speed_floor_mps=float(ctx["lead_speed_floor_mps"]),
             )
         else:
-            raise ValueError(f"scenario template is not implemented in v2 runner: {template}")
+            raise ValueError(f"unsupported scenario template: {template}")
         self.road.vehicles = list(self.actors.values())
         self.observation_type = observation_factory(self, self.config["observation"])
         self.initial_observation = np.array(self.observation_type.observe(), copy=True)
@@ -442,7 +442,7 @@ class FBRTUnifiedEnv(AbstractEnv):
 def run_build_episode(build_id: str, scenario: dict, seed: int,
                       with_trace: bool = False) -> tuple[dict, list[dict]]:
     spec = build_spec_factory(build_id)
-    env = FBRTUnifiedEnv(spec, scenario)
+    env = UnifiedHighwayEnv(spec, scenario)
     try:
         env.reset(seed=seed)
         max_steps = int(round(float(env.config["duration"]) * PHYSICS_HZ))

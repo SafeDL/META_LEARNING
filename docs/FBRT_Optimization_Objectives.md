@@ -524,7 +524,7 @@ $$
 
 ### 9.1 当前 runner 不是已完成的 PPO 训练环境
 
-`FBRTUnifiedEnv._advance()` 内部调用冻结 adapter 产生动作，`run_build_episode()` 直接循环 `_advance()` 完成评估。[C05]
+`UnifiedHighwayEnv._advance()` 内部调用冻结 adapter 产生动作，`run_build_episode()` 直接循环 `_advance()` 完成评估。[C05]
 
 因此，不能把此对象直接交给 `PPO.learn()` 就宣称完成持续学习：训练器提供的 action 必须实际控制 ego，reward、terminated/truncated、reset、观测返回和控制频率必须形成规范接口。
 
@@ -543,8 +543,8 @@ $$
 
 | 工单 | 源码位置/新职责 | 验收 |
 |---|---|---|
-| A. 动作/训练接口 | `highway_sim_env/envs/fbrt_unified_env.py`、新增 training wrapper | PPO action 确实作用；训练评估轨迹同契约一致 |
-| B. 版本身份 | `sut_algorithms/highway_env/registry.py`、`fbrt_adapters.py`、训练入口 | V0/V1/V2 不同权重哈希、明确父关系，无观测/动作暗改 |
+| A. 动作/训练接口 | `highway_sim_env/envs/unified_env.py`、新增 training wrapper | PPO action 确实作用；训练评估轨迹同契约一致 |
+| B. 版本身份 | `sut_algorithms/highway_env/registry.py`、`policy_adapter.py`、训练入口 | V0/V1/V2 不同权重哈希、明确父关系，无观测/动作暗改 |
 | C. 双向任务定义 | `replay_utils.py`、`schema.py` | 增加 improvement/bidirectional 合法模式；四类变化单元测试；改善标签为目标 0 |
 | D. 全库银行 | `experiment.py`、`replay.py`、archive | 所有版本覆盖完整 manifest，父失败不删，异常明确，目标只经 oracle 揭示 |
 | E. 历史与小模型 | `pattern_memory.py`、`bayes_model.py` | 有向对比与普通残差可独立开关；不重复注入历史先验 |
@@ -612,8 +612,8 @@ $$
 - [C01] `methods/failure_memory_regression/README.md`：当前方法、模块职责与银行回放。
 - [C02] `methods/failure_memory_regression/replay_utils.py`、`replay.py`：当前奖励模式、父通过筛选及 evaluator-only 银行。
 - [C03] `sut_algorithms/highway_env/ppo_ece.py` 与 `checkpoints/ppo_ece/`：PPO 加载方式和 checkpoint 元数据。
-- [C04] `sut_algorithms/highway_env/registry.py`、`fbrt_adapters.py`：受控延迟不是权重更新、PPO 控制频率和 adapter。
-- [C05] `highway_sim_env/envs/fbrt_unified_env.py`：20 Hz 物理、运动学观测、脚本场景、内部 adapter 动作与评估循环。
+- [C04] `sut_algorithms/highway_env/registry.py`、`policy_adapter.py`：受控延迟不是权重更新、PPO 控制频率和 adapter。
+- [C05] `highway_sim_env/envs/unified_env.py`：20 Hz 物理、运动学观测、脚本场景、内部 adapter 动作与评估循环。
 - [C06] `FBRT_Optimization_Objectives_V4_Expanded_5refs.md`：历史边界/残差/可靠性候选及旧协议审查。
 - [C07] `FBRT_Research_Plan_V5_FullBank_Continual_E2E.md`：完整有限银行应保留；其平台与单向主目标在 V6 废止。
 - [C08] `sut_algorithms/highway_env/idm_profiles.py`：同一 `ProfiledIDMVehicle` / `ProfiledFVDMVehicle` 的参数化控制器、reference/calibrated/predictive-brake profile 与 short-TTC safeguard 实现。

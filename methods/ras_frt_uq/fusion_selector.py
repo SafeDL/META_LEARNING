@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from methods.ras_frt.coverage_selector import corrected_risk
-from methods.ras_frt.transfer_uncertainty import (
-    OBSERVATION_NOISE, TransferUncertainty,
-)
+from methods.ras_frt_uq.coverage_selector import corrected_risk
+from methods.ras_frt_uq.transfer_uncertainty import TransferUncertainty
 
 
 COVERAGE_WEIGHT = 0.2
@@ -33,15 +31,14 @@ def select_fusion_sequence(
     selected: list[int] = []
     observed: list[int | None] = []
     discovered_cells: set[int] = set()
-    missed_failure_weights = 1 - np.asarray(prior, dtype=np.float64)
 
     for _ in range(budget):
         local_risk = corrected_risk(
             prior, response_similarity, selected, observed, regularizer,
         )
         posterior_variance = np.clip(np.diag(model.covariance), 0, 1)
-        risk = posterior_variance * local_risk + \
-               (1 - posterior_variance) * model.risk()
+        risk = (posterior_variance * local_risk +
+                (1 - posterior_variance) * model.risk())
 
         if selected:
             gap = 1 - response_similarity[:, selected].max(axis=1)
@@ -52,13 +49,8 @@ def select_fusion_sequence(
             new_cell = ~np.isin(cell_ids, list(discovered_cells))
             score += NEW_CELL_BONUS * risk * new_cell
 
-        covariance = model.covariance
-        information = (covariance**2) @ missed_failure_weights
-        information /= (missed_failure_weights.sum() *
-                        (np.diag(covariance) + OBSERVATION_NOISE))
-        information /= model.initial_information
-        score = (1 - INFORMATION_WEIGHT) * score + \
-                INFORMATION_WEIGHT * information
+        score = ((1 - INFORMATION_WEIGHT) * score +
+                 INFORMATION_WEIGHT * model.information_gain())
         score[model.selected] = -np.inf
 
         index = int(np.argmax(score))
