@@ -1,0 +1,47 @@
+{
+  "stage": "source",
+  "steps_executed": 2000,
+  "best_step": 1000,
+  "best_criterion": [
+    1.9562622201042656,
+    1.6603984223570356
+  ],
+  "elapsed_s_this_invocation": 58.3355907999794,
+  "heldout_source": "idm_source_limited_brake",
+  "gradient_sources": [
+    "idm_source_short_headway",
+    "idm_source_nominal",
+    "idm_source_long_headway",
+    "idm_source_strong_brake"
+  ],
+  "recipe": {
+    "source_lr": 0.0003,
+    "transfer_lr": 0.0001,
+    "weight_decay": 0.0,
+    "source_l2_regularize": 0.0001,
+    "lambda_reconstruct": 0.1,
+    "lambda_gate_regularize": 0.0001,
+    "context_sizes": [
+      256,
+      512,
+      1024,
+      "all_train_disjoint"
+    ],
+    "validation_supports": [
+      0,
+      10,
+      50,
+      199
+    ],
+    "gradient_clip": 5.0,
+    "parameter_search": "one declared architecture/kernel recipe; no D search",
+    "jitter_max": 0.001
+  },
+  "context_coverage_min_per_training_source": [
+    227,
+    222,
+    229,
+    228
+  ],
+  "unseen_training_records": 0
+}

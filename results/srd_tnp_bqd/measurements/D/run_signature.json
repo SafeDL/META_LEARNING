@@ -1,0 +1,146 @@
+{
+  "run_id": "measurements_D",
+  "signature": "d0ad6b60d5fd49007da7ab149e90cc8604ae7e926d4974540d36800151e5bfb3",
+  "config": {
+    "schema_version": "srd_tnp_bqd_v2",
+    "baseline_commit": "cc7c1b32fb1639a06517a0d33159a7091480f797",
+    "mode": "replay_D_locked",
+    "conda_env": "metadrive",
+    "model_name": "SRD-TNP-BQD",
+    "output_root": "results/method_chains/srd_tnp_bqd",
+    "benchmark": {
+      "history_root": "results/method_chains/ras_frt_uq/historical_idm",
+      "target_root": "results/method_chains/ras_frt_uq/s01_uniform_fvdm_speed_23_mps",
+      "target": "fvdm_safety_speed_23_mps",
+      "family": "S01",
+      "count_A": 2048,
+      "count_D": 2048,
+      "budget": 200,
+      "checkpoints": [
+        10,
+        30,
+        50,
+        100,
+        150,
+        200
+      ],
+      "seeds": [
+        11,
+        23,
+        37,
+        53,
+        71
+      ],
+      "grid_bins": 4,
+      "preserve_original_collision_label": true,
+      "allow_new_candidate_coordinates": false
+    },
+    "measurement": {
+      "version": "srd_ssm_v2",
+      "ttc_scale_s": 1.5,
+      "drac_scale_mps2": 3.0,
+      "gap_scale_m": 1.0,
+      "ttc_prediction_horizon_s": 6.0,
+      "temporal_aggregation": "max_of_synchronous_rms",
+      "risk_threshold_initial": 0.5,
+      "logit_epsilon": 0.0001,
+      "workers": 4,
+      "allow_overwrite_original": false
+    },
+    "model": {
+      "whole_scenario_token": true,
+      "d_model": 128,
+      "h_dim": 32,
+      "heads": 4,
+      "layers": 3,
+      "ffn_dim": 256,
+      "dropout": 0.1,
+      "fourier_features": 32,
+      "fourier_scales": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "attention_mode": "exact_chunked_scan",
+      "query_chunk": 128,
+      "key_chunk": 256,
+      "inducing_tokens": 0,
+      "query_to_query_attention": false,
+      "update_history_with_target": false
+    },
+    "residual_gp": {
+      "dtype": "float64",
+      "kernel": "physical_plus_response_gated_multiscale_matern52",
+      "lengthscale_local": 0.2,
+      "lengthscales": [
+        0.05,
+        0.15,
+        0.5
+      ],
+      "lengthscale_h": 1.0,
+      "gate_hidden": 32,
+      "gate_l2_normalize": true,
+      "sigma_local": 0.5,
+      "sigma_shared": 1.0,
+      "sigma_local_lower_bound": 0.1,
+      "noise_variance_initial": 0.001,
+      "jitter_initial": 1e-08,
+      "online_hyperparameter_training": false
+    },
+    "training": {
+      "split_seed": 20260929,
+      "spatial_train_count": 1638,
+      "spatial_validation_count": 410,
+      "outer_source_folds": 5,
+      "development_seed": 11,
+      "final_seeds": [
+        11,
+        23,
+        37,
+        53,
+        71
+      ],
+      "stage1_max_steps": 2000,
+      "stage2_max_steps": 2000,
+      "validation_interval": 100,
+      "patience": 10,
+      "support_checkpoints": [
+        0,
+        1,
+        3,
+        5,
+        10,
+        20,
+        30,
+        50,
+        100,
+        150,
+        199
+      ],
+      "query_batch": 64,
+      "criterion": "outer_fold_unqueried_nll_then_rmse"
+    },
+    "qd": {
+      "descriptor": "normalized_s01_parameters",
+      "archive": "same_grid_as_existing_evaluation",
+      "bins": 4,
+      "acquisition": "expected_positive_risk_archive_improvement",
+      "quadrature_method": "truncated_normal_tail_gauss_legendre",
+      "quadrature_nodes": 64,
+      "quadrature_max_nodes": 256,
+      "quadrature_tail_sigma": 10.0,
+      "quadrature_absolute_tolerance": 1e-06,
+      "tie_break": "smallest_original_index"
+    }
+  },
+  "inputs": {
+    "manifest": "25eb4ecd2fe2ef3d83e1e3566b8fdcf5131fe0aa792ff11061441d15defff944",
+    "profiles": "8a08b079a9ba33f7145a7b9b391664be983e6c2d2a0ccb0e7ce8a49f697ffe1b",
+    "code": {
+      "methods\\srd_tnp_bqd\\risk.py": "68cd5cff24e833b7ae36117f4ae9180bb4d57e76242287b6d5ad28327d47f4a2",
+      "methods\\srd_tnp_bqd\\measurements.py": "51824cb5b11b4e3a8b865d8af91c81faa542681fb27f7c94bf8111e22b4d1b33",
+      "highway_sim_env\\envs\\unified_env.py": "1a31349ef60fbd0cb092e264050122cb5014b7f63d5913568e2c5673c5ed40cf"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "stage": "transfer",
+  "steps_executed": 1100,
+  "best_step": 100,
+  "best_criterion": [
+    1.956968749298448,
+    1.6045393249942665
+  ],
+  "elapsed_s_this_invocation": 100.25628679996589,
+  "heldout_source": "idm_source_limited_brake",
+  "gradient_sources": [
+    "idm_source_short_headway",
+    "idm_source_nominal",
+    "idm_source_long_headway",
+    "idm_source_strong_brake"
+  ],
+  "recipe": {
+    "source_lr": 0.0003,
+    "transfer_lr": 0.0001,
+    "weight_decay": 0.0,
+    "source_l2_regularize": 0.0001,
+    "lambda_reconstruct": 0.1,
+    "lambda_gate_regularize": 0.0001,
+    "context_sizes": [
+      256,
+      512,
+      1024,
+      "all_train_disjoint"
+    ],
+    "validation_supports": [
+      0,
+      10,
+      50,
+      199
+    ],
+    "gradient_clip": 5.0,
+    "parameter_search": "one declared architecture/kernel recipe; no D search",
+    "jitter_max": 0.001
+  },
+  "context_coverage_min_per_training_source": [
+    396,
+    395,
+    394,
+    395
+  ],
+  "unseen_training_records": 0
+}
