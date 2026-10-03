@@ -1,15 +1,16 @@
 # 被测驾驶算法
 
-本目录统一保存实验中实际控制 ego 车辆的被测驾驶算法。仿真环境、测试方法和
-正式结果分别保留在 `highway_sim_env/`、`metadrive_sim_env/`、
-`replications/` 和 `results/`，不得在这些目录中复制控制器实现。
+本目录保留当前 S01 所需控制器和此前复现的其他 ADS 实现。暂不参加实验的控制器及其权重也保留，供后续研究使用。
 
-- `highway_env/`：Highway-env 的 IDM/FVDM profiles，以及筛选后保留的
-  IDM+MOBIL、VI-TTC、MCTS-CV 和 PPO-ECE。
-- `metadrive/`：MetaDrive 的黑盒 SUT 接口、IDM adapter 和 profile registry。
+|位置|内容|当前使用|
+|---|---|---|
+|`highway_env/idm_profiles.py`、`registry.py`|IDM/FVDM 公式、历史配置及构建注册|S01 使用五个原 IDM 源和固定 FVDM 目标|
+|`highway_env/idm_mobil.py`|IDM + MOBIL|暂不使用|
+|`highway_env/value_iteration.py`|TTC 状态上的 Value Iteration|暂不使用|
+|`highway_env/mcts_cv.py`|恒速预测的 MCTS|暂不使用|
+|`highway_env/ppo_ece.py`、`checkpoints/ppo_ece/`|已有 PPO 实现及原 checkpoint|暂不使用|
+|`metadrive/`|MetaDrive 原控制器、配置与策略|暂不使用|
 
-`highway_env/reference_profiles.py` 保存共享仿真器与测试使用的参考 IDM、FVDM 配置；`highway_env/policy_adapter.py` 将这些控制器接入统一执行器。`highway_env/local_fault_idm.py` 保存旧构建仍支持的局部故障车辆类。当前 RAS-FRT-UQ 实验使用完整 FVDM。
+Highway-env 的其他 ADS 可由 `registry.policy_factory()` 创建，原外部策略执行接口也已恢复。独立论文复现的冻结源码和协议仍在[历史归档](../archives/retired_research_chains/README.md)。
 
-PPO-ECE 权重保存在 `highway_env/checkpoints/`，可随项目提交到 Git。
-需要重新获取时，使用 `python -m replications.highway_sut_selection.cli fetch`
-下载并校验原始模型文件。
+当前目标 `fvdm_safety_speed_23_mps` 仍直接读取[原目标协议](../benchmarks/s01/s01_fvdm/protocol.json)，不因恢复其他注册项而切换目标。源期望速度为 27 m/s、目标为 23 m/s，ego 初始速度均为 25 m/s。当前实验设置见[汇总](../results/srd_tnp_bqd/report.md)。

@@ -8,9 +8,6 @@ from scipy.spatial.distance import cdist
 
 KERNEL_LENGTH_SCALE = 0.3
 OBSERVATION_NOISE = 0.25
-RISK_WEIGHT = 0.25
-MISSED_FAILURE_WEIGHT = 0.25
-INFORMATION_WEIGHT = 0.5
 
 
 def physical_kernel(coordinates: np.ndarray) -> np.ndarray:
@@ -21,7 +18,7 @@ def physical_kernel(coordinates: np.ndarray) -> np.ndarray:
 class TransferUncertainty:
     """Gaussian residual surrogate with weighted variance-reduction queries.
 
-    The binary FVDM feedback is treated as a noisy observation of the
+    The continuous target risk feedback is treated as a noisy observation of the
     target-minus-history residual. Its variance is a model-based exploration
     score, not a calibrated coverage or target failure probability guarantee.
     """
@@ -47,39 +44,13 @@ class TransferUncertainty:
     def information_gain(self) -> np.ndarray:
         return self._information() / self.initial_information
 
-    def acquisition(self) -> np.ndarray:
-        risk = self.risk()
-        information = self.information_gain()
-        score = (RISK_WEIGHT * risk +
-                 MISSED_FAILURE_WEIGHT * self.weights * risk +
-                 INFORMATION_WEIGHT * information)
-        score[self.selected] = -np.inf
-        return score
-
-    def choose(self) -> int:
-        return int(np.argmax(self.acquisition()))
-
-    def observe(self, index: int, label: int | None) -> None:
+    def observe(self, index: int, risk: float | None) -> None:
         self.selected[index] = True
-        if label is None:
+        if risk is None:
             return
         column = self.covariance[:, index].copy()
         denominator = column[index] + OBSERVATION_NOISE
-        innovation = (label - self.prior[index]) - self.mean_residual[index]
+        innovation = (risk - self.prior[index]) - self.mean_residual[index]
         self.mean_residual += column * (innovation / denominator)
         self.covariance -= np.outer(column, column) / denominator
         self.covariance = (self.covariance + self.covariance.T) / 2
-
-
-def select_transfer_sequence(prior: np.ndarray, kernel: np.ndarray,
-                             oracle, budget: int) -> tuple[list[int], list[int | None],
-                                                           np.ndarray]:
-    model = TransferUncertainty(prior, kernel)
-    selected, observed = [], []
-    for _ in range(budget):
-        index = model.choose()
-        label = oracle.query(index)
-        selected.append(index)
-        observed.append(label)
-        model.observe(index, label)
-    return selected, observed, model.risk()

@@ -35,6 +35,6 @@ conda run -n metadrive python -B -m pytest methods/function_posterior_search/tes
 ```
 
 正式结果位于
-[`results/method_chains/function_posterior_search/confirmation/`](../../results/method_chains/function_posterior_search/confirmation/)。
+[`results/method_chains/function_posterior_search/confirmation/`](../../results/method_chains/function_posterior_search/confirmation)。
 开发阶段的向前规划、全局假设和重复源假设分支未获得正面结论，已连同开发结果
 删除，不再作为兼容入口保留。

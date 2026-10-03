@@ -1,5 +1,7 @@
 # 方法
 
-当前论文主方法为 **RAS-FRT-UQ**，实现与九方法统一比较入口位于 [`ras_frt_uq/`](ras_frt_uq/README.md)。原版 RAS-FRT 保留为对比方法。历史库 A、候选库 D 和九方法比较结果统一位于 [`results/method_chains/ras_frt_uq/`](../results/method_chains/ras_frt_uq/README.md)。
+[SRD-TNP-BQD](srd_tnp_bqd/README.md) 是唯一论文主链，默认使用匹配历史源、独立均值读出、联合均值校准、冻结 h／差异核和原混合采集。执行顺序为 `audit → train → experiment → evaluate`，原 S01 A/D 各 2048 个场景、五个 IDM 源及固定 FVDM 目标不变；原 A 上已补充一个速度匹配的 IDM 源。
 
-旧研究链已按[归档清单](../docs/RAS_FRT_Cleanup_Manifest.md)移至 [`archives/retired_research_chains/`](../archives/retired_research_chains/README.md)。共享仿真器位于 `highway_sim_env/`，被测控制器位于 `sut_algorithms/highway_env/`。
+同一实验入口运行八个通用/文献基线及 [RAS-FRT-UQ](ras_frt_uq/README.md) 原方法，并单列同源 kNN 数据对照。RAS 使用原模型和二值反馈。第一批及旧消融仅作为历史参照保存。
+
+[共享基准](../benchmarks/s01/README.md) · [全部比较](../results/srd_tnp_bqd/comparison/README.md) · [独立历史归档](../archives/retired_research_chains/README.md)

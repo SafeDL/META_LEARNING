@@ -10,15 +10,16 @@ import numpy as np
 import yaml
 
 
-CONFIG = Path(__file__).resolve().parent / "configs" / "scenario_parameter_space.yaml"
+CONFIG = Path(__file__).resolve().parent / "configs" / "s01.yaml"
 NAMES = ("initial_clearance_m", "lead_speed_mps", "lane_change_time_scale_s", "event_start_s")
+
+
 @lru_cache(maxsize=1)
 def bounds() -> dict[str, tuple[float, float]]:
     config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
-    item = next(row for row in config["scenarios"] if row["id"] == "S01")
-    if tuple(item["axes"]) != NAMES or item["status"] != "executable":
+    if tuple(config) != NAMES:
         raise ValueError("S01 parameter schema differs from the frozen contract")
-    return {name: tuple(map(float, item["axes"][name])) for name in NAMES}
+    return {name: tuple(map(float, config[name])) for name in NAMES}
 
 
 def coordinates(scenarios: list[dict]) -> np.ndarray:

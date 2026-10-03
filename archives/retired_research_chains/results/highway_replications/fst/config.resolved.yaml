@@ -1,0 +1,36 @@
+method: fst_similarity_h
+task_kind: performance_estimation
+event: collision
+reference_distribution: uniform_benchmark
+bank: results/highway_replications/shared/response_bank.npz
+source_train_suts:
+- SUT-A
+- SUT-B
+- SUT-C
+source_dev_suts:
+- SUT-D
+target_suts:
+- SUT-E
+- SUT-F
+train_n: 10
+test_n:
+- 5
+- 10
+- 20
+response_clusters: 5
+pc: response_cluster
+encoder_layers: 8
+hidden_dim: 256
+similarity: inverse_l2
+query_softmax_temperature: 1.0
+distance_epsilon: 1.0e-06
+set_optimizer: discrete_single_swap
+fluctuation_weight: 0.0
+max_training_updates: 800
+evaluation_interval: 25
+early_stopping_patience: 10
+batch_size: 16
+learning_rate: 0.001
+max_swap_rounds: 3
+experiment_repetitions: 50
+seed: 20260912

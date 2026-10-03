@@ -4,7 +4,7 @@
 
 S01 使用一份固定的 2,048 场景清单，包含 4 个参数轴。六个历史 source 是六个 IDM 构建版本；每个版本都在全部场景上执行一次，形成 12,288 条历史响应。目标 SUT 是 `merge_blind06`，也在全部 2,048 个场景上执行，得到仅供评价使用的真实失效集合。FM²-FBT、消融和各基线只通过 `TargetOracle.query` 获得目标反馈，每方法限 50 次查询。全量目标真值不得用于训练、模型选择或查询前排序。本轮训练和选择器各用一个种子。
 
-从仓库根目录在 `metadrive` 环境中，以新的空结果目录运行 `python -m methods.failure_memory_regression.fm2_s01_pilot --root <新结果目录> --stage all`。阶段依次为 `freeze → history → train → bank → evaluate_a → evaluate_b → report`；也可用 `--stage` 单独执行。默认配置为 `configs/fm2_s01_full_history.json`，已完成的冻结结果位于 [`fm2_s01_full_history/`](../../results/method_chains/failure_memory_regression/fm2_s01_full_history/)。已冻结的清单不能覆盖；既有结果请直接读取。历史与目标响应库中的既测条目由冻结配置指定并经场景及构建 ID 校验后复用，成本账本区分复用和新执行。
+从仓库根目录在 `metadrive` 环境中，以新的空结果目录运行 `python -m methods.failure_memory_regression.fm2_s01_pilot --root <新结果目录> --stage all`。阶段依次为 `freeze → history → train → bank → evaluate_a → evaluate_b → report`；也可用 `--stage` 单独执行。默认配置为 `configs/fm2_s01_full_history.json`，已完成的冻结结果位于 [`fm2_s01_full_history/`](../../results/method_chains/failure_memory_regression/fm2_s01_full_history)。已冻结的清单不能覆盖；既有结果请直接读取。历史与目标响应库中的既测条目由冻结配置指定并经场景及构建 ID 校验后复用，成本账本区分复用和新执行。
 
 本轮目标真值为 408/2,048 个确认失效。50 次查询下，HistoryRank-UCB-v2 找到 50 个，FM²-FBT 找到 36 个；因此 FM²-FBT 没有超过最强基线。完整指标、逐次查询和审计见结果目录的 [`report.md`](../../results/method_chains/failure_memory_regression/fm2_s01_full_history/report.md)。这是一轮开发试验，不能视作独立确认。
 

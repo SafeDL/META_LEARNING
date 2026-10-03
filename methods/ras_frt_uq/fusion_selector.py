@@ -21,7 +21,8 @@ def select_fusion_sequence(
     oracle,
     budget: int,
     regularizer: float,
-) -> tuple[list[int], list[int | None], np.ndarray]:
+    risk_threshold: float = 0.5,
+) -> tuple[list[int], list[float | None], np.ndarray]:
     """Find failures while updating a target-minus-history residual model.
 
     Uncertain locations retain the local response-similarity correction.
@@ -29,7 +30,7 @@ def select_fusion_sequence(
     """
     model = TransferUncertainty(prior, physical_kernel)
     selected: list[int] = []
-    observed: list[int | None] = []
+    observed: list[float | None] = []
     discovered_cells: set[int] = set()
 
     for _ in range(budget):
@@ -54,11 +55,11 @@ def select_fusion_sequence(
         score[model.selected] = -np.inf
 
         index = int(np.argmax(score))
-        label = oracle.query(index)
+        measured_risk = oracle.query(index)
         selected.append(index)
-        observed.append(label)
-        if label == 1:
+        observed.append(measured_risk)
+        if measured_risk is not None and measured_risk > risk_threshold:
             discovered_cells.add(int(cell_ids[index]))
-        model.observe(index, label)
+        model.observe(index, measured_risk)
 
     return selected, observed, model.risk()

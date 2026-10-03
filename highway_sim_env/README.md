@@ -1,25 +1,22 @@
-# Highway-env 仿真与共享数据
+# Highway-env 仿真
 
-本目录维护本文方法在 highway-env 上的轻量实现，并提供当前复现实验共用的
-Cut-in 场景和响应库。SUT 统一位于根目录 `sut_algorithms/highway_env/`。
-AdaTE、DETOUR 和融合链可以读取这些稳定接口，但
-不得把各自的算法、配置或结果写回本目录。
+当前实验使用原 S01 cut-in 的四维坐标、初始条件与 20 Hz 物理执行。A/D、五个历史 IDM 源及固定 FVDM 目标参数不变。此前复现的其他 ADS 所需通用执行器和外部策略接口同时保留，暂不参加当前比较。
 
-主要目录：
+|文件|职责|
+|---|---|
+|`build_spec.py`|原控制器构建配置与响应身份|
+|`s01_parameters.py`、`configs/s01.yaml`|当前 S01 四轴坐标、参数边界和有效标签|
+|`envs/unified_env.py`、`scripted_vehicle.py`|原物理步进、轨迹记录与脚本化车辆|
+|`envs/cutin_env.py`、`external_cutin.py`|已有切入环境与外部 ADS 执行接口，暂不使用|
+|`envs/single_lane_longitudinal.py`|保留的单车道执行接口，暂不使用|
+|`envs/safety_metrics.py`|净间距和 TTC|
 
-- `envs/`：可直接执行的 highway-env 场景；
-- `data/`：候选场景和响应库；
-- `mining/`：低秩先验、诊断采样和后验更新；
-- `tests/`：共享仿真契约。
-- `build_spec.py`：构建配置和稳定指纹；
-- `s01_parameters.py`、`configs/scenario_parameter_space.yaml`：S01 坐标、边界和有效响应标签。
-- `envs/unified_env.py`：A、D 共用的 `UnifiedHighwayEnv`，按 20 Hz 执行控制器和脚本车辆；
-- `envs/scripted_vehicle.py`、`envs/safety_metrics.py`：背景车辆事件、净间距和 TTC。
+控制器由 [sut_algorithms](../sut_algorithms/README.md) 提供。独立旧研究的数据／挖掘接口与冻结协议仍保存在[历史归档](../archives/retired_research_chains/README.md)。恢复通用环境不改变当前 S01 的控制公式、执行次序或测量接口。
 
-S01 直接读取 A、D 统一的四轴 `active_parameters` 字段。控制器构建指纹在同一构建对象中只计算一次；它用于响应身份。旧的 `fbrt_env.py`、`fbrt_scenarios.py`、`fbrt_training_env.py` 与 `fbrt_parameters.py` 已移至 [`archives/retired_research_chains/highway_sim_env/`](../archives/retired_research_chains/highway_sim_env/)。
+当前主链的回归测试：
 
 ```powershell
-conda run -n metadrive python -m pytest highway_sim_env/tests -q -p no:cacheprovider
-conda run -n metadrive python -m highway_sim_env.data.generate_anchor_bank
-conda run -n metadrive python -m highway_sim_env.data.response_bank
+conda activate metadrive
+python -B -m pytest -q -p no:cacheprovider
+python -B -m methods.srd_tnp_bqd.audit
 ```

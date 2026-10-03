@@ -68,4 +68,3 @@ class PolicyAdapter:
     def reset(self) -> None:
         if self.policy is not None:
             self.policy.reset()
-

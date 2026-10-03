@@ -1,24 +1,22 @@
-# MetaDrive 仿真与方法实现
+# MetaDrive 仿真平台（暂不使用）
 
-本目录维护本文方法在 MetaDrive 上的完整实现，包括地图与场景语义、
-安全判定、Risk Mining、Formal Teacher、实验脚本和测试。它不包含外部论文复现或
-Mining–DETOUR 融合代码。
+本目录保留已有 MetaDrive 仿真、场景、安全语义、Risk Mining 和 Formal Teacher 实现。上一轮误删的文件已从当前 Git 版本恢复。当前 SRD-TNP-BQD 实验仍只使用 Highway-env 的 S01，不运行本目录的训练或实验。
 
-MetaDrive 被测控制器统一位于根目录 `sut_algorithms/metadrive/`。
+MetaDrive 被测控制器保留在 `sut_algorithms/metadrive/`。
 
-主要目录：
+|目录|职责|
+|---|---|
+|`scenario/`、`map/`、`control/`、`safety/`|场景、地图、车辆控制与安全语义|
+|`context/`、`failure/`、`evaluation/`|轨迹特征、失效判定与评价|
+|`mining/`、`formal/`|已有 Risk Mining 和 Formal Teacher 实现|
+|`configs/`、`scripts/`|原配置与数据／评价入口，当前暂不执行|
+|`tests/`|仿真与方法契约测试|
 
-- `scenario/`、`map/`、`control/`、`safety/`：仿真和安全语义；
-- `mining/`：Risk Mining 的先验、后验、采集和挖掘；
-- `formal/`：Formal Teacher 的教师与形式事件校准；
-- `scripts/`：数据构建与离线评价入口；
-- `tests/`：方法和仿真契约。
+保留平台的单独测试命令：
 
 ```powershell
-conda run -n metadrive python -m pytest metadrive_sim_env/tests -q -p no:cacheprovider
-conda run -n metadrive python -m metadrive_sim_env.scripts.validate_formal_teacher
+conda activate metadrive
+python -B -m pytest metadrive_sim_env/tests -q -p no:cacheprovider
 ```
 
-Formal Teacher 当前入口使用 `configs/formal_teacher.yaml`，结果写入语义化的
-`results/metadrive/formal_teacher/cutin_g01/formal_teacher/`。已失败停止且被当前协议
-取代的早期教师结果、脚本和配置均不再保留。
+旧 `results/metadrive/` 实验结果保持已清理状态。原脚本仍保留其输出配置；未来明确启用平台后才会重新生成结果。恢复记录见[目录修正](../results/srd_tnp_bqd/audit/layout_correction.json)。
