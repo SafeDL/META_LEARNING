@@ -307,6 +307,13 @@ def _emergency_brake(profile: SUTProfile, ego_vehicle: ControlledVehicle,
 
 def create_profiled_vehicle(*args, profile: SUTProfile, **kwargs) -> ControlledVehicle:
     """Instantiate exactly the controller family named by a SUT profile."""
+    from .perception import PerceptionProfile
+    if isinstance(profile, PerceptionProfile):
+        from .perception import PerceivedIDMVehicle, PerceivedFVDMVehicle
+        classes = {"IDM": PerceivedIDMVehicle, "FVDM": PerceivedFVDMVehicle}
+        if profile.controller not in classes:
+            raise ValueError(f"Unsupported controller family: {profile.controller}")
+        return classes[profile.controller](*args, profile=profile, **kwargs)
     if profile.controller == "IDM":
         return ProfiledIDMVehicle(*args, profile=profile, **kwargs)
     if profile.controller == "FVDM":

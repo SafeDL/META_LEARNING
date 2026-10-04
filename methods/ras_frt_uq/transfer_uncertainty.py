@@ -18,8 +18,8 @@ def physical_kernel(coordinates: np.ndarray) -> np.ndarray:
 class TransferUncertainty:
     """Gaussian residual surrogate with weighted variance-reduction queries.
 
-    The continuous target risk feedback is treated as a noisy observation of the
-    target-minus-history residual. Its variance is a model-based exploration
+    Target feedback is treated as a noisy observation of the target-minus-history
+    residual; RAS uses binary collision outcomes. Its variance is an exploration
     score, not a calibrated coverage or target failure probability guarantee.
     """
 

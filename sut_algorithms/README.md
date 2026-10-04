@@ -1,16 +1,16 @@
 # 被测驾驶算法
 
-本目录保留当前 S01 所需控制器和此前复现的其他 ADS 实现。暂不参加实验的控制器及其权重也保留，供后续研究使用。
+研究对象是 highway-env / MetaDrive 中的驾驶规划与控制算法。当前目标为带安全停车间距和 0.15 s 连续感知延迟的 FVDM，参数在 [当前方法 config.py](../methods/history_guided_testing/config.py)，结果见 [实验报告](../results/history_guided_testing/README.md)。
 
 |位置|内容|当前使用|
 |---|---|---|
-|`highway_env/idm_profiles.py`、`registry.py`|IDM/FVDM 公式、历史配置及构建注册|S01 使用五个原 IDM 源和固定 FVDM 目标|
-|`highway_env/idm_mobil.py`|IDM + MOBIL|暂不使用|
-|`highway_env/value_iteration.py`|TTC 状态上的 Value Iteration|暂不使用|
-|`highway_env/mcts_cv.py`|恒速预测的 MCTS|暂不使用|
-|`highway_env/ppo_ece.py`、`checkpoints/ppo_ece/`|已有 PPO 实现及原 checkpoint|暂不使用|
-|`metadrive/`|MetaDrive 原控制器、配置与策略|暂不使用|
+|highway_env/idm_profiles.py|IDM/FVDM 跟驰控制公式|六历史源和 FVDM 目标的基础控制器|
+|highway_env/perception.py|连续感知延迟、基于速度的预测、安全停车间距 FVDM|当前历史源与目标|
+|highway_env/policy_adapter.py|统一执行接口|当前仿真|
+|highway_env/idm_mobil.py|IDM + MOBIL|可作为后续被测目标|
+|highway_env/value_iteration.py|Value Iteration 规划|可作为后续被测目标|
+|highway_env/mcts_cv.py|恒速预测 MCTS 规划|可作为后续被测目标|
+|highway_env/ppo_ece.py、checkpoints/ppo_ece|PPO 策略和已有权重|可作为后续被测目标|
+|metadrive|MetaDrive 控制器、配置与策略|保留研究平台|
 
-Highway-env 的其他 ADS 可由 `registry.policy_factory()` 创建，原外部策略执行接口也已恢复。独立论文复现的冻结源码和协议仍在[历史归档](../archives/retired_research_chains/README.md)。
-
-当前目标 `fvdm_safety_speed_23_mps` 仍直接读取[原目标协议](../benchmarks/s01/s01_fvdm/protocol.json)，不因恢复其他注册项而切换目标。源期望速度为 27 m/s、目标为 23 m/s，ego 初始速度均为 25 m/s。当前实验设置见[汇总](../results/srd_tnp_bqd/report.md)。
+历史源包括常规 IDM/FVDM、0.6 s 感知延迟 IDM/FVDM、制动受限 IDM 和预测制动 IDM。所有历史源期望速度 23 m/s、初速 25 m/s；预测读取当前位置与速度。

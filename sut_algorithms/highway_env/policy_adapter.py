@@ -29,12 +29,11 @@ class PolicyAdapter:
                   "speed": initial_speed,
                   "target_lane_index": env.ego_lane_index}
         if self.spec.adapter_kind == "legacy_profile":
-            profile = SUTProfile(**self.spec.profile)
-            fault = (self.spec.mutation or {}).get("legacy_fault")
-            if fault:
-                from sut_algorithms.highway_env.local_fault_idm import LocalFault, LocalFaultIDMVehicle
-                return LocalFaultIDMVehicle(env.road, position, profile=profile,
-                                            fault=LocalFault(fault), **common)
+            if "perception_mode" in self.spec.profile:
+                from .perception import PerceptionProfile
+                profile = PerceptionProfile(**self.spec.profile)
+            else:
+                profile = SUTProfile(**self.spec.profile)
             return create_profiled_vehicle(env.road, position, profile=profile, **common)
         if self.spec.adapter_kind == "native_vehicle":
             return make_native_vehicle(self.spec.build_id, env.road, position,
