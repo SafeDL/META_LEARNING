@@ -1,27 +1,27 @@
-# SRD-TNP-BQD：S01 事故场景测试
+# 驾驶规划与控制算法的场景测试
 
-面向黑盒驾驶控制器的测试研究。当前唯一论文方法为 **SRD-TNP-BQD**；实验恢复为原 RAS-FRT-UQ 的单一 S01 cut-in 基准：A/D 各 2048 个场景、五个历史 IDM、固定 FVDM 目标、每条轨迹 200 次查询。
+研究在 highway-env / MetaDrive 中如何用有限测试预算发现驾驶规划与控制算法的失效。当前主链为**历史引导 GP 风险测试**，实测使用 highway-env；`metadrive` 是运行用的 Conda 环境。
 
-默认方法已统一为匹配历史源、独立均值读出、联合均值校准、冻结 h／差异核和原混合采集。原 A/D、目标、ego 初始条件、五源及冻结模型不变；均值使用原 A 上补充的期望速度23 m/s 的 IDM 源。正式比较包含本文和九个基线：Uniform random、Farthest-first、kNN historical-risk ranking、GP-UCB、GP-EI、BOP-Elites、BAS、RF surrogate BO、RAS-FRT-UQ，另列同源 kNN 数据对照。RAS 保留原二值反馈，其余方法使用连续风险。
+历史场景库与独立目标库均包含切入 1024 个、前车急刹 1024 个。六个历史 SUT 分为反应、感知延迟、制动受限和预测制动四组；历史坐标只分训练/验证约 80%/20%。目标为带安全停车间距和 0.15 s 感知延迟的 FVDM，期望速度 23 m/s、最大制动 8 m/s²。每方法五个种子、每次 200 次查询。
+
+```powershell
+conda activate metadrive
+python -B -m methods.history_guided_testing.run
+python -B -m pytest -q -p no:cacheprovider
+```
 
 |目录|用途|
 |---|---|
-|[methods/srd_tnp_bqd](methods/srd_tnp_bqd/README.md)|本文、通用和文献基线的统一实验入口|
-|[methods/ras_frt_uq](methods/ras_frt_uq/README.md)|原四维、二值 RAS-FRT-UQ 对照|
-|[benchmarks/s01](benchmarks/s01/README.md)|共享原 A/D、五源、目标响应与实验协议|
-|[当前比较](results/srd_tnp_bqd/comparison/README.md)|默认新主线、九个基线、同源 kNN 与完整真值|
-|[highway_sim_env](highway_sim_env/README.md)|当前 S01 仿真器及保留的外部 ADS 执行接口|
-|[metadrive_sim_env](metadrive_sim_env/README.md)|保留的 MetaDrive 仿真平台，当前实验暂不使用|
-|[sut_algorithms](sut_algorithms/README.md)|共享被测控制器|
-|[results](results/README.md)|正式结果索引|
-|[tests](tests/srd_tnp_bqd)|当前 S01 方法、基线和信息边界的回归测试|
-|[archives](archives/README.md)|退出主链的历史研究与独立论文复现|
-|docs|[代码规范](docs/style.md)；当前方法、基线出处与执行协议合并在方法 README|
+|[methods/history_guided_testing](methods/history_guided_testing/README.md)|唯一默认主链、九个基线（含 RAS-FRT-UQ）与组件消融|
+|[当前实验结果](results/history_guided_testing/README.md)|设置、五种子对比、反馈精度、图与清理记录|
+|[highway_sim_env](highway_sim_env/README.md)|当前仿真平台与其他驾驶算法执行接口|
+|[metadrive_sim_env](metadrive_sim_env/README.md)|可用于后续研究的 MetaDrive 平台|
+|[sut_algorithms](sut_algorithms/README.md)|IDM、FVDM、MOBIL、VI、MCTS、PPO 等被测算法|
+|[tests/history_guided_testing](tests/history_guided_testing)|当前主链的数值、控制器与基线检查|
+|[methods/ras_frt_uq](methods/ras_frt_uq/README.md)|统一实验中的 RAS-FRT-UQ 基线|
+|[archives](archives/README.md)|独立论文复现与旧实验恢复归档|
+|[docs/style.md](docs/style.md)|当前代码规范|
 
-使用现有 `metadrive` 环境。唯一执行主链为 `audit → train → experiment → evaluate`，命令见[方法说明](methods/srd_tnp_bqd/README.md)。原 D 含 116 次碰撞和 33 个碰撞单元；曾参与 RAS 开发，成绩属于同库开发证据。
+已移除无额外收益的神经历史特征 h、旧全局线性校准、均值读出及默认混合 QD 采集。方法采用实测历史先验和风险空间 GP，默认核由历史验证选择，采集固定为纯风险优先。最后一次方法简化后重新实测独立目标库，最终目标测试不参与选型。
 
-异质多场景、弱 FVDM、新增 IDM 目标及其试验结果已退出当前方法链。后续实验设置只允许在单一 S01 内讨论 ego 初始条件、场景参数空间、源 SUT 类型和参数；固定目标保持不变。
-
-当前实验只运行 S01 主链。`metadrive_sim_env/`、`sut_algorithms/metadrive/` 和此前复现的 Highway-env ADS 控制器及 PPO 权重完整保留，暂不用于当前比较。AdaTE、DETOUR、FST、ScenarioFuzz 的独立复现与历史结果保留在归档。默认 pytest 运行 `tests/`，保留的 MetaDrive 测试可单独执行。
-
-第一批完整轨迹、旧消融与[事故 GIF](results/srd_tnp_bqd/reference/first_batch/visualizations/README.md)作为[历史参照](results/srd_tnp_bqd/reference/first_batch/README.md)保留。当前导出器读取默认新主线，只导出 GIF。已有冻结数据中的场景编号和执行契约保留原标识，用于追溯原实验。
+旧主链失败诊断保存在结果目录的 `development_summary.json`。废弃试验分支、过期控制器注册、重复的原 S01/RAS 实验及缓存已退出活动目录；旧结果完整压缩保存于 `archives/retired_experiments.zip`，经逐文件解压比对验证，可恢复原路径。清理记录见 `results/history_guided_testing/cleanup.json`，文件清单与备份核验见 `cleanup_review.json`。MetaDrive 平台、规划／控制算法和独立论文复现保留。

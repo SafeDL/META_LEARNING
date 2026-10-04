@@ -1,7 +1,7 @@
 # 方法
 
-[SRD-TNP-BQD](srd_tnp_bqd/README.md) 是唯一论文主链，默认使用匹配历史源、独立均值读出、联合均值校准、冻结 h／差异核和原混合采集。执行顺序为 `audit → train → experiment → evaluate`，原 S01 A/D 各 2048 个场景、五个 IDM 源及固定 FVDM 目标不变；原 A 上已补充一个速度匹配的 IDM 源。
+[历史引导风险测试](history_guided_testing/README.md) 是当前论文主链。六个机制不同的历史算法提供风险先验，目标反馈校正差异 GP，再按预期风险选择场景。历史库与目标库均含切入 1024 个、前车急刹 1024 个；默认入口统一运行准备、训练、九基线比较和组件实验。
 
-同一实验入口运行八个通用/文献基线及 [RAS-FRT-UQ](ras_frt_uq/README.md) 原方法，并单列同源 kNN 数据对照。RAS 使用原模型和二值反馈。第一批及旧消融仅作为历史参照保存。
+[RAS-FRT-UQ](ras_frt_uq/README.md) 已加入统一实验，共享六源历史库和场景预算，沿用二值碰撞反馈、原网络结构与融合权重。当前入口统一运行两类场景；原 S01 实验的模型与数据已归入可恢复压缩包。
 
-[共享基准](../benchmarks/s01/README.md) · [全部比较](../results/srd_tnp_bqd/comparison/README.md) · [独立历史归档](../archives/retired_research_chains/README.md)
+[当前结果](../results/history_guided_testing/README.md) · [研究归档与恢复说明](../archives/README.md)

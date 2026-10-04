@@ -1,9 +1,14 @@
 # RAS-FRT-UQ
 
-作为本文基线恢复原 S01 方法：四维输入、五个历史 IDM 二值响应头、响应相似度局部修正、目标残差不确定性与覆盖融合。入口为 [s01.py](s01.py)，由 SRD-TNP-BQD 的统一 experiment 调用。
+RAS-FRT-UQ 是当前统一实验的历史迁移基线，沿用原四维网络、二值碰撞反馈和融合选例公式。
 
-五个模型和固定参数直接恢复自 Git `cc7c1b32`，见[模型恢复记录](../../results/ras_frt_uq/model/restoration.json)。保持原二值碰撞反馈和融合权重，不重训为十一维连续风险方法。每次测量同时记录连续风险，供公共评价使用。
+当前默认主链见 [history_guided_testing](../history_guided_testing/README.md)。[unified.py](unified.py) 将 RAS 加入两类场景统一比较：与主方法共享六源历史库、训练/验证坐标、目标库、五个种子和 200 次场景预算。切入、急刹各训练一个原四维结构的响应编码器，每个模型有六个二值碰撞预测头；跨类型相似度与物理协方差置零。
 
-[统一比较](../../results/srd_tnp_bqd/comparison/README.md)核对五种子各 200 次选例与 Git 原序列一致。原 D 曾用于融合开发，属于同库开发证据。
+响应编码器使用 Adam（学习率 0.001）、批量 128，训练 300 轮，每 10 轮按历史验证 BCE 选择检查点。相似度尺度 0.3/0.25、校正正则项 0.1 沿用原历史实验固定设置，覆盖权重 0.2、新参数单元奖励 0.2、信息增益权重 0.05 和原融合更新保持不变。在线仅接收已查询场景的二值碰撞结果；其他统一基线接收连续风险。训练和选型均不读取最终目标标签。
 
-这是本项目已有方法，不能声称有独立外部论文来源。不存在另一条训练/异质实验主链。
+统一实验模型保存在 [models/ras_frt_uq](../../results/history_guided_testing/models/ras_frt_uq/)，比较见 [统一报告](../../results/history_guided_testing/README.md)。原 S01 的五源模型、基准数据和独立结果已完整移入可恢复压缩包，见[恢复说明](../../archives/README.md)。默认统一入口会完成 RAS 训练、选例和统计：
+
+```powershell
+conda activate metadrive
+python -B -m methods.history_guided_testing.run
+```

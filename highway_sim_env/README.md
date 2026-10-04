@@ -1,22 +1,13 @@
 # Highway-env 仿真
 
-当前实验使用原 S01 cut-in 的四维坐标、初始条件与 20 Hz 物理执行。A/D、五个历史 IDM 源及固定 FVDM 目标参数不变。此前复现的其他 ADS 所需通用执行器和外部策略接口同时保留，暂不参加当前比较。
+当前主链研究切入和前车急刹两类场景，历史库和独立目标库均为每类 1024 个。场景由 [当前方法](../methods/history_guided_testing/README.md)的 `scenarios.py` 统一定义，参数在 `config.py`。目标是安全间距 FVDM，初速 25 m/s、期望速度 23 m/s；12 s、20 Hz、双车道。
 
 |文件|职责|
 |---|---|
-|`build_spec.py`|原控制器构建配置与响应身份|
-|`s01_parameters.py`、`configs/s01.yaml`|当前 S01 四轴坐标、参数边界和有效标签|
-|`envs/unified_env.py`、`scripted_vehicle.py`|原物理步进、轨迹记录与脚本化车辆|
-|`envs/cutin_env.py`、`external_cutin.py`|已有切入环境与外部 ADS 执行接口，暂不使用|
-|`envs/single_lane_longitudinal.py`|保留的单车道执行接口，暂不使用|
-|`envs/safety_metrics.py`|净间距和 TTC|
+|build_spec.py|控制器构建配置|
+|envs/unified_env.py、scripted_vehicle.py|统一物理执行、轨迹与脚本车辆|
+|envs/cutin_env.py、external_cutin.py|其他切入环境与外部策略接口|
+|envs/single_lane_longitudinal.py|单车道执行接口|
+|envs/safety_metrics.py|间距与 TTC|
 
-控制器由 [sut_algorithms](../sut_algorithms/README.md) 提供。独立旧研究的数据／挖掘接口与冻结协议仍保存在[历史归档](../archives/retired_research_chains/README.md)。恢复通用环境不改变当前 S01 的控制公式、执行次序或测量接口。
-
-当前主链的回归测试：
-
-```powershell
-conda activate metadrive
-python -B -m pytest -q -p no:cacheprovider
-python -B -m methods.srd_tnp_bqd.audit
-```
+控制器见 [sut_algorithms](../sut_algorithms/README.md)。运行 `conda activate metadrive` 后使用 `python -B -m methods.history_guided_testing.run`；回归检查使用 `python -B -m pytest -q -p no:cacheprovider`。

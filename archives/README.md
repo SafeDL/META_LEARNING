@@ -1,20 +1,20 @@
-# 归档
+# 归档与恢复
 
-本目录保存独立研究链的历史实现与结果。当前论文方法位于[SRD-TNP-BQD](../methods/srd_tnp_bqd/README.md)，共享A/D数据位于[原始基准库](../benchmarks/s01/README.md)。旧九基线包及对应比较结果已删除，不属于本目录的独立复现归档。
+当前论文方法和实验结果分别位于[历史引导风险测试](../methods/history_guided_testing/README.md)与[主链结果](../results/history_guided_testing/README.md)。活动目录仅保留当前两类场景、九个基线及有效组件对照。
 
-| 目录 | 内容 |
-| --- | --- |
-| `pearl_learning/` | 仅用于合流任务的 PEARL 历史基线、重建脚本和契约测试 |
-| `sac_scenario_mining/` | 早期 SAC 场景挖掘基线 |
-| [`experimental_results/`](experimental_results/README.md) | 更早的中间实验和无效尝试 |
-| [`retired_research_chains/`](retired_research_chains/README.md) | 本轮退出活动目录的旧方法实现及其完整结果 |
+|内容|位置|
+|---|---|
+|旧试验结果、原 S01/RAS 数据与旧入口|`retired_experiments.zip`，可恢复归档|
+|AdaTE、DETOUR、FST、ScenarioFuzz 独立论文复现与结果|[retired_research_chains](retired_research_chains/README.md)|
+|PEARL 合流历史基线|`pearl_learning/`|
+|早期 SAC 场景挖掘基线|`sac_scenario_mining/`|
 
-AdaTE、DETOUR、FST、ScenarioFuzz 的独立复现及其专用仿真／控制器依赖现统一归入 `retired_research_chains/`，保持原相对目录结构。它们具有独立复现价值，但不属于当前 S01 九基线主比较。MetaDrive 旧实验结果保持已清理状态；其仿真代码与专用 SUT 已恢复到根目录，暂不使用。此前复现的 Highway-env ADS 及权重也在根目录保留；归档内的源码快照继续服务历史复现。
+旧归档共 19,253 个文件，打包后逐文件解压并与原文件进行字节比对，全部一致。展开目录已清理，原相对路径保存在压缩包中。清理范围与核验记录见 [cleanup_review.json](../results/history_guided_testing/cleanup_review.json)。压缩包仅在本地保留，不随常规 Git 提交。
 
-在仓库根目录验证 PEARL 归档代码：
+需要核对旧实验时，在仓库根目录解压到独立目录：
 
 ```powershell
-conda run -n metadrive python -m pytest archives/pearl_learning/tests -q
+Expand-Archive -LiteralPath archives/retired_experiments.zip -DestinationPath archives/restored_experiments
 ```
 
-归档结果与基线源码分别放在各自子目录；当前 `results/` 中没有 PEARL 正式结果目录。
+该命令恢复旧文件的内容和原相对目录结构，不会修改当前主链。当前历史响应、目标响应、GP 与 RAS 模型、80 条统一比较轨迹、关键失败结论和驾驶算法平台继续保留。
