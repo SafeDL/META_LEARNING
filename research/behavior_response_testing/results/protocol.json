@@ -1,0 +1,154 @@
+{
+  "role": "Development predictor fitting; not target testing or independent confirmation",
+  "training_profiles": [
+    "idm_06",
+    "idm_10",
+    "idm_00",
+    "idm_02",
+    "idm_01",
+    "idm_08",
+    "idm_05",
+    "idm_11",
+    "fvdm_05",
+    "fvdm_06",
+    "fvdm_04",
+    "fvdm_08",
+    "fvdm_09",
+    "fvdm_10",
+    "fvdm_02",
+    "fvdm_07"
+  ],
+  "validation_profiles": [
+    "idm_04",
+    "idm_03",
+    "idm_07",
+    "idm_09",
+    "fvdm_11",
+    "fvdm_00",
+    "fvdm_03",
+    "fvdm_01"
+  ],
+  "historical_behavior_descriptors": {
+    "idm_06": [
+      0.5964336395263672,
+      0.3249383866786957,
+      0.5481740236282349,
+      0.0
+    ],
+    "idm_10": [
+      0.2806234359741211,
+      0.49891865253448486,
+      0.40373238921165466,
+      0.0
+    ],
+    "idm_00": [
+      0.8112622499465942,
+      0.32242515683174133,
+      0.9942944645881653,
+      0.0
+    ],
+    "idm_02": [
+      0.589999794960022,
+      0.2707395851612091,
+      0.8881301283836365,
+      0.0
+    ],
+    "idm_01": [
+      0.22323690354824066,
+      0.5485031008720398,
+      0.21068082749843597,
+      0.0
+    ],
+    "idm_08": [
+      0.6214613318443298,
+      0.7860438823699951,
+      0.833723247051239,
+      0.0
+    ],
+    "idm_05": [
+      0.995598316192627,
+      0.027071645483374596,
+      0.896392822265625,
+      0.0
+    ],
+    "idm_11": [
+      0.39742201566696167,
+      0.02083730697631836,
+      0.030262941494584084,
+      0.0
+    ],
+    "fvdm_05": [
+      0.28405654430389404,
+      0.01002537738531828,
+      0.977216899394989,
+      1.0
+    ],
+    "fvdm_06": [
+      0.19454050064086914,
+      0.16865764558315277,
+      0.7394949793815613,
+      1.0
+    ],
+    "fvdm_04": [
+      0.9326552152633667,
+      0.687311053276062,
+      0.6662099361419678,
+      1.0
+    ],
+    "fvdm_08": [
+      0.08349683880805969,
+      0.4494735896587372,
+      0.22327029705047607,
+      1.0
+    ],
+    "fvdm_09": [
+      0.5974375009536743,
+      0.038075678050518036,
+      0.8788945078849792,
+      1.0
+    ],
+    "fvdm_10": [
+      0.04480551928281784,
+      0.7270587682723999,
+      0.11730407923460007,
+      1.0
+    ],
+    "fvdm_02": [
+      0.9989904761314392,
+      0.4415328800678253,
+      0.015391525812447071,
+      1.0
+    ],
+    "fvdm_07": [
+      0.6653409004211426,
+      0.5254758596420288,
+      0.6132378578186035,
+      1.0
+    ]
+  },
+  "training_physical_records": 65536,
+  "validation_physical_records": 32768,
+  "input": "Four scene coordinates and four offline behavioral coordinates: brake, gap, delay and controller kind",
+  "architecture": [
+    8,
+    128,
+    256,
+    128,
+    2
+  ],
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "steps": 4000,
+  "batch_size": 512,
+  "validation_interval": 250,
+  "loss": "(1+4R) risk MSE + 0.1 collision BCE",
+  "optimizer": "AdamW lr=0.001 weight_decay=0.0001",
+  "parameter_access": "Known historical parameters train the forward model. A future selector must infer latent behavioral parameters from its queried risk; true target parameters cannot enter selection",
+  "validation_role": "Known-profile predictor validation, not a permitted target-parameter oracle for search",
+  "scope": "Same two controller families and three parameter ranges; no claim about arbitrary AD architectures"
+}

@@ -1,0 +1,101 @@
+{
+  "role": "Development after failed confirmation; not independent validation",
+  "methods": [
+    "fixed_behavior",
+    "discrete_history",
+    "continuous_behavior",
+    "matched_history_gp",
+    "coverage_behavior",
+    "matched_collision_gp",
+    "calibrated_behavior",
+    "calibrated_discrete"
+  ],
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "profiles": [
+    "idm_00",
+    "idm_01",
+    "idm_02",
+    "idm_03",
+    "idm_04",
+    "idm_05",
+    "idm_06",
+    "idm_07",
+    "idm_08",
+    "idm_09",
+    "idm_10",
+    "idm_11",
+    "fvdm_00",
+    "fvdm_01",
+    "fvdm_02",
+    "fvdm_03",
+    "fvdm_04",
+    "fvdm_05",
+    "fvdm_06",
+    "fvdm_07",
+    "fvdm_08",
+    "fvdm_09",
+    "fvdm_10",
+    "fvdm_11"
+  ],
+  "training_profiles": [
+    "idm_06",
+    "idm_10",
+    "idm_00",
+    "idm_02",
+    "idm_01",
+    "idm_08",
+    "idm_05",
+    "idm_11",
+    "fvdm_05",
+    "fvdm_06",
+    "fvdm_04",
+    "fvdm_08",
+    "fvdm_09",
+    "fvdm_10",
+    "fvdm_02",
+    "fvdm_07"
+  ],
+  "validation_profiles": [
+    "idm_04",
+    "idm_03",
+    "idm_07",
+    "idm_09",
+    "fvdm_11",
+    "fvdm_00",
+    "fvdm_03",
+    "fvdm_01"
+  ],
+  "replicates_per_profile": 2,
+  "continuous_particle_count": 512,
+  "continuous_prior": "Uniform three normalized physical parameters; balanced controller kind",
+  "discrete_particle_count": 16,
+  "discrete_prior": "Uniform over sixteen actual historical behavioral profiles",
+  "likelihood": "Raw-risk Gaussian discrepancy GP with shared covariance; per-family total variance from known-profile development predictor RMSE; half GP variance and half work observation variance",
+  "discrepancy_length": 0.2,
+  "budget": 200,
+  "online_feedback": "Queried continuous risk only",
+  "target_parameters": "Never given to selector; historical descriptors and prior grid only",
+  "matched_information": "All methods use the same newly fitted forward response model and historicalized training data",
+  "matched_history_gp": "Previous best algorithm and kernel settings, sixteen conditional-model source responses, uniform source weights, risk-to-collision calibration refit on the same sixteen training profiles",
+  "matched_collision_gp": "Same information-matched history GP, selecting collision score only instead of a budget-dependent risk/collision mixture",
+  "calibrated_behavior": "Continuous behavior posterior with historical known-profile risk likelihood fitted GP discrepancy and work variance",
+  "calibrated_discrete": "Discrete history posterior with the same fitted risk discrepancy",
+  "historical_risk_calibration": {
+    "0": {
+      "slope": 32.149438936376015,
+      "intercept": -23.691699457378657
+    },
+    "1": {
+      "slope": 40.041783818444046,
+      "intercept": -33.18327818096445
+    }
+  },
+  "scope": "Two controller kinds and three declared behavioral parameters",
+  "coverage_behavior": "Same continuous behavior posterior; select expected C_i/N with zero gain when N=0, using 128-point Gauss-Legendre integration under conditional independent Bernoulli collision predictions"
+}

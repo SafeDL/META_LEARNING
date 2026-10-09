@@ -1,0 +1,187 @@
+{
+  "locked_on": "2026-10-05 Asia/Shanghai",
+  "confirmation_round": 2,
+  "pool_sampling_seeds": [
+    [
+      1098001,
+      1098002
+    ],
+    [
+      1098192,
+      1098193
+    ],
+    [
+      1098383,
+      1098384
+    ],
+    [
+      1098574,
+      1098575
+    ],
+    [
+      1098765,
+      1098766
+    ],
+    [
+      1098956,
+      1098957
+    ],
+    [
+      1099147,
+      1099148
+    ],
+    [
+      1099338,
+      1099339
+    ],
+    [
+      1099529,
+      1099530
+    ],
+    [
+      1099720,
+      1099721
+    ],
+    [
+      1099911,
+      1099912
+    ],
+    [
+      1100102,
+      1100103
+    ],
+    [
+      1100293,
+      1100294
+    ],
+    [
+      1100484,
+      1100485
+    ],
+    [
+      1100675,
+      1100676
+    ],
+    [
+      1100866,
+      1100867
+    ],
+    [
+      1101057,
+      1101058
+    ],
+    [
+      1101248,
+      1101249
+    ],
+    [
+      1101439,
+      1101440
+    ],
+    [
+      1101630,
+      1101631
+    ]
+  ],
+  "pool_count": 20,
+  "methods": [
+    "candidate",
+    "main",
+    "ras_frt_uq",
+    "class_rank",
+    "risk_only",
+    "calibrated_only"
+  ],
+  "training_seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "training_seed_per_pool": [
+    11,
+    23,
+    37,
+    53,
+    71,
+    11,
+    23,
+    37,
+    53,
+    71,
+    11,
+    23,
+    37,
+    53,
+    71,
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "candidate": {
+    "prior": "explicit historical risk and collision-response heads",
+    "response_length": 0.05,
+    "physical_length": 0.2,
+    "physical_weight": 0.1,
+    "sigma": 0.25,
+    "noise": 0.05,
+    "calibrated_weight": "1 - queries_used / 200",
+    "utility": "weighted expected clipped risk and calibrated score",
+    "source_posterior": false,
+    "lookahead": false
+  },
+  "calibration": {
+    "0": {
+      "slope": 30.911231991020493,
+      "intercept": -22.67811265400309
+    },
+    "1": {
+      "slope": 31.230846827224784,
+      "intercept": -24.695261194213494
+    }
+  },
+  "budget": 200,
+  "scenes_per_family": 1024,
+  "target_profile": "same frozen FVDM",
+  "primary_metric": "mean cumulative collision count over all 200 queries",
+  "independent_unit": "new Sobol candidate pool",
+  "primary_comparisons": [
+    "main",
+    "ras_frt_uq"
+  ],
+  "significance": "two-sided exact paired sign-flip; Holm within two comparisons",
+  "round_alpha": 0.008333333333333333,
+  "multi_round_rule": "conservative alpha spending 0.05 / [round * (round+1)]",
+  "success": "positive AUC difference with Holm p<round_alpha against both, mean AUC gain >=1 against RAS, paired F200 bootstrap 95% CI lower bound >=-1",
+  "secondary_metrics": [
+    "F10",
+    "F50",
+    "F100",
+    "F200",
+    "collision parameter cells",
+    "risk QD score"
+  ],
+  "development": "first original target and completed first confirmation; all fresh seeds still unmeasured",
+  "feedback": {
+    "ras_frt_uq": "queried binary collision",
+    "other_methods": "queried continuous risk only"
+  },
+  "physical_execution": "only requested scenes; shared physical cache; no full-pool recall claim",
+  "model_sha256": {
+    "emulator_11.pt": "16d1d1c5e33043f046ac40129f833d0cfa1940fdca22dc355ec4833fb53fe989",
+    "emulator_23.pt": "b4e85a7ef6a93cc1ee294423cd02cda5df4b32e7761b159d5a43d5be72ce90c0",
+    "emulator_37.pt": "5398819838743a0c04a14be5ce99de5f8225ac9d87a713aa3e9f3769f28711aa",
+    "emulator_53.pt": "dbaf8ae774978ffdde511f0c9d8ea377c2dff803935e5d04e0b7ab657063fddd",
+    "emulator_71.pt": "0dfed35d037c5eca46b82c9ccd05a1e8a07b04c9ea90857a7016c41886f035c0"
+  },
+  "source_sha256": {
+    "dual.py": "50f372cea5b8fa41a1c7169eb04b063bfe9e15dee038de1a074b144d18fb35e7",
+    "emulator.py": "eefd703f44806cb0bb7e419d174489c376722d319b6864b800dc23863e9f6ae4",
+    "response_kernel.py": "9dcd2dd0f42b7e755cb48a269d8b8205d0ff9ccddc9d3c6b9e0577531d0f4950",
+    "second_confirmation.py": "a327f6ba5aa03314f988b5d2e511ccbaec0b11bd700fa7cdc74718d8039f640d",
+    "validate_candidates.py": "de15ba8fda5cb148be69246d624f59c300f80c80793a8b09d1e91c7e102560e5"
+  }
+}
