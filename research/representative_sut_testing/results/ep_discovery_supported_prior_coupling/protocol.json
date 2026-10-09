@@ -1,0 +1,30 @@
+{
+  "stage": "joint EP versus ADF inference; same observation and decision-equivalence rules",
+  "sut_ids": [
+    "idm_ref",
+    "fvdm_target",
+    "mobil_ref_v2",
+    "vi_ttc_ref_audit_v4",
+    "mcts_cv_ref_audit_v4",
+    "ppo_ref_v2"
+  ],
+  "pools": [
+    0,
+    1
+  ],
+  "seed": 11,
+  "budget": 200,
+  "new_curves": 12,
+  "reused_controls": 24,
+  "model": "same history/neutral models, likelihood, priors and decision rule; only ADF replaced by joint EP refitting",
+  "decision": "candidate mean collision probability must improve; current reference slot can be replaced only if joint candidate-miss/reference-hit probability <=1/sqrt(200)",
+  "joint_probability": "Gaussian report covariance includes independent observation noise; deterministic bivariate normal quadrature, then prior-model averaging",
+  "scope": "working immediate binary loss, not strict propensity ranking or a true-world confidence statement",
+  "threshold": 0.07071067811865472,
+  "threshold_design": "locked budget-only 1/sqrt(B), no target-dependent threshold search",
+  "protection": "unchanged actual discovery credit and independent paid-reference replay",
+  "coverage": "fixed 105-position prefix guarantee removed when supported reference slots are skipped; actual count bound retained",
+  "controls": "existing frozen_reference and ADF discovery_supported_prior trajectories",
+  "ep_inference": "parallel damped site refitting; exact safe Gaussian sites, inequality moment matching; tolerance 1e-7, maximum 200 iterations",
+  "new_physical_calls": 0
+}

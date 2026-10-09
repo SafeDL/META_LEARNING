@@ -1,0 +1,51 @@
+{
+  "stage": "existing six-SUT development; not blind confirmation",
+  "sut_ids": [
+    "idm_ref",
+    "fvdm_target",
+    "mobil_ref_v2",
+    "vi_ttc_ref_audit_v4",
+    "mcts_cv_ref_audit_v4",
+    "ppo_ref_v2"
+  ],
+  "pools": [
+    0,
+    1
+  ],
+  "methods": [
+    "frozen_reference",
+    "uncoupled_response",
+    "coupled_response"
+  ],
+  "budget": 200,
+  "initialization": "first ten actual queries of frozen_original; common across controls",
+  "reference": "unchanged TestingSession(mode=global_feedback), same trained kernel and history split",
+  "reference_feedback": "risk only; collision not passed to its state update",
+  "candidate": "frozen risk GP plus historical risk-to-event mean and contextual probit residual GP",
+  "risk_task_covariance": "original learned risk kernel plus empirical centered six-source response Gram matrix; mean/noise and source split unchanged",
+  "task_mean": "generalized least-squares family intercept fitted only from paid target risk; trend uncertainty included; unobserved families retain original mean",
+  "selection": "same functional regime as current frozen-reference head; strict predicted event-probability improvement required",
+  "response_functions": "event feedback changes only event residual; risk regression is protected from classification feedback",
+  "candidate_history": "same original six sources and frozen training indices; no extra configurations",
+  "event_readout": "per-functional-family isotonic mean fitted from actual source risk/event pairs",
+  "event_inference": "probit Laplace approximation; exact constant risk-calibration segments and sixteen-node probability-space integration of linear segments",
+  "event_residual_covariance": "equal normalized within-family intercept and learned local kernel; same unit marginal variance as local-only residual",
+  "selector_payload": "x, seed, frozen reference prior, six historical risk templates and history-only event readout; no target identity/parameters/full response arrays",
+  "loss_credit": "L_t <= 1 + F_actual(t)/sqrt(B); before an alternative reserve one worst-case noncollision",
+  "credit_rate": 0.07071067811865475,
+  "relative_discovery_bound": "F_actual(t) >= (F_reference(t)-1)/(1+1/sqrt(B)) at every paid prefix",
+  "area_bound": "raw cumulative gain >= -sum_t L_t; original at-most-one terminal-loss guarantee is replaced",
+  "credit_design": "single rate determined only by locked B=200; no search over target-dependent loss thresholds",
+  "screening_seeds": [
+    11
+  ],
+  "conditional_full_seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "promotion": "both Area and Recall improve against frozen reference and uncoupled proposal",
+  "new_physical_calls": 0
+}

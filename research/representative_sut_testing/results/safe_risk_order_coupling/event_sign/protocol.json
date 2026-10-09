@@ -1,0 +1,38 @@
+{
+  "stage": "report_binary_prior",
+  "sut_ids": [
+    "idm_ref",
+    "fvdm_target",
+    "mobil_ref_v2",
+    "vi_ttc_ref_audit_v4",
+    "mcts_cv_ref_audit_v4",
+    "ppo_ref_v2"
+  ],
+  "pools": [
+    0,
+    1
+  ],
+  "seed": 11,
+  "budget": 200,
+  "new_curves": 12,
+  "reused_controls": 24,
+  "evidence_score": "event",
+  "secondary_report_uses_safe_ranks": false,
+  "event_score_scope": "weights use pre-query Bernoulli log score; R still updates component posteriors; not a full joint-data Bayesian posterior",
+  "event_score_bound": "on the actual shared queried sequence, mixture cumulative event log loss <= best component loss + log(2); no discovery-curve or calibration guarantee",
+  "model": "historical mixed EP plus normalized Gaussian event report; second component uses only signs or signs and within-safe risk ordering",
+  "decision": "candidate mean collision probability must improve; current reference slot can be replaced only if joint candidate-miss/reference-hit probability <=1/sqrt(200)",
+  "joint_probability": "Gaussian report covariance includes independent observation noise; deterministic bivariate normal quadrature, then prior-model averaging",
+  "scope": "working immediate binary loss, not strict propensity ranking or a true-world confidence statement",
+  "threshold": 0.07071067811865472,
+  "threshold_design": "locked budget-only 1/sqrt(B), no target-dependent threshold search",
+  "protection": "unchanged actual discovery credit and independent paid-reference replay",
+  "coverage": "fixed 105-position prefix guarantee removed when supported reference slots are skipped; actual count bound retained",
+  "controls": [
+    "frozen_reference",
+    "event_evidence_prior"
+  ],
+  "control_stage": "event_evidence_prior_coupling",
+  "ep_inference": "parallel damped site refitting; exact safe Gaussian sites, inequality moment matching; tolerance 1e-7, maximum 200 iterations",
+  "new_physical_calls": 0
+}

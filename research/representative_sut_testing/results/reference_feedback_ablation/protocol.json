@@ -1,0 +1,60 @@
+{
+  "stage": "fixed-schedule feedback ablation on existing six-SUT development; not performance promotion or blind confirmation",
+  "sut_ids": [
+    "idm_ref",
+    "fvdm_target",
+    "mobil_ref_v2",
+    "vi_ttc_ref_audit_v4",
+    "mcts_cv_ref_audit_v4",
+    "ppo_ref_v2"
+  ],
+  "pools": [
+    0,
+    1
+  ],
+  "methods": [
+    "frozen_reference",
+    "coupled_response",
+    "masked_reference_feedback"
+  ],
+  "budget": 200,
+  "initialization": "first ten actual queries of frozen_original; common across controls",
+  "reference": "unchanged TestingSession(mode=global_feedback), same trained kernel and history split",
+  "reference_feedback": "risk only; collision not passed to its state update",
+  "candidate": "frozen risk GP plus historical risk-to-event mean and contextual probit residual GP",
+  "risk_task_covariance": "original learned risk kernel plus empirical centered six-source response Gram matrix; mean/noise and source split unchanged",
+  "task_mean": "generalized least-squares family intercept fitted only from paid target risk; trend uncertainty included; unobserved families retain original mean",
+  "risk_scale_prior": "a~InverseGamma(nu/2,(nu-2)/2), E[a]=1; nu=5 fixed before screening, not tuned",
+  "risk_scale_posterior": "df=nu+n-p, beta=(y-m-H*trend)^T*(K+noise*I)^(-1)*(y-m-H*trend); covariance multiplier=(nu-2+beta)/(df-2)",
+  "risk_prediction": "Student-t marginal with exact scale marginalization and flat observed-family mean prior; same Gaussian GLS mean; signal and nugget share a scale",
+  "risk_prior_degrees_of_freedom": 5,
+  "risk_scale_source": "https://proceedings.mlr.press/v33/shah14.html; observed-family trend integration is an explicit project adaptation",
+  "selection": "same functional regime as current frozen-reference head; strict predicted event-probability improvement required",
+  "reference_observation_schedule": "after common ten-query initialization, each two-step block first pays the current reference head, then permits one candidate decision",
+  "paired_feedback_budget": "all reference and candidate observations counted inside B=200; no additional diagnostic allowance",
+  "reference_prefix_lower": "k_t>=10+ceil((t-10)/2) after initialization; at least 105 paid reference-prefix positions by t=200",
+  "reference_head_wait_bound": "each unchanged pending reference head appears in at most two consecutive actual queries",
+  "mechanism_comparison": "coupled_response and masked_reference_feedback share pairing and discovery credit; only candidate-model training on scheduled reference observations differs",
+  "feedback_mask": "common ten initialization and 95 candidate slots train both models; scheduled 95 reference slots train the full model only",
+  "actual_feedback_availability": "all 200 real outcomes are disclosed and counted by both controls; reference and discovery-credit accounting always use actual paid feedback",
+  "interpretation": "direct reference discovery and indirect information through its evolving head are shared; only direct reference-to-candidate-model feedback is ablated",
+  "response_functions": "event feedback changes only event residual; risk regression is protected from classification feedback",
+  "candidate_history": "same original six sources and frozen training indices; no extra configurations",
+  "event_readout": "per-functional-family isotonic mean fitted from actual source risk/event pairs",
+  "event_inference": "probit Laplace approximation; exact constant risk-calibration segments and sixteen-node probability-space integration of linear segments",
+  "event_residual_covariance": "equal normalized within-family intercept and learned local kernel; same unit marginal variance as local-only residual",
+  "selector_payload": "x, seed, frozen reference prior, six historical risk templates and history-only event readout; no target identity/parameters/full response arrays",
+  "loss_credit": "L_t <= 1 + F_actual(t)/sqrt(B); before an alternative reserve one worst-case noncollision",
+  "credit_rate": 0.07071067811865475,
+  "relative_discovery_bound": "F_actual(t) >= (F_reference(t)-1)/(1+1/sqrt(B)) at every paid prefix",
+  "area_bound": "raw cumulative gain >= -sum_t L_t; original at-most-one terminal-loss guarantee is replaced",
+  "credit_design": "single rate determined only by locked B=200; no search over target-dependent loss thresholds",
+  "screening_seeds": [
+    11
+  ],
+  "conditional_full_seeds": [
+    11
+  ],
+  "promotion": "none; exactly 36 first-seed ablation curves, no automatic repetition or method promotion",
+  "new_physical_calls": 0
+}
