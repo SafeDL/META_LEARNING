@@ -1,0 +1,110 @@
+{
+  "seed": 11,
+  "steps_per_mode_including_common_warmup": 1000,
+  "shared_risk_warmup_steps": 200,
+  "trainable_parameters_per_mode": 21514,
+  "training_profiles": [
+    "idm_00",
+    "idm_01",
+    "idm_02",
+    "idm_03",
+    "idm_04",
+    "idm_05",
+    "idm_06",
+    "idm_07",
+    "idm_08",
+    "idm_09",
+    "idm_10",
+    "idm_11",
+    "fvdm_00",
+    "fvdm_01",
+    "fvdm_02",
+    "fvdm_03",
+    "fvdm_04",
+    "fvdm_05",
+    "fvdm_06",
+    "fvdm_07",
+    "fvdm_08",
+    "fvdm_09",
+    "fvdm_10",
+    "fvdm_11"
+  ],
+  "validation_profiles": [
+    "idm_12",
+    "idm_13",
+    "idm_14",
+    "idm_15",
+    "idm_16",
+    "idm_17",
+    "fvdm_12",
+    "fvdm_13",
+    "fvdm_14",
+    "fvdm_15",
+    "fvdm_16",
+    "fvdm_17"
+  ],
+  "target_context": "support risk only; no query outcomes or true target parameters",
+  "teacher_risk_labels": "paired historical query risk, known historical behavior; calibration supervision only",
+  "learning_objective": "proper marginal risk log likelihood plus mode-specific collision log likelihood",
+  "checkpoint_selection": "validation collision log loss after 10 and 50 historical-strategy risk observations",
+  "gradient_norm_cap": 10,
+  "validation_curve": [
+    {
+      "step": 400,
+      "supervised": {
+        "historical_early_log_loss": 1.9792384194186756,
+        "historical_early_static_deficit": 12.583333333333334,
+        "historical_early_controller_mass": 0.4984894488031568
+      },
+      "meta": {
+        "historical_early_log_loss": 0.8619187457386298,
+        "historical_early_static_deficit": 12.416666666666666,
+        "historical_early_controller_mass": 0.4946904162639882
+      }
+    },
+    {
+      "step": 600,
+      "supervised": {
+        "historical_early_log_loss": 2.084079406732749,
+        "historical_early_static_deficit": 12.416666666666666,
+        "historical_early_controller_mass": 0.4991865590450206
+      },
+      "meta": {
+        "historical_early_log_loss": 0.804320729762981,
+        "historical_early_static_deficit": 13.666666666666666,
+        "historical_early_controller_mass": 0.49488258539777313
+      }
+    },
+    {
+      "step": 800,
+      "supervised": {
+        "historical_early_log_loss": 2.144004053894958,
+        "historical_early_static_deficit": 11.791666666666666,
+        "historical_early_controller_mass": 0.4994879295939117
+      },
+      "meta": {
+        "historical_early_log_loss": 0.6694274936346586,
+        "historical_early_static_deficit": 15.041666666666666,
+        "historical_early_controller_mass": 0.4955663152084094
+      }
+    },
+    {
+      "step": 1000,
+      "supervised": {
+        "historical_early_log_loss": 2.1423847232233557,
+        "historical_early_static_deficit": 11.583333333333334,
+        "historical_early_controller_mass": 0.49923799557375
+      },
+      "meta": {
+        "historical_early_log_loss": 0.6111619567032334,
+        "historical_early_static_deficit": 14.833333333333334,
+        "historical_early_controller_mass": 0.4958654357560119
+      }
+    }
+  ],
+  "best_log_loss": {
+    "supervised": 1.9792384194186756,
+    "meta": 0.6111619567032334
+  },
+  "elapsed_s": 140.60559690001537
+}
