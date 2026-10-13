@@ -1,7 +1,15 @@
-# 方法
+# 方法与基线
 
-[历史引导风险测试](history_guided_testing/README.md) 是当前论文主链。六个机制不同的历史算法提供风险先验，目标反馈校正差异 GP，再按预期风险选择场景。历史库与目标库均含切入 1024 个、前车急刹 1024 个；默认入口统一运行准备、训练、九基线比较和组件实验。
+当前主方法是 [CG-BRT](concordance_gated_bayesian_risk_transfer/README.md)，通过已测试场景的风险反馈发现 `R > 0.5` 的场景。
 
-[RAS-FRT-UQ](ras_frt_uq/README.md) 已加入统一实验，共享六源历史库和场景预算，沿用二值碰撞反馈、原网络结构与融合权重。当前入口统一运行两类场景；原 S01 实验的模型与数据已归入可恢复压缩包。
+| 目录 | 作用 |
+|---|---|
+| [concordance_gated_bayesian_risk_transfer](concordance_gated_bayesian_risk_transfer/README.md) | 主方法：风险预测、排序门控与选例 |
+| [history_guided_testing](history_guided_testing/README.md) | 公共风险 GP、场景、历史数据和标准基线 |
+| [historical_expert_mixture](historical_expert_mixture/README.md) | 六来源历史风险预测与高斯混合基线 |
+| [scale_adaptive_expert_mixture](scale_adaptive_expert_mixture/README.md) | Student-t 密度与尺度混合基线 |
+| [ras_frt_uq](ras_frt_uq/README.md) | 使用碰撞反馈的迁移基线 |
+| [response_baselines](response_baselines/README.md) | 冻结响应模型与基线推断 |
+| [egfd](egfd/README.md) | 使用风险和碰撞反馈的冻结对照 |
 
-[当前结果](../results/history_guided_testing/README.md) · [研究归档与恢复说明](../archives/README.md)
+这些目录用于当前方法或结果比较。历史分支保存在[恢复归档](../archives/README.md)，实验入口见[experiments](../experiments/README.md)。

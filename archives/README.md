@@ -1,20 +1,22 @@
-# 归档与恢复
+# 历史分支恢复归档
 
-当前论文方法和实验结果分别位于[历史引导风险测试](../methods/history_guided_testing/README.md)与[主链结果](../results/history_guided_testing/README.md)。活动目录仅保留当前两类场景、九个基线及有效组件对照。
+当前实现见 [CG-BRT](../methods/concordance_gated_bayesian_risk_transfer/README.md)。旧分支以压缩包保存，清单与核验记录保留为 JSON。
 
-|内容|位置|
+| 归档 | 内容 |
 |---|---|
-|旧试验结果、原 S01/RAS 数据与旧入口|`retired_experiments.zip`，可恢复归档|
-|AdaTE、DETOUR、FST、ScenarioFuzz 独立论文复现与结果|[retired_research_chains](retired_research_chains/README.md)|
-|PEARL 合流历史基线|`pearl_learning/`|
-|早期 SAC 场景挖掘基线|`sac_scenario_mining/`|
+| [historical_branch_cleanup.zip](historical_branch_cleanup.zip) | 旧单目标流程、结果与展开历史工程 |
+| [driving_benchmark_trials.zip](driving_benchmark_trials.zip) | 基准中未保留的历史轨迹 |
+| [risk_method_convergence.zip](risk_method_convergence.zip) | 旧碰撞主链、混合模型探索与阶段结果 |
+| [retired_method_trials.zip](retired_method_trials.zip) | 退役方法分支 |
+| [method_selection.zip](method_selection.zip) | 早期方法与基线迁移快照 |
+| [retired_experiments.zip](retired_experiments.zip) | 早期实验记录 |
 
-旧归档共 19,253 个文件，打包后逐文件解压并与原文件进行字节比对，全部一致。展开目录已清理，原相对路径保存在压缩包中。清理范围与核验记录见 [cleanup_review.json](../results/history_guided_testing/cleanup_review.json)。压缩包仅在本地保留，不随常规 Git 提交。
-
-需要核对旧实验时，在仓库根目录解压到独立目录：
+恢复时解压到独立目录，压缩包内保留原相对路径：
 
 ```powershell
-Expand-Archive -LiteralPath archives/retired_experiments.zip -DestinationPath archives/restored_experiments
+Expand-Archive -LiteralPath archives/risk_method_convergence.zip -DestinationPath archives/restored_risk_method
 ```
 
-该命令恢复旧文件的内容和原相对目录结构，不会修改当前主链。当前历史响应、目标响应、GP 与 RAS 模型、80 条统一比较轨迹、关键失败结论和驾驶算法平台继续保留。
+`retired_method_trials.zip`、`method_selection.zip`、`retired_experiments.zip` 均超过 100 MiB，仅在本地保留；其他归档和清单允许 Git 跟踪。
+
+运行基线入口的来源核验需要本地 `method_selection.zip`；当前主方法的比较与核验不需要它。当前源码快照另存于 [source_inputs.zip](../results/concordance_gated_bayesian_risk_transfer/source_inputs.zip)。
