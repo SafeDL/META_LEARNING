@@ -1,2 +1,0 @@
-"""ScenarioFuzz-H tests."""
-

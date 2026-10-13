@@ -1,20 +1,25 @@
-# Local interpreter, test and editor caches
+# Python、测试和编辑器缓存
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 *.pyc
 *.pyo
 *.pyd
-/results/*.log
-/archives/retired_experiments.zip
 .idea/
 .DS_Store
 
-# Local environments and credentials
+# 本地环境与凭据
 .env
 .env.*
 !.env.example
 .venv/
 venv/
 
-# Current measured banks, checkpoints and comparison results remain eligible for Git.
-# The large verified recovery archive stays local.
+# 超过 100 MiB 的本地恢复归档，按具体路径排除
+/archives/retired_experiments.zip
+/archives/retired_method_trials.zip
+/archives/method_selection.zip
+
+# 源码、配置、结果、日志、实测数据、小型权重及其快照默认允许跟踪。
+# 新增超大权重或数据时，按具体路径补充；不整体忽略 results/ 或所有 zip/pt/npz。
