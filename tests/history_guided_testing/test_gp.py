@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from scipy.integrate import quad
-import torch
 
 from methods.history_guided_testing.gp import RiskGP, clipped_risk_ei
 from methods.history_guided_testing.kernel import MODES, RiskKernel, conditional_risk

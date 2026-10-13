@@ -1,16 +1,18 @@
 # 被测驾驶算法
 
-研究对象是 highway-env / MetaDrive 中的驾驶规划与控制算法。当前目标为带安全停车间距和 0.15 s 连续感知延迟的 FVDM，参数在 [当前方法 config.py](../methods/history_guided_testing/config.py)，结果见 [实验报告](../results/history_guided_testing/README.md)。
+当前 highway-env 实验使用六个目标系统，固定标识见[基准配置](../experiments/driving_benchmark/config.py)。
 
-|位置|内容|当前使用|
-|---|---|---|
-|highway_env/idm_profiles.py|IDM/FVDM 跟驰控制公式|六历史源和 FVDM 目标的基础控制器|
-|highway_env/perception.py|连续感知延迟、基于速度的预测、安全停车间距 FVDM|当前历史源与目标|
-|highway_env/policy_adapter.py|统一执行接口|当前仿真|
-|highway_env/idm_mobil.py|IDM + MOBIL|可作为后续被测目标|
-|highway_env/value_iteration.py|Value Iteration 规划|可作为后续被测目标|
-|highway_env/mcts_cv.py|恒速预测 MCTS 规划|可作为后续被测目标|
-|highway_env/ppo_ece.py、checkpoints/ppo_ece|PPO 策略和已有权重|可作为后续被测目标|
-|metadrive|MetaDrive 控制器、配置与策略|保留研究平台|
+| 目标系统 | 实现 |
+|---|---|
+| `idm_ref` | [reference_profiles.py](highway_env/reference_profiles.py)、[idm_profiles.py](highway_env/idm_profiles.py)：IDM 跟驰 |
+| `fvdm_target` | [perception.py](highway_env/perception.py)：安全间距 FVDM，感知延迟 0.15 秒 |
+| `mobil_ref_v2` | highway-env 原生 IDM + MOBIL，见 [registry.py](highway_env/registry.py) |
+| `vi_ttc_ref_audit_v4` | [value_iteration.py](highway_env/value_iteration.py)：基于 TTC 的值迭代 |
+| `mcts_cv_ref_audit_v4` | [mcts_cv.py](highway_env/mcts_cv.py)：恒速预测 MCTS |
+| `ppo_ref_v2` | [ppo_ece.py](highway_env/ppo_ece.py)：冻结 PPO 策略 |
 
-历史源包括常规 IDM/FVDM、0.6 s 感知延迟 IDM/FVDM、制动受限 IDM 和预测制动 IDM。所有历史源期望速度 23 m/s、初速 25 m/s；预测读取当前位置与速度。
+PPO 权重位于 `highway_env/checkpoints/ppo_ece/vd_1_5_trial_1.zip`。`v2/v4` 是冻结系统标识的一部分。
+
+六个历史来源包括普通、延迟、制动受限与预测型 IDM/FVDM，参数见[历史配置](../methods/history_guided_testing/config.py)。它们用于提供历史记录，与上表目标系统分开组织。
+
+`metadrive/` 保留 MetaDrive 控制器，当前比较使用 highway-env。结果见[统一比较](../results/concordance_gated_bayesian_risk_transfer/comparison.md)。

@@ -1,5 +1,10 @@
-# 实验结果
+# 数据与结果
 
-当前主链只使用 [history_guided_testing](history_guided_testing/README.md)：两类场景各 1024 个、六个历史源、FVDM 目标、五种子和九个基线（含 RAS-FRT-UQ）。
+| 目录 | 内容 |
+|---|---|
+| [concordance_gated_bayesian_risk_transfer](concordance_gated_bayesian_risk_transfer/README.md) | CG-BRT 轨迹、比较、协议和源码快照 |
+| [driving_benchmark](driving_benchmark/README.md) | 六系统共享响应池与基线轨迹 |
+| [history_guided_testing](history_guided_testing/README.md) | 六来源历史数据、风险核与 RAS 检查点 |
+| [response_baselines](response_baselines/README.md) | 冻结响应基线的模型和输入 |
 
-数据、模型、80 条完整选例轨迹、统计和图保存在同一目录。`development_summary.json` 保留旧方法的关键负结果。废弃试验分支与重复的原 S01/RAS 实验已从活动目录清理，旧结果保存在经过逐文件字节核验的可恢复压缩包中，见[归档与恢复说明](../archives/README.md)。清理记录见 [cleanup.json](history_guided_testing/cleanup.json)。
+高风险按 `R > 0.5` 计数，碰撞单独评价。最新结果见[比较表](concordance_gated_bayesian_risk_transfer/comparison.md)，历史分支见[恢复归档](../archives/README.md)。
