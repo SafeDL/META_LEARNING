@@ -1,0 +1,76 @@
+{
+  "seed": 11,
+  "roles": {
+    "training": [
+      "vi_ttc_ref_audit_v4",
+      "fvdm_target"
+    ],
+    "calibration": [
+      "mcts_cv_ref_audit_v4",
+      "ppo_ref_v2"
+    ],
+    "evaluation": [
+      "mobil_ref_v2",
+      "idm_ref"
+    ]
+  },
+  "families": [
+    "cutin",
+    "brake"
+  ],
+  "pools": [
+    0,
+    1,
+    2
+  ],
+  "budget": 200,
+  "initial": 10,
+  "retention": 0.95,
+  "primary_calibration": "empirical",
+  "physical_calls": 0,
+  "new_full_trajectories": 36,
+  "segment": 5,
+  "historical_budget": 200,
+  "historical_initial": 10,
+  "historical_candidates": 1024,
+  "hardware": {
+    "platform": "Windows-10-10.0.22631-SP0",
+    "torch": "2.5.0+cu118",
+    "gpu": "NVIDIA GeForce RTX 4090 D",
+    "online_workers": 1,
+    "torch_threads": 1,
+    "cpu": "Intel(R) Core(TM) i9-14900K"
+  },
+  "family_parameters": {
+    "cutin": {
+      "prior": {
+        "kappa": 0.5613309717048214,
+        "target_probability": 0.12359853375944853
+      },
+      "policy": "segment",
+      "penalty": 1.0,
+      "collection_threshold": 1.0
+    },
+    "brake": {
+      "prior": {
+        "kappa": 0.14583696880899893,
+        "target_probability": 0.021151398012847232
+      },
+      "policy": "segment",
+      "penalty": 1.0,
+      "collection_threshold": 1.0
+    }
+  },
+  "cost_schedule": "one deterministic bootstrap batch; subsequent batches use published calibrated stopping; order training/calibration/evaluation, each controller pools 0/1/2; charge ceil(M/18) maintenance batches",
+  "method": {
+    "id": "gcrt",
+    "name_zh": "收益校正风险测试",
+    "name_en": "Gain-Calibrated Risk Testing",
+    "code": "methods/gcrt",
+    "results": "results/gcrt",
+    "tests": "tests/gcrt",
+    "build_command": "python -B -m methods.gcrt.build",
+    "evaluation_command": "python -B -m methods.gcrt.evaluation",
+    "source_snapshot_note": "source_inputs.zip retains original package paths from the completed experiment; only package names and result paths were reorganized."
+  }
+}

@@ -1,10 +1,13 @@
-# 数据与结果
+# 实验结果与模型
 
 | 目录 | 内容 |
 |---|---|
-| [concordance_gated_bayesian_risk_transfer](concordance_gated_bayesian_risk_transfer/README.md) | CG-BRT 轨迹、比较、协议和源码快照 |
-| [driving_benchmark](driving_benchmark/README.md) | 六系统共享响应池与基线轨迹 |
-| [history_guided_testing](history_guided_testing/README.md) | 六来源历史数据、风险核与 RAS 检查点 |
-| [response_baselines](response_baselines/README.md) | 冻结响应基线的模型和输入 |
+| [gcrt](gcrt/README.md) | 本文方法的模型、36 条完整轨迹、停止评价、周期更新与成本报告 |
+| [baselines](baselines/README.md) | LRT、CG-BRT、DART、HGT 和响应基线的模型与正式结果 |
+| [benchmark](benchmark/README.md) | 共用实验协议、数据核验与标准搜索轨迹 |
 
-高风险按 `R > 0.5` 计数，碰撞单独评价。最新结果见[比较表](concordance_gated_bayesian_risk_transfer/comparison.md)，历史分支见[恢复归档](../archives/README.md)。
+先看 [GCRT 完整报告](gcrt/comparison.md)。按类基线比较见 [LRT 按类实验](baselines/lrt/by_family/README.md)；两类共同使用 200 次预算的结果见 [LRT 联合实验](baselines/lrt/README.md)。
+
+实测场景、风险和执行耗时统一放在 [data](../data/README.md)。本目录保存权重、训练记录、标签、查询轨迹和报告。原始源码快照保留当时的目录名称，核验程序负责对应到当前位置。
+
+运行说明见 [methods](../methods/README.md)。

@@ -1,0 +1,235 @@
+{
+  "history_scenes_per_family": 1024,
+  "target_scenes_per_family": 1024,
+  "historical_train_count": 1638,
+  "historical_validation_count": 410,
+  "historical_profiles": [
+    {
+      "name": "idm_reactive",
+      "controller": "IDM",
+      "time_wanted": 1.5,
+      "max_brake": 6,
+      "reaction_delay": 0.0,
+      "desired_gap": 6,
+      "comfort_acceleration": 3.0,
+      "target_speed": 23,
+      "fvdm_sensitivity": 0.6,
+      "fvdm_velocity_gain": 0.6,
+      "fvdm_transition_gap": 5.0,
+      "emergency_ttc": 0.0,
+      "emergency_brake_gain": 0.0,
+      "emergency_max_brake": 6.0,
+      "perception_mode": "lane",
+      "perception_delay_s": 0.0,
+      "prediction_horizon_s": 0.0
+    },
+    {
+      "name": "fvdm_reactive",
+      "controller": "FVDM",
+      "time_wanted": 1.5,
+      "max_brake": 6,
+      "reaction_delay": 0.0,
+      "desired_gap": 6,
+      "comfort_acceleration": 3.0,
+      "target_speed": 23,
+      "fvdm_sensitivity": 0.6,
+      "fvdm_velocity_gain": 1,
+      "fvdm_transition_gap": 8,
+      "emergency_ttc": 0.0,
+      "emergency_brake_gain": 0.0,
+      "emergency_max_brake": 6.0,
+      "perception_mode": "lane",
+      "perception_delay_s": 0.0,
+      "prediction_horizon_s": 0.0
+    },
+    {
+      "name": "idm_delayed",
+      "controller": "IDM",
+      "time_wanted": 1.5,
+      "max_brake": 6,
+      "reaction_delay": 0.0,
+      "desired_gap": 6,
+      "comfort_acceleration": 3.0,
+      "target_speed": 23,
+      "fvdm_sensitivity": 0.6,
+      "fvdm_velocity_gain": 0.6,
+      "fvdm_transition_gap": 5.0,
+      "emergency_ttc": 0.0,
+      "emergency_brake_gain": 0.0,
+      "emergency_max_brake": 6.0,
+      "perception_mode": "lane",
+      "perception_delay_s": 0.6,
+      "prediction_horizon_s": 0.0
+    },
+    {
+      "name": "fvdm_delayed",
+      "controller": "FVDM",
+      "time_wanted": 1.5,
+      "max_brake": 6,
+      "reaction_delay": 0.0,
+      "desired_gap": 6,
+      "comfort_acceleration": 3.0,
+      "target_speed": 23,
+      "fvdm_sensitivity": 0.6,
+      "fvdm_velocity_gain": 1,
+      "fvdm_transition_gap": 8,
+      "emergency_ttc": 0.0,
+      "emergency_brake_gain": 0.0,
+      "emergency_max_brake": 6.0,
+      "perception_mode": "lane",
+      "perception_delay_s": 0.6,
+      "prediction_horizon_s": 0.0
+    },
+    {
+      "name": "idm_limited",
+      "controller": "IDM",
+      "time_wanted": 1.5,
+      "max_brake": 3,
+      "reaction_delay": 0.0,
+      "desired_gap": 6,
+      "comfort_acceleration": 3.0,
+      "target_speed": 23,
+      "fvdm_sensitivity": 0.6,
+      "fvdm_velocity_gain": 0.6,
+      "fvdm_transition_gap": 5.0,
+      "emergency_ttc": 0.0,
+      "emergency_brake_gain": 0.0,
+      "emergency_max_brake": 6.0,
+      "perception_mode": "lane",
+      "perception_delay_s": 0.0,
+      "prediction_horizon_s": 0.0
+    },
+    {
+      "name": "idm_predictive",
+      "controller": "IDM",
+      "time_wanted": 1.5,
+      "max_brake": 6,
+      "reaction_delay": 0.0,
+      "desired_gap": 6,
+      "comfort_acceleration": 3.0,
+      "target_speed": 23,
+      "fvdm_sensitivity": 0.6,
+      "fvdm_velocity_gain": 0.6,
+      "fvdm_transition_gap": 5.0,
+      "emergency_ttc": 2.5,
+      "emergency_brake_gain": 3,
+      "emergency_max_brake": 6,
+      "perception_mode": "constant_velocity",
+      "perception_delay_s": 0.0,
+      "prediction_horizon_s": 2
+    }
+  ],
+  "target_profile": {
+    "name": "fvdm_target",
+    "controller": "FVDM",
+    "time_wanted": 1.5,
+    "max_brake": 8,
+    "reaction_delay": 0.0,
+    "desired_gap": 8,
+    "comfort_acceleration": 3.0,
+    "target_speed": 23,
+    "fvdm_sensitivity": 0.5,
+    "fvdm_velocity_gain": 0.8,
+    "fvdm_transition_gap": 8,
+    "emergency_ttc": 0.0,
+    "emergency_brake_gain": 0.0,
+    "emergency_max_brake": 6.0,
+    "perception_mode": "lane",
+    "perception_delay_s": 0.15,
+    "prediction_horizon_s": 0.0
+  },
+  "seeds": [
+    11,
+    23,
+    37,
+    53,
+    71
+  ],
+  "budget": 200,
+  "checkpoints": [
+    10,
+    30,
+    50,
+    100,
+    150,
+    200
+  ],
+  "feedback": {
+    "noise_variance": 0.0025,
+    "radius": 0.5
+  },
+  "training": {
+    "steps": 1600,
+    "validation_interval": 200,
+    "lr": 0.0003,
+    "query_count": 48,
+    "context_count": 256,
+    "support_counts": [
+      0,
+      5,
+      10,
+      20,
+      50,
+      100
+    ]
+  },
+  "baselines": {
+    "mean": 0.5,
+    "variance": 0.25,
+    "lengthscale": 0.2,
+    "noise_variance": 0.001,
+    "jitter": 1e-08,
+    "initial_queries": 10,
+    "ucb_delta": 0.1,
+    "bas_threshold": 0.5,
+    "rf_trees": 50,
+    "rf_max_depth": 10,
+    "rf_min_samples_split": 2,
+    "rf_jackknife_folds": 10
+  },
+  "measurement": {
+    "ttc_scale_s": 1.5,
+    "drac_scale_mps2": 3.0,
+    "gap_scale_m": 1.0,
+    "ttc_prediction_horizon_s": 6.0
+  },
+  "final_target_used_for_training_or_selection": false,
+  "development_target_used_to_simplify_acquisition": true,
+  "history_sampling_seeds": [
+    [
+      74001,
+      74221
+    ],
+    [
+      74002,
+      74222
+    ]
+  ],
+  "target_sampling_seeds": [
+    75019,
+    75020
+  ],
+  "kernel_selection": "lowest five-seed historical validation RMSE",
+  "acquisition": "fixed pure risk acquisition before final target measurement",
+  "selection_feedback": {
+    "ras_frt_uq": "queried binary collision only",
+    "other_methods": "queried continuous risk only"
+  },
+  "ras_frt_uq": {
+    "training": {
+      "epochs": 300,
+      "batch_size": 128,
+      "lr": 0.001,
+      "validation_interval": 10
+    },
+    "similarity": {
+      "sigma_x": 0.3,
+      "sigma_r": 0.25,
+      "regularizer": 0.1
+    },
+    "sources": "same six historical algorithms",
+    "family_models": "two four-input encoders per seed",
+    "target_labels_used_for_training_or_selection": false,
+    "fusion_parameters": "original RAS-FRT-UQ values, unchanged"
+  }
+}

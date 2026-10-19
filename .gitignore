@@ -16,10 +16,25 @@ __pycache__/
 .venv/
 venv/
 
-# 超过 100 MiB 的本地恢复归档，按具体路径排除
-/archives/retired_experiments.zip
-/archives/retired_method_trials.zip
-/archives/method_selection.zip
+# 可由历史轨迹、分支标签和冻结表示重建的批量训练特征。
+/results/baselines/lrt/feature_cache/
+/results/baselines/lrt/by_family/*/feature_cache/
+/results/baselines/lrt/by_family/*/pool_cache/*.pt
+/results/baselines/lrt/adaptive/*/historical/**/*.pt
+/results/gcrt/full_horizon/*/historical/**/*.pt
+/results/gcrt/full_horizon/*/pool_cache/*.pt
+/results/gcrt/full_horizon/*/trajectories/**/*.pt
+/results/gcrt/full_horizon/*/forecasts.json
+
+# 仅用于中断续训的优化器状态；正式权重和训练记录保留。
+/results/baselines/dart/**/models/resume_*.pt
+/results/baselines/lrt/models/resume_*.pt
+/results/baselines/lrt/by_family/**/models/resume_*.pt
 
 # 源码、配置、结果、日志、实测数据、小型权重及其快照默认允许跟踪。
 # 新增超大权重或数据时，按具体路径补充；不整体忽略 results/ 或所有 zip/pt/npz。
+
+/results/gcrt/*/historical/*.pt
+/results/gcrt/*/pool_cache/*.pt
+/results/gcrt/*/trajectories/**/*.pt
+/results/gcrt/*/forecasts.json
