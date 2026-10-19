@@ -35,6 +35,35 @@ def prior(n=18):
     )
 
 
+def causal_task():
+    example = prior(24)
+    oracle = SimpleNamespace(query=lambda i: SimpleNamespace(risk=float(i % 2)))
+    initial = list(range(10))
+    trace = select(example, oracle, budget=20, initial_indices=initial)
+    model = JointPosterior(example)
+    remaining = np.ones(24, bool)
+    queries, evidence, records = [], [], []
+    for row in trace["queries"]:
+        records.append(
+            snapshot(model, remaining, queries, evidence, 20, initial, row["index"])
+        )
+        evidence.append(
+            {"prequery_probability": float(model.probabilities()[row["index"]])}
+        )
+        model.observe(row["index"], row["risk"])
+        remaining[row["index"]] = False
+        queries.append(row)
+    return dict(
+        records=records,
+        labels=np.array([q["high_risk"] for q in trace["queries"]]),
+        budget=20,
+        initial=10,
+        group="test",
+        sut="test",
+        pool=0,
+    )
+
+
 def test_virtual_real_updates_match_without_mutation():
     model = JointPosterior(prior())
     model.observe(1, 0.75)
@@ -377,10 +406,10 @@ def test_segment_calibration_uses_only_matured_nonoverlapping_records():
     controller = StopController(network, 1)
     controller.before_state(state)
     assert not controller.labels
-    for t, risk in enumerate((1, 0, 1, 0)):
-        controller.observe(risk, t + 1)
+    for risk in (1, 0, 1, 0):
+        controller.observe(risk)
     assert not controller.labels and controller.u == 0
-    controller.observe(1, 5)
+    controller.observe(1)
     assert controller.labels == [0.6] and controller.pending is None
 
 
@@ -463,37 +492,44 @@ def test_validation_scores_are_native_json_scalars():
     import json
     from methods.gcrt.train import validate
 
-    example = prior(24)
-    oracle = SimpleNamespace(query=lambda i: SimpleNamespace(risk=float(i % 2)))
-    trace = select(example, oracle, budget=20, initial_indices=list(range(10)))
-    # Build a short causal task; the saved state budget defines its true horizon.
-    model = JointPosterior(example)
-    remaining = np.ones(24, bool)
-    queries = []
-    evidence = []
-    records = []
-    for row in trace["queries"]:
-        records.append(
-            snapshot(
-                model, remaining, queries, evidence, 20, list(range(10)), row["index"]
-            )
-        )
-        evidence.append(
-            {"prequery_probability": float(model.probabilities()[row["index"]])}
-        )
-        model.observe(row["index"], row["risk"])
-        remaining[row["index"]] = False
-        queries.append(row)
-    task = dict(
-        records=records,
-        labels=np.array([q["high_risk"] for q in trace["queries"]]),
-        budget=20,
-        initial=10,
-        group="test",
-    )
-    scores = validate(RemainingDiscoveries().eval(), [task])
+    scores = validate(RemainingDiscoveries().eval(), [causal_task()])
     assert all(type(v) is float for v in scores.values())
     json.dumps({"accepted": scores["score"] < 10, "scores": scores}, allow_nan=False)
+
+
+def test_prediction_replay_matches_online_checks_without_reading_future_feedback():
+    from itertools import count
+
+    from methods.gcrt.data import forecast_task
+
+    task = causal_task()
+    network = RemainingDiscoveries().eval()
+    ticks = count(step=0.1)
+    forecast = forecast_task(network, task, clock=lambda: next(ticks))
+    assert len(forecast["correction_s"]) == task["budget"]
+    assert all(row["compute_s"] > 0 for row in forecast["forecast"])
+    oracle = SimpleNamespace(query=lambda i: SimpleNamespace(risk=float(i % 2)))
+    online = select(
+        prior(24),
+        oracle,
+        budget=20,
+        initial_indices=list(range(10)),
+        stopper=StopController(network, 1.0),
+    )
+    for replayed, actual in zip(forecast["forecast"], online["stopping"]):
+        for key in ("query", "score", "remaining_mean", "tilt", "stop"):
+            assert replayed[key] == pytest.approx(actual[key], abs=1e-12)
+    changed = {**task, "labels": task["labels"].copy()}
+    changed["labels"][15:] = ~changed["labels"][15:]
+    alternate = forecast_task(network, changed)
+    for original, altered in zip(forecast["forecast"], alternate["forecast"]):
+        for key in ("score", "remaining_mean", "tilt"):
+            assert original[key] == altered[key]
+    partial = {**task, "records": task["records"][:12], "labels": task["labels"][:12]}
+    unseen = forecast_task(network, partial)["forecast"]
+    assert unseen and all(
+        not row["visible"] and "count_nll" not in row for row in unseen
+    )
 
 
 def test_campaign_recall_keeps_controllers_equally_weighted():

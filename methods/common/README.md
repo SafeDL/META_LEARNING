@@ -12,3 +12,5 @@
 | [snapshots.py](snapshots.py) | 原始实验快照的路径对应与源码核验 |
 
 GCRT 与基线直接导入共享源码。历史关联编码器和基础核的训练实现分别复用 [DART](../baselines/dart/README.md) 与 [HGT](../baselines/hgt/README.md) 的组件。
+
+候选缓存首次运行时构建，后续直接读取；构建只读取待测场景参数，不读取目标控制器尚未查询的风险。

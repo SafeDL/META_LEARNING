@@ -250,7 +250,7 @@ def select(
             }
         )
         if stopper is not None:
-            stopper.observe(risk, step + 1)
+            stopper.observe(risk)
         if clock is not None:
             clock.step()
     return {

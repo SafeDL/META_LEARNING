@@ -1,5 +1,6 @@
 """Frozen historical features and reusable candidate-pool predictions."""
 
+import numpy as np
 import torch
 
 from benchmark.config import SUT_IDS

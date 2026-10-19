@@ -21,7 +21,7 @@ from .config import (
     horizons,
 )
 from .controller import StopController
-from .data import load_tasks, returns
+from .data import forecast_task, load_tasks, returns
 from .model import RemainingDiscoveries, weighted_loss
 
 
@@ -49,41 +49,6 @@ def cache_features(network, tasks):
                 lengths = horizons(state["budget"] - state["step"])
                 state["encoded"] = network.features(state, lengths).detach()
                 state["encoded_lengths"] = lengths
-
-
-@torch.no_grad()
-def forecast_task(network, task):
-    controller = StopController(network, 1.0)
-    rows = []
-    visible = len(task["labels"])
-    for state in task["records"][::SEGMENT]:
-        t = state["step"]
-        if t >= visible:
-            break
-        if t >= task["initial"]:
-            row = controller.evaluate_state(state)
-            b = task["budget"] - t
-            known = t + b <= visible
-            if known:
-                truth = int(task["labels"][t : t + b].sum())
-                row["count_nll"] = -row["remaining_log_probability"][truth]
-                row["brier"] = (row["score"] - int(truth <= state["found"] // 19)) ** 2
-                row["normalized_mse"] = ((row["remaining_mean"] - truth) / b) ** 2
-            row["visible"] = known
-            row["observation_probability"] = (
-                1.0 if t + b <= task.get("natural_stop", task["budget"]) else 0.5
-            )
-            rows.append(row)
-        controller.before_state(state)
-        for j in range(t, min(t + SEGMENT, visible)):
-            controller.observe(float(task["labels"][j]), j + 1)
-    return dict(
-        forecast=rows,
-        full_found=int(task["labels"].sum()),
-        group=task.get("group", task.get("sut")),
-        source=task.get("source"),
-        sut=task.get("sut"),
-    )
 
 
 @torch.no_grad()

@@ -35,9 +35,11 @@ python -B -m methods.gcrt.report
 | [config.py](config.py)、[build.py](build.py) | 固定设置与完整构建入口 |
 | [posterior.py](posterior.py)、[selection.py](selection.py) | 联合风险后验、虚拟条件更新与场景选择 |
 | [model.py](model.py)、[controller.py](controller.py) | 剩余发现网络、片段校正、分布调整与停止判断 |
-| [fit.py](fit.py)、[data.py](data.py)、[train.py](train.py) | 先验拟合、历史监督、网络训练与周期更新 |
+| [fit.py](fit.py)、[data.py](data.py)、[train.py](train.py) | 先验拟合、历史监督、反馈回放、网络训练与周期更新 |
 | [evaluation.py](evaluation.py)、[report.py](report.py) | 隔离风险回放、停止评价与完整成本 |
 
 共享组件见 [common](../common/README.md)，历史编码器与基础核分别复用 [DART](../baselines/dart/README.md)、[HGT](../baselines/hgt/README.md) 的训练实现。
+
+历史验证与正式评价共用 `data.forecast_task` 回放真实反馈，按相同规则完成片段校正。未来结果只用于离线评分，不参与当时的预测或停止判断。
 
 已完成两类模型、36 条完整轨迹和一次周期更新。切入保留原预测头，制动采用 400 步更新后的预测头。当前结果见 [实验报告](../../results/gcrt/comparison.md)，[方法图](../../method-overview.png)位于项目根目录。

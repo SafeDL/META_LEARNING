@@ -120,7 +120,7 @@ class StopController:
         self.state = None
         self.before_state(state)
 
-    def observe(self, risk, count):
+    def observe(self, risk):
         if self.pending is None:
             raise RuntimeError("A paid segment needs its saved prequery prediction")
         self.pending["found"] += int(risk > 0.5)

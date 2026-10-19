@@ -16,8 +16,8 @@ from benchmark.risk_channel import disclose_risk
 from benchmark.timing import QueryClock, TimedRiskOracle, now
 from methods.gcrt.build import build_family, workspace_for
 from methods.gcrt.config import BUDGET, INITIAL, ROOT, ROLES, SEED, SEGMENT
-from methods.gcrt.controller import StopController, block_scores, threshold
-from methods.gcrt.data import StateRecorder, save_task
+from methods.gcrt.controller import block_scores, threshold
+from methods.gcrt.data import StateRecorder, forecast_task, save_task
 from methods.gcrt.selection import select
 from methods.gcrt.train import load_network, update
 
@@ -148,37 +148,6 @@ def evaluate_family(workspace):
         parent.close()
 
 
-@torch.no_grad()
-def causal_forecast(network, task, penalty=1.0, *, correction=True, direct_tilt=False):
-    controller = StopController(
-        network, 1.0, penalty, correction=correction, direct_tilt=direct_tilt
-    )
-    rows = []
-    prequery_s, correction_s = [0.0] * BUDGET, [0.0] * BUDGET
-    for state, label in zip(task["records"], task["labels"]):
-        t = state["step"]
-        if t % SEGMENT == 0:
-            if t >= task["initial"]:
-                started = now()
-                row = controller.evaluate_state(state)
-                row["compute_s"] = now() - started
-                rows.append(row)
-            started = now()
-            controller.before_state(state)
-            prequery_s[t] = now() - started
-        started = now()
-        controller.observe(float(label), t + 1)
-        correction_s[t] = now() - started
-    return dict(
-        sut=task["sut"],
-        pool=task["pool"],
-        forecast=rows,
-        full_found=int(task["labels"].sum()),
-        prequery_s=prequery_s,
-        correction_s=correction_s,
-    )
-
-
 def stopping_row(trace, prediction, gamma):
     hit = next(
         (r for r in prediction["forecast"] if r["deterministic"] or r["score"] > gamma),
@@ -241,7 +210,7 @@ def analyze_family(family):
         for path in paths
     ]
     network = load_network(family)
-    forecasts = [causal_forecast(network, task, penalty) for task in tasks]
+    forecasts = [forecast_task(network, task, penalty, clock=now) for task in tasks]
     rng = np.random.default_rng(SEED)
     complete_controller = str(rng.choice(ROLES["training"]))
     incoming = []
@@ -284,12 +253,16 @@ def analyze_family(family):
     if not ((folder / "updated.pt").exists() and (folder / "update.json").exists()):
         update(family, incoming)
     updated = load_network(family, updated=True)
-    updated_forecasts = [causal_forecast(updated, task, penalty) for task in tasks]
+    updated_forecasts = [
+        forecast_task(updated, task, penalty, clock=now) for task in tasks
+    ]
     without_correction = [
-        causal_forecast(network, task, penalty, correction=False) for task in tasks
+        forecast_task(network, task, penalty, correction=False, clock=now)
+        for task in tasks
     ]
     direct = [
-        causal_forecast(network, task, penalty, direct_tilt=True) for task in tasks
+        forecast_task(network, task, penalty, direct_tilt=True, clock=now)
+        for task in tasks
     ]
     rows = []
     calibration = {}

@@ -12,6 +12,7 @@ from methods.common.features import assemble
 from methods.common.prior import visible_history
 
 from .config import BUDGET, INITIAL, ROOT, SEED, SEGMENT, horizons
+from .controller import StopController
 from .model import snapshot
 from .posterior import JointPosterior
 from .selection import select
@@ -256,3 +257,63 @@ def returns(task, state):
     t = state["step"]
     lengths = horizons(state["budget"] - t)
     return lengths, [int(task["labels"][t : t + b].sum()) for b in lengths]
+
+
+@torch.no_grad()
+def forecast_task(
+    network, task, penalty=1.0, *, correction=True, direct_tilt=False, clock=None
+):
+    """Replay paid feedback in order; future labels only score saved predictions."""
+    controller = StopController(
+        network, 1.0, penalty, correction=correction, direct_tilt=direct_tilt
+    )
+    measure = clock if clock is not None else lambda: 0.0
+    rows = []
+    visible = len(task["labels"])
+    budget = task["budget"]
+    prequery_s, correction_s = [0.0] * budget, [0.0] * budget
+    for state, label in zip(task["records"], task["labels"]):
+        step = state["step"]
+        if step % SEGMENT == 0:
+            if step >= task["initial"]:
+                started = measure()
+                row = controller.evaluate_state(state)
+                if clock is not None:
+                    row["compute_s"] = measure() - started
+                else:
+                    remaining = budget - step
+                    known = step + remaining <= visible
+                    if known:
+                        truth = int(task["labels"][step : step + remaining].sum())
+                        row["count_nll"] = -row["remaining_log_probability"][truth]
+                        row["brier"] = (
+                            row["score"] - int(truth <= state["found"] // 19)
+                        ) ** 2
+                        row["normalized_mse"] = (
+                            (row["remaining_mean"] - truth) / remaining
+                        ) ** 2
+                    row["visible"] = known
+                    row["observation_probability"] = (
+                        1.0 if budget <= task.get("natural_stop", budget) else 0.5
+                    )
+                rows.append(row)
+            started = measure()
+            controller.before_state(state)
+            prequery_s[step] = measure() - started
+        started = measure()
+        controller.observe(float(label))
+        correction_s[step] = measure() - started
+    result = dict(
+        forecast=rows,
+        full_found=int(task["labels"].sum()),
+        sut=task.get("sut"),
+    )
+    if clock is not None:
+        result.update(
+            pool=task["pool"], prequery_s=prequery_s, correction_s=correction_s
+        )
+    else:
+        result.update(
+            group=task.get("group", task.get("sut")), source=task.get("source")
+        )
+    return result

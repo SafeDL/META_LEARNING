@@ -38,4 +38,6 @@
 | `protocol.json`、`source_inputs.zip` | 正式实验设置与源码、输入快照 |
 | `audit.json`、`numerics.json` | 查询、数据隔离与数值检查 |
 
+大体积特征和逐步预测缓存不纳入版本管理。首次拉取项目后，可直接阅读已有报告；需要重算时先运行构建与评价入口生成缓存。
+
 重新汇总：`python -B -m methods.gcrt.report`。运行说明见[方法 README](../../methods/gcrt/README.md)。

@@ -84,9 +84,7 @@ def full_online(trace, forecast):
     return (
         computation(trace)
         + sum(trace["state_recording_s"][::SEGMENT])
-        + sum(forecast["prequery_s"])
-        + sum(forecast["correction_s"])
-        + sum(r["compute_s"] for r in forecast["forecast"])
+        + predictor_seconds(forecast)
     )
 
 
