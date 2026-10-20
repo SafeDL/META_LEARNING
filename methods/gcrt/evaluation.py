@@ -182,7 +182,7 @@ def stopping_row(trace, prediction, gamma):
         "full_found": full,
         "positives": positives,
         "recall": found / positives if positives else None,
-        "retention": found / full if full else 1.0,
+        "retention": found / full if full else None,
         "quality_failed": 20 * found < 19 * full,
         "missed": full - found,
         "excess_queries": max(used - earliest, 0),

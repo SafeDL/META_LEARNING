@@ -13,19 +13,12 @@ from scipy.stats import rankdata, spearmanr
 from ..mining.acquisition import diagnostic_scores
 from ..mining.factorization import fit_low_rank_vulnerability
 from ..mining.posterior import LatentVulnerabilityPosterior
-from ..mining.source_bank import SourceBank, observation_from_dict
+from ..mining.source_bank import SourceBank, load_observations
 from ..provenance import content_hash
 from .analyze_prior import analyze_bank
 from .fit_prior import _select_rank
 
 METHODS = ("shared_prior", "random_support", "diagnostic_support", "highest_shared_risk")
-
-
-def _load(path: str):
-    return [
-        observation_from_dict(json.loads(line))
-        for line in Path(path).read_text(encoding="utf-8").splitlines() if line
-    ]
 
 
 def _candidate_schedule(shots: int, rng: np.random.Generator) -> tuple[int, ...]:
@@ -156,7 +149,7 @@ def _bootstrap_ci(deltas: np.ndarray, seed: int = 20260910) -> tuple[float, floa
 
 def run(config_path: str, source_path: str, output_path: str) -> dict:
     config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
-    observations = _load(source_path)
+    observations = load_observations(source_path)
     bank = SourceBank.from_observations(observations, tuple(config["study"]["source_sut_refs"]))
     analysis = analyze_bank(bank, config, config["study"]["logical_domain_id"])
     if not analysis["g0_structural_viability"]["pass"]:

@@ -20,10 +20,6 @@ ACCEPTANCE_METRICS = ("H200", "high_risk_recall_pct")
 RETENTION_FLOOR = 0.9
 
 
-def bank_root(stage):
-    return SCENARIOS
-
-
 def pools(stage):
     return (0, 1) if stage == "development" else (2,)
 

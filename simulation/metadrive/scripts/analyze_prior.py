@@ -9,15 +9,7 @@ from typing import Any
 import numpy as np
 import yaml
 
-from ..mining.source_bank import SourceBank, observation_from_dict
-
-
-def _load(path: str):
-    return [
-        observation_from_dict(json.loads(line))
-        for line in Path(path).read_text(encoding="utf-8").splitlines()
-        if line
-    ]
+from ..mining.source_bank import SourceBank, load_observations
 
 
 def _percentiles(values: np.ndarray) -> dict[str, float]:
@@ -134,7 +126,7 @@ def _write_gate(output_path: str, report: dict) -> None:
 
 def run(config_path: str, source_path: str, output_path: str) -> dict:
     config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
-    observations = _load(source_path)
+    observations = load_observations(source_path)
     domains = {observation.logical_domain_id for observation in observations}
     if domains != {config["study"]["logical_domain_id"]}:
         raise ValueError("source observations do not match the frozen v2 study domain")

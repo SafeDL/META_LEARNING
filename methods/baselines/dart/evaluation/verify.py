@@ -3,13 +3,14 @@
 import numpy as np
 from threadpoolctl import threadpool_limits
 
+from benchmark.data import bank_path
 from methods.baselines.cg_brt.reference import ReferencePolicy
 from methods.baselines.hem.experts import HistoricalExperts
 from methods.baselines.hgt.history import load_history, split_indices, subset
 from methods.baselines.hgt.io import read_json, write_json
 from methods.baselines.hgt.train import load_kernel
 
-from .config import ROOT, SEEDS, SUT_IDS, bank_root, pools, variants
+from .config import ROOT, SEEDS, SUT_IDS, pools, variants
 from .evaluate import trace_path
 from .freeze import verify_freeze
 
@@ -24,9 +25,7 @@ def main():
     with threadpool_limits(limits=1):
         for stage in ("development", "confirmation"):
             for pool in pools(stage):
-                with np.load(
-                    bank_root(stage) / f"pool_{pool}" / SUT_IDS[0] / "responses.npz"
-                ) as bank:
+                with np.load(bank_path(pool, SUT_IDS[0])) as bank:
                     x = bank["x"].copy()
                 prediction = experts.predict(x)
                 for seed in SEEDS:
@@ -37,9 +36,7 @@ def main():
                         .numpy()
                     )
                     for sut in SUT_IDS:
-                        with np.load(
-                            bank_root(stage) / f"pool_{pool}" / sut / "responses.npz"
-                        ) as bank:
+                        with np.load(bank_path(pool, sut)) as bank:
                             risk = bank["risk"].copy()
                         baseline = read_json(
                             trace_path(stage, pool, sut, "cg_brt", seed)

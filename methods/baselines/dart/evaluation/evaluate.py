@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from threadpoolctl import threadpool_limits
 
+from benchmark.data import bank_path
 from benchmark.risk_channel import RiskOracle, disclose_risk
 from methods.baselines.cg_brt import select as original_select
 from methods.baselines.dart import select
@@ -18,7 +19,7 @@ from methods.baselines.hgt.history import load_history, split_indices, subset
 from methods.baselines.hgt.io import write_json
 from methods.baselines.hgt.train import load_kernel
 
-from .config import ROOT, SEEDS, SUT_IDS, VARIANTS, bank_root, pools, variants
+from .config import ROOT, SEEDS, SUT_IDS, VARIANTS, pools, variants
 
 
 def worker(connection):
@@ -82,8 +83,7 @@ def main(stage="development", selection_seeds=SEEDS):
                     for mode in ("decision", "conventional")
                 }
                 for pool in pools(stage):
-                    folder = bank_root(stage) / f"pool_{pool}"
-                    with np.load(folder / SUT_IDS[0] / "responses.npz") as bank:
+                    with np.load(bank_path(pool, SUT_IDS[0])) as bank:
                         x = bank["x"].copy()
                     prediction = experts.predict(x)
                     with torch.no_grad():
@@ -103,7 +103,7 @@ def main(stage="development", selection_seeds=SEEDS):
                         "seed": seed,
                     }
                     for sut in SUT_IDS:
-                        with np.load(folder / sut / "responses.npz") as bank:
+                        with np.load(bank_path(pool, sut)) as bank:
                             np.testing.assert_array_equal(x, bank["x"])
                             risk = bank["risk"].copy()
                         for policy in variants(stage):

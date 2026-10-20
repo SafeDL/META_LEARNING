@@ -158,10 +158,3 @@ class RoutePolyline:
         cross = float(left[0] * right[1] - left[1] * right[0])
         dot = float(np.clip(np.dot(left, right), -1.0, 1.0))
         return float(np.arctan2(cross, dot) / (upper - lower))
-
-
-def route_hash_payload(route: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "route_id": route["route_id"],
-        "lane_sequence": [list(lane_index(x)) for x in route["lane_sequence"]]
-    }

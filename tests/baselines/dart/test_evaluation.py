@@ -66,7 +66,9 @@ def test_acceptance_uses_only_terminal_count_and_coverage(tmp_path, monkeypatch)
     monkeypatch.setattr(report, "SEEDS", (11,))
     monkeypatch.setattr(report, "pools", lambda stage: (0,))
     monkeypatch.setattr(report, "variants", lambda stage: ("cg_brt", "full"))
-    monkeypatch.setattr(report, "bank_root", lambda stage: tmp_path / "bank")
+    monkeypatch.setattr(
+        report, "bank_path", lambda pool, sut: bank / "responses.npz"
+    )
     monkeypatch.setattr(
         report, "trace_path", lambda stage, pool, sut, policy, seed: paths[policy]
     )

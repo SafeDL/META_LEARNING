@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import json
+from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 import numpy as np
@@ -218,25 +220,6 @@ def sobol_designs_from_physical_bounds(
     return tuple(designs)
 
 
-def sobol_designs(
-    task: ScenarioMiningTaskSpec, anchors_per_candidate: int, seed: int
-) -> tuple[CutInDesign, ...]:
-    """Sample a task-local normalized domain while retaining global legality checks."""
-    if task.functional_scenario != "cutin":
-        raise ValueError("Mining Sobol casebook requires Cut-in tasks")
-    names = logical_parameter_names("cutin")
-    space = mvr_parameter_spaces()["cutin"]
-    local: dict[str, tuple[float, float]] = {}
-    for name in names:
-        normalized_lower, normalized_upper = task.logical_domain_bounds[name]
-        global_lower, global_upper = space.bounds[name]
-        local[name] = (
-            global_lower + (normalized_lower + 1.0) * 0.5 * (global_upper - global_lower),
-            global_lower + (normalized_upper + 1.0) * 0.5 * (global_upper - global_lower),
-        )
-    return sobol_designs_from_physical_bounds(local, anchors_per_candidate, seed)
-
-
 def observation_from_dict(payload: Mapping[str, Any]) -> MiningObservation:
     if payload.get("schema") != MINING_SCHEMA:
         raise ValueError("incompatible observation schema; v1 sparse labels are not accepted")
@@ -248,3 +231,11 @@ def observation_from_dict(payload: Mapping[str, Any]) -> MiningObservation:
     row.pop("schema", None)
     row["design"] = CutInDesign(**design_payload)
     return MiningObservation(**row)
+
+
+def load_observations(path: str | Path) -> list[MiningObservation]:
+    return [
+        observation_from_dict(json.loads(line))
+        for line in Path(path).read_text(encoding="utf-8").splitlines()
+        if line
+    ]

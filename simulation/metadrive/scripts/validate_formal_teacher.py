@@ -11,7 +11,7 @@ from typing import Any, Iterable
 import numpy as np
 import yaml
 
-from ..mining.source_bank import SourceBank, observation_from_dict
+from ..mining.source_bank import SourceBank, load_observations
 from ..formal.formal_counterfactual_teacher import (
     BASELINE_POLICIES,
     FormalCounterfactualTeacher,
@@ -34,11 +34,7 @@ def _git_commit(root: Path) -> str | None:
 
 
 def _load_bank(path: Path, source_refs: tuple[str, ...]) -> SourceBank:
-    rows = [
-        observation_from_dict(json.loads(line))
-        for line in path.read_text(encoding="utf-8").splitlines() if line
-    ]
-    bank = SourceBank.from_observations(rows, source_refs)
+    bank = SourceBank.from_observations(load_observations(path), source_refs)
     bank.require_common_anchors()
     if set(bank.source_refs) & FORBIDDEN_SOURCE_REFS:
         raise ValueError("sealed validation/test SUT appears in the formal-teacher source bank")

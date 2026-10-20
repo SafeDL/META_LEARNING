@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pytest
 
-from simulation.metadrive.mining.source_bank import SourceBank, observation_from_dict
+from simulation.metadrive.mining.source_bank import (
+    SourceBank,
+    load_observations,
+    observation_from_dict,
+)
 from simulation.metadrive.mining.types import MINING_SCHEMA, CutInDesign, MiningObservation
 
 
@@ -34,7 +40,7 @@ def _observation(
     )
 
 
-def test_source_bank_keeps_formal_scores_separate_from_responses() -> None:
+def test_source_bank_keeps_formal_scores_separate_from_responses(tmp_path) -> None:
     designs = tuple(
         CutInDesign(candidate, (0.0, 0.0, 0.0, 0.0, -0.1 + index * 0.1))
         for candidate in (0, 1)
@@ -52,7 +58,15 @@ def test_source_bank_keeps_formal_scores_separate_from_responses() -> None:
         for source in ("a", "b")
         for design in designs
     ]
-    bank = SourceBank.from_observations(rows, ("a", "b"))
+    path = tmp_path / "observations.jsonl"
+    serialized = [json.dumps(row.to_dict(), sort_keys=True) for row in rows]
+    path.write_text(
+        "\n\n".join(serialized) + "\n",
+        encoding="utf-8",
+    )
+    loaded = load_observations(path)
+    assert [json.dumps(row.to_dict(), sort_keys=True) for row in loaded] == serialized
+    bank = SourceBank.from_observations(loaded, ("a", "b"))
     censored_index = bank.design_ids.index(designs[-1].design_id)
     assert bank.formal_scores.shape == bank.responses.shape == (2, 4)
     assert bank.formal_scores[0, 0] != bank.responses[0, 0]

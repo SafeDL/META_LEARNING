@@ -3,9 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Iterable
 
-RELATION_TYPES = ("successor", "predecessor", "left", "right", "merge", "split", "conflict",
-                  "crossing", "route_membership")
-
 
 def lane_relations(
         lane_indices: Iterable[tuple[object, object,

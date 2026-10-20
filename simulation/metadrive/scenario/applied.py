@@ -33,10 +33,6 @@ class AppliedScenario:
     def sut_distance_to_conflict_m(self) -> float:
         return float(self.logical_parameters["sut_distance_to_conflict_m"])
 
-    @property
-    def maneuver_onset_progress(self) -> float:
-        return float(self.logical_parameters["maneuver_onset_progress"])
-
 
 @dataclass
 class ExecutableEpisode:

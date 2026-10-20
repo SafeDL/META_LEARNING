@@ -8,30 +8,22 @@ import numpy as np
 import torch
 from threadpoolctl import threadpool_limits
 
+from benchmark.data import bank_path
+from benchmark.risk_channel import RiskOracle, disclose_risk
 from methods.baselines.cg_brt import select as cg_select
-from methods.baselines.dart.evaluation.config import bank_root, SUT_IDS
+from methods.baselines.dart.evaluation.config import SUT_IDS
 from methods.baselines.dart.evaluation.evaluate import trace_path as dart_trace_path
 from methods.baselines.dart.selection import select as dart_select
 from methods.baselines.hgt.config import GROUPS
 from methods.baselines.hgt.history import load_history, split_indices, subset
 from methods.baselines.hgt.io import write_json
-from benchmark.risk_channel import RiskOracle, disclose_risk
+from methods.common.prior import visible_history
 
 from ..config import ROOT, SEEDS, TRAIN_MODES, VARIANTS
 from ..data import assemble
-from methods.common.prior import visible_history
 from ..selection import select
 from ..train import load_value
 from .protocol import freeze
-
-
-def bank_path(pool, sut):
-    return (
-        bank_root("confirmation" if pool == 2 else "development")
-        / f"pool_{pool}"
-        / sut
-        / "responses.npz"
-    )
 
 
 def trace_path(pool, sut, seed, variant, condition="complete"):

@@ -23,7 +23,7 @@ def fit_tilt(logits, labels, penalty):
 def threshold(scores, mode="empirical", alpha=ALPHA):
     scores = sorted(map(float, scores))
     if not scores:
-        return 1.0
+        return 0.0 if mode == "empirical" else 1.0
     if mode == "empirical":
         return scores[-1]
     if mode != "strict":
@@ -152,16 +152,23 @@ class StopController:
             "query": state["step"],
             "found": state["found"],
             "score": score,
+            "base_score": float(base.exp()[: limit + 1].sum().clamp(0, 1).cpu()),
             "remaining_mean": mean,
             "base_remaining_mean": float(
                 (base.exp() * torch.arange(len(base), device=base.device)).sum().cpu()
             ),
             "tilt": self.u,
+            "completed_segments": len(self.labels),
+            "segment_rate_bias": (
+                float(np.mean(np.asarray(self.labels) - expit(self.logits)))
+                if self.labels else 0.0
+            ),
             "threshold": self.gamma,
             "allowed_misses": limit,
             "deterministic": deterministic,
             "stop": stop,
             "remaining_log_probability": corrected.cpu().tolist(),
+            "base_remaining_log_probability": base.cpu().tolist(),
         }
 
     def evaluate(self, model, remaining, queries, evidence, budget, initial_indices):

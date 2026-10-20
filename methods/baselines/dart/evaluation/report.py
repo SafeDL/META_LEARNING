@@ -2,9 +2,10 @@
 
 import numpy as np
 
-from methods.common.catalog import DART_VARIANTS
+from benchmark.data import bank_path
 from benchmark.evaluation import metrics
 from methods.baselines.hgt.io import read_json, write_json
+from methods.common.catalog import DART_VARIANTS
 
 from .config import (
     ACCEPTANCE_METRICS,
@@ -12,7 +13,6 @@ from .config import (
     ROOT,
     SEEDS,
     SUT_IDS,
-    bank_root,
     pools,
     variants,
 )
@@ -65,9 +65,7 @@ def main(stage="development"):
     rows = []
     for pool in pools(stage):
         for sut in SUT_IDS:
-            with np.load(
-                bank_root(stage) / f"pool_{pool}" / sut / "responses.npz"
-            ) as stored:
+            with np.load(bank_path(pool, sut)) as stored:
                 bank = {"risk": stored["risk"]}
             for policy in variants(stage):
                 for seed in SEEDS:

@@ -52,8 +52,6 @@ class CounterfactualTeacher:
         training_source_indexes: Iterable[int],
         *,
         rank: int = 2,
-        device: str = "cpu",
-        gp_fit_steps: int = 100,
         proxy_event_threshold: float = 0.75,
     ) -> "CounterfactualTeacher":
         indexes = tuple(int(index) for index in training_source_indexes)

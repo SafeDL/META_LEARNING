@@ -22,10 +22,6 @@ CUTIN_LOGICAL_PARAMETER_NAMES = (
     "cutin_start_offset_m",
     "cutin_path_length_m",
 )
-# Kept as the public default for Merge and Roundabout callers.  Cut-in must
-# explicitly request its own schema rather than silently borrowing conflict
-# point coordinates.
-LOGICAL_PARAMETER_NAMES = INTERACTION_LOGICAL_PARAMETER_NAMES
 
 
 def logical_parameter_names(family: str) -> tuple[str, ...]:
@@ -98,12 +94,6 @@ class ScenarioMiningTaskSpec:
             lower, upper = (float(value) for value in bounds)
             if not lower < upper or lower < -1.0 or upper > 1.0:
                 raise ValueError("logical domain bounds must lie in normalized [-1, 1]")
-
-    @property
-    def active_logical_parameter_names(self) -> tuple[str, ...]:
-        return tuple(name for name, active in zip(
-            logical_parameter_names(self.functional_scenario), self.logical_parameter_mask)
-                     if active)
 
     def to_dict(self) -> dict[str, Any]:
         self.validate()

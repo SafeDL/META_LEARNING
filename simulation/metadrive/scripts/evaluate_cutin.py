@@ -15,7 +15,7 @@ from ..mining.prior import LowRankVulnerabilityPrior
 from ..mining.response import VulnerabilityResponseConfig
 from ..mining.source_bank import (
     SourceBank,
-    observation_from_dict,
+    load_observations,
     retained_task,
     sobol_designs_from_physical_bounds,
     study_task,
@@ -27,13 +27,6 @@ from ..scenario.registry import load_adapters
 from ..scenario.taskbook import load_taskbook
 from ..training.runner import HierarchicalRunner
 from ..mining.validity import RBFEvaluability
-
-
-def _load(path: str):
-    return [
-        observation_from_dict(json.loads(line))
-        for line in Path(path).read_text(encoding="utf-8").splitlines() if line
-    ]
 
 
 def _source_logical_domain(observations) -> str:
@@ -84,7 +77,7 @@ def run(config_path: str,
         raise ValueError("Mining evaluation only accepts a held-out validation or test SUT")
     target_ref = config["study"][f"{sut_split}_sut_ref"]
     tasks = load_taskbook(config["taskbook"])
-    source_observations = _load(source_path)
+    source_observations = load_observations(source_path)
     logical_domain_id = _source_logical_domain(source_observations)
     _require_g1_pass(prior_path, logical_domain_id)
     task = study_task(

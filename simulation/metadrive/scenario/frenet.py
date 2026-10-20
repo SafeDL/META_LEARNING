@@ -315,10 +315,6 @@ class FrenetPathPlanner:
         self._path_speed_feasible = True
 
     @property
-    def active_action(self) -> np.ndarray:
-        return self._active_action.copy()
-
-    @property
     def replan_due(self) -> bool:
         return self._maneuver_steps % self.replan_interval_steps == 0
 
