@@ -1,0 +1,2639 @@
+{
+  "format": "collision-execution-bank",
+  "sut_id": "history_ppo",
+  "environment_seed": 81001,
+  "qualification": "controllers\\highway\\checkpoints\\collision\\history_ppo_persistent_speed\\training.json",
+  "contract": {
+    "source_files": {
+      "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+      "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+      "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+      "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+      "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+      "controllers/highway/learning.py": "ac96bec438f7260f689bba977d0b181b6dda3577b6f3f28d08b9df5320269b68",
+      "checkpoint": "495effb61a2f5423273900fc274cea80d1a85a52228047c14f482968cae62d66"
+    },
+    "object": {
+      "sut_id": "history_ppo",
+      "family": "learning",
+      "lineage": "ppo",
+      "version": "history-persistent-speed-training",
+      "role": "history",
+      "parameters": {},
+      "training_run": "history_ppo_persistent_speed",
+      "training_seed": 4117,
+      "reference_id": null,
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    "episode_duration_s": 10.0,
+    "highway_env": "1.9.1",
+    "numpy": "2.2.6",
+    "stable_baselines3": "2.3.0",
+    "torch": "2.5.0+cu118"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "cut_out:new:0:000008",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.61852176487446,
+        "gap_m": 10.499114939942956,
+        "lead_speed_mps": 15.841663869097829,
+        "obstacle_distance_m": 117.8402653336525,
+        "event_time_s": 1.9670606264844537,
+        "lateral_duration_s": 2.478437123447657
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000020",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.58246250450611,
+        "gap_m": 27.980472521856427,
+        "lead_speed_mps": 16.38372744806111,
+        "obstacle_distance_m": 127.17623348813504,
+        "event_time_s": 1.1005829283967614,
+        "lateral_duration_s": 3.9755910502746703
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000042",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.301338970661163,
+        "gap_m": 9.732197236269712,
+        "lead_speed_mps": 23.579977978020906,
+        "obstacle_distance_m": 106.25435808673501,
+        "event_time_s": 0.753119099419564,
+        "lateral_duration_s": 2.819649591855705
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000044",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.46929095685482,
+        "gap_m": 16.801352951675653,
+        "lead_speed_mps": 14.595987178385258,
+        "obstacle_distance_m": 150.09349435102195,
+        "event_time_s": 1.5078387367539108,
+        "lateral_duration_s": 3.271030459739268
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000053",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.91167525947094,
+        "gap_m": 46.55337826348841,
+        "lead_speed_mps": 14.361224638298154,
+        "obstacle_distance_m": 128.28827829100192,
+        "event_time_s": 1.8416024916805327,
+        "lateral_duration_s": 3.092948386259377
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000056",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.777681201696396,
+        "gap_m": 13.367093136534095,
+        "lead_speed_mps": 25.712994270026684,
+        "obstacle_distance_m": 131.61539083812386,
+        "event_time_s": 1.2602446652017534,
+        "lateral_duration_s": 2.6012399174273018
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000075",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.37400175631046,
+        "gap_m": 44.64062545634806,
+        "lead_speed_mps": 14.931147383525968,
+        "obstacle_distance_m": 118.93556833267212,
+        "event_time_s": 0.7456986606121063,
+        "lateral_duration_s": 2.7580401239916683
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000076",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.875416696071625,
+        "gap_m": 9.493053615093231,
+        "lead_speed_mps": 22.46952240727842,
+        "obstacle_distance_m": 127.60608010925353,
+        "event_time_s": 0.5695860725827515,
+        "lateral_duration_s": 1.8792729910463095
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000082",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.808569625020027,
+        "gap_m": 8.008867416530848,
+        "lead_speed_mps": 14.02772954851389,
+        "obstacle_distance_m": 147.59439129848033,
+        "event_time_s": 1.0689109852537513,
+        "lateral_duration_s": 2.5059061935171485
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000098",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.592758625745773,
+        "gap_m": 15.79357410222292,
+        "lead_speed_mps": 27.271496193483472,
+        "obstacle_distance_m": 149.4017626531422,
+        "event_time_s": 0.656906574498862,
+        "lateral_duration_s": 2.3664655974134803
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000106",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.13966916501522,
+        "gap_m": 20.531251208856702,
+        "lead_speed_mps": 16.952020483091474,
+        "obstacle_distance_m": 123.00730482209474,
+        "event_time_s": 1.5043079718016088,
+        "lateral_duration_s": 1.8354497535154224
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000115",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.69729070365429,
+        "gap_m": 32.1537301056087,
+        "lead_speed_mps": 16.575533337891102,
+        "obstacle_distance_m": 143.51831313222647,
+        "event_time_s": 1.833380297292024,
+        "lateral_duration_s": 2.2941213672980667
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000116",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.05133816599846,
+        "gap_m": 19.39588307403028,
+        "lead_speed_mps": 19.76002062484622,
+        "obstacle_distance_m": 152.00617720372975,
+        "event_time_s": 1.6344921700656414,
+        "lateral_duration_s": 2.618460499122739
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000118",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.15836201608181,
+        "gap_m": 17.609959850087762,
+        "lead_speed_mps": 15.277798624709249,
+        "obstacle_distance_m": 132.44621456600726,
+        "event_time_s": 0.8250557943247259,
+        "lateral_duration_s": 3.38107838742435
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000120",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.663876250386238,
+        "gap_m": 24.791933216154575,
+        "lead_speed_mps": 14.514690009877086,
+        "obstacle_distance_m": 89.1122030094266,
+        "event_time_s": 0.5112505326978862,
+        "lateral_duration_s": 2.210162513703108
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000124",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.724031671881676,
+        "gap_m": 14.329615335911512,
+        "lead_speed_mps": 27.838492464274168,
+        "obstacle_distance_m": 120.41732949670404,
+        "event_time_s": 1.157692039385438,
+        "lateral_duration_s": 2.031739014014602
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000128",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.057104855775833,
+        "gap_m": 9.96201367676258,
+        "lead_speed_mps": 27.690758990123868,
+        "obstacle_distance_m": 142.30046711862087,
+        "event_time_s": 1.3991372571326792,
+        "lateral_duration_s": 2.981987249292433
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000138",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.6222862303257,
+        "gap_m": 11.929057573899627,
+        "lead_speed_mps": 15.426766987890005,
+        "obstacle_distance_m": 154.30579802487046,
+        "event_time_s": 1.80199437122792,
+        "lateral_duration_s": 2.113939837552607
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000147",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.054914087057114,
+        "gap_m": 40.92164849489927,
+        "lead_speed_mps": 15.762330060824752,
+        "obstacle_distance_m": 136.02057876065373,
+        "event_time_s": 1.383384119719267,
+        "lateral_duration_s": 2.0221139105036854
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000156",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.022787004709244,
+        "gap_m": 28.512802861630917,
+        "lead_speed_mps": 31.534489097073674,
+        "obstacle_distance_m": 157.63772833626717,
+        "event_time_s": 0.5317890928126872,
+        "lateral_duration_s": 2.3011466503143314
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000160",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.96978035569191,
+        "gap_m": 26.645981604233384,
+        "lead_speed_mps": 15.371002772822976,
+        "obstacle_distance_m": 106.12181661650538,
+        "event_time_s": 1.6178261819295585,
+        "lateral_duration_s": 2.5657135244458917
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000171",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.887480318546295,
+        "gap_m": 29.783143458887935,
+        "lead_speed_mps": 17.414411272853613,
+        "obstacle_distance_m": 159.11894148215652,
+        "event_time_s": 1.0433968645520508,
+        "lateral_duration_s": 2.4863203013315798
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000172",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.36163629591465,
+        "gap_m": 21.54216207936406,
+        "lead_speed_mps": 18.905909083783627,
+        "obstacle_distance_m": 137.83196735195816,
+        "event_time_s": 1.2423926293849945,
+        "lateral_duration_s": 2.1576654076576234
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000174",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.473543405532837,
+        "gap_m": 15.452165149152279,
+        "lead_speed_mps": 14.42244609259069,
+        "obstacle_distance_m": 122.71931014023721,
+        "event_time_s": 1.2988203740678728,
+        "lateral_duration_s": 3.4615926899015905
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000183",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.90812462568283,
+        "gap_m": 47.73690295778215,
+        "lead_speed_mps": 14.797836851328611,
+        "obstacle_distance_m": 143.78745754715055,
+        "event_time_s": 1.6287159365601838,
+        "lateral_duration_s": 3.965834382176399
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000186",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.773670807480812,
+        "gap_m": 17.269502187147737,
+        "lead_speed_mps": 25.877952253445983,
+        "obstacle_distance_m": 141.1769835650921,
+        "event_time_s": 1.4721587407402694,
+        "lateral_duration_s": 2.2751331010833384
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000194",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.272791624069214,
+        "gap_m": 16.365108313038945,
+        "lead_speed_mps": 16.299741650000215,
+        "obstacle_distance_m": 111.381626711227,
+        "event_time_s": 1.9048005258664489,
+        "lateral_duration_s": 1.9701265813782811
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000208",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.812122136354446,
+        "gap_m": 12.063490711152554,
+        "lead_speed_mps": 14.992904206737876,
+        "obstacle_distance_m": 124.49946435168386,
+        "event_time_s": 0.9060766519978642,
+        "lateral_duration_s": 2.2839922975748777
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000227",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.22525617480278,
+        "gap_m": 34.54228236712515,
+        "lead_speed_mps": 14.312239522114396,
+        "obstacle_distance_m": 107.29830769822001,
+        "event_time_s": 1.140341677237302,
+        "lateral_duration_s": 2.836110527999699
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000232",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.136109113693237,
+        "gap_m": 21.889414934441447,
+        "lead_speed_mps": 16.777346532791853,
+        "obstacle_distance_m": 149.08220207318664,
+        "event_time_s": 1.3390630478970706,
+        "lateral_duration_s": 2.748198557272554
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000244",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.162402987480164,
+        "gap_m": 13.636091386899352,
+        "lead_speed_mps": 15.99282842501998,
+        "obstacle_distance_m": 140.51157107111067,
+        "event_time_s": 0.6123405988328159,
+        "lateral_duration_s": 3.704023133777082
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000258",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.09979896247387,
+        "gap_m": 18.677398515865207,
+        "lead_speed_mps": 14.326585903763771,
+        "obstacle_distance_m": 158.23547828476876,
+        "event_time_s": 0.9536509765312076,
+        "lateral_duration_s": 3.9875722052529454
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000264",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.532656118273735,
+        "gap_m": 23.270233251154423,
+        "lead_speed_mps": 28.790116099640727,
+        "obstacle_distance_m": 146.57760079018772,
+        "event_time_s": 0.5595714361406863,
+        "lateral_duration_s": 2.517590932734311
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000283",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.534371599555016,
+        "gap_m": 33.97077256441116,
+        "lead_speed_mps": 14.703075328841805,
+        "obstacle_distance_m": 132.1575510967523,
+        "event_time_s": 0.5328435488045216,
+        "lateral_duration_s": 3.4828518876805905
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000291",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.398248866200447,
+        "gap_m": 42.47370349429548,
+        "lead_speed_mps": 16.276606306433678,
+        "obstacle_distance_m": 156.37219049967825,
+        "event_time_s": 1.7181105432100594,
+        "lateral_duration_s": 3.087683196552098
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000292",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.85288190841675,
+        "gap_m": 8.726070236414671,
+        "lead_speed_mps": 19.98823295906186,
+        "obstacle_distance_m": 142.1327356994152,
+        "event_time_s": 1.8940493240952492,
+        "lateral_duration_s": 3.8932733692228796
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000296",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.49416808784008,
+        "gap_m": 14.439956502988935,
+        "lead_speed_mps": 14.250497048720717,
+        "obstacle_distance_m": 102.60598153807223,
+        "event_time_s": 0.7673285263590515,
+        "lateral_duration_s": 2.926447666063905
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000314",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.955861821770668,
+        "gap_m": 10.210116244852543,
+        "lead_speed_mps": 17.18002642132342,
+        "obstacle_distance_m": 134.02229271363467,
+        "event_time_s": 1.291442935820669,
+        "lateral_duration_s": 3.248365830816329
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000324",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.2594950646162,
+        "gap_m": 17.320958651602268,
+        "lead_speed_mps": 16.612281629815698,
+        "obstacle_distance_m": 113.29324033576995,
+        "event_time_s": 0.9338590847328305,
+        "lateral_duration_s": 2.500437489710748
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000342",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.782666459679604,
+        "gap_m": 11.10207094438374,
+        "lead_speed_mps": 14.812183266505599,
+        "obstacle_distance_m": 100.08371591567993,
+        "event_time_s": 1.8155897399410605,
+        "lateral_duration_s": 2.8493521496653558
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000344",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.28572790324688,
+        "gap_m": 20.81901314854622,
+        "lead_speed_mps": 16.175480538979173,
+        "obstacle_distance_m": 128.7537840474397,
+        "event_time_s": 1.7543771313503385,
+        "lateral_duration_s": 3.745259385183454
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000352",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.64102591574192,
+        "gap_m": 8.378663500770926,
+        "lead_speed_mps": 17.897847831249237,
+        "obstacle_distance_m": 151.48404845036566,
+        "event_time_s": 0.6664980868808925,
+        "lateral_duration_s": 3.35009082518518
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000362",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.210114255547523,
+        "gap_m": 12.968951970338821,
+        "lead_speed_mps": 29.860853536054492,
+        "obstacle_distance_m": 139.92473830934614,
+        "event_time_s": 1.0342229790985584,
+        "lateral_duration_s": 2.0176095198839903
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000380",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.684836640954018,
+        "gap_m": 27.152012957260013,
+        "lead_speed_mps": 14.894297435879707,
+        "obstacle_distance_m": 136.57860659528524,
+        "event_time_s": 1.2526876251213253,
+        "lateral_duration_s": 1.8646268336102367
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000384",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.096027076244354,
+        "gap_m": 22.743552448228,
+        "lead_speed_mps": 14.764348281547427,
+        "obstacle_distance_m": 114.71870603971183,
+        "event_time_s": 1.1165514821186662,
+        "lateral_duration_s": 3.0802070796489716
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000398",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.601266473531723,
+        "gap_m": 8.835323169827461,
+        "lead_speed_mps": 16.2245504129678,
+        "obstacle_distance_m": 106.83608474209905,
+        "event_time_s": 1.0605751601979136,
+        "lateral_duration_s": 1.9093198005110026
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000412",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.077606737613678,
+        "gap_m": 15.741205150261521,
+        "lead_speed_mps": 17.44785320572555,
+        "obstacle_distance_m": 128.85872332844883,
+        "event_time_s": 1.9364293748512864,
+        "lateral_duration_s": 2.1363253885880114
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000420",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.99562415480614,
+        "gap_m": 24.285391326993704,
+        "lead_speed_mps": 15.728783790022135,
+        "obstacle_distance_m": 153.62845750991255,
+        "event_time_s": 0.8711653086356819,
+        "lateral_duration_s": 2.772389584966004
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000428",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.291494712233543,
+        "gap_m": 8.103894298896194,
+        "lead_speed_mps": 23.961783055216074,
+        "obstacle_distance_m": 119.16252888739109,
+        "event_time_s": 1.3377487710677087,
+        "lateral_duration_s": 2.254826849140227
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000440",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.95962592959404,
+        "gap_m": 11.559302795678377,
+        "lead_speed_mps": 16.479038555175066,
+        "obstacle_distance_m": 138.93334119580686,
+        "event_time_s": 1.4567132624797523,
+        "lateral_duration_s": 3.4756634049117565
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000451",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.84956157207489,
+        "gap_m": 30.591461332514882,
+        "lead_speed_mps": 16.09662845544517,
+        "obstacle_distance_m": 122.44843098334968,
+        "event_time_s": 1.5940535441040993,
+        "lateral_duration_s": 3.3592649718746546
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000474",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.282167494297028,
+        "gap_m": 22.26048642024398,
+        "lead_speed_mps": 15.163270596414804,
+        "obstacle_distance_m": 144.05546443071216,
+        "event_time_s": 1.919463044963777,
+        "lateral_duration_s": 2.970310869626701
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000482",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.64457806944847,
+        "gap_m": 12.352528208866715,
+        "lead_speed_mps": 18.013401804491878,
+        "obstacle_distance_m": 121.32664961274713,
+        "event_time_s": 0.8295828937552869,
+        "lateral_duration_s": 3.709229609929025
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000487",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.246228963136673,
+        "gap_m": 37.39646181091666,
+        "lead_speed_mps": 15.096761871129274,
+        "obstacle_distance_m": 154.7596830362454,
+        "event_time_s": 1.8877123524434865,
+        "lateral_duration_s": 2.4933988314121964
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000492",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.14249724149704,
+        "gap_m": 19.53402467817068,
+        "lead_speed_mps": 17.122836830094457,
+        "obstacle_distance_m": 101.57480294350535,
+        "event_time_s": 0.5860108281485736,
+        "lateral_duration_s": 2.4051392057910563
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000497",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.646784096956253,
+        "gap_m": 43.74044886417687,
+        "lead_speed_mps": 29.939689526334405,
+        "obstacle_distance_m": 157.36358761321753,
+        "event_time_s": 0.8255602354183793,
+        "lateral_duration_s": 2.4743733344599605
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000502",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.102394089102745,
+        "gap_m": 10.556009404361248,
+        "lead_speed_mps": 24.685302985832095,
+        "obstacle_distance_m": 136.62999254185706,
+        "event_time_s": 0.6260008434765041,
+        "lateral_duration_s": 2.1457194980233907
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000507",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.204161554574966,
+        "gap_m": 40.463290233165026,
+        "lead_speed_mps": 17.677836451679468,
+        "obstacle_distance_m": 145.1786911394447,
+        "event_time_s": 1.1608525742776692,
+        "lateral_duration_s": 3.7547214282676578
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000508",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.54648147523403,
+        "gap_m": 11.21201497130096,
+        "lead_speed_mps": 18.571474701166153,
+        "obstacle_distance_m": 148.83834974840283,
+        "event_time_s": 0.9850443191826344,
+        "lateral_duration_s": 2.9448154937475923
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000530",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.667988523840904,
+        "gap_m": 17.396727306768298,
+        "lead_speed_mps": 17.655882520601153,
+        "obstacle_distance_m": 153.12313222792,
+        "event_time_s": 1.2549773193895817,
+        "lateral_duration_s": 3.0141708051785825
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000532",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.61728984117508,
+        "gap_m": 9.054823001846671,
+        "lead_speed_mps": 26.636722998693585,
+        "obstacle_distance_m": 103.2479128614068,
+        "event_time_s": 0.5463859550654888,
+        "lateral_duration_s": 2.4940728591755033
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000536",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.22975169122219,
+        "gap_m": 14.11250925809145,
+        "lead_speed_mps": 30.10226845741272,
+        "obstacle_distance_m": 141.30289767868817,
+        "event_time_s": 1.6696678171865642,
+        "lateral_duration_s": 2.0773041239008307
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000548",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.77844010293484,
+        "gap_m": 14.870625415816903,
+        "lead_speed_mps": 15.062405087053776,
+        "obstacle_distance_m": 98.74687077943236,
+        "event_time_s": 1.2277957671321929,
+        "lateral_duration_s": 2.3762511776760222
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000552",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.38892251253128,
+        "gap_m": 9.771963510662317,
+        "lead_speed_mps": 20.30352252162993,
+        "obstacle_distance_m": 154.24362601246685,
+        "event_time_s": 1.6030462002381682,
+        "lateral_duration_s": 2.242932735942304
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000554",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.274390891194344,
+        "gap_m": 27.222333677113056,
+        "lead_speed_mps": 15.854945112019777,
+        "obstacle_distance_m": 130.2058713650331,
+        "event_time_s": 0.9374287095852196,
+        "lateral_duration_s": 3.684624835662544
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000563",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.841774240136147,
+        "gap_m": 35.96411087177694,
+        "lead_speed_mps": 15.633503628894687,
+        "obstacle_distance_m": 148.28751436434686,
+        "event_time_s": 0.5135764381848276,
+        "lateral_duration_s": 3.77717245426029
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000566",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.302570894360542,
+        "gap_m": 8.63100951910019,
+        "lead_speed_mps": 16.370315346866846,
+        "obstacle_distance_m": 114.85701417550445,
+        "event_time_s": 1.7581298616714776,
+        "lateral_duration_s": 2.6988407250493767
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000584",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.98303709924221,
+        "gap_m": 16.931305050849915,
+        "lead_speed_mps": 16.929804299026728,
+        "obstacle_distance_m": 135.33089394681156,
+        "event_time_s": 0.6619042661041021,
+        "lateral_duration_s": 3.0514397732913494
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000589",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.381402775645256,
+        "gap_m": 34.22567447088659,
+        "lead_speed_mps": 16.190259946510196,
+        "obstacle_distance_m": 146.51896001771092,
+        "event_time_s": 1.7145404713228345,
+        "lateral_duration_s": 2.0673061618581414
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000595",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.309672862291336,
+        "gap_m": 32.74165271408856,
+        "lead_speed_mps": 21.257050022482872,
+        "obstacle_distance_m": 129.39797548111528,
+        "event_time_s": 1.4708323129452765,
+        "lateral_duration_s": 2.3846429072320463
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000596",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.940969690680504,
+        "gap_m": 18.58365673571825,
+        "lead_speed_mps": 15.299888242036104,
+        "obstacle_distance_m": 120.07623872254044,
+        "event_time_s": 1.2953802552074194,
+        "lateral_duration_s": 2.094525754638016
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000602",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.443767622113228,
+        "gap_m": 12.640161732211709,
+        "lead_speed_mps": 14.492463029921055,
+        "obstacle_distance_m": 101.06034980621189,
+        "event_time_s": 1.538136214017868,
+        "lateral_duration_s": 3.3986088318750265
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000620",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.116643145680428,
+        "gap_m": 10.121822400018573,
+        "lead_speed_mps": 18.210974795743823,
+        "obstacle_distance_m": 144.66332519892603,
+        "event_time_s": 0.9555730880238116,
+        "lateral_duration_s": 2.799088262952864
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000624",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.088247373700142,
+        "gap_m": 28.033844044432044,
+        "lead_speed_mps": 14.014308897778392,
+        "obstacle_distance_m": 159.7281768079847,
+        "event_time_s": 1.7297205687500536,
+        "lateral_duration_s": 3.5153606772422794
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000626",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.20009559392929,
+        "gap_m": 8.98098106123507,
+        "lead_speed_mps": 18.777904883027077,
+        "obstacle_distance_m": 124.58225118927658,
+        "event_time_s": 0.7297988021746278,
+        "lateral_duration_s": 2.2070234693586825
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000642",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.125649243593216,
+        "gap_m": 9.922242395579815,
+        "lead_speed_mps": 15.34892177209258,
+        "obstacle_distance_m": 94.35473221819848,
+        "event_time_s": 0.5820716731250286,
+        "lateral_duration_s": 3.5587200867012143
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000652",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.630175471305847,
+        "gap_m": 22.353898847475648,
+        "lead_speed_mps": 14.444664388895035,
+        "obstacle_distance_m": 134.1573389293626,
+        "event_time_s": 0.8315046448260546,
+        "lateral_duration_s": 2.5295982031151656
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000656",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.664430379867554,
+        "gap_m": 13.505848737433553,
+        "lead_speed_mps": 18.32567934691906,
+        "obstacle_distance_m": 119.81143740005791,
+        "event_time_s": 1.4641573745757341,
+        "lateral_duration_s": 3.7872027214616537
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000678",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 20.774880290031433,
+        "gap_m": 16.06568575464189,
+        "lead_speed_mps": 14.098844012245536,
+        "obstacle_distance_m": 78.43543220311403,
+        "event_time_s": 1.017827455420047,
+        "lateral_duration_s": 2.1563724145293235
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000680",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.27794149518013,
+        "gap_m": 26.02855022624135,
+        "lead_speed_mps": 15.413492182269692,
+        "obstacle_distance_m": 142.724349508062,
+        "event_time_s": 1.1500779339112341,
+        "lateral_duration_s": 3.3229987729340795
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000692",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.298524767160416,
+        "gap_m": 12.441133882850409,
+        "lead_speed_mps": 17.361256444826722,
+        "obstacle_distance_m": 157.26005748379976,
+        "event_time_s": 1.923400724772364,
+        "lateral_duration_s": 1.8247858261689545
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000704",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.419453382492065,
+        "gap_m": 16.325416827574372,
+        "lead_speed_mps": 30.95762588456273,
+        "obstacle_distance_m": 149.48744299821556,
+        "event_time_s": 1.2072112741880119,
+        "lateral_duration_s": 2.5468198994174602
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000714",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.97926366329193,
+        "gap_m": 15.665748324245214,
+        "lead_speed_mps": 16.79957344569266,
+        "obstacle_distance_m": 137.45873983483762,
+        "event_time_s": 0.8747352883219719,
+        "lateral_duration_s": 3.9649113709107047
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000719",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.377850234508514,
+        "gap_m": 30.16080212034285,
+        "lead_speed_mps": 15.220999613404274,
+        "obstacle_distance_m": 126.38154436368495,
+        "event_time_s": 1.8776353811845183,
+        "lateral_duration_s": 2.8092017240822313
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000724",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.829408779740334,
+        "gap_m": 14.509351514279842,
+        "lead_speed_mps": 20.732573453336954,
+        "obstacle_distance_m": 132.31414679437876,
+        "event_time_s": 0.9983263514004648,
+        "lateral_duration_s": 3.18330951705575
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000726",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.945224046707153,
+        "gap_m": 22.486067194491625,
+        "lead_speed_mps": 15.970749536529183,
+        "obstacle_distance_m": 152.0886465907097,
+        "event_time_s": 1.4604663476347923,
+        "lateral_duration_s": 2.420373195409775
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000736",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.616159796714783,
+        "gap_m": 19.96469359099865,
+        "lead_speed_mps": 16.313162367790937,
+        "obstacle_distance_m": 99.57252540625632,
+        "event_time_s": 1.0568235502578318,
+        "lateral_duration_s": 2.955479396507144
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000747",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.5265928208828,
+        "gap_m": 39.09861509874463,
+        "lead_speed_mps": 14.216741079464555,
+        "obstacle_distance_m": 141.5471449587494,
+        "event_time_s": 1.610264369752258,
+        "lateral_duration_s": 3.0434623906388882
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000748",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.224290058016777,
+        "gap_m": 25.678539959713817,
+        "lead_speed_mps": 22.323107121512294,
+        "obstacle_distance_m": 156.89987994730473,
+        "event_time_s": 1.4342683656141162,
+        "lateral_duration_s": 3.922245238721371
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000754",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.092013746500015,
+        "gap_m": 24.214741254225373,
+        "lead_speed_mps": 15.006314128637314,
+        "obstacle_distance_m": 113.05710821878165,
+        "event_time_s": 1.938718714285642,
+        "lateral_duration_s": 3.2947402538731696
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000762",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.64038722217083,
+        "gap_m": 8.197615817189217,
+        "lead_speed_mps": 24.930316358804703,
+        "obstacle_distance_m": 159.49106137268245,
+        "event_time_s": 0.8994256914593279,
+        "lateral_duration_s": 3.7949772292748096
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000764",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.589715242385864,
+        "gap_m": 18.19225936383009,
+        "lead_speed_mps": 15.912273105233908,
+        "obstacle_distance_m": 108.33460443187505,
+        "event_time_s": 1.6431497023440897,
+        "lateral_duration_s": 2.2613193972036245
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000772",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.1545622497797,
+        "gap_m": 8.263758527114987,
+        "lead_speed_mps": 15.5988823287189,
+        "obstacle_distance_m": 130.96946076955646,
+        "event_time_s": 1.506598750129342,
+        "lateral_duration_s": 3.0282395532354713
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000778",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.65198938548565,
+        "gap_m": 23.31000953912735,
+        "lead_speed_mps": 14.263917699456215,
+        "obstacle_distance_m": 90.42442908976227,
+        "event_time_s": 1.4219493456184864,
+        "lateral_duration_s": 1.9948572570458056
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000784",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.596253037452698,
+        "gap_m": 11.368616610765457,
+        "lead_speed_mps": 26.959751572459936,
+        "obstacle_distance_m": 150.73715873528272,
+        "event_time_s": 1.2878175042569637,
+        "lateral_duration_s": 2.83973442427814
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000797",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.714135840535164,
+        "gap_m": 44.54689447209239,
+        "lead_speed_mps": 15.962050696834922,
+        "obstacle_distance_m": 159.2626682203263,
+        "event_time_s": 1.8314597168937325,
+        "lateral_duration_s": 3.3442999897524714
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000812",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.395306706428528,
+        "gap_m": 11.96397485025227,
+        "lead_speed_mps": 19.78746961429715,
+        "obstacle_distance_m": 106.71270209364593,
+        "event_time_s": 0.8625078266486526,
+        "lateral_duration_s": 2.0381370171904565
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000828",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.79172258079052,
+        "gap_m": 20.791590098291636,
+        "lead_speed_mps": 18.439117124304175,
+        "obstacle_distance_m": 155.18264634069055,
+        "event_time_s": 1.0724795483984053,
+        "lateral_duration_s": 3.66405199598521
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000832",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.351033806800842,
+        "gap_m": 9.267462827265263,
+        "lead_speed_mps": 22.224509470164776,
+        "obstacle_distance_m": 121.06154242996126,
+        "event_time_s": 1.02904607122764,
+        "lateral_duration_s": 3.5286652619019154
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000842",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.78144931793213,
+        "gap_m": 12.551510645076632,
+        "lead_speed_mps": 25.391926458105445,
+        "obstacle_distance_m": 133.26971773058176,
+        "event_time_s": 0.6702086310833693,
+        "lateral_duration_s": 2.660817168094218
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000848",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.961942479014397,
+        "gap_m": 21.519272012636065,
+        "lead_speed_mps": 15.798835093155503,
+        "obstacle_distance_m": 72.58577825501561,
+        "event_time_s": 0.5358963664621115,
+        "lateral_duration_s": 1.890060942992568
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000852",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.90198065340519,
+        "gap_m": 11.062379458919168,
+        "lead_speed_mps": 29.33385828882456,
+        "obstacle_distance_m": 136.9414871511981,
+        "event_time_s": 1.2028701859526336,
+        "lateral_duration_s": 2.3432777814567087
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000860",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.32260751724243,
+        "gap_m": 26.587162107229233,
+        "lead_speed_mps": 19.567646123468876,
+        "obstacle_distance_m": 135.87562716566026,
+        "event_time_s": 1.662110788282007,
+        "lateral_duration_s": 2.856954997777939
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000862",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 18.465705767273903,
+        "gap_m": 10.408276628702879,
+        "lead_speed_mps": 14.907716041430831,
+        "obstacle_distance_m": 148.5761750023812,
+        "event_time_s": 0.7853293269872665,
+        "lateral_duration_s": 3.05664821639657
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000870",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 20.601674005389214,
+        "gap_m": 18.952144483104348,
+        "lead_speed_mps": 16.634499993175268,
+        "obstacle_distance_m": 125.84591059945524,
+        "event_time_s": 1.9695302550680935,
+        "lateral_duration_s": 3.4864607080817223
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000875",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.70487782359123,
+        "gap_m": 30.401431193575263,
+        "lead_speed_mps": 23.475008269771934,
+        "obstacle_distance_m": 134.394432422705,
+        "event_time_s": 1.434681251179427,
+        "lateral_duration_s": 1.932727530039847
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000884",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.063321962952614,
+        "gap_m": 25.222602128982544,
+        "lead_speed_mps": 14.83440800011158,
+        "obstacle_distance_m": 112.26674219127744,
+        "event_time_s": 0.9702527732588351,
+        "lateral_duration_s": 3.8594278668984776
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000895",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.044062718749046,
+        "gap_m": 33.85588339343667,
+        "lead_speed_mps": 16.824905132874846,
+        "obstacle_distance_m": 152.64894736465067,
+        "event_time_s": 1.5443052961491048,
+        "lateral_duration_s": 3.943109490722418
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000902",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 20.150515764951706,
+        "gap_m": 12.154638348147273,
+        "lead_speed_mps": 15.742056416347623,
+        "obstacle_distance_m": 141.81802128441632,
+        "event_time_s": 1.3415330313146114,
+        "lateral_duration_s": 3.7645403217524294
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000908",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.71619376540184,
+        "gap_m": 8.875104777514935,
+        "lead_speed_mps": 28.50046956166625,
+        "obstacle_distance_m": 154.03227114584297,
+        "event_time_s": 1.6768593336455524,
+        "lateral_duration_s": 2.432327603921294
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000913",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.213644862174988,
+        "gap_m": 33.389114858582616,
+        "lead_speed_mps": 14.062034834176302,
+        "obstacle_distance_m": 108.60550482291728,
+        "event_time_s": 1.9178753728047013,
+        "lateral_duration_s": 2.3630934670567516
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000914",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.60054574906826,
+        "gap_m": 10.010453041642904,
+        "lead_speed_mps": 26.808680893853307,
+        "obstacle_distance_m": 122.07618935033679,
+        "event_time_s": 1.4499882254749537,
+        "lateral_duration_s": 1.9592953195795417
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000920",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.032914623618126,
+        "gap_m": 10.67033183015883,
+        "lead_speed_mps": 20.808983486145735,
+        "obstacle_distance_m": 133.7046217964962,
+        "event_time_s": 1.8441651775501668,
+        "lateral_duration_s": 3.445868269167841
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000930",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.753848135471344,
+        "gap_m": 13.873058423399925,
+        "lead_speed_mps": 14.742132030427456,
+        "obstacle_distance_m": 125.92765652108938,
+        "event_time_s": 1.7773177814669907,
+        "lateral_duration_s": 1.8109918942674994
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000944",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.292215436697006,
+        "gap_m": 9.63318463601172,
+        "lead_speed_mps": 16.541157443076372,
+        "obstacle_distance_m": 109.72655113786459,
+        "event_time_s": 1.1764763691462576,
+        "lateral_duration_s": 2.168361830711365
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000948",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.353138506412506,
+        "gap_m": 20.013211069628596,
+        "lead_speed_mps": 30.28766748867929,
+        "obstacle_distance_m": 129.26108171697706,
+        "event_time_s": 0.515546795912087,
+        "lateral_duration_s": 2.0712485242635013
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000955",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.319287180900574,
+        "gap_m": 49.43905624561012,
+        "lead_speed_mps": 14.550626011565328,
+        "obstacle_distance_m": 152.54546333104372,
+        "event_time_s": 1.3498033112846315,
+        "lateral_duration_s": 2.3164340017363427
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000956",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.930070236325264,
+        "gap_m": 15.029274988919497,
+        "lead_speed_mps": 22.059132492169738,
+        "obstacle_distance_m": 142.94431907124817,
+        "event_time_s": 1.5489775380119681,
+        "lateral_duration_s": 2.5764679070562124
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000968",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.785465702414513,
+        "gap_m": 8.56866860575974,
+        "lead_speed_mps": 26.12870568782091,
+        "obstacle_distance_m": 139.677014821209,
+        "event_time_s": 0.8360296934843063,
+        "lateral_duration_s": 1.9235027588903904
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000982",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.906027048826218,
+        "gap_m": 9.704219644889235,
+        "lead_speed_mps": 28.93677975796163,
+        "obstacle_distance_m": 135.9154164325446,
+        "event_time_s": 0.9900136715732515,
+        "lateral_duration_s": 2.532692372240126
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:000988",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.46144351363182,
+        "gap_m": 11.6738371104002,
+        "lead_speed_mps": 14.181030534207821,
+        "obstacle_distance_m": 124.35628819745034,
+        "event_time_s": 0.6224948149174452,
+        "lateral_duration_s": 3.9339215794578193
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001010",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.005941450595856,
+        "gap_m": 16.03769987076521,
+        "lead_speed_mps": 27.93272477015853,
+        "obstacle_distance_m": 143.75183070544153,
+        "event_time_s": 0.5337135819718242,
+        "lateral_duration_s": 3.317756199091673
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001012",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.20511816442013,
+        "gap_m": 10.598269060254097,
+        "lead_speed_mps": 18.948738127946854,
+        "obstacle_distance_m": 100.00130315311253,
+        "event_time_s": 1.267284537665546,
+        "lateral_duration_s": 2.7374683026224376
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001016",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.563799560070038,
+        "gap_m": 15.379250286146998,
+        "lead_speed_mps": 15.1853515971452,
+        "obstacle_distance_m": 155.86732883006334,
+        "event_time_s": 0.8897885815240443,
+        "lateral_duration_s": 2.054094163328409
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001021",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.040510535240173,
+        "gap_m": 29.871759615838528,
+        "lead_speed_mps": 16.69572138041258,
+        "obstacle_distance_m": 119.53475990332663,
+        "event_time_s": 1.381463899742812,
+        "lateral_duration_s": 3.0639764511957766
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001039",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.15286274254322,
+        "gap_m": 33.23856216482818,
+        "lead_speed_mps": 14.967755530029535,
+        "obstacle_distance_m": 138.17736175842583,
+        "event_time_s": 1.1873207581229508,
+        "lateral_duration_s": 3.712881400063634
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001044",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.57734549045563,
+        "gap_m": 17.420535650104284,
+        "lead_speed_mps": 18.736882910132408,
+        "obstacle_distance_m": 144.1320691211149,
+        "event_time_s": 1.6915698796510696,
+        "lateral_duration_s": 1.895010231807828
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001046",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.71244789659977,
+        "gap_m": 19.57491309940815,
+        "lead_speed_mps": 14.04222452454269,
+        "obstacle_distance_m": 116.57037343364209,
+        "event_time_s": 0.8617051965557039,
+        "lateral_duration_s": 3.7575483929365876
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001048",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.21526138484478,
+        "gap_m": 12.311539651826024,
+        "lead_speed_mps": 15.539188208058476,
+        "obstacle_distance_m": 112.38671746570617,
+        "event_time_s": 0.5653980406932533,
+        "lateral_duration_s": 2.861635928601027
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001060",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.791222020983696,
+        "gap_m": 11.75723583996296,
+        "lead_speed_mps": 31.998498180881143,
+        "obstacle_distance_m": 151.4130502846092,
+        "event_time_s": 1.534253402147442,
+        "lateral_duration_s": 2.012711011245847
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001070",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.35690002143383,
+        "gap_m": 9.784877156838775,
+        "lead_speed_mps": 16.88465279713273,
+        "obstacle_distance_m": 139.29773866664618,
+        "event_time_s": 1.9517945377156138,
+        "lateral_duration_s": 3.3623797837644815
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001072",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.45985272526741,
+        "gap_m": 8.64950886555016,
+        "lead_speed_mps": 19.70157983340323,
+        "obstacle_distance_m": 135.53599305450916,
+        "event_time_s": 1.4213300053961575,
+        "lateral_duration_s": 3.852325632981956
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001090",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.405063912272453,
+        "gap_m": 11.518292959779501,
+        "lead_speed_mps": 15.10350538045168,
+        "obstacle_distance_m": 82.53970764577389,
+        "event_time_s": 1.345616304781288,
+        "lateral_duration_s": 2.68835804220289
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001092",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.32308542728424,
+        "gap_m": 14.948596198111773,
+        "lead_speed_mps": 24.122789222747087,
+        "obstacle_distance_m": 126.28449772950262,
+        "event_time_s": 0.6370170726440847,
+        "lateral_duration_s": 3.4056096898391846
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001104",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.927747026085854,
+        "gap_m": 18.383176838979125,
+        "lead_speed_mps": 16.327911499887705,
+        "obstacle_distance_m": 155.51562000531703,
+        "event_time_s": 0.8448995198123157,
+        "lateral_duration_s": 2.4597458466887474
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001128",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.00292806327343,
+        "gap_m": 26.89147700369358,
+        "lead_speed_mps": 14.59893256239593,
+        "obstacle_distance_m": 130.74733540881425,
+        "event_time_s": 1.9099601181223989,
+        "lateral_duration_s": 2.0299315191805363
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001140",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.046704694628716,
+        "gap_m": 8.95830699056387,
+        "lead_speed_mps": 17.60874886624515,
+        "obstacle_distance_m": 121.69104726053774,
+        "event_time_s": 1.137141046114266,
+        "lateral_duration_s": 3.253269551880658
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001156",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.097277477383614,
+        "gap_m": 9.903723100200295,
+        "lead_speed_mps": 21.000378461554646,
+        "obstacle_distance_m": 109.27756493445486,
+        "event_time_s": 0.9073361530900002,
+        "lateral_duration_s": 2.443520490080118
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001160",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.735116571187973,
+        "gap_m": 14.679587934166193,
+        "lead_speed_mps": 17.74137271940708,
+        "obstacle_distance_m": 147.3311029979959,
+        "event_time_s": 1.2848353642039,
+        "lateral_duration_s": 2.301879942789674
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001165",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.14934280514717,
+        "gap_m": 29.182338105514646,
+        "lead_speed_mps": 14.261617923155427,
+        "obstacle_distance_m": 134.75068473722786,
+        "event_time_s": 0.9751668595708907,
+        "lateral_duration_s": 3.35449556093663
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001172",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.71673080325127,
+        "gap_m": 23.46547405049205,
+        "lead_speed_mps": 15.046520709991455,
+        "obstacle_distance_m": 155.62205399386585,
+        "event_time_s": 0.6519546466879547,
+        "lateral_duration_s": 2.9836688509210942
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001178",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.210968554019928,
+        "gap_m": 8.41970212571323,
+        "lead_speed_mps": 15.94237795099616,
+        "obstacle_distance_m": 65.542076472193,
+        "event_time_s": 0.7782419375143945,
+        "lateral_duration_s": 1.9545813316479326
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001196",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.35260933637619,
+        "gap_m": 10.978978225961328,
+        "lead_speed_mps": 16.776600593701005,
+        "obstacle_distance_m": 132.89034000597894,
+        "event_time_s": 1.7396244565024972,
+        "lateral_duration_s": 3.722587542049587
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001200",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.316645205020905,
+        "gap_m": 24.54652793891728,
+        "lead_speed_mps": 16.015685925260186,
+        "obstacle_distance_m": 124.04718632344157,
+        "event_time_s": 0.966163800098002,
+        "lateral_duration_s": 2.731440730020404
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001214",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 18.81430122256279,
+        "gap_m": 17.19775828719139,
+        "lead_speed_mps": 14.691962769255042,
+        "obstacle_distance_m": 104.46923357900232,
+        "event_time_s": 1.209657902829349,
+        "lateral_duration_s": 3.8980321995913982
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001216",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.40104788541794,
+        "gap_m": 10.251136094331741,
+        "lead_speed_mps": 14.125868072733283,
+        "obstacle_distance_m": 95.25570182595402,
+        "event_time_s": 1.554786346387118,
+        "lateral_duration_s": 1.913149368390441
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001228",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.75971458852291,
+        "gap_m": 15.642110211774707,
+        "lead_speed_mps": 20.1480007506907,
+        "obstacle_distance_m": 158.16095737274736,
+        "event_time_s": 1.1822826825082302,
+        "lateral_duration_s": 2.8800579786300657
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001230",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.905558675527573,
+        "gap_m": 21.36229075677693,
+        "lead_speed_mps": 15.456781694665551,
+        "obstacle_distance_m": 126.14035957958549,
+        "event_time_s": 1.2651574327610433,
+        "lateral_duration_s": 3.084031418710947
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001239",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.46316996216774,
+        "gap_m": 31.324272703379393,
+        "lead_speed_mps": 15.822970196604729,
+        "obstacle_distance_m": 152.21824164502323,
+        "event_time_s": 1.685804754961282,
+        "lateral_duration_s": 3.2455388456583023
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001250",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.710341408848763,
+        "gap_m": 9.321352591738105,
+        "lead_speed_mps": 24.389955043792725,
+        "obstacle_distance_m": 130.61317448038608,
+        "event_time_s": 1.093776342459023,
+        "lateral_duration_s": 2.2597305702045563
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001256",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.14075691998005,
+        "gap_m": 11.287975370883942,
+        "lead_speed_mps": 18.867105884477496,
+        "obstacle_distance_m": 118.49160710349679,
+        "event_time_s": 0.6995989573188126,
+        "lateral_duration_s": 3.1101226093247534
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001258",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.00644987821579,
+        "gap_m": 25.7063518576324,
+        "lead_speed_mps": 14.492013156414032,
+        "obstacle_distance_m": 142.16404085978866,
+        "event_time_s": 1.7478583296760917,
+        "lateral_duration_s": 2.7685611644759778
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001267",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.566014051437378,
+        "gap_m": 37.64669864065945,
+        "lead_speed_mps": 14.818923557177186,
+        "obstacle_distance_m": 112.56049955729395,
+        "event_time_s": 1.4140946418046951,
+        "lateral_duration_s": 2.469637873955071
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001268",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.18462510406971,
+        "gap_m": 24.237568266689777,
+        "lead_speed_mps": 22.925086287781596,
+        "obstacle_distance_m": 133.94640715327114,
+        "event_time_s": 1.6136383009143174,
+        "lateral_duration_s": 2.175229095667601
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001276",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.606411635875702,
+        "gap_m": 8.180558817461133,
+        "lead_speed_mps": 30.581886975094676,
+        "obstacle_distance_m": 138.81634631194174,
+        "event_time_s": 0.5918761515058577,
+        "lateral_duration_s": 2.7486611723899843
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001282",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.122509330511093,
+        "gap_m": 8.280998274683952,
+        "lead_speed_mps": 21.179983602836728,
+        "obstacle_distance_m": 116.04818805586547,
+        "event_time_s": 1.8143301215022802,
+        "lateral_duration_s": 1.8745045308023691
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001285",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.62880127131939,
+        "gap_m": 43.43403753079474,
+        "lead_speed_mps": 15.359874119982123,
+        "obstacle_distance_m": 130.47028985340148,
+        "event_time_s": 1.6382075198926032,
+        "lateral_duration_s": 2.753140517137945
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001296",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.58371478319168,
+        "gap_m": 15.145772004500031,
+        "lead_speed_mps": 19.112919745966792,
+        "obstacle_distance_m": 96.59820073284209,
+        "event_time_s": 0.9380480051040649,
+        "lateral_duration_s": 2.102433275617659
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001308",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.19424258172512,
+        "gap_m": 9.416389096528292,
+        "lead_speed_mps": 16.11319349333644,
+        "obstacle_distance_m": 159.8763733357191,
+        "event_time_s": 1.3127979519777,
+        "lateral_duration_s": 2.519402631931007
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001315",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.387253403663635,
+        "gap_m": 32.03685339540243,
+        "lead_speed_mps": 18.700031654909253,
+        "obstacle_distance_m": 114.18206197209656,
+        "event_time_s": 1.0787887047044933,
+        "lateral_duration_s": 2.658847983554006
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001316",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.861432150006294,
+        "gap_m": 19.28845918364823,
+        "lead_speed_mps": 17.907536825165153,
+        "obstacle_distance_m": 135.2921860292554,
+        "event_time_s": 0.8796080434694886,
+        "lateral_duration_s": 1.8489462411031128
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001324",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.410042583942413,
+        "gap_m": 14.428710274398327,
+        "lead_speed_mps": 25.437069913372397,
+        "obstacle_distance_m": 137.10166080389172,
+        "event_time_s": 1.9145109159871936,
+        "lateral_duration_s": 2.3540423123165963
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001330",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.27389009296894,
+        "gap_m": 15.58488928899169,
+        "lead_speed_mps": 29.379068799316883,
+        "obstacle_distance_m": 131.95710173808038,
+        "event_time_s": 1.411515333224088,
+        "lateral_duration_s": 2.0354342225939037
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001334",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.338688001036644,
+        "gap_m": 26.204602502286434,
+        "lead_speed_mps": 15.77346702851355,
+        "obstacle_distance_m": 101.27821878064424,
+        "event_time_s": 1.8726556478068233,
+        "lateral_duration_s": 2.196664993464947
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001336",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.842985346913338,
+        "gap_m": 16.242217117920518,
+        "lead_speed_mps": 14.862770533189178,
+        "obstacle_distance_m": 120.11422149371356,
+        "event_time_s": 1.7939678216353059,
+        "lateral_duration_s": 3.3675861287862063
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001347",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.98088400065899,
+        "gap_m": 36.58687135204673,
+        "lead_speed_mps": 17.57417906448245,
+        "obstacle_distance_m": 139.75418734829873,
+        "event_time_s": 1.655184902716428,
+        "lateral_duration_s": 3.4663016395643353
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001348",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.26853832602501,
+        "gap_m": 27.760896688327193,
+        "lead_speed_mps": 19.036015935242176,
+        "obstacle_distance_m": 154.27449852693826,
+        "event_time_s": 1.8544356562197208,
+        "lateral_duration_s": 3.2407876290380955
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001350",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 20.379165396094322,
+        "gap_m": 9.243524307385087,
+        "lead_speed_mps": 14.305516397580504,
+        "obstacle_distance_m": 130.07004019338638,
+        "event_time_s": 0.6043570428155363,
+        "lateral_duration_s": 2.4821312665939335
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001362",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.867760986089706,
+        "gap_m": 11.040033333003521,
+        "lead_speed_mps": 26.00256379507482,
+        "obstacle_distance_m": 157.6220062142238,
+        "event_time_s": 0.854167468380183,
+        "lateral_duration_s": 3.393622338958085
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001364",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.91849394142628,
+        "gap_m": 15.49306608736515,
+        "lead_speed_mps": 17.0196767244488,
+        "obstacle_distance_m": 108.0252954363823,
+        "event_time_s": 1.5972141320817173,
+        "lateral_duration_s": 2.667776810191572
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001376",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.635909020900726,
+        "gap_m": 18.979615919291973,
+        "lead_speed_mps": 20.035670222714543,
+        "obstacle_distance_m": 122.79237580485642,
+        "event_time_s": 1.5387984779663384,
+        "lateral_duration_s": 2.3712638774886727
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001378",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.52888448536396,
+        "gap_m": 18.014691282063723,
+        "lead_speed_mps": 15.551542680710554,
+        "obstacle_distance_m": 137.9064826015383,
+        "event_time_s": 0.9200113927945495,
+        "lateral_duration_s": 3.2673403980210427
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001384",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.088694766163826,
+        "gap_m": 13.422447504475713,
+        "lead_speed_mps": 27.565031649544835,
+        "obstacle_distance_m": 149.83624716755003,
+        "event_time_s": 0.5053204842843115,
+        "lateral_duration_s": 1.8661678718402983
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001388",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.02388547360897,
+        "gap_m": 24.037332450971007,
+        "lead_speed_mps": 14.240945920348167,
+        "obstacle_distance_m": 83.25402107089758,
+        "event_time_s": 1.1635055067017674,
+        "lateral_duration_s": 2.238214318268001
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001403",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.08648718893528,
+        "gap_m": 45.130817437544465,
+        "lead_speed_mps": 15.918829848989844,
+        "obstacle_distance_m": 116.8383803172037,
+        "event_time_s": 0.5899097248911858,
+        "lateral_duration_s": 3.1052373776212336
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001404",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.662137806415558,
+        "gap_m": 16.551012739539146,
+        "lead_speed_mps": 21.734542654827237,
+        "obstacle_distance_m": 131.1760437907651,
+        "event_time_s": 0.7656582561321557,
+        "lateral_duration_s": 3.8765835329890255
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001424",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.69471862912178,
+        "gap_m": 20.572391221299767,
+        "lead_speed_mps": 14.354755921289325,
+        "obstacle_distance_m": 108.10586357023567,
+        "event_time_s": 1.393190662842244,
+        "lateral_duration_s": 3.187994693219662
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001425",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 19.23234850168228,
+        "gap_m": 35.19769478589296,
+        "lead_speed_mps": 30.877006074413657,
+        "obstacle_distance_m": 139.09882214851677,
+        "event_time_s": 0.859188755042851,
+        "lateral_duration_s": 2.025972372107208
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001435",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.666679084300995,
+        "gap_m": 38.475524170324206,
+        "lead_speed_mps": 16.740941546857357,
+        "obstacle_distance_m": 150.8262832602486,
+        "event_time_s": 1.2151145902462304,
+        "lateral_duration_s": 3.3750117195770146
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001438",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 18.18995225429535,
+        "gap_m": 10.693799711763859,
+        "lead_speed_mps": 15.157442944124341,
+        "obstacle_distance_m": 113.0314469197765,
+        "event_time_s": 1.5247144303284585,
+        "lateral_duration_s": 2.2964113701134923
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001444",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.969506308436394,
+        "gap_m": 13.886913346126676,
+        "lead_speed_mps": 22.59099388681352,
+        "obstacle_distance_m": 123.03787386510521,
+        "event_time_s": 1.3583026309497654,
+        "lateral_duration_s": 2.960164589062333
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001466",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.839183121919632,
+        "gap_m": 15.048114797100425,
+        "lead_speed_mps": 14.157851688563824,
+        "obstacle_distance_m": 151.92957817576826,
+        "event_time_s": 1.9561357600614429,
+        "lateral_duration_s": 3.691599848680198
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001468",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.889942780137062,
+        "gap_m": 11.587695403024554,
+        "lead_speed_mps": 23.17384848371148,
+        "obstacle_distance_m": 100.68015669006854,
+        "event_time_s": 1.2481773970648646,
+        "lateral_duration_s": 1.8136897305026651
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001476",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.375147581100464,
+        "gap_m": 13.145615896210074,
+        "lead_speed_mps": 14.712911777198315,
+        "obstacle_distance_m": 142.78557235375047,
+        "event_time_s": 0.8140879343263805,
+        "lateral_duration_s": 2.1187050523236395
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001491",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.438246816396713,
+        "gap_m": 33.726729134097695,
+        "lead_speed_mps": 15.266963003203273,
+        "obstacle_distance_m": 104.7488343110308,
+        "event_time_s": 0.9452780042774975,
+        "lateral_duration_s": 2.900343448482454
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001504",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.525355249643326,
+        "gap_m": 14.19590798765421,
+        "lead_speed_mps": 15.71689541824162,
+        "obstacle_distance_m": 134.28229821380228,
+        "event_time_s": 1.085829515941441,
+        "lateral_duration_s": 3.456823164224625
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001531",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.19755981862545,
+        "gap_m": 29.900822350755334,
+        "lead_speed_mps": 20.1144558545202,
+        "obstacle_distance_m": 128.36206237785518,
+        "event_time_s": 1.80029373196885,
+        "lateral_duration_s": 1.9832878202199937
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001532",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 30.551614552736282,
+        "gap_m": 21.64878597855568,
+        "lead_speed_mps": 16.512760611250997,
+        "obstacle_distance_m": 119.68575296923518,
+        "event_time_s": 1.9993660347536206,
+        "lateral_duration_s": 2.7888738090172414
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001543",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 26.594828203320503,
+        "gap_m": 29.912898376584053,
+        "lead_speed_mps": 14.748864743858576,
+        "obstacle_distance_m": 110.47673577442765,
+        "event_time_s": 1.4695724374614656,
+        "lateral_duration_s": 2.2702277388423684
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001548",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 31.5125240534544,
+        "gap_m": 26.529241759330034,
+        "lead_speed_mps": 16.906534241512418,
+        "obstacle_distance_m": 151.79527940228581,
+        "event_time_s": 0.9160736599005759,
+        "lateral_duration_s": 2.0788472766056656
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001552",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 29.533202454447746,
+        "gap_m": 8.985720183700323,
+        "lead_speed_mps": 15.301320256665349,
+        "obstacle_distance_m": 136.26810008194298,
+        "event_time_s": 1.7838794090785086,
+        "lateral_duration_s": 3.068937158584595
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001562",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 22.10033790767193,
+        "gap_m": 12.269289696589112,
+        "lead_speed_mps": 27.815802317112684,
+        "obstacle_distance_m": 148.4587908256799,
+        "event_time_s": 1.416154927574098,
+        "lateral_duration_s": 2.338379256427288
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001588",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.42987002432346,
+        "gap_m": 17.94436070509255,
+        "lead_speed_mps": 14.055293269455433,
+        "obstacle_distance_m": 128.50701397284865,
+        "event_time_s": 1.329020218923688,
+        "lateral_duration_s": 2.8180512906983495
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001600",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 28.2852576225996,
+        "gap_m": 11.47860648110509,
+        "lead_speed_mps": 29.62048569880426,
+        "obstacle_distance_m": 130.34193593543023,
+        "event_time_s": 0.5418318742886186,
+        "lateral_duration_s": 2.0960688991472125
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001604",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.3503310829401,
+        "gap_m": 22.108573600649834,
+        "lead_speed_mps": 16.085745710879564,
+        "obstacle_distance_m": 102.74770164862275,
+        "event_time_s": 1.1970627144910395,
+        "lateral_duration_s": 1.9997557329013944
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001610",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.847029611468315,
+        "gap_m": 9.510121019557118,
+        "lead_speed_mps": 14.620805390179157,
+        "obstacle_distance_m": 118.80636717192829,
+        "event_time_s": 0.8773187627084553,
+        "lateral_duration_s": 3.033143290691078
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001620",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.961727768182755,
+        "gap_m": 8.020629500970244,
+        "lead_speed_mps": 21.92887838743627,
+        "obstacle_distance_m": 150.66972153726965,
+        "event_time_s": 0.7496890081092715,
+        "lateral_duration_s": 3.6251986388117077
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001634",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 24.603353053331375,
+        "gap_m": 10.71120429225266,
+        "lead_speed_mps": 19.35435263812542,
+        "obstacle_distance_m": 95.1932013919577,
+        "event_time_s": 1.7565044122748077,
+        "lateral_duration_s": 2.0247790686786176
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:new:0:001650",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 25.210599794983864,
+        "gap_m": 19.376742858439684,
+        "lead_speed_mps": 16.34098886139691,
+        "obstacle_distance_m": 143.02245191298425,
+        "event_time_s": 1.3092279806733131,
+        "lateral_duration_s": 3.6689557826146486
+      },
+      "categories": {}
+    }
+  ],
+  "status": "complete",
+  "candidate_count": 199,
+  "attempted_calls": 199,
+  "successful_calls": 199,
+  "physical_execution_s": 25.42970320029417,
+  "total_successful_call_wall_s": 49.21247900027083,
+  "sut_initialization_s": 23.782775799976662,
+  "failed_or_interrupted_calls": 0,
+  "failed_call_wall_s": 0,
+  "interrupted_call_duration_unknown": 0,
+  "last_collection_wall_s": 12.09450329997344
+}
