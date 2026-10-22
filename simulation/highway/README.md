@@ -1,13 +1,13 @@
 # highway-env 仿真环境
 
-本目录用于当前 GCRT 和基线的实测数据采集，支持车辆切入、前车紧急制动及相应风险测量。驾驶控制器在 [controllers/highway](../../controllers/README.md)。
+本目录负责让交通场景实际运行，并记录被测车辆是否碰撞、与其他车辆的间距及驾驶过程。支持前车制动、邻车切入、前车切出后暴露障碍、换道后车冲突四类场景。
 
 | 文件 | 用途 |
 |---|---|
-| [build_spec.py](build_spec.py) | 控制器构建配置 |
-| [envs/unified_env.py](envs/unified_env.py)、[envs/scripted_vehicle.py](envs/scripted_vehicle.py) | 统一物理执行与脚本车辆 |
-| [envs/cutin_env.py](envs/cutin_env.py)、[envs/external_cutin.py](envs/external_cutin.py) | 切入环境与外部策略接口 |
-| [envs/single_lane_longitudinal.py](envs/single_lane_longitudinal.py) | 单车道跟驰与制动执行 |
-| [envs/safety_metrics.py](envs/safety_metrics.py) | 间距与碰撞时间测量 |
+| [collision_env.py](collision_env.py) | 创建道路与车辆，执行背景车动作，应用被测车控制，记录碰撞和轨迹 |
+| [observation.py](observation.py) | 生成各驾驶系统共同可见的交通信息，处理前车对障碍物的遮挡 |
+| [training_env.py](training_env.py) | 为 PPO、DQN 提供训练环境、动作解释和奖励 |
 
-场景参数见[场景定义](../../methods/baselines/hgt/scenarios.py)，采集工具见 [benchmark](../../benchmark/README.md)，已有响应见 [data](../../data/README.md)。GCRT 当前实验直接回放已有实测记录。
+物理仿真每秒更新 20 次，驾驶系统每秒决策 5 次。各系统共享车辆动力学和动作限制；被测车由驾驶系统控制，背景车脚本不代替它作决策。障碍物是否可见由当时的几何关系决定。
+
+场景参数见 [场景定义](../../benchmark/scenarios.py)，驾驶控制器见 [控制器说明](../../controllers/README.md)，执行入口见 [实验运行说明](../../benchmark/README.md)。候选库先采集真实结果，再逐次揭示查询结果；连续搜索则对新提出的场景实际运行仿真。
