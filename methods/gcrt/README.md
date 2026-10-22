@@ -1,69 +1,28 @@
-# 收益校正风险测试
+# 基于历史测试结果的碰撞场景选择
 
-收益校正风险测试（GCRT，Gain-Calibrated Risk Testing）是本发明方法。车辆切入与前车紧急制动分别构建模型、选择场景和决定停止。
+本方法利用历史驾驶系统的测试结果，估计新系统在哪些场景中容易碰撞，并逐次选择下一次测试。研究问题、系统名单、场景和指标见 [项目说明](../../README.md)。`gcrt` 保留为代码目录名，当前实现采用固定查询预算。
 
-## 怎样工作
+训练时，轮流把一个历史系统当作“暂时未知的新系统”，用少量已知结果模拟适配，再检查剩余场景的预测。这个模拟目标自己的结果不能混入历史上下文。碰撞标签是主要监督，间距和 TTC 用于辅助学习场景关系；独立开发系统用于选择模型。
 
-1. **根据历史记录预测风险。**历史响应关联编码器用注意力机制学习场景之间的风险联系。联合风险后验融合六个历史来源和一个目标独立分量，形成当前驾驶控制器的风险预测。
-2. **逐次选择场景。**分段条件前瞻计算当前五次测试片段中的预期发现数量。每次只执行一个场景，得到实测风险后更新后验，再选择下一个场景。
-3. **预测还能发现多少危险用例。**剩余发现数量预测网络汇总当前反馈和未测场景的风险预测，估计继续测试的新增发现数及其分布。
-4. **用实际发现校正预测。**每完成五次测试，比较预测和实测发现比例，拟合本任务的偏差，并按预测长度调整剩余发现分布。
-5. **决定继续、停止和后续学习。**从第 10 次起，每五次检查一次发现保留条件。任务结束后，新增记录可用于更新共享预测头，验证通过后再发布并重新校准停止阈值。
+正式测试时，场景编码器保持不变。每获得一次真实反馈，就更新碰撞概率及各历史来源的参考权重；另有一个只依靠目标反馈和物理参数的分量。选例时同时考虑当前碰撞概率，以及测完这个场景对后续选择的帮助，窗口最多为 5 次查询。
 
-每类场景使用历史响应关联编码器和剩余发现数量预测网络。联合后验包含六个历史来源分量和一个目标独立分量，共用每轮的实测反馈。单次实验中只更新风险后验和收益校正系数，网络权重固定。
+该选例规则属于 [ENS 主动搜索](https://proceedings.mlr.press/v70/jiang17d.html) 的条件收益近似结构，使用本项目的历史后验和有限窗口；它与历史表示、目标适配的作用需要分别比较。目前 ENS 与 RGPE 的独立基线尚未实现。
 
-## 运行
+| 文件 | 作用 |
+|---|---|
+| [train.py](train.py) | 从历史和开发档案训练场景表示与碰撞模型 |
+| [prior.py](prior.py) | 组合历史来源预测及目标自身的预测分量 |
+| [posterior.py](posterior.py) | 根据新的碰撞或未碰撞标签更新概率与来源权重 |
+| [selection.py](selection.py) | 比较下一次测试的当前收益和后续预期收益 |
+| [continuous.py](continuous.py) | 向候选库外提出新场景，并在实际查询后更新模型 |
+| [config.py](config.py)、[build.py](build.py) | 本方法的训练设置，以及全来源和留类别模型的单独构建入口 |
 
-在项目根目录、`metadrive` 环境执行：
+完整实验矩阵由 [benchmark.build_collision_models](../../benchmark/build_collision_models.py) 构建，覆盖本方法及迁移基线。输入为 `data/collision/history/` 和 `data/collision/development/`，本方法的模型输出至 `results/gcrt/collision/models/`。
 
 ```powershell
-conda activate metadrive
-python -B -m methods.gcrt.build
-python -B -m methods.gcrt.evaluation
-python -B -m methods.gcrt.report
+python -B -m benchmark.build_collision_models core
+python -B -m benchmark.build_collision_models complete
+python -B -m pytest tests/gcrt -q -p no:cacheprovider
 ```
 
-- `build`：按功能场景读取历史记录，构建基础核、历史编码器、联合先验、历史轨迹和剩余发现网络。已有组件直接复用。
-- `evaluation`：复用或补齐 36 条完整轨迹，按实际反馈逐步回放停止判断，完成一次预测头更新和成本分析。
-- `report`：从已有记录重新生成结果表和发现曲线。
-
-### 补充实验
-
-已有模型、完整轨迹和特征缓存就绪后，依次运行：
-
-```powershell
-python -B -m methods.gcrt.retention_efficiency
-python -B -m methods.gcrt.calibration_effectiveness
-```
-
-| 入口 | 作用与结果 |
-|---|---|
-| `retention_efficiency` | 回放停止判断和校准，保存逐配置成本，并生成[发现效果与效率报告](../../results/gcrt/retention_efficiency/README.md) |
-| `calibration_effectiveness` | 在相同 9 组配置的 342 个共同检查点，比较校正前后的预测误差、可靠性和停止结果；见[校正实验](../../results/gcrt/calibration_effectiveness/README.md) |
-| `efficiency_report` | 仅用已有预测和计时记录重新生成效率图表；命令为 `python -B -m methods.gcrt.efficiency_report` |
-
-以上入口不训练或新增物理仿真。`retention_efficiency` 和 `calibration_effectiveness` 会运行预测网络；`efficiency_report` 只读取已有预测记录。
-
-效率图表采用车辆切入的 IDM、IDM＋MOBIL 和前车紧急制动的 MCTS，共 9 组配置，种子为 11。MCTS 为探索性补充评价：固定已发布网络权重，使用 PPO、IDM、IDM＋MOBIL 的制动记录重新校准停止参数，三个 MCTS 测试集全部纳入统计。原预设 12 组评价结果单独保留，数据划分和统计要求见[效率实验说明](../../results/gcrt/retention_efficiency/README.md)。
-
-## 调用接口
-
-核心接口为 `selection.select(prior, oracle, ..., initial_indices=...)`。`stopper=None` 时执行完整预算；传入 `train.load_stopper('cutin')` 或 `train.load_stopper('brake')` 启用对应场景的停止规则。
-
-## 代码对应
-
-| 文件 | 内容 |
-|---|---|
-| [config.py](config.py)、[build.py](build.py) | 固定设置与完整构建入口 |
-| [posterior.py](posterior.py)、[selection.py](selection.py) | 联合风险后验、虚拟条件更新与场景选择 |
-| [model.py](model.py)、[controller.py](controller.py) | 剩余发现网络、片段校正、分布调整与停止判断 |
-| [fit.py](fit.py)、[data.py](data.py)、[train.py](train.py) | 先验拟合、历史监督、反馈回放、网络训练与周期更新 |
-| [evaluation.py](evaluation.py)、[report.py](report.py) | 隔离风险回放、停止评价与完整成本 |
-| [retention_efficiency.py](retention_efficiency.py)、[efficiency_report.py](efficiency_report.py) | 停止回放、发现效果与执行成本 |
-| [calibration_effectiveness.py](calibration_effectiveness.py) | 校正前后的配对预测与停止评价 |
-
-共享组件见 [common](../common/README.md)，历史编码器与基础核分别复用 [DART](../baselines/dart/README.md)、[HGT](../baselines/hgt/README.md) 的训练实现。
-
-历史验证与正式评价共用 `data.forecast_task` 回放真实反馈，按相同规则完成片段校正。未来结果只用于离线评分，不参与当时的预测或停止判断。
-
-已完成两类模型、36 条完整轨迹和一次周期更新。切入保留原预测头，制动采用 400 步更新后的预测头。模型、报告与实验文件见[结果索引](../../results/gcrt/README.md)，方法流程见[方法图](../../method-overview.png)。
+数据应先完成采集及资格检查。已有模型只有在代码、配置和输入档案一致时才会复用。正式有限候选与连续比较均有实际结果，报告见 [结果索引](../../results/gcrt/README.md)，执行步骤见 [实验运行说明](../../benchmark/README.md)。

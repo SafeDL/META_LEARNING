@@ -1,1 +1,1 @@
-"""Feedback-supported correction on shared representative-SUT scenario pools."""
+"""Historical-response collision discovery and independently metered evaluation."""

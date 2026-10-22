@@ -1,1 +1,1 @@
-"""Shared risk-model and experiment components."""
+"""Shared collision classification, response representations and GP tools."""

@@ -1,0 +1,125 @@
+{
+  "status": "qualified",
+  "sut_id": "history_dqn",
+  "training_seed": 1103,
+  "configuration": {
+    "total_timesteps": 4194304,
+    "workers": 8,
+    "evaluation_interval": 100000,
+    "policy_network": [
+      128,
+      128
+    ],
+    "gamma": 0.99,
+    "ppo": {
+      "learning_rate": 0.0003,
+      "n_steps": 1024,
+      "batch_size": 256,
+      "n_epochs": 10,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01
+    },
+    "dqn": {
+      "learning_rate": 5e-05,
+      "buffer_size": 200000,
+      "learning_starts": 20000,
+      "batch_size": 256,
+      "train_freq": 4,
+      "gradient_steps": 1,
+      "target_update_interval": 10000,
+      "exploration_fraction": 0.4,
+      "exploration_final_eps": 0.1
+    }
+  },
+  "object": {
+    "sut_id": "history_dqn",
+    "family": "learning",
+    "lineage": "dqn",
+    "version": "history-safety-training",
+    "role": "history",
+    "parameters": {},
+    "training_run": "history_dqn_safety",
+    "training_seed": 1103,
+    "reference_id": null,
+    "supported_scenarios": [
+      "front_brake",
+      "cut_in",
+      "cut_out",
+      "lane_change_rear"
+    ]
+  },
+  "source_contract": {
+    "controllers/highway/train.py": "c3e4197eacbc2d10d4f6e2ff160094b6631a6e057ce9acd060dc03fc990ca702",
+    "controllers/highway/learning.py": "abc5dc6cc9deab2dea20da2b05de339edc79721a62ec16c4558aecc7aa679808",
+    "simulation/highway/training_env.py": "f7b543c9b81ceed51dad7fb093cda90af8e77250bcc4cbe6873c9bafc6f71f62",
+    "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+    "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+    "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+    "benchmark/scenarios.py": "396b342c5008925aa88a17ba1b0a11412f7e8cb8b107f9cc5e8e9c35d91009ab",
+    "benchmark/qualification.py": "f6a6233f3ca9d573e61776e95d2abc7d4c967b3fa34d0738728e664e17275a7f"
+  },
+  "qualification": {
+    "qualified": true,
+    "courses": [
+      {
+        "course": "normal_following",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 25.0,
+        "progress_m": 75.0,
+        "final_y_m": 4.0,
+        "physics_ticks": 60,
+        "decisions": 15
+      },
+      {
+        "course": "avoidable_braking",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 0.0,
+        "progress_m": 105.76999999999992,
+        "final_y_m": 4.0,
+        "physics_ticks": 200,
+        "decisions": 50
+      },
+      {
+        "course": "full_stop",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 0.0,
+        "progress_m": 138.33000000000004,
+        "final_y_m": 4.0,
+        "physics_ticks": 360,
+        "decisions": 90
+      },
+      {
+        "course": "legal_lane_change",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 40.0,
+        "progress_m": 281.9972451170245,
+        "final_y_m": 0.16535354239500716,
+        "physics_ticks": 160,
+        "decisions": 40
+      },
+      {
+        "course": "rear_constraint",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 30.999999999999943,
+        "progress_m": 55.84673689110363,
+        "final_y_m": 3.8113605415580536,
+        "physics_ticks": 40,
+        "decisions": 10
+      }
+    ]
+  },
+  "elapsed_s": 2964.97455720001,
+  "actual_timesteps": 4194304,
+  "qualification_executions": 215
+}

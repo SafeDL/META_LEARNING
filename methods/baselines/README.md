@@ -1,24 +1,20 @@
 # 对比方法
 
-本文方法见 [GCRT](../gcrt/README.md)。本目录统一保存具名对比方法，使用相同的场景测试记录和风险反馈接口。
+本目录存放与主方法比较的测试选择算法。候选库比较从同一批场景中选点；连续搜索允许算法提出新场景，两类结果分开报告。实验设置见 [项目说明](../../README.md)。
 
-| 目录 | 方法 |
+| 实现 | 如何选择场景 |
 |---|---|
-| [lrt](lrt/README.md) | 局部风险迁移（LRT）：局部来源后验、动作价值学习与替换损失约束 |
-| [cg_brt](cg_brt/README.md) | 一致性门控贝叶斯风险迁移（CG-BRT） |
-| [dart](dart/README.md) | 决策相关风险迁移（DART）：历史关联编码器与条件前瞻 |
-| [hgt](hgt/README.md) | 历史引导高斯过程风险测试（HGT）；同时提供 GP-EI、GP-UCB、RF-BO、随机测试等搜索基线 |
-| [response_baselines](response_baselines/README.md) | 历史响应高斯过程（HR-GP）及行为响应基线 |
-| [hem](hem/README.md) | 历史专家混合（HEM） |
-| [saem](saem/README.md) | 尺度自适应专家混合（SAEM） |
-| [ras_frt_uq](ras_frt_uq/README.md) | RAS-FRT-UQ 碰撞反馈基线 |
+| [response_baselines](response_baselines/README.md) | 随机、参数空间分散选点、历史危险排序、最近来源加残差修正、无历史 GP |
+| [pooled_ft](pooled_ft/README.md) | 混合历史测试样本预训练，再用目标反馈微调 |
+| [fsbo](fsbo/README.md) | 把各历史系统当作独立任务学习共享模型，再用目标反馈微调 |
+| [indago/search.py](indago/search.py) | 用历史分类器预测危险程度，沿影响预测较大的参数寻找更危险的新场景 |
+| [samota/search.py](samota/search.py) | 结合多个预测模型、全局搜索和分组后的局部搜索提出场景 |
+| [deep_hyperion/search.py](deep_hyperion/search.py) | 按两个场景特征划分格子，在各格中保留更危险的场景，再变异生成新场景 |
 
-```powershell
-python -B -m methods.baselines.cg_brt.evaluation.compare
-python -B -m methods.baselines.dart.evaluation.report
-python -B -m methods.baselines.lrt.evaluation.family_report
-```
+各方法共用查询预算、初始化场景、允许使用的历史数据和目标反馈权限。Pooled-FT 和 FSBO 的分类模型从历史与开发档案构建；当前无历史 GP 按碰撞概率贪心选例。
 
-各方法的正式权重与结果位于 [results/baselines](../../results/baselines/README.md)，共用的标准搜索轨迹位于 [results/benchmark](../../results/benchmark/README.md)。历史来源近邻估计、核训练等基础组件也供 GCRT 直接复用。
+构建使用 `python -B -m benchmark.build_collision_models core` 和 `complete`；比较与报告入口见 [实验运行说明](../../benchmark/README.md)。
 
-既有记录 ID `frozen_original`、`previous_best`、`previous` 分别对应 HGT、HR-GP、DART；展示名称由 [catalog.py](../common/catalog.py) 给出。CG-CBM-FD 使用额外碰撞反馈，其已有比较结果保留在 [CG-BRT 比较表](../../results/baselines/cg_brt/comparison.md)，项目未保留其可执行源码。
+以上为已经实现并执行比较的方法。文献核查还识别出与主任务直接相关的 ENS 主动搜索、RGPE 多来源加权迁移，以及自动驾驶场景排序方法；这些尚未加入当前比较，现有集合不表述为已穷尽相关基线。
+
+DART、HGT、LRT、CG-BRT 属于内部未发表版本，原源码及旧风险实验已在工程外归档，不作为外部基线。

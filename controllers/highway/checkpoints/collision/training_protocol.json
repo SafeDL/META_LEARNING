@@ -1,0 +1,83 @@
+{
+  "configuration": {
+    "total_timesteps": 4194304,
+    "workers": 8,
+    "evaluation_interval": 32768,
+    "action_interface": {
+      "actions": [
+        "left",
+        "keep",
+        "right",
+        "faster",
+        "slower"
+      ],
+      "speed_increment_mps": 5.0,
+      "speed_gain_per_s": 2.0,
+      "minimum_target_speed_mps": 0.0,
+      "maximum_target_speed_mps": 35.0,
+      "observation_dimension": 83
+    },
+    "policy_network": [
+      128,
+      128
+    ],
+    "gamma": 0.99,
+    "ppo": {
+      "learning_rate": 0.0003,
+      "n_steps": 1024,
+      "batch_size": 256,
+      "n_epochs": 10,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01
+    },
+    "dqn": {
+      "learning_rate": 5e-05,
+      "buffer_size": 200000,
+      "learning_starts": 20000,
+      "batch_size": 256,
+      "train_freq": 4,
+      "gradient_steps": 1,
+      "target_update_interval": 10000,
+      "exploration_fraction": 0.4,
+      "exploration_final_eps": 0.1
+    }
+  },
+  "qualification_courses": [
+    "normal_following",
+    "avoidable_braking",
+    "full_stop",
+    "legal_lane_change",
+    "rear_constraint"
+  ],
+  "checkpoint_order": [
+    "collision_free",
+    "road_compliance",
+    "qualified_courses",
+    "progress"
+  ],
+  "qualified_before_targets": [
+    "history_ppo",
+    "history_dqn",
+    "development_ppo"
+  ],
+  "qualified_runs_before_targets": [
+    "history_ppo_persistent_speed",
+    "history_dqn_persistent_speed",
+    "development_ppo_persistent_speed"
+  ],
+  "training_episode_durations_s": [
+    10.0,
+    18.0
+  ],
+  "source_contract": {
+    "controllers/highway/train.py": "f4591bf011e95d2a964498aa74fc8b63113e4384527133c3d1f75952fb7d6365",
+    "controllers/highway/learning.py": "ac96bec438f7260f689bba977d0b181b6dda3577b6f3f28d08b9df5320269b68",
+    "simulation/highway/training_env.py": "00c14b105917ad9d80cb3768b57ce9824d908e3ef468e6dfd9e4f05f7d33866e",
+    "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+    "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+    "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+    "benchmark/scenarios.py": "396b342c5008925aa88a17ba1b0a11412f7e8cb8b107f9cc5e8e9c35d91009ab",
+    "benchmark/qualification.py": "f6a6233f3ca9d573e61776e95d2abc7d4c967b3fa34d0738728e664e17275a7f"
+  }
+}

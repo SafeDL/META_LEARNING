@@ -1,16 +1,12 @@
 # 共享方法组件
 
+本目录提供主方法和基线共同使用的数据表示与概率计算，避免各方法分别维护一套相同工具。
+
 | 文件 | 职责 |
 |---|---|
-| [prior.py](prior.py) | 历史来源均值、物理核、档案支持协方差与联合先验数据结构 |
-| [features.py](features.py) | 基础核与历史关联编码器的候选特征计算、固定候选集预测缓存 |
-| [workspace.py](workspace.py) | 按功能场景过滤的历史数据与模型产物位置 |
-| [config.py](config.py) | 风险模型共用的观测噪声与数值精度设置 |
-| [student.py](student.py) | Student-t 概率的 GPU 数值计算 |
-| [counts.py](counts.py) | 零膨胀 Beta-Binomial 计数分布的概率、期望和累积分布 |
-| [catalog.py](catalog.py) | 方法全称、缩写与既有实验记录 ID |
-| [snapshots.py](snapshots.py) | 原始实验快照的路径对应与源码核验 |
+| [response.py](response.py) | 读取带来源与用途标记的测试档案，预测历史系统在新场景上的响应，学习场景表示 |
+| [classification.py](classification.py) | 用碰撞或未碰撞标签更新概率分布；数值实现采用积分和矩匹配近似 |
+| [gp_classifier.py](gp_classifier.py) | 高斯过程碰撞分类、深核模型及目标反馈微调 |
+| [model_contract.py](model_contract.py) | 在复用模型前检查训练代码、软件版本和配置是否一致 |
 
-GCRT 与基线直接导入共享源码。历史关联编码器和基础核的训练实现分别复用 [DART](../baselines/dart/README.md) 与 [HGT](../baselines/hgt/README.md) 的组件。
-
-候选缓存首次运行时构建，后续直接读取；构建只读取待测场景参数，不读取目标控制器尚未查询的风险。
+这里的碰撞概率由实际碰撞标签学习。最小间距和 TTC 是辅助输入或监督，不代替碰撞标签。调用关系见 [主方法](../gcrt/README.md) 和 [对比方法](../baselines/README.md)，实验设置见 [项目说明](../../README.md)。

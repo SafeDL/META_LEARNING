@@ -1,19 +1,13 @@
 # 方法代码
 
-| 目录 | 用途 |
+这里存放选择测试场景的算法，与负责驾驶车辆的 [controllers](../controllers/README.md) 分开。研究问题、历史与目标系统、场景、预算和指标见 [项目说明](../README.md)。
+
+| 目录 | 当前用途 |
 |---|---|
-| [gcrt](gcrt/README.md) | 本发明方法：收益校正风险测试（GCRT） |
-| [baselines](baselines/README.md) | LRT、CG-BRT、DART、HGT 等对比方法 |
-| [common](common/README.md) | 历史先验、候选特征、概率计算和训练数据配置 |
+| [gcrt](gcrt/README.md) | 根据历史测试经验和新反馈预测碰撞，逐次选择场景，并支持提出新坐标 |
+| [common](common/README.md) | 各方法共用的测试档案、场景表示、概率模型和模型复用检查 |
+| [baselines](baselines/README.md) | 七个候选库对照，以及 Indago、SAMOTA、DeepHyperion 连续搜索适配 |
 
-在项目根目录、`metadrive` 环境中运行：
+构建使用 `python -B -m benchmark.build_collision_models core` 和 `complete`，输入是已采集的历史与开发档案。运行比较、控制查询预算和生成报告由 [benchmark](../benchmark/README.md) 负责。这里的方法不能直接读取未查询的目标标签。
 
-```powershell
-python -B -m methods.gcrt.build
-python -B -m methods.gcrt.evaluation
-python -B -m methods.gcrt.report
-```
-
-以上命令分别构建模型、运行评价和汇总结果。发现效果、测试效率与分布校正实验的入口见 [GCRT 说明](gcrt/README.md)。
-
-实验设置与风险反馈接口见 [benchmark](../benchmark/README.md)，实测记录见 [data](../data/README.md)，模型与报告见 [results](../results/README.md)。
+已实现方法与尚待补充的文献基线在 [对比方法说明](baselines/README.md) 中分别列出。旧内部方法、停止评价及旧风险报告已归档，不作为当前代码入口。

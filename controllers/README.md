@@ -1,18 +1,24 @@
-# 被测驾驶控制器
+# 被测驾驶系统
 
-当前实验使用以下六种驾驶控制器，代码中的固定标识用于对应实测数据和实验结果。
+本目录存放“实际开车”的控制器。测试选择算法在 [methods](../methods/README.md)，负责选择下一次测试场景；控制器接收交通信息，决定被测车辆如何行驶。
 
-| 驾驶控制器 | 记录标识 | 实现 |
-|---|---|---|
-| IDM 跟驰 | `idm_ref` | [reference_profiles.py](highway/reference_profiles.py)、[idm_profiles.py](highway/idm_profiles.py) |
-| FVDM 跟驰 | `fvdm_target` | [perception.py](highway/perception.py)，感知延迟 0.15 秒 |
-| IDM＋MOBIL | `mobil_ref_v2` | [registry.py](highway/registry.py) |
-| 碰撞时间值迭代 | `vi_ttc_ref_audit_v4` | [value_iteration.py](highway/value_iteration.py) |
-| 恒速预测蒙特卡洛树搜索 | `mcts_cv_ref_audit_v4` | [mcts_cv.py](highway/mcts_cv.py) |
-| PPO | `ppo_ref_v2` | [ppo_ece.py](highway/ppo_ece.py) |
+## HighwayEnv 控制器
 
-PPO 使用已有权重 `highway/checkpoints/ppo_ece/vd_1_5_trial_1.zip`。标识中的 `v2`、`v4` 沿用已有数据记录。
+[highway/catalog.py](highway/catalog.py) 登记了 20 个对象，由 [highway/factory.py](highway/factory.py) 创建。8 个历史系统提供测试经验，4 个开发系统用于选参，8 个目标系统用于正式比较；每个对象记录实现路线、版本或独立训练运行。
 
-历史数据来自另外六种 IDM／FVDM 配置，包括普通、延迟、制动受限和预测型配置，参数见[历史配置](../methods/baselines/hgt/config.py)。GCRT 的周期更新使用 TTC 值迭代和 FVDM 记录，停止校准使用恒速预测蒙特卡洛树搜索和 PPO，后续效果在 IDM＋MOBIL、IDM 上评价，分组见[方法配置](../methods/gcrt/config.py)。
+| 类别 | 实现路线 |
+|---|---|
+| 规则 | IDM/MOBIL；FVDM/换道规则 |
+| 优化 | 线性化 MPC；非线性约束轨迹优化 |
+| 搜索 | UCT 树搜索；确定性束搜索 |
+| 学习 | 独立训练的 PPO；DQN，采用 Stable-Baselines3 实现 |
 
-`highway/` 用于当前论文实验，`metadrive/` 为保留的 MetaDrive 控制器。实测记录见 [data](../data/README.md)。
+所有对象接收相同规则下可见的交通状态，每秒决策 5 次，车辆运动每秒更新 20 次；共享动力学和动作限制，支持持续制动直到停车。20 个对象均已通过正常跟车、可避免制动、完整停车、合法换道和后车约束五项资格检查。
+
+PPO 和 DQN 使用左换道、保持、右换道、加速、减速五种动作；83 维输入包含可见交通状态及控制目标。五个正式学习对象各自从头训练，入口为 `python -B -m controllers.highway.train`。正式训练设置和资格记录保留在 `highway/checkpoints/collision/` 与 `results/benchmark/collision/qualification/`；其中的早期建设记录用于追溯成本，正式对象由注册表指定。
+
+## MetaDrive 控制器
+
+[metadrive](metadrive/) 保留在工程中，供 [MetaDrive 仿真平台](../simulation/metadrive/README.md) 使用。[registry.py](metadrive/registry.py) 登记六种 IDM 驾驶配置，[idm.py](metadrive/idm.py) 将交通状态转换为控制动作。它们与 HighwayEnv 的 20 个正式对象分开管理。
+
+历史系统与新系统如何划分、场景和预算如何设置，见 [项目说明](../README.md)。

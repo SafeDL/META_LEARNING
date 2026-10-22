@@ -1,13 +1,15 @@
 # 实验结果与模型
 
-| 目录 | 内容 |
+本目录保存当前碰撞发现实验的模型、逐次查询记录、统计报告和复核结果。场景参数及原始驾驶系统数据见 [data](../data/README.md)，实验设置见 [项目说明](../README.md)。
+
+| 入口 | 看什么 |
 |---|---|
-| [gcrt](gcrt/README.md) | 本发明方法（GCRT）的模型、查询轨迹、停止评价、分布校正与成本报告 |
-| [baselines](baselines/README.md) | LRT、CG-BRT、DART、HGT 和响应基线的模型与正式结果 |
-| [benchmark](benchmark/README.md) | 共用实验协议、数据核验与标准搜索轨迹 |
+| [碰撞发现比较](gcrt/README.md) | 主方法与基线的候选库结果、连续搜索结果、发现曲线及新增碰撞标签 |
+| [基线模型](baselines/README.md) | FSBO、Pooled-FT 的预训练模型和训练记录 |
+| [执行与结果复核](benchmark/README.md) | 资格、开发验证、原始轨迹复算、统计、成本及验收记录 |
 
-先看 [GCRT 结果索引](gcrt/README.md)，其中列出完整实验、测试效率和分布校正结果。按类基线比较见 [LRT 按类实验](baselines/lrt/by_family/README.md)；两类场景共同使用 200 次预算的结果见 [LRT 联合实验](baselines/lrt/README.md)。
+建议先阅读 [候选库结果报告](gcrt/collision/report/report.md)。其中的新坐标条件是主结果；历史坐标复用、困难组合、留类别、来源替换及消融分别列出。连续搜索保存在 [独立报告](gcrt/collision/continuous/report/report.json) 中。
 
-实测场景、风险和执行耗时统一放在 [data](../data/README.md)。本目录保存权重、训练记录、标签、查询轨迹和报告。原始源码快照保留当时的目录名称，核验程序负责对应到当前位置。
+当前报告包含 10880 项候选库运行、100 项连续运行和 472 项配对统计比较。运行次数包含同一驾驶系统上的不同种子与方法重复，不能解释为同等数量的独立驾驶系统或软件缺陷。
 
-运行说明见 [methods](../methods/README.md)。
+旧风险阈值、停止预测、收益校正及旧内部方法结果已移至工程外 `META_LEARNING_archive/legacy/results/`，原文件保留。当前正式数据、模型、轨迹、冻结配置和历史验收记录保持原路径。

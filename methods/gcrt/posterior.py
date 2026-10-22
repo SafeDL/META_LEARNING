@@ -1,158 +1,118 @@
-"""Student-t components without a Gaussian reference or ranking state."""
+"""Historical-source and independent-target Bernoulli GP components."""
 
 import numpy as np
-from scipy.special import logsumexp, stdtr
+from scipy.special import logsumexp
 
-from methods.baselines.saem.posterior import student_log_density
-from methods.common.config import JITTER, NOISE
-
-
-class StudentComponent:
-    def __init__(self, covariance, means):
-        self.covariance = np.asarray(covariance)
-        self.mean = np.asarray(means, dtype=float).copy()
-        self.variance = np.diag(self.covariance).copy()
-        self.solved = np.empty((len(self.mean), 0))
-        self.alpha = 2.5
-        self.beta = np.full(self.mean.shape[1], 1.5)
-
-    def conditional(self, index, values, indices):
-        values = np.asarray(values).reshape(-1)
-        denominator = self.variance[index] + NOISE + JITTER
-        cross = (
-            self.covariance[indices, index] - self.solved[indices] @ self.solved[index]
-        )
-        residual = values[:, None] - self.mean[index]
-        mean = self.mean[indices][None] + (
-            cross[None, :, None] * residual[:, None] / denominator
-        )
-        variance = self.variance[indices] + NOISE + JITTER - cross**2 / denominator
-        beta = self.beta + 0.5 * residual**2 / denominator
-        density = student_log_density(
-            residual, self.beta / self.alpha * denominator, 2 * self.alpha
-        )
-        return mean, variance, self.alpha + 0.5, beta, density
-
-    def observe(self, index, value):
-        denominator = self.variance[index] + NOISE + JITTER
-        if denominator <= 0:
-            raise FloatingPointError("Nonpositive Student conditional variance")
-        residual = value - self.mean[index]
-        density = student_log_density(
-            residual, self.beta / self.alpha * denominator, 2 * self.alpha
-        )
-        cross = self.covariance[:, index] - self.solved @ self.solved[index]
-        self.mean += cross[:, None] * residual / denominator
-        self.variance -= cross**2 / denominator
-        if self.variance.min() < -1e-8:
-            raise FloatingPointError("Negative conditional variance")
-        self.variance = np.maximum(self.variance, 0)
-        self.solved = np.column_stack((self.solved, cross / np.sqrt(denominator)))
-        self.beta += 0.5 * residual**2 / denominator
-        self.alpha += 0.5
-        return density
+from methods.common.classification import logistic_moments, site_derivatives
 
 
-class JointPosterior:
-    def __init__(self, prior, kappa=1.0, target_probability=0.25):
-        if len(np.unique(prior.x[:, 4])) != 1:
-            raise ValueError("Build each functional scenario independently")
-        self.prior = prior
-        self.groups = []
-        self.count = len(prior.names) + 1
-        self.log_weight = np.log(
-            np.r_[prior.weights * (1 - target_probability), target_probability]
-        )
-        geometry = {}
-        for j, archive in enumerate(prior.archive_covariances):
-            geometry.setdefault(id(archive), ([], archive))[0].append(j)
-        for columns, archive in geometry.values():
-            self.groups.append(
-                (
-                    np.asarray(columns),
-                    StudentComponent(
-                        prior.enhanced_covariance + kappa * archive,
-                        prior.means[:, columns],
-                    ),
-                )
-            )
-        self.groups.append(
-            (
-                np.array([self.count - 1]),
-                StudentComponent(
-                    prior.physical_covariance, np.full((len(prior.x), 1), 0.5)
-                ),
-            )
-        )
+class CollisionPosterior:
+    def __init__(self, means, covariances, weights, *, fixed_weights=False,
+                 component_names=None):
+        self.mean = np.asarray(means, dtype=np.float64).copy()
+        self.covariance = np.asarray(covariances, dtype=np.float64).copy()
+        weights = np.asarray(weights, dtype=np.float64)
+        if self.mean.ndim != 2 or self.covariance.shape != (
+            self.mean.shape[0], self.mean.shape[1], self.mean.shape[1]
+        ):
+            raise ValueError("Component latent means and covariances do not align")
+        if len(weights) != len(self.mean) or np.any(weights <= 0):
+            raise ValueError("Each component requires positive prior weight")
+        if not (np.isfinite(self.mean).all() and np.isfinite(self.covariance).all()):
+            raise ValueError("Nonfinite latent prior")
+        self.log_weight = np.log(weights / weights.sum())
+        self.fixed_weights = fixed_weights
         self.observed = set()
+        self.sites = []
+        self.component_names = (list(component_names) if component_names is not None
+                                else [f"component_{j}" for j in range(len(weights))])
 
     @property
     def weights(self):
         return np.exp(self.log_weight)
 
-    def parameters(self, indices):
-        mean = np.empty((len(indices), self.count))
-        variance = np.empty_like(mean)
-        beta = np.empty(self.count)
-        for columns, component in self.groups:
-            mean[:, columns] = component.mean[indices]
-            variance[:, columns] = component.variance[indices, None] + NOISE + JITTER
-            beta[columns] = component.beta
-        return mean, variance, self.groups[0][1].alpha, beta
-
     def component_probabilities(self, indices=None):
-        indices = (
-            np.arange(len(self.prior.x)) if indices is None else np.asarray(indices)
-        )
-        mean, variance, alpha, beta = self.parameters(indices)
-        return stdtr(2 * alpha, (mean - 0.5) / np.sqrt(variance * beta / alpha))
+        indices = np.arange(self.mean.shape[1]) if indices is None else np.asarray(indices)
+        return logistic_moments(self.mean[:, indices],
+                                self.covariance.diagonal(axis1=1, axis2=2)[:, indices])[0]
 
-    def probabilities(self):
-        return self.component_probabilities() @ self.weights
+    def probabilities(self, indices=None):
+        return self.weights @ self.component_probabilities(indices)
 
-    def source_tokens(self, indices):
-        mean, variance, alpha, beta = self.parameters(indices)
-        tokens = np.zeros((len(indices), self.count, 4), dtype=np.float32)
-        tokens[..., 0] = mean
-        tokens[..., 1] = np.sqrt(variance * beta / (alpha - 1))
-        tokens[..., 2] = self.weights
-        tokens[:, -1, 3] = 1
-        return tokens
+    def conditional_probabilities(self, index, label, indices):
+        """Virtual ADF update; this method never changes evidence or arrays."""
+        _, gradient, curvature = site_derivatives(
+            self.mean[:, index], self.covariance[:, index, index], label)
+        indices = np.asarray(indices, dtype=int)
+        cross = self.covariance[:, indices, index]
+        mean = self.mean[:, indices] + gradient[:, None] * cross
+        variance = (self.covariance.diagonal(axis1=1, axis2=2)[:, indices]
+                    + curvature[:, None] * cross**2)
+        p = logistic_moments(mean, variance)[0]
+        return self._conditional_weights(index, label) @ p
 
-    def observe(self, index, risk):
-        if index in self.observed or not np.isfinite(risk) or not 0 <= risk <= 1:
-            raise ValueError("Invalid or repeated paid risk observation")
-        density = np.empty(self.count)
-        for columns, component in self.groups:
-            density[columns] = component.observe(index, risk)
-        self.log_weight += density
-        evidence = float(logsumexp(self.log_weight))
-        self.log_weight -= evidence
+    def _conditional_weights(self, index, label):
+        if self.fixed_weights:
+            return self.weights
+        p = self.component_probabilities([index])[:, 0]
+        log_weight = self.log_weight + np.log(np.maximum(p if label else 1 - p, 1e-15))
+        return np.exp(log_weight - logsumexp(log_weight))
+
+    def observe(self, index, collision):
+        if index in self.observed or not 0 <= index < self.mean.shape[1]:
+            raise ValueError("Invalid or repeated target query index")
+        log_likelihood, gradient, curvature = site_derivatives(
+            self.mean[:, index], self.covariance[:, index, index], collision)
+        # Evidence uses the predictive likelihood before the site update.
+        weights = self._conditional_weights(index, collision)
+        cross = self.covariance[:, :, index].copy()
+        self.sites.append({"index": int(index), "gradient": gradient.copy(),
+                           "curvature": curvature.copy(), "cross": cross.copy()})
+        self.mean += gradient[:, None] * cross
+        self.covariance += curvature[:, None, None] * cross[:, :, None] * cross[:, None, :]
+        if self.covariance.diagonal(axis1=1, axis2=2).min() < -1e-9:
+            raise FloatingPointError("Negative Bernoulli GP variance")
+        evidence = float(logsumexp(self.log_weight + log_likelihood))
+        self.log_weight = np.log(np.maximum(weights, 1e-300))
+        self.log_weight -= logsumexp(self.log_weight)
         self.observed.add(int(index))
         return evidence
 
-    def conditional_probabilities(self, index, values, indices):
-        mean = np.empty((len(values), len(indices), self.count))
-        variance = np.empty((len(indices), self.count))
-        beta = np.empty((len(values), self.count))
-        density = np.empty_like(beta)
-        for columns, component in self.groups:
-            mu, var, alpha, scale, logp = component.conditional(index, values, indices)
-            mean[:, :, columns] = mu
-            variance[:, columns] = var[:, None]
-            beta[:, columns] = scale
-            density[:, columns] = logp
-        weights = self.log_weight + density
-        weights -= logsumexp(weights, axis=-1, keepdims=True)
-        z = (mean - 0.5) / np.sqrt(variance[None] * beta[:, None] / alpha)
-        return (stdtr(2 * alpha, z) * np.exp(weights[:, None])).sum(-1)
+    def extend(self, means, cross_covariances, covariances):
+        """Condition new prior coordinates on the same paid sites, without replay calls."""
+        means = np.asarray(means, dtype=np.float64).copy()
+        cross = np.asarray(cross_covariances, dtype=np.float64).copy()
+        covariance = np.asarray(covariances, dtype=np.float64).copy()
+        components, old_size = self.mean.shape
+        if (means.ndim != 2 or means.shape[0] != components or not means.shape[1]
+                or cross.shape != (components, means.shape[1], old_size)
+                or covariance.shape != (components, means.shape[1], means.shape[1])):
+            raise ValueError("New-point prior blocks do not match the current component geometry")
+        for site in self.sites:
+            to_query = cross[:, :, site["index"]].copy()
+            gradient, curvature = site["gradient"], site["curvature"]
+            means += gradient[:, None] * to_query
+            covariance += curvature[:, None, None] * to_query[:, :, None] * to_query[:, None, :]
+            cross += curvature[:, None, None] * to_query[:, :, None] * site["cross"][:, None, :]
+            site["cross"] = np.concatenate((site["cross"], to_query), axis=1)
+        combined = np.concatenate((
+            np.concatenate((self.covariance, cross.transpose(0, 2, 1)), axis=2),
+            np.concatenate((cross, covariance), axis=2)), axis=1)
+        if combined.diagonal(axis1=1, axis2=2).min() < -1e-9:
+            raise FloatingPointError("Negative variance after posterior expansion")
+        self.mean = np.concatenate((self.mean, means), axis=1)
+        self.covariance = combined
 
-    def marginal_draws(self, indices, count, generator):
-        # Common component, precision and normal draws couple candidate integrals.
-        source = generator.choice(self.count, size=count, p=self.weights)
-        mean, variance, alpha, beta = self.parameters(indices)
-        precision = generator.gamma(alpha, size=count)
-        normal = generator.standard_normal(count)
-        return mean[:, source].T + normal[:, None] * np.sqrt(
-            variance[:, source].T * beta[source, None] / precision[:, None]
-        )
+    def retain(self, indices):
+        """Discard only unqueried proposals, retaining every paid conditioning site."""
+        indices = list(map(int, indices))
+        if (len(set(indices)) != len(indices) or not self.observed.issubset(indices)
+                or any(not 0 <= i < self.mean.shape[1] for i in indices)):
+            raise ValueError("Marginalization must retain every paid observation exactly once")
+        mapping = {old: new for new, old in enumerate(indices)}
+        self.mean = self.mean[:, indices].copy()
+        self.covariance = self.covariance[:, indices][:, :, indices].copy()
+        self.observed = {mapping[index] for index in self.observed}
+        for site in self.sites:
+            site["index"] = mapping[site["index"]]
+            site["cross"] = site["cross"][:, indices].copy()

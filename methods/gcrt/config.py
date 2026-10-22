@@ -1,29 +1,21 @@
-"""Fixed single-seed construction and controller-held-out evaluation protocol."""
+"""Development defaults; final evaluation uses its frozen protocol manifest."""
 
-from pathlib import Path
+from dataclasses import dataclass
 
-ARCHIVE_ROOT = Path(__file__).resolve().parents[2] / "results/gcrt/full_horizon"
-ROOT = Path(__file__).resolve().parents[2] / "results/gcrt"
-BASELINE_ROOT = Path(__file__).resolve().parents[2] / "results/baselines/lrt/by_family"
-SEED = 11
-BUDGET = 200
-INITIAL = 10
-FANTASIES = 16
-TOLERANCE = 1e-8
-HORIZONS = (1, 5, 10, 20, 50, 100)
-SEGMENT = 5
-TRAIN_STEPS = 800
-UPDATE_STEPS = 400
-BATCH_SIZE = 16
-LEARNING_RATE = 3e-4
-ALPHA = 0.05
-REUSE = (1, 10, 50, 100, 200)
-ROLES = {
-    "training": ("vi_ttc_ref_audit_v4", "fvdm_target"),
-    "calibration": ("mcts_cv_ref_audit_v4", "ppo_ref_v2"),
-    "evaluation": ("mobil_ref_v2", "idm_ref"),
-}
+from benchmark.protocol import RESULT_ROOT
 
 
-def horizons(remaining):
-    return sorted({b for b in (*HORIZONS, remaining) if 0 < b <= remaining})
+@dataclass(frozen=True)
+class ModelConfig:
+    steps: int = 1500
+    learning_rate: float = 0.0003
+    support_counts: tuple[int, ...] = (4, 8, 16)
+    query_count: int = 32
+    validation_interval: int = 100
+    auxiliary_weight: float = 0.1
+    target_weight: float = 0.25
+    seed: int = 1103
+
+
+CONFIG = ModelConfig()
+MODEL_ROOT = RESULT_ROOT / "models"

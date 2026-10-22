@@ -1,1 +1,1 @@
-"""Original S01 benchmark execution and scenario coordinates."""
+"""Shared highway dynamics, visible observations and collision scenarios."""
