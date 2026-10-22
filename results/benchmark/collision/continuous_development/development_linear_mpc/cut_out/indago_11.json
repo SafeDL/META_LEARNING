@@ -1,0 +1,2026 @@
+{
+  "specification": {
+    "metadata": {
+      "target_id": "development_linear_mpc",
+      "scenario": "cut_out",
+      "method": "indago",
+      "algorithm_seed": 11,
+      "environment_seed": 81001,
+      "condition": "continuous_development"
+    },
+    "method": "indago",
+    "algorithm_seed": 11,
+    "budget": 32,
+    "initial_count": 8,
+    "configuration": {
+      "neighborhood_size": 50,
+      "max_neighborhoods": 100
+    },
+    "ordinary_only": true,
+    "source_contract": {
+      "methods/gcrt/posterior.py": "0da023c16cba73e9c20cf1bfa4daf54bdab52268eb470751dcfe824d1ab5b503",
+      "methods/gcrt/prior.py": "7fc61d697c85adf1008176a463b11d312f0a32a475cf390604ab7038c6a07819",
+      "methods/gcrt/selection.py": "e6184d60e00022cfd7d93504ed0af95e32d5a87b8d3bbf37c4fc9bf57fdc1d49",
+      "methods/gcrt/train.py": "ee27529a746e3247934aff326180808119750ce69e29d1b5628594d92da4bf16",
+      "methods/common/response.py": "2566a6fc9955cd8530f123dec7a5507f4343109b9a2fa08b084749a7c0d47660",
+      "methods/common/classification.py": "6d6116b7b8c0d12412441dd9d06ec56429aab08f8e98f76b399a53d9da8271b8",
+      "methods/common/gp_classifier.py": "2454b06141b1f96e2fb987bdf5741e150cda0c665b13b24d0b5bc3c9fb5bfe18",
+      "methods/common/model_contract.py": "c5439a2798b8f37034c9054280ed225d0e000aa17aef6bb9c3fd3ec7bb6da10f",
+      "methods/baselines/fsbo/method.py": "1fc1ac7731df0613d2d3da0fdb57f2eac7c24588cf7fb5213e07c8688509925a",
+      "methods/baselines/pooled_ft/method.py": "7f289151aefe8583ac273e470bcea7c16908edfad1ce37634eb4e50601682b55",
+      "benchmark/schema.py": "d67dc406615e340453f60197747c42fed434ee64aefcf5b39ff85e96ba2d9bb7",
+      "benchmark/scenarios.py": "396b342c5008925aa88a17ba1b0a11412f7e8cb8b107f9cc5e8e9c35d91009ab",
+      "benchmark/query.py": "85415dcbfb556f49bb4e51c3257fdd202d52bcbfdf89d963e515a213b56553d8",
+      "benchmark/storage.py": "9d5e05e6ba98359866360f0a05b45545c69ac3be8967eca447cd0a83aec174ad",
+      "benchmark/construction.py": "ddd9a37f500561fa57e0ec4e63522157e1b587feb97f2c8144ceb832feecebff",
+      "benchmark/executions.py": "9688f2126c153de505ac4e02ee094b95404c58d9b7ae291abf2282586e3119a7",
+      "benchmark/build_collision_models.py": "530b8097d3320172a3101e8c96062bc10c9bcb054d9ee648a6662b044126226a",
+      "benchmark/protocol.py": "76fea43f2806f63353561adcae3c93ffbc45e488a382f696ab7d26d2f0b5ca56",
+      "methods/baselines/response_baselines/collision.py": "19701ee0750c7b3b597aa5621653b534e23680451fd6881972d734688937e707",
+      "benchmark/collision_runs.py": "330ace0e483cd8a5c9a94d225a9bc1a0e27969ea07fe55e626cb11ab5b8f541e",
+      "benchmark/collision_metrics.py": "3a8b05b554a8707b42fc7e19dbfc2f955b02532b5110d7a0b231b5b1dac4ce35",
+      "benchmark/studies.py": "a0e3f2b44d4e18c15ba42ad1d3f3f9ef044aa3cda1ccf82cbe7622cca1f47c86",
+      "benchmark/execution_events.py": "076c6a2c7ba779fcd6d6944b1db7a25452779de8b3366ea881ff2d054cb00d17",
+      "benchmark/certify_collisions.py": "93f77352003897403809d4c811a66d8af6ff3e517148cec10dce39dbd2766bcf",
+      "benchmark/report_collision.py": "cffa0feacf2cca3e63121849e2d1639ad51afe3bf5fa6d93ba1eeea0914c1e9b",
+      "benchmark/collect.py": "94376eed647eb645a5058e171e69a57c383b84cd0dd5b2151474a978091d4364",
+      "benchmark/evaluate_collision.py": "9c7fc1dac1577c3aabf6d7b759facb3e26de0a9ede70ca7520e4d6a38260efb1",
+      "benchmark/freeze_collision.py": "e6bdfc51371058b0480772a9861778a3c327d0f6d8f374a22d0401d7d8aaec50",
+      "benchmark/develop_collision.py": "9128591ce9c81287f309675b3c8bb2a45f56eb16ca5ceb090752405e73e3cde4",
+      "benchmark/run_collision.py": "167608dc3b89d5863aeb57b0b4ad16b074dea040e543518b58e5d9b7fc2eb264",
+      "environment.yml": "7433040c37a34588f2d3faafa19f3ec74c2bf05fa1b139c68cf6b6d8e9c19361",
+      "benchmark/continuous_runs.py": "76d428c83e3cb85ed516cf2c9befb5bbe069baf8626df9d75724ca3bf8359bf7",
+      "benchmark/continuous_execution.py": "d11bef212626bbe855fd1b7d397bea6c16c841c00a31398f9da7ef74f4a8d193",
+      "benchmark/continuous_selection.py": "613800b71350f8722c5845864eaf349fd506f1857cce10099d54386721f5f198",
+      "benchmark/continuous_space.py": "2eeef6363a90d8c94f4336ea95e0364d6cd64895be0d5c29a838ce46c624736b",
+      "methods/gcrt/continuous.py": "c7cc67f984f9e65f52c1b54692569264543151191ce05026d76bfaf3d3dfd63b",
+      "methods/baselines/indago/search.py": "6315f76d8ec54c06aa24eef99a4cf5b557a22d76a6a0dc91e78184662aa80fca",
+      "methods/baselines/samota/search.py": "a1e733debfb50696b0f56b22eff30fb261f1be27831455842ca3f094f1436530",
+      "methods/baselines/deep_hyperion/search.py": "fac3e57ba2c5f74ac5fc79479ee1cb2996e9eefe0688771d08c04476edd1a0ba",
+      "benchmark/develop_continuous.py": "6687d9ffcc6a6dfab96505f5c0173a5e6bbfec17541b9219448163d5fc503bff",
+      "benchmark/freeze_continuous.py": "dd907f206c7dfa56ff6855d3320825cc599fff09c6d09830f679c7b427974704",
+      "benchmark/evaluate_continuous.py": "1babcd1cc7303f87beea6bac8212d6f5c66666c383f35736a94aa83bef56e285",
+      "benchmark/report_continuous.py": "090bf60eaff4caf43ad9738c63848663dca2a187b7b021e73026017fe32747a8"
+    },
+    "history_fingerprints": {
+      "history_beam": "72d40e39ccfa60d3dff5f77fab79f41ff984a1056a73350fd878df331cab8baa",
+      "history_dqn": "79c45412c4e4e141afd6377dc904e451c36c9de1c4c41ffe178fd82fe02957e9",
+      "history_fvdm_lane": "d10d9f43cd0a6a84c773d1a840d36d309059f52b5dc9c4dc43464aa50b93139f",
+      "history_idm_mobil": "cb7ba7c01b2dda1ae2aa3b4362dd97adb8094fde8bc178d371275c9d76d5a4b6",
+      "history_linear_mpc": "2477e1fdd14dee5e276a7d594ff198ea8e7be17586cd806a26bd504f8d97e776",
+      "history_nonlinear_trajectory": "cd2ff1a0b55be0ab2e55c1f5192efb8bb1065b0a29bbd02e2c408a31b496235f",
+      "history_ppo": "69159ffba79309d41250894f5d4afd9fe0b552f3c26bb354e0887f9febbf8700",
+      "history_uct": "a74b763a350a13bd7e768b996d7b1975e56895c5975f2a98aa7e35d58391a458"
+    },
+    "initial_scenarios": [
+      {
+        "scenario_id": "cut_out:continuous:910014:000000002",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 21.72552140143255,
+          "gap_m": 12.238370582710075,
+          "lead_speed_mps": 15.038644606344189,
+          "obstacle_distance_m": 95.04439340699506,
+          "event_time_s": 0.5456954164866805,
+          "lateral_duration_s": 3.1011561750179832
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000006",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 18.686331778878497,
+          "gap_m": 11.919497761388408,
+          "lead_speed_mps": 22.018116430034368,
+          "obstacle_distance_m": 136.3101904742249,
+          "event_time_s": 1.5714998158161062,
+          "lateral_duration_s": 2.4578443692715153
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000007",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 27.009235972463845,
+          "gap_m": 22.29435759896016,
+          "lead_speed_mps": 16.446661043619233,
+          "obstacle_distance_m": 119.13358142265305,
+          "event_time_s": 0.7264254372915865,
+          "lateral_duration_s": 2.2426034943523074
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000008",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 32.25798394882425,
+          "gap_m": 47.88754964704761,
+          "lead_speed_mps": 16.393726993098966,
+          "obstacle_distance_m": 141.56068801592923,
+          "event_time_s": 0.7253019352075627,
+          "lateral_duration_s": 2.5283399107947604
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000010",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 33.89102484463082,
+          "gap_m": 36.77864412306527,
+          "lead_speed_mps": 18.08171316607207,
+          "obstacle_distance_m": 150.7681721330058,
+          "event_time_s": 1.7393353100678133,
+          "lateral_duration_s": 3.8522343656559075
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000015",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 21.17534006716548,
+          "gap_m": 14.274054737780435,
+          "lead_speed_mps": 26.951620334104163,
+          "obstacle_distance_m": 154.28634725769967,
+          "event_time_s": 1.772045626564255,
+          "lateral_duration_s": 1.9224974399989063
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000018",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 33.660722046097334,
+          "gap_m": 27.244301290051993,
+          "lead_speed_mps": 18.697935776165863,
+          "obstacle_distance_m": 127.90005135193337,
+          "event_time_s": 1.7820262566130882,
+          "lateral_duration_s": 1.9278912561150867
+        },
+        "categories": {}
+      },
+      {
+        "scenario_id": "cut_out:continuous:910014:000000020",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 23.82671341936272,
+          "gap_m": 26.20282653233775,
+          "lead_speed_mps": 17.53552500587112,
+          "obstacle_distance_m": 115.73067331557854,
+          "event_time_s": 1.7732234945109628,
+          "lateral_duration_s": 2.387145076234102
+        },
+        "categories": {}
+      }
+    ],
+    "checkpoint": {
+      "path": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\results\\baselines\\pooled_ft\\collision\\models\\all\\cut_out.pt",
+      "sha256": "b05a93cd8e8d51b0757b847e4b545b3c47cd86e254e07f3754840ccc976af6ad"
+    }
+  },
+  "result": {
+    "method": "indago",
+    "queries": [
+      {
+        "query": 1,
+        "index": 0,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000002",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.3246043492531933,
+            "min_ttc_s": 1.0189222475818631,
+            "violations": []
+          },
+          "execution_s": 1.066115900001023
+        },
+        "prequery_probability": 0.19308359920978546,
+        "selection_s": 0.0005846000276505947,
+        "adaptation_s": 4.169996827840805e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 2,
+        "index": 1,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000006",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000206399004986,
+            "min_ttc_s": 6.841993854238905,
+            "violations": []
+          },
+          "execution_s": 0.8067227000137791
+        },
+        "prequery_probability": 0.01376405917108059,
+        "selection_s": 0.0002586999908089638,
+        "adaptation_s": 4.2000028770416975e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 3,
+        "index": 2,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000007",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.989725574352724,
+            "min_ttc_s": 2.1106934387824343,
+            "violations": []
+          },
+          "execution_s": 0.7452258000266738
+        },
+        "prequery_probability": 0.14297914505004883,
+        "selection_s": 0.0002525000018067658,
+        "adaptation_s": 3.880000440403819e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 4,
+        "index": 3,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000008",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000198936384809,
+            "min_ttc_s": 3.0185813165214377,
+            "violations": []
+          },
+          "execution_s": 0.7602086000260897
+        },
+        "prequery_probability": 0.016208382323384285,
+        "selection_s": 0.0002539000124670565,
+        "adaptation_s": 3.5800039768218994e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 5,
+        "index": 4,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000010",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.063271810475708,
+            "min_ttc_s": 1.5228754334948806,
+            "violations": []
+          },
+          "execution_s": 0.7623714000219479
+        },
+        "prequery_probability": 0.28609558939933777,
+        "selection_s": 0.00026080000679939985,
+        "adaptation_s": 3.69000481441617e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 6,
+        "index": 5,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000015",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999033631927932,
+            "min_ttc_s": 7.120846549780292,
+            "violations": []
+          },
+          "execution_s": 0.822709699976258
+        },
+        "prequery_probability": 0.005535253789275885,
+        "selection_s": 0.0002462000120431185,
+        "adaptation_s": 3.749999450519681e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 7,
+        "index": 6,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000018",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.60043114762461,
+            "min_ttc_s": 1.3784456203950497,
+            "violations": []
+          },
+          "execution_s": 0.7932846000185236
+        },
+        "prequery_probability": 0.5164437890052795,
+        "selection_s": 0.00025729998014867306,
+        "adaptation_s": 3.890000516548753e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 8,
+        "index": 7,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:910014:000000020",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.996723586163709,
+            "min_ttc_s": 3.06605020724911,
+            "violations": []
+          },
+          "execution_s": 0.7529887999990024
+        },
+        "prequery_probability": 0.08087541908025742,
+        "selection_s": 0.00034440000308677554,
+        "adaptation_s": 5.770003190264106e-05,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 9,
+        "index": 8,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000002860",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12847550003789365
+        },
+        "prequery_probability": 0.9340087175369263,
+        "selection_s": 0.09761599998455495,
+        "adaptation_s": 2.8699985705316067e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 29,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 10,
+        "index": 9,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000005870",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.13175410003168508
+        },
+        "prequery_probability": 0.9339212775230408,
+        "selection_s": 0.06042990001151338,
+        "adaptation_s": 2.9699993319809437e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 35,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 11,
+        "index": 10,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000008537",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12164019996998832
+        },
+        "prequery_probability": 0.9339936375617981,
+        "selection_s": 0.06613110000034794,
+        "adaptation_s": 2.840004162862897e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 27,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 12,
+        "index": 11,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000011638",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12164089997531846
+        },
+        "prequery_probability": 0.933809757232666,
+        "selection_s": 0.06503080000402406,
+        "adaptation_s": 3.0199997127056122e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 29,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 13,
+        "index": 12,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000015755",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12309469998581335
+        },
+        "prequery_probability": 0.9339740872383118,
+        "selection_s": 0.08553599996957928,
+        "adaptation_s": 3.070000093430281e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 44,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 14,
+        "index": 13,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000019582",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12226109998300672
+        },
+        "prequery_probability": 0.933743953704834,
+        "selection_s": 0.08098819997394457,
+        "adaptation_s": 4.439998883754015e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 39,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 15,
+        "index": 14,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000021745",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12504290003562346
+        },
+        "prequery_probability": 0.9338057041168213,
+        "selection_s": 0.055811500002164394,
+        "adaptation_s": 5.3499999921768904e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 19,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 16,
+        "index": 15,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000025691",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12232069997116923
+        },
+        "prequery_probability": 0.9339430332183838,
+        "selection_s": 0.08219960000133142,
+        "adaptation_s": 2.829998265951872e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 39,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 17,
+        "index": 16,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000029041",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12222530000144616
+        },
+        "prequery_probability": 0.933975875377655,
+        "selection_s": 0.07094529998721555,
+        "adaptation_s": 2.9499991796910763e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 35,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 18,
+        "index": 17,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000032589",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12182500003837049
+        },
+        "prequery_probability": 0.9340046048164368,
+        "selection_s": 0.07301929994719103,
+        "adaptation_s": 2.7300033252686262e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 37,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 19,
+        "index": 18,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000037220",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12280219997046515
+        },
+        "prequery_probability": 0.9339790940284729,
+        "selection_s": 0.09376669995253906,
+        "adaptation_s": 2.7800037059932947e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 46,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 20,
+        "index": 19,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000040316",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.13038769998820499
+        },
+        "prequery_probability": 0.933833122253418,
+        "selection_s": 0.06592110003111884,
+        "adaptation_s": 2.889998722821474e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 36,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 21,
+        "index": 20,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000043451",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.13490800000727177
+        },
+        "prequery_probability": 0.9340044856071472,
+        "selection_s": 0.07411789998877794,
+        "adaptation_s": 3.1999952625483274e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 29,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 22,
+        "index": 21,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000045254",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.1243934000376612
+        },
+        "prequery_probability": 0.9339384436607361,
+        "selection_s": 0.0403531999909319,
+        "adaptation_s": 2.989999484270811e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 18,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 23,
+        "index": 22,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000048806",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12158500001532957
+        },
+        "prequery_probability": 0.9339231848716736,
+        "selection_s": 0.07195650000358,
+        "adaptation_s": 2.9499991796910763e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 43,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 24,
+        "index": 23,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000053577",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12979899998754263
+        },
+        "prequery_probability": 0.9338142275810242,
+        "selection_s": 0.09913079999387264,
+        "adaptation_s": 3.0399998649954796e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 47,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 25,
+        "index": 24,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000057864",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12088060000678524
+        },
+        "prequery_probability": 0.9339300394058228,
+        "selection_s": 0.09476420003920794,
+        "adaptation_s": 2.640002639964223e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 43,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 26,
+        "index": 25,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000061447",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12287670001387596
+        },
+        "prequery_probability": 0.9339970946311951,
+        "selection_s": 0.07475169998360798,
+        "adaptation_s": 2.8500042390078306e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 35,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 27,
+        "index": 26,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000065240",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.13236519997008145
+        },
+        "prequery_probability": 0.9338676333427429,
+        "selection_s": 0.07795940001960844,
+        "adaptation_s": 3.0199997127056122e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 37,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 28,
+        "index": 27,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000069663",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12975089997053146
+        },
+        "prequery_probability": 0.9339025616645813,
+        "selection_s": 0.09352920000674203,
+        "adaptation_s": 2.9499991796910763e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 46,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 29,
+        "index": 28,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000073263",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.13240719999885187
+        },
+        "prequery_probability": 0.9339997172355652,
+        "selection_s": 0.07602989999577403,
+        "adaptation_s": 2.9499991796910763e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 35,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 30,
+        "index": 29,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000077218",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12517030001617968
+        },
+        "prequery_probability": 0.9339945912361145,
+        "selection_s": 0.08026399998925626,
+        "adaptation_s": 2.9300048481673002e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 37,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 31,
+        "index": 30,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000081128",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12252189998980612
+        },
+        "prequery_probability": 0.9337894916534424,
+        "selection_s": 0.0800491000409238,
+        "adaptation_s": 3.090000245720148e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 40,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      },
+      {
+        "query": 32,
+        "index": 31,
+        "feedback": {
+          "scenario_id": "cut_out:continuous:1910014:000083945",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.12114619999192655
+        },
+        "prequery_probability": 0.9338054656982422,
+        "selection_s": 0.058511000010184944,
+        "adaptation_s": 2.829998265951872e-05,
+        "search": "saliency_hill_climbing",
+        "neighborhoods": 27,
+        "neighborhood_size": 50,
+        "reason": "indago"
+      }
+    ],
+    "actual_queries": 32,
+    "maximum_queries": 32,
+    "selected_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ],
+    "model_construction_s": 8.350005373358727e-05,
+    "termination": "budget_exhausted"
+  },
+  "metrics": {
+    "queries": 32,
+    "unique_collisions": 3,
+    "collision_executions": 24,
+    "discovery_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      2,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "discovery_auc": 2.03125,
+    "behavior_coverage": 1,
+    "behavior_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "behavior_signatures": [
+      [
+        "lead",
+        "front",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "pre_event"
+      ]
+    ],
+    "behavior_counts": {
+      "collision_object": {
+        "lead": 24
+      },
+      "contact_direction": {
+        "front": 24
+      },
+      "ego_action": {
+        "lane_keep/brake": 24
+      },
+      "event_phase": {
+        "pre_event": 24
+      }
+    },
+    "first_collision_query": 9,
+    "first_collision": {
+      "time": 9,
+      "observed": true
+    },
+    "brier": 0.016191451946782037,
+    "violation_counts": {},
+    "minimum_clearance_m": 0.0,
+    "minimum_ttc_s": 0.0,
+    "equivalent_execution_s": 9.520902200078126,
+    "selection_s": 1.8212707999628037,
+    "adaptation_s": 0.0010711001814343035
+  },
+  "candidates": [
+    {
+      "scenario_id": "cut_out:continuous:910014:000000002",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.72552140143255,
+        "gap_m": 12.238370582710075,
+        "lead_speed_mps": 15.038644606344189,
+        "obstacle_distance_m": 95.04439340699506,
+        "event_time_s": 0.5456954164866805,
+        "lateral_duration_s": 3.1011561750179832
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000006",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 18.686331778878497,
+        "gap_m": 11.919497761388408,
+        "lead_speed_mps": 22.018116430034368,
+        "obstacle_distance_m": 136.3101904742249,
+        "event_time_s": 1.5714998158161062,
+        "lateral_duration_s": 2.4578443692715153
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000007",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 27.009235972463845,
+        "gap_m": 22.29435759896016,
+        "lead_speed_mps": 16.446661043619233,
+        "obstacle_distance_m": 119.13358142265305,
+        "event_time_s": 0.7264254372915865,
+        "lateral_duration_s": 2.2426034943523074
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000008",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 32.25798394882425,
+        "gap_m": 47.88754964704761,
+        "lead_speed_mps": 16.393726993098966,
+        "obstacle_distance_m": 141.56068801592923,
+        "event_time_s": 0.7253019352075627,
+        "lateral_duration_s": 2.5283399107947604
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000010",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.89102484463082,
+        "gap_m": 36.77864412306527,
+        "lead_speed_mps": 18.08171316607207,
+        "obstacle_distance_m": 150.7681721330058,
+        "event_time_s": 1.7393353100678133,
+        "lateral_duration_s": 3.8522343656559075
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000015",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 21.17534006716548,
+        "gap_m": 14.274054737780435,
+        "lead_speed_mps": 26.951620334104163,
+        "obstacle_distance_m": 154.28634725769967,
+        "event_time_s": 1.772045626564255,
+        "lateral_duration_s": 1.9224974399989063
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000018",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 33.660722046097334,
+        "gap_m": 27.244301290051993,
+        "lead_speed_mps": 18.697935776165863,
+        "obstacle_distance_m": 127.90005135193337,
+        "event_time_s": 1.7820262566130882,
+        "lateral_duration_s": 1.9278912561150867
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:910014:000000020",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 23.82671341936272,
+        "gap_m": 26.20282653233775,
+        "lead_speed_mps": 17.53552500587112,
+        "obstacle_distance_m": 115.73067331557854,
+        "event_time_s": 1.7732234945109628,
+        "lateral_duration_s": 2.387145076234102
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000002860",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000005870",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 158.85505620471613,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000008537",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.996595580809986
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000011638",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.9590127762126484
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000015755",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.51941475005572,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000019582",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 157.38181032797038,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000021745",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 1.9898938264928798,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000025691",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.08684733124943,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000029041",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.9925991027551397
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000032589",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.94226882044876,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000037220",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.5887528953573,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000040316",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.962856866421008
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000043451",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.93989804424317,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000045254",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.02306132080597,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000048806",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 158.87053032755267,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000053577",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.959755494616429
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000057864",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 158.92787400349417,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000061447",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.997389450339866
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000065240",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 1.9929735478665864,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000069663",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.9761267136998644
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000073263",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.8745967735963,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000077218",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 159.80266323107557,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000081128",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 2.0,
+        "lateral_duration_s": 3.955686168631223
+      },
+      "categories": {}
+    },
+    {
+      "scenario_id": "cut_out:continuous:1910014:000083945",
+      "kind": "cut_out",
+      "parameters": {
+        "ego_speed_mps": 34.0,
+        "gap_m": 8.0,
+        "lead_speed_mps": 14.0,
+        "obstacle_distance_m": 160.0,
+        "event_time_s": 1.9898841230348627,
+        "lateral_duration_s": 4.0
+      },
+      "categories": {}
+    }
+  ],
+  "query_ledger": [
+    {
+      "call": 1,
+      "index": 0,
+      "scenario_id": "cut_out:continuous:910014:000000002",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 1.0859205999877304,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000002",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.3246043492531933,
+          "min_ttc_s": 1.0189222475818631,
+          "violations": []
+        },
+        "execution_s": 1.066115900001023
+      }
+    },
+    {
+      "call": 2,
+      "index": 1,
+      "scenario_id": "cut_out:continuous:910014:000000006",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.8233650999609381,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000006",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000206399004986,
+          "min_ttc_s": 6.841993854238905,
+          "violations": []
+        },
+        "execution_s": 0.8067227000137791
+      }
+    },
+    {
+      "call": 3,
+      "index": 2,
+      "scenario_id": "cut_out:continuous:910014:000000007",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.7634100999566726,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000007",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.989725574352724,
+          "min_ttc_s": 2.1106934387824343,
+          "violations": []
+        },
+        "execution_s": 0.7452258000266738
+      }
+    },
+    {
+      "call": 4,
+      "index": 3,
+      "scenario_id": "cut_out:continuous:910014:000000008",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.7781202999758534,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000008",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000198936384809,
+          "min_ttc_s": 3.0185813165214377,
+          "violations": []
+        },
+        "execution_s": 0.7602086000260897
+      }
+    },
+    {
+      "call": 5,
+      "index": 4,
+      "scenario_id": "cut_out:continuous:910014:000000010",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.7797011000220664,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000010",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.063271810475708,
+          "min_ttc_s": 1.5228754334948806,
+          "violations": []
+        },
+        "execution_s": 0.7623714000219479
+      }
+    },
+    {
+      "call": 6,
+      "index": 5,
+      "scenario_id": "cut_out:continuous:910014:000000015",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.8408660999848507,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000015",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999033631927932,
+          "min_ttc_s": 7.120846549780292,
+          "violations": []
+        },
+        "execution_s": 0.822709699976258
+      }
+    },
+    {
+      "call": 7,
+      "index": 6,
+      "scenario_id": "cut_out:continuous:910014:000000018",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.8131776999798603,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000018",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.60043114762461,
+          "min_ttc_s": 1.3784456203950497,
+          "violations": []
+        },
+        "execution_s": 0.7932846000185236
+      }
+    },
+    {
+      "call": 8,
+      "index": 7,
+      "scenario_id": "cut_out:continuous:910014:000000020",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.77166169998236,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:910014:000000020",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.996723586163709,
+          "min_ttc_s": 3.06605020724911,
+          "violations": []
+        },
+        "execution_s": 0.7529887999990024
+      }
+    },
+    {
+      "call": 9,
+      "index": 8,
+      "scenario_id": "cut_out:continuous:1910014:000002860",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.13367960002506152,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000002860",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12847550003789365
+      }
+    },
+    {
+      "call": 10,
+      "index": 9,
+      "scenario_id": "cut_out:continuous:1910014:000005870",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.13472139998339117,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000005870",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.13175410003168508
+      }
+    },
+    {
+      "call": 11,
+      "index": 10,
+      "scenario_id": "cut_out:continuous:1910014:000008537",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12572920002276078,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000008537",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12164019996998832
+      }
+    },
+    {
+      "call": 12,
+      "index": 11,
+      "scenario_id": "cut_out:continuous:1910014:000011638",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12441500002751127,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000011638",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12164089997531846
+      }
+    },
+    {
+      "call": 13,
+      "index": 12,
+      "scenario_id": "cut_out:continuous:1910014:000015755",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12640520004788414,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000015755",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12309469998581335
+      }
+    },
+    {
+      "call": 14,
+      "index": 13,
+      "scenario_id": "cut_out:continuous:1910014:000019582",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12632330000633374,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000019582",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12226109998300672
+      }
+    },
+    {
+      "call": 15,
+      "index": 14,
+      "scenario_id": "cut_out:continuous:1910014:000021745",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12850839999737218,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000021745",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12504290003562346
+      }
+    },
+    {
+      "call": 16,
+      "index": 15,
+      "scenario_id": "cut_out:continuous:1910014:000025691",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12681719998363405,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000025691",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12232069997116923
+      }
+    },
+    {
+      "call": 17,
+      "index": 16,
+      "scenario_id": "cut_out:continuous:1910014:000029041",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12660020001931116,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000029041",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12222530000144616
+      }
+    },
+    {
+      "call": 18,
+      "index": 17,
+      "scenario_id": "cut_out:continuous:1910014:000032589",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12657830002717674,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000032589",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12182500003837049
+      }
+    },
+    {
+      "call": 19,
+      "index": 18,
+      "scenario_id": "cut_out:continuous:1910014:000037220",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12678049999522045,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000037220",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12280219997046515
+      }
+    },
+    {
+      "call": 20,
+      "index": 19,
+      "scenario_id": "cut_out:continuous:1910014:000040316",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.13399420003406703,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000040316",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.13038769998820499
+      }
+    },
+    {
+      "call": 21,
+      "index": 20,
+      "scenario_id": "cut_out:continuous:1910014:000043451",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.1382177000050433,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000043451",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.13490800000727177
+      }
+    },
+    {
+      "call": 22,
+      "index": 21,
+      "scenario_id": "cut_out:continuous:1910014:000045254",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.1274381999974139,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000045254",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.1243934000376612
+      }
+    },
+    {
+      "call": 23,
+      "index": 22,
+      "scenario_id": "cut_out:continuous:1910014:000048806",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12443269998766482,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000048806",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12158500001532957
+      }
+    },
+    {
+      "call": 24,
+      "index": 23,
+      "scenario_id": "cut_out:continuous:1910014:000053577",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.13281850004568696,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000053577",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12979899998754263
+      }
+    },
+    {
+      "call": 25,
+      "index": 24,
+      "scenario_id": "cut_out:continuous:1910014:000057864",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.1241314000217244,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000057864",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12088060000678524
+      }
+    },
+    {
+      "call": 26,
+      "index": 25,
+      "scenario_id": "cut_out:continuous:1910014:000061447",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12577590002911165,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000061447",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12287670001387596
+      }
+    },
+    {
+      "call": 27,
+      "index": 26,
+      "scenario_id": "cut_out:continuous:1910014:000065240",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.13539010001113638,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000065240",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.13236519997008145
+      }
+    },
+    {
+      "call": 28,
+      "index": 27,
+      "scenario_id": "cut_out:continuous:1910014:000069663",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.13282410003012046,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000069663",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12975089997053146
+      }
+    },
+    {
+      "call": 29,
+      "index": 28,
+      "scenario_id": "cut_out:continuous:1910014:000073263",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.1352774000260979,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000073263",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.13240719999885187
+      }
+    },
+    {
+      "call": 30,
+      "index": 29,
+      "scenario_id": "cut_out:continuous:1910014:000077218",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.1282943999976851,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000077218",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12517030001617968
+      }
+    },
+    {
+      "call": 31,
+      "index": 30,
+      "scenario_id": "cut_out:continuous:1910014:000081128",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12611349998041987,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000081128",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12252189998980612
+      }
+    },
+    {
+      "call": 32,
+      "index": 31,
+      "scenario_id": "cut_out:continuous:1910014:000083945",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.12416770000709221,
+      "feedback": {
+        "scenario_id": "cut_out:continuous:1910014:000083945",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.12114619999192655
+      }
+    }
+  ],
+  "cost": {
+    "execution_mode": "actual_on_demand",
+    "actual_physical_calls": 32,
+    "physical_execution_s": 9.520902200078126,
+    "sut_initialization_s": 0.000640799873508513,
+    "model_construction_s": 0.08538080001017079,
+    "selector_process_wall_s": 15.213980600005016,
+    "physical_log": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\results\\benchmark\\collision\\continuous_development\\development_linear_mpc\\cut_out\\indago_11"
+  }
+}

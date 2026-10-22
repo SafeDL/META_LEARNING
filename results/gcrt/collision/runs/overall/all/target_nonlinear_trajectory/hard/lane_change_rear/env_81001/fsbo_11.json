@@ -1,0 +1,6090 @@
+{
+  "specification": {
+    "metadata": {
+      "study": "overall",
+      "target_id": "target_nonlinear_trajectory",
+      "family": "optimization",
+      "lineage": "nonlinear_trajectory",
+      "scenario": "lane_change_rear",
+      "condition": "hard",
+      "environment_seed": 81001,
+      "algorithm_seed": 11,
+      "method": "fsbo",
+      "scope": "all"
+    },
+    "construction": {
+      "bank_contract": {
+        "source_files": {
+          "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+          "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+          "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+          "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+          "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+          "controllers/highway/optimization.py": "f0db475db0c18b299409923839e3f7fd1d6bf700f3b5e49b40bbe8c67a211a4c",
+          "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+        },
+        "object": {
+          "sut_id": "target_nonlinear_trajectory",
+          "family": "optimization",
+          "lineage": "nonlinear_trajectory",
+          "version": "target",
+          "role": "target",
+          "parameters": {
+            "horizon_s": 3,
+            "desired_speed_mps": 32,
+            "headway_s": 1.3,
+            "effort_weight": 0.15
+          },
+          "training_run": null,
+          "training_seed": null,
+          "reference_id": "history_nonlinear_trajectory",
+          "supported_scenarios": [
+            "front_brake",
+            "cut_in",
+            "cut_out",
+            "lane_change_rear"
+          ]
+        },
+        "episode_duration_s": 10.0,
+        "highway_env": "1.9.1",
+        "numpy": "2.2.6"
+      },
+      "candidate_ids": [
+        "lane_change_rear:hard:0:000006",
+        "lane_change_rear:hard:0:000012",
+        "lane_change_rear:hard:0:000032",
+        "lane_change_rear:hard:0:000039",
+        "lane_change_rear:hard:0:000054",
+        "lane_change_rear:hard:0:000059",
+        "lane_change_rear:hard:0:000072",
+        "lane_change_rear:hard:0:000079",
+        "lane_change_rear:hard:0:000083",
+        "lane_change_rear:hard:0:000084",
+        "lane_change_rear:hard:0:000089",
+        "lane_change_rear:hard:0:000094",
+        "lane_change_rear:hard:0:000099",
+        "lane_change_rear:hard:0:000100",
+        "lane_change_rear:hard:0:000127",
+        "lane_change_rear:hard:0:000140",
+        "lane_change_rear:hard:0:000144",
+        "lane_change_rear:hard:0:000151",
+        "lane_change_rear:hard:0:000160",
+        "lane_change_rear:hard:0:000167",
+        "lane_change_rear:hard:0:000200",
+        "lane_change_rear:hard:0:000245",
+        "lane_change_rear:hard:0:000255",
+        "lane_change_rear:hard:0:000259",
+        "lane_change_rear:hard:0:000260",
+        "lane_change_rear:hard:0:000265",
+        "lane_change_rear:hard:0:000280",
+        "lane_change_rear:hard:0:000307",
+        "lane_change_rear:hard:0:000308",
+        "lane_change_rear:hard:0:000313",
+        "lane_change_rear:hard:0:000347",
+        "lane_change_rear:hard:0:000348",
+        "lane_change_rear:hard:0:000353",
+        "lane_change_rear:hard:0:000364",
+        "lane_change_rear:hard:0:000368",
+        "lane_change_rear:hard:0:000408",
+        "lane_change_rear:hard:0:000415",
+        "lane_change_rear:hard:0:000424",
+        "lane_change_rear:hard:0:000431",
+        "lane_change_rear:hard:0:000448",
+        "lane_change_rear:hard:0:000455",
+        "lane_change_rear:hard:0:000496",
+        "lane_change_rear:hard:0:000503",
+        "lane_change_rear:hard:0:000520",
+        "lane_change_rear:hard:0:000527",
+        "lane_change_rear:hard:0:000568",
+        "lane_change_rear:hard:0:000575",
+        "lane_change_rear:hard:0:000592",
+        "lane_change_rear:hard:0:000599",
+        "lane_change_rear:hard:0:000608",
+        "lane_change_rear:hard:0:000615",
+        "lane_change_rear:hard:0:000648",
+        "lane_change_rear:hard:0:000655",
+        "lane_change_rear:hard:0:000659",
+        "lane_change_rear:hard:0:000660",
+        "lane_change_rear:hard:0:000665",
+        "lane_change_rear:hard:0:000675",
+        "lane_change_rear:hard:0:000676",
+        "lane_change_rear:hard:0:000715",
+        "lane_change_rear:hard:0:000716",
+        "lane_change_rear:hard:0:000736",
+        "lane_change_rear:hard:0:000753",
+        "lane_change_rear:hard:0:000758",
+        "lane_change_rear:hard:0:000763",
+        "lane_change_rear:hard:0:000764",
+        "lane_change_rear:hard:0:000775",
+        "lane_change_rear:hard:0:000816",
+        "lane_change_rear:hard:0:000856",
+        "lane_change_rear:hard:0:000863",
+        "lane_change_rear:hard:0:000872",
+        "lane_change_rear:hard:0:000879",
+        "lane_change_rear:hard:0:000923",
+        "lane_change_rear:hard:0:000924",
+        "lane_change_rear:hard:0:000929",
+        "lane_change_rear:hard:0:000934",
+        "lane_change_rear:hard:0:000939",
+        "lane_change_rear:hard:0:000940",
+        "lane_change_rear:hard:0:000944",
+        "lane_change_rear:hard:0:000951",
+        "lane_change_rear:hard:0:000963",
+        "lane_change_rear:hard:0:000969",
+        "lane_change_rear:hard:0:000974",
+        "lane_change_rear:hard:0:000991",
+        "lane_change_rear:hard:0:001011",
+        "lane_change_rear:hard:0:001012",
+        "lane_change_rear:hard:0:001027",
+        "lane_change_rear:hard:0:001028",
+        "lane_change_rear:hard:0:001055",
+        "lane_change_rear:hard:0:001071",
+        "lane_change_rear:hard:0:001075",
+        "lane_change_rear:hard:0:001076",
+        "lane_change_rear:hard:0:001081",
+        "lane_change_rear:hard:0:001086",
+        "lane_change_rear:hard:0:001088",
+        "lane_change_rear:hard:0:001095",
+        "lane_change_rear:hard:0:001110",
+        "lane_change_rear:hard:0:001116",
+        "lane_change_rear:hard:0:001126",
+        "lane_change_rear:hard:0:001131",
+        "lane_change_rear:hard:0:001173",
+        "lane_change_rear:hard:0:001176",
+        "lane_change_rear:hard:0:001183",
+        "lane_change_rear:hard:0:001199",
+        "lane_change_rear:hard:0:001216",
+        "lane_change_rear:hard:0:001223",
+        "lane_change_rear:hard:0:001260",
+        "lane_change_rear:hard:0:001264",
+        "lane_change_rear:hard:0:001271",
+        "lane_change_rear:hard:0:001286",
+        "lane_change_rear:hard:0:001291",
+        "lane_change_rear:hard:0:001292",
+        "lane_change_rear:hard:0:001296",
+        "lane_change_rear:hard:0:001312",
+        "lane_change_rear:hard:0:001339",
+        "lane_change_rear:hard:0:001340",
+        "lane_change_rear:hard:0:001363",
+        "lane_change_rear:hard:0:001364",
+        "lane_change_rear:hard:0:001379",
+        "lane_change_rear:hard:0:001380",
+        "lane_change_rear:hard:0:001385",
+        "lane_change_rear:hard:0:001400",
+        "lane_change_rear:hard:0:001407",
+        "lane_change_rear:hard:0:001424",
+        "lane_change_rear:hard:0:001431",
+        "lane_change_rear:hard:0:001440",
+        "lane_change_rear:hard:0:001447",
+        "lane_change_rear:hard:0:001480",
+        "lane_change_rear:hard:0:001487",
+        "lane_change_rear:hard:0:001491",
+        "lane_change_rear:hard:0:001528",
+        "lane_change_rear:hard:0:001535",
+        "lane_change_rear:hard:0:001536",
+        "lane_change_rear:hard:0:001543",
+        "lane_change_rear:hard:0:001584",
+        "lane_change_rear:hard:0:001591",
+        "lane_change_rear:hard:0:001594",
+        "lane_change_rear:hard:0:001624",
+        "lane_change_rear:hard:0:001631",
+        "lane_change_rear:hard:0:001640",
+        "lane_change_rear:hard:0:001647",
+        "lane_change_rear:hard:0:001671",
+        "lane_change_rear:hard:0:001681",
+        "lane_change_rear:hard:0:001686",
+        "lane_change_rear:hard:0:001692",
+        "lane_change_rear:hard:0:001707",
+        "lane_change_rear:hard:0:001708",
+        "lane_change_rear:hard:0:001731",
+        "lane_change_rear:hard:0:001732",
+        "lane_change_rear:hard:0:001737",
+        "lane_change_rear:hard:0:001768",
+        "lane_change_rear:hard:0:001775",
+        "lane_change_rear:hard:0:001779",
+        "lane_change_rear:hard:0:001780",
+        "lane_change_rear:hard:0:001790",
+        "lane_change_rear:hard:0:001800",
+        "lane_change_rear:hard:0:001807",
+        "lane_change_rear:hard:0:001848",
+        "lane_change_rear:hard:0:001855",
+        "lane_change_rear:hard:0:001879",
+        "lane_change_rear:hard:0:001888",
+        "lane_change_rear:hard:0:001939",
+        "lane_change_rear:hard:0:001961",
+        "lane_change_rear:hard:0:001966",
+        "lane_change_rear:hard:0:001976",
+        "lane_change_rear:hard:0:001983",
+        "lane_change_rear:hard:0:001985",
+        "lane_change_rear:hard:0:001990",
+        "lane_change_rear:hard:0:001995",
+        "lane_change_rear:hard:0:001996",
+        "lane_change_rear:hard:0:002000",
+        "lane_change_rear:hard:0:002007",
+        "lane_change_rear:hard:0:002043",
+        "lane_change_rear:hard:0:002044",
+        "lane_change_rear:hard:0:002075",
+        "lane_change_rear:hard:0:002076",
+        "lane_change_rear:hard:0:002086",
+        "lane_change_rear:hard:0:002091",
+        "lane_change_rear:hard:0:002092",
+        "lane_change_rear:hard:0:002096",
+        "lane_change_rear:hard:0:002103",
+        "lane_change_rear:hard:0:002115",
+        "lane_change_rear:hard:0:002121",
+        "lane_change_rear:hard:0:002126",
+        "lane_change_rear:hard:0:002143",
+        "lane_change_rear:hard:0:002163",
+        "lane_change_rear:hard:0:002164",
+        "lane_change_rear:hard:0:002176",
+        "lane_change_rear:hard:0:002183",
+        "lane_change_rear:hard:0:002224",
+        "lane_change_rear:hard:0:002231",
+        "lane_change_rear:hard:0:002264",
+        "lane_change_rear:hard:0:002271",
+        "lane_change_rear:hard:0:002280",
+        "lane_change_rear:hard:0:002287",
+        "lane_change_rear:hard:0:002312",
+        "lane_change_rear:hard:0:002319",
+        "lane_change_rear:hard:0:002323",
+        "lane_change_rear:hard:0:002324",
+        "lane_change_rear:hard:0:002329",
+        "lane_change_rear:hard:0:002334",
+        "lane_change_rear:hard:0:002339",
+        "lane_change_rear:hard:0:002340",
+        "lane_change_rear:hard:0:002379",
+        "lane_change_rear:hard:0:002384",
+        "lane_change_rear:hard:0:002400",
+        "lane_change_rear:hard:0:002407",
+        "lane_change_rear:hard:0:002417",
+        "lane_change_rear:hard:0:002422",
+        "lane_change_rear:hard:0:002428",
+        "lane_change_rear:hard:0:002440",
+        "lane_change_rear:hard:0:002447",
+        "lane_change_rear:hard:0:002467",
+        "lane_change_rear:hard:0:002488",
+        "lane_change_rear:hard:0:002512",
+        "lane_change_rear:hard:0:002519",
+        "lane_change_rear:hard:0:002528",
+        "lane_change_rear:hard:0:002535",
+        "lane_change_rear:hard:0:002584",
+        "lane_change_rear:hard:0:002591",
+        "lane_change_rear:hard:0:002600",
+        "lane_change_rear:hard:0:002607",
+        "lane_change_rear:hard:0:002624",
+        "lane_change_rear:hard:0:002679",
+        "lane_change_rear:hard:0:002692",
+        "lane_change_rear:hard:0:002697",
+        "lane_change_rear:hard:0:002712",
+        "lane_change_rear:hard:0:002719",
+        "lane_change_rear:hard:0:002739",
+        "lane_change_rear:hard:0:002779",
+        "lane_change_rear:hard:0:002780",
+        "lane_change_rear:hard:0:002785",
+        "lane_change_rear:hard:0:002790",
+        "lane_change_rear:hard:0:002796",
+        "lane_change_rear:hard:0:002800",
+        "lane_change_rear:hard:0:002828",
+        "lane_change_rear:hard:0:002832",
+        "lane_change_rear:hard:0:002839",
+        "lane_change_rear:hard:0:002848",
+        "lane_change_rear:hard:0:002855",
+        "lane_change_rear:hard:0:002888",
+        "lane_change_rear:hard:0:002895",
+        "lane_change_rear:hard:0:002933",
+        "lane_change_rear:hard:0:002936",
+        "lane_change_rear:hard:0:002943",
+        "lane_change_rear:hard:0:002950",
+        "lane_change_rear:hard:0:002955",
+        "lane_change_rear:hard:0:002956",
+        "lane_change_rear:hard:0:002983",
+        "lane_change_rear:hard:0:002998",
+        "lane_change_rear:hard:0:003003",
+        "lane_change_rear:hard:0:003004",
+        "lane_change_rear:hard:0:003016",
+        "lane_change_rear:hard:0:003023",
+        "lane_change_rear:hard:0:003027",
+        "lane_change_rear:hard:0:003028",
+        "lane_change_rear:hard:0:003038",
+        "lane_change_rear:hard:0:003043",
+        "lane_change_rear:hard:0:003044",
+        "lane_change_rear:hard:0:003071",
+        "lane_change_rear:hard:0:003091",
+        "lane_change_rear:hard:0:003092",
+        "lane_change_rear:hard:0:003107",
+        "lane_change_rear:hard:0:003113",
+        "lane_change_rear:hard:0:003118",
+        "lane_change_rear:hard:0:003128",
+        "lane_change_rear:hard:0:003137",
+        "lane_change_rear:hard:0:003147",
+        "lane_change_rear:hard:0:003148",
+        "lane_change_rear:hard:0:003152",
+        "lane_change_rear:hard:0:003159",
+        "lane_change_rear:hard:0:003195",
+        "lane_change_rear:hard:0:003196",
+        "lane_change_rear:hard:0:003208",
+        "lane_change_rear:hard:0:003215",
+        "lane_change_rear:hard:0:003256",
+        "lane_change_rear:hard:0:003263",
+        "lane_change_rear:hard:0:003280",
+        "lane_change_rear:hard:0:003287",
+        "lane_change_rear:hard:0:003296",
+        "lane_change_rear:hard:0:003303",
+        "lane_change_rear:hard:0:003328",
+        "lane_change_rear:hard:0:003335",
+        "lane_change_rear:hard:0:003345",
+        "lane_change_rear:hard:0:003350",
+        "lane_change_rear:hard:0:003372",
+        "lane_change_rear:hard:0:003395",
+        "lane_change_rear:hard:0:003396",
+        "lane_change_rear:hard:0:003401",
+        "lane_change_rear:hard:0:003432",
+        "lane_change_rear:hard:0:003439",
+        "lane_change_rear:hard:0:003443",
+        "lane_change_rear:hard:0:003444",
+        "lane_change_rear:hard:0:003449",
+        "lane_change_rear:hard:0:003454",
+        "lane_change_rear:hard:0:003456",
+        "lane_change_rear:hard:0:003463",
+        "lane_change_rear:hard:0:003504",
+        "lane_change_rear:hard:0:003511",
+        "lane_change_rear:hard:0:003514",
+        "lane_change_rear:hard:0:003551",
+        "lane_change_rear:hard:0:003560",
+        "lane_change_rear:hard:0:003600",
+        "lane_change_rear:hard:0:003623",
+        "lane_change_rear:hard:0:003626",
+        "lane_change_rear:hard:0:003656",
+        "lane_change_rear:hard:0:003663",
+        "lane_change_rear:hard:0:003667",
+        "lane_change_rear:hard:0:003704",
+        "lane_change_rear:hard:0:003711",
+        "lane_change_rear:hard:0:003713",
+        "lane_change_rear:hard:0:003718",
+        "lane_change_rear:hard:0:003723",
+        "lane_change_rear:hard:0:003724",
+        "lane_change_rear:hard:0:003728",
+        "lane_change_rear:hard:0:003744",
+        "lane_change_rear:hard:0:003771",
+        "lane_change_rear:hard:0:003772",
+        "lane_change_rear:hard:0:003796",
+        "lane_change_rear:hard:0:003811",
+        "lane_change_rear:hard:0:003812",
+        "lane_change_rear:hard:0:003817",
+        "lane_change_rear:hard:0:003832",
+        "lane_change_rear:hard:0:003839",
+        "lane_change_rear:hard:0:003861",
+        "lane_change_rear:hard:0:003864",
+        "lane_change_rear:hard:0:003871",
+        "lane_change_rear:hard:0:003880",
+        "lane_change_rear:hard:0:003887",
+        "lane_change_rear:hard:0:003904",
+        "lane_change_rear:hard:0:003911",
+        "lane_change_rear:hard:0:003948",
+        "lane_change_rear:hard:0:003952",
+        "lane_change_rear:hard:0:003959",
+        "lane_change_rear:hard:0:003971",
+        "lane_change_rear:hard:0:003972",
+        "lane_change_rear:hard:0:003999",
+        "lane_change_rear:hard:0:004015",
+        "lane_change_rear:hard:0:004019",
+        "lane_change_rear:hard:0:004020",
+        "lane_change_rear:hard:0:004025",
+        "lane_change_rear:hard:0:004032",
+        "lane_change_rear:hard:0:004049",
+        "lane_change_rear:hard:0:004054",
+        "lane_change_rear:hard:0:004059",
+        "lane_change_rear:hard:0:004060",
+        "lane_change_rear:hard:0:004070",
+        "lane_change_rear:hard:0:004075",
+        "lane_change_rear:hard:0:004076",
+        "lane_change_rear:hard:0:004096",
+        "lane_change_rear:hard:0:004103",
+        "lane_change_rear:hard:0:004118",
+        "lane_change_rear:hard:0:004123",
+        "lane_change_rear:hard:0:004124",
+        "lane_change_rear:hard:0:004139",
+        "lane_change_rear:hard:0:004140",
+        "lane_change_rear:hard:0:004163",
+        "lane_change_rear:hard:0:004164",
+        "lane_change_rear:hard:0:004207",
+        "lane_change_rear:hard:0:004211",
+        "lane_change_rear:hard:0:004212",
+        "lane_change_rear:hard:0:004217",
+        "lane_change_rear:hard:0:004222",
+        "lane_change_rear:hard:0:004224",
+        "lane_change_rear:hard:0:004231",
+        "lane_change_rear:hard:0:004272",
+        "lane_change_rear:hard:0:004279",
+        "lane_change_rear:hard:0:004312",
+        "lane_change_rear:hard:0:004319",
+        "lane_change_rear:hard:0:004328",
+        "lane_change_rear:hard:0:004335",
+        "lane_change_rear:hard:0:004371",
+        "lane_change_rear:hard:0:004372",
+        "lane_change_rear:hard:0:004377",
+        "lane_change_rear:hard:0:004387",
+        "lane_change_rear:hard:0:004388",
+        "lane_change_rear:hard:0:004393",
+        "lane_change_rear:hard:0:004408",
+        "lane_change_rear:hard:0:004415",
+        "lane_change_rear:hard:0:004417",
+        "lane_change_rear:hard:0:004422",
+        "lane_change_rear:hard:0:004428",
+        "lane_change_rear:hard:0:004432",
+        "lane_change_rear:hard:0:004448",
+        "lane_change_rear:hard:0:004475",
+        "lane_change_rear:hard:0:004488",
+        "lane_change_rear:hard:0:004499",
+        "lane_change_rear:hard:0:004543",
+        "lane_change_rear:hard:0:004560",
+        "lane_change_rear:hard:0:004567",
+        "lane_change_rear:hard:0:004576",
+        "lane_change_rear:hard:0:004583",
+        "lane_change_rear:hard:0:004632",
+        "lane_change_rear:hard:0:004639",
+        "lane_change_rear:hard:0:004648",
+        "lane_change_rear:hard:0:004655",
+        "lane_change_rear:hard:0:004672",
+        "lane_change_rear:hard:0:004679",
+        "lane_change_rear:hard:0:004720",
+        "lane_change_rear:hard:0:004739",
+        "lane_change_rear:hard:0:004776",
+        "lane_change_rear:hard:0:004783",
+        "lane_change_rear:hard:0:004788",
+        "lane_change_rear:hard:0:004793",
+        "lane_change_rear:hard:0:004798",
+        "lane_change_rear:hard:0:004800",
+        "lane_change_rear:hard:0:004807",
+        "lane_change_rear:hard:0:004817",
+        "lane_change_rear:hard:0:004822",
+        "lane_change_rear:hard:0:004828",
+        "lane_change_rear:hard:0:004843",
+        "lane_change_rear:hard:0:004844",
+        "lane_change_rear:hard:0:004880",
+        "lane_change_rear:hard:0:004887",
+        "lane_change_rear:hard:0:004896",
+        "lane_change_rear:hard:0:004903",
+        "lane_change_rear:hard:0:004936",
+        "lane_change_rear:hard:0:004943",
+        "lane_change_rear:hard:0:004984",
+        "lane_change_rear:hard:0:004991",
+        "lane_change_rear:hard:0:004998",
+        "lane_change_rear:hard:0:005003",
+        "lane_change_rear:hard:0:005004",
+        "lane_change_rear:hard:0:005015",
+        "lane_change_rear:hard:0:005051",
+        "lane_change_rear:hard:0:005052",
+        "lane_change_rear:hard:0:005075",
+        "lane_change_rear:hard:0:005076",
+        "lane_change_rear:hard:0:005091",
+        "lane_change_rear:hard:0:005102",
+        "lane_change_rear:hard:0:005112",
+        "lane_change_rear:hard:0:005119",
+        "lane_change_rear:hard:0:005128",
+        "lane_change_rear:hard:0:005139",
+        "lane_change_rear:hard:0:005140",
+        "lane_change_rear:hard:0:005145",
+        "lane_change_rear:hard:0:005150",
+        "lane_change_rear:hard:0:005155",
+        "lane_change_rear:hard:0:005156",
+        "lane_change_rear:hard:0:005183",
+        "lane_change_rear:hard:0:005190",
+        "lane_change_rear:hard:0:005195",
+        "lane_change_rear:hard:0:005196",
+        "lane_change_rear:hard:0:005216",
+        "lane_change_rear:hard:0:005223",
+        "lane_change_rear:hard:0:005233",
+        "lane_change_rear:hard:0:005243",
+        "lane_change_rear:hard:0:005244",
+        "lane_change_rear:hard:0:005256",
+        "lane_change_rear:hard:0:005263",
+        "lane_change_rear:hard:0:005301",
+        "lane_change_rear:hard:0:005304",
+        "lane_change_rear:hard:0:005311",
+        "lane_change_rear:hard:0:005324",
+        "lane_change_rear:hard:0:005328",
+        "lane_change_rear:hard:0:005335",
+        "lane_change_rear:hard:0:005344",
+        "lane_change_rear:hard:0:005351",
+        "lane_change_rear:hard:0:005404",
+        "lane_change_rear:hard:0:005409",
+        "lane_change_rear:hard:0:005414",
+        "lane_change_rear:hard:0:005420",
+        "lane_change_rear:hard:0:005424",
+        "lane_change_rear:hard:0:005443",
+        "lane_change_rear:hard:0:005444",
+        "lane_change_rear:hard:0:005449",
+        "lane_change_rear:hard:0:005464",
+        "lane_change_rear:hard:0:005471",
+        "lane_change_rear:hard:0:005491",
+        "lane_change_rear:hard:0:005492",
+        "lane_change_rear:hard:0:005497",
+        "lane_change_rear:hard:0:005504",
+        "lane_change_rear:hard:0:005511",
+        "lane_change_rear:hard:0:005514",
+        "lane_change_rear:hard:0:005552",
+        "lane_change_rear:hard:0:005559",
+        "lane_change_rear:hard:0:005592",
+        "lane_change_rear:hard:0:005615",
+        "lane_change_rear:hard:0:005655",
+        "lane_change_rear:hard:0:005658",
+        "lane_change_rear:hard:0:005664",
+        "lane_change_rear:hard:0:005704",
+        "lane_change_rear:hard:0:005711",
+        "lane_change_rear:hard:0:005731",
+        "lane_change_rear:hard:0:005752",
+        "lane_change_rear:hard:0:005759",
+        "lane_change_rear:hard:0:005771",
+        "lane_change_rear:hard:0:005772",
+        "lane_change_rear:hard:0:005776",
+        "lane_change_rear:hard:0:005792",
+        "lane_change_rear:hard:0:005799",
+        "lane_change_rear:hard:0:005809",
+        "lane_change_rear:hard:0:005814",
+        "lane_change_rear:hard:0:005819",
+        "lane_change_rear:hard:0:005820",
+        "lane_change_rear:hard:0:005832",
+        "lane_change_rear:hard:0:005839",
+        "lane_change_rear:hard:0:005843",
+        "lane_change_rear:hard:0:005849",
+        "lane_change_rear:hard:0:005854",
+        "lane_change_rear:hard:0:005860",
+        "lane_change_rear:hard:0:005865",
+        "lane_change_rear:hard:0:005912",
+        "lane_change_rear:hard:0:005919",
+        "lane_change_rear:hard:0:005928",
+        "lane_change_rear:hard:0:005935",
+        "lane_change_rear:hard:0:005952",
+        "lane_change_rear:hard:0:005959",
+        "lane_change_rear:hard:0:006000",
+        "lane_change_rear:hard:0:006007",
+        "lane_change_rear:hard:0:006019",
+        "lane_change_rear:hard:0:006025",
+        "lane_change_rear:hard:0:006030"
+      ],
+      "history_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo",
+        "history_uct"
+      ],
+      "history_contracts": [
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/search.py": "b636aa918e19b55ef9e72c23b24f8bc8a2a5a8bb122a1736c473eb338645c367",
+            "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+          },
+          "object": {
+            "sut_id": "history_beam",
+            "family": "search",
+            "lineage": "beam",
+            "version": "history",
+            "role": "history",
+            "parameters": {
+              "horizon_steps": 5,
+              "beam_width": 12,
+              "desired_speed_mps": 30
+            },
+            "training_run": null,
+            "training_seed": null,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/learning.py": "ac96bec438f7260f689bba977d0b181b6dda3577b6f3f28d08b9df5320269b68",
+            "checkpoint": "58cb5979b8b9008139ee0a5991511b349982c16bb20851eebf4c2223964424c3"
+          },
+          "object": {
+            "sut_id": "history_dqn",
+            "family": "learning",
+            "lineage": "dqn",
+            "version": "history-persistent-speed-training",
+            "role": "history",
+            "parameters": {},
+            "training_run": "history_dqn_persistent_speed",
+            "training_seed": 1103,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6",
+          "stable_baselines3": "2.3.0",
+          "torch": "2.5.0+cu118"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/rule.py": "5a320c1125ab808f0dd9e07674fc293df1f602f8c62839035e7620c4064a3bc0"
+          },
+          "object": {
+            "sut_id": "history_fvdm_lane",
+            "family": "rule",
+            "lineage": "fvdm_lane",
+            "version": "history",
+            "role": "history",
+            "parameters": {
+              "headway_s": 1.5,
+              "desired_speed_mps": 30,
+              "velocity_gain": 0.6,
+              "rear_brake_limit": 3
+            },
+            "training_run": null,
+            "training_seed": null,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/rule.py": "5a320c1125ab808f0dd9e07674fc293df1f602f8c62839035e7620c4064a3bc0"
+          },
+          "object": {
+            "sut_id": "history_idm_mobil",
+            "family": "rule",
+            "lineage": "idm_mobil",
+            "version": "history",
+            "role": "history",
+            "parameters": {
+              "headway_s": 1.6,
+              "desired_speed_mps": 30,
+              "politeness": 0.3,
+              "rear_brake_limit": 3
+            },
+            "training_run": null,
+            "training_seed": null,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/optimization.py": "f0db475db0c18b299409923839e3f7fd1d6bf700f3b5e49b40bbe8c67a211a4c",
+            "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+          },
+          "object": {
+            "sut_id": "history_linear_mpc",
+            "family": "optimization",
+            "lineage": "linear_mpc",
+            "version": "history",
+            "role": "history",
+            "parameters": {
+              "horizon_s": 3,
+              "desired_speed_mps": 30,
+              "headway_s": 1.5,
+              "effort_weight": 0.1
+            },
+            "training_run": null,
+            "training_seed": null,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/optimization.py": "f0db475db0c18b299409923839e3f7fd1d6bf700f3b5e49b40bbe8c67a211a4c",
+            "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+          },
+          "object": {
+            "sut_id": "history_nonlinear_trajectory",
+            "family": "optimization",
+            "lineage": "nonlinear_trajectory",
+            "version": "history",
+            "role": "history",
+            "parameters": {
+              "horizon_s": 3,
+              "desired_speed_mps": 30,
+              "headway_s": 1.5,
+              "effort_weight": 0.15
+            },
+            "training_run": null,
+            "training_seed": null,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/learning.py": "ac96bec438f7260f689bba977d0b181b6dda3577b6f3f28d08b9df5320269b68",
+            "checkpoint": "495effb61a2f5423273900fc274cea80d1a85a52228047c14f482968cae62d66"
+          },
+          "object": {
+            "sut_id": "history_ppo",
+            "family": "learning",
+            "lineage": "ppo",
+            "version": "history-persistent-speed-training",
+            "role": "history",
+            "parameters": {},
+            "training_run": "history_ppo_persistent_speed",
+            "training_seed": 4117,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6",
+          "stable_baselines3": "2.3.0",
+          "torch": "2.5.0+cu118"
+        },
+        {
+          "source_files": {
+            "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+            "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+            "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+            "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+            "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+            "controllers/highway/search.py": "b636aa918e19b55ef9e72c23b24f8bc8a2a5a8bb122a1736c473eb338645c367",
+            "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+          },
+          "object": {
+            "sut_id": "history_uct",
+            "family": "search",
+            "lineage": "uct",
+            "version": "history",
+            "role": "history",
+            "parameters": {
+              "horizon_steps": 5,
+              "iterations": 96,
+              "exploration": 1.4,
+              "desired_speed_mps": 30
+            },
+            "training_run": null,
+            "training_seed": null,
+            "reference_id": null,
+            "supported_scenarios": [
+              "front_brake",
+              "cut_in",
+              "cut_out",
+              "lane_change_rear"
+            ]
+          },
+          "episode_duration_s": 10.0,
+          "highway_env": "1.9.1",
+          "numpy": "2.2.6"
+        }
+      ],
+      "history_fingerprints": {
+        "history_beam": "642df5aaa77792d782f3dd6266682094bf5c45404fb9b405d69f40a9c947378a",
+        "history_dqn": "1f6060c7c0ae9e8f15dcb2da1f4436bc93afefb09c8d208e2f880de79dfcd986",
+        "history_fvdm_lane": "4008a26d37cdef450179ba80ff621cfeb3cc653221f6085e9757eb7b0e4d26a3",
+        "history_idm_mobil": "d9e998d610cf0a88785f67b6b80a5383b1e398cd2e215636ef9ac0916d57b6ad",
+        "history_linear_mpc": "469958232899ab99269e71210fb2a6e82342c791d6b45033df2cd7bb10364946",
+        "history_nonlinear_trajectory": "532af11ce3e26c0aa2531af10cc2c99f544ccbfff71ec99c6a1282d969674403",
+        "history_ppo": "fc38fd430a99deced3fe302b3e4ea3bb72317b3add029ea418445d7f997fb066",
+        "history_uct": "3f0dc87b6c8c0aea07a92bc4981d963375d6584c7845eac8b176d7dade1a353c"
+      },
+      "method": "fsbo",
+      "algorithm_seed": 11,
+      "budget": 128,
+      "initial_count": 8,
+      "horizon": 5,
+      "checkpoint": {
+        "path": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\results\\baselines\\fsbo\\collision\\models\\all\\lane_change_rear.pt",
+        "sha256": "e9a247f6a27a32735bd01046a8450faf6939a8f560ac0310c73ac756659d1ec7"
+      }
+    }
+  },
+  "result": {
+    "method": "fsbo",
+    "queries": [
+      {
+        "query": 1,
+        "index": 159,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001888",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000143852251435,
+            "min_ttc_s": 0.5035658138127639,
+            "violations": []
+          },
+          "execution_s": 27.141714999976102
+        },
+        "prequery_probability": 0.44212046141944805,
+        "selection_s": 0.005527199944481254,
+        "adaptation_s": 1.2450097000109963,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 2,
+        "index": 377,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004415",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.997765924429991,
+            "min_ttc_s": 15.714548077119465,
+            "violations": []
+          },
+          "execution_s": 27.045480600034352
+        },
+        "prequery_probability": 0.28958604905707835,
+        "selection_s": 0.005497100006323308,
+        "adaptation_s": 0.0467449999996461,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 3,
+        "index": 193,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002287",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0760267491253401,
+            "min_ttc_s": 35.187201503213736,
+            "violations": []
+          },
+          "execution_s": 27.763531900011003
+        },
+        "prequery_probability": 0.2158047187049425,
+        "selection_s": 0.0034254000056535006,
+        "adaptation_s": 0.04727820004336536,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 4,
+        "index": 308,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003711",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.4323627712401712,
+            "min_ttc_s": 2.235789449435467,
+            "violations": []
+          },
+          "execution_s": 22.625961899990216
+        },
+        "prequery_probability": 0.20533027255009342,
+        "selection_s": 0.0035262000164948404,
+        "adaptation_s": 0.04651349998312071,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 5,
+        "index": 499,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005860",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.3549544324916862,
+            "min_ttc_s": 3.029477975530264,
+            "violations": []
+          },
+          "execution_s": 17.50623270001961
+        },
+        "prequery_probability": 0.15205071212103588,
+        "selection_s": 0.0037539000040851533,
+        "adaptation_s": 0.04682430002139881,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 6,
+        "index": 265,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003137",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1821780593238218,
+            "min_ttc_s": 2.238001269989644,
+            "violations": []
+          },
+          "execution_s": 16.44432459998643
+        },
+        "prequery_probability": 0.14823336666960243,
+        "selection_s": 0.0036562999594025314,
+        "adaptation_s": 0.04740209999727085,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 7,
+        "index": 179,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002103",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.394306076740295,
+            "min_ttc_s": 1.491894646818244,
+            "violations": []
+          },
+          "execution_s": 29.880068800004665
+        },
+        "prequery_probability": 0.15536457000652673,
+        "selection_s": 0.003653199994005263,
+        "adaptation_s": 0.04679069999838248,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 8,
+        "index": 318,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003811",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.122516108784404,
+            "min_ttc_s": 2.905965887402924,
+            "violations": []
+          },
+          "execution_s": 20.87195190001512
+        },
+        "prequery_probability": 0.10609212412942498,
+        "selection_s": 0.0037205000407993793,
+        "adaptation_s": 0.05147579999174923,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 9,
+        "index": 309,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003713",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 8.778190300043207
+        },
+        "prequery_probability": 0.39519168561505613,
+        "selection_s": 0.005481200001668185,
+        "adaptation_s": 0.04583299998193979,
+        "reason": "fsbo"
+      },
+      {
+        "query": 10,
+        "index": 25,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000265",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 11.445839099993464
+        },
+        "prequery_probability": 0.549022176164855,
+        "selection_s": 0.0037634000182151794,
+        "adaptation_s": 0.0484147000242956,
+        "reason": "fsbo"
+      },
+      {
+        "query": 11,
+        "index": 510,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:006025",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1028465176745783,
+            "min_ttc_s": 0.5507010697479309,
+            "violations": []
+          },
+          "execution_s": 18.31354870001087
+        },
+        "prequery_probability": 0.5651005141560368,
+        "selection_s": 0.003770300012547523,
+        "adaptation_s": 0.04626420000568032,
+        "reason": "fsbo"
+      },
+      {
+        "query": 12,
+        "index": 103,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001216",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.041447087520544,
+            "min_ttc_s": 3.0995392185416506,
+            "violations": []
+          },
+          "execution_s": 17.931775700009894
+        },
+        "prequery_probability": 0.18571607362098413,
+        "selection_s": 0.003499199985526502,
+        "adaptation_s": 0.04669430002104491,
+        "reason": "fsbo"
+      },
+      {
+        "query": 13,
+        "index": 109,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001291",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9676100085368242,
+            "min_ttc_s": 1.3691652629529096,
+            "violations": []
+          },
+          "execution_s": 14.30395440000575
+        },
+        "prequery_probability": 0.2095135931494799,
+        "selection_s": 0.004450499953236431,
+        "adaptation_s": 0.054110199969727546,
+        "reason": "fsbo"
+      },
+      {
+        "query": 14,
+        "index": 323,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003861",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.7248239182680436,
+            "min_ttc_s": 0.6817044924699868,
+            "violations": []
+          },
+          "execution_s": 26.742805899993982
+        },
+        "prequery_probability": 0.13510728969517516,
+        "selection_s": 0.00389370002085343,
+        "adaptation_s": 0.047415199980605394,
+        "reason": "fsbo"
+      },
+      {
+        "query": 15,
+        "index": 449,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005301",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9230529945135608,
+            "min_ttc_s": 3.080756684158747,
+            "violations": []
+          },
+          "execution_s": 18.27801130001899
+        },
+        "prequery_probability": 0.13785139536978647,
+        "selection_s": 0.0037690000026486814,
+        "adaptation_s": 0.04722429998219013,
+        "reason": "fsbo"
+      },
+      {
+        "query": 16,
+        "index": 386,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004543",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.209231095714241,
+            "min_ttc_s": null,
+            "violations": []
+          },
+          "execution_s": 19.717094199964777
+        },
+        "prequery_probability": 0.11860420136326347,
+        "selection_s": 0.0038595999940298498,
+        "adaptation_s": 0.04772690002573654,
+        "reason": "fsbo"
+      },
+      {
+        "query": 17,
+        "index": 298,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003514",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.2639284329784692,
+            "min_ttc_s": 2.469260947760383,
+            "violations": []
+          },
+          "execution_s": 16.971491799980868
+        },
+        "prequery_probability": 0.09739129636161631,
+        "selection_s": 0.004212500003632158,
+        "adaptation_s": 0.05104589997790754,
+        "reason": "fsbo"
+      },
+      {
+        "query": 18,
+        "index": 264,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003128",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.3953834727742143,
+            "min_ttc_s": 2.740088186453369,
+            "violations": []
+          },
+          "execution_s": 24.848484400019515
+        },
+        "prequery_probability": 0.08635637922656156,
+        "selection_s": 0.004056099976878613,
+        "adaptation_s": 0.0475445999763906,
+        "reason": "fsbo"
+      },
+      {
+        "query": 19,
+        "index": 173,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002075",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 10.717161100008525
+        },
+        "prequery_probability": 0.09163131711073734,
+        "selection_s": 0.0037511999835260212,
+        "adaptation_s": 0.05300920002628118,
+        "reason": "fsbo"
+      },
+      {
+        "query": 20,
+        "index": 420,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005003",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8727406956660931,
+            "min_ttc_s": 1.0699048839473573,
+            "violations": []
+          },
+          "execution_s": 16.43718050001189
+        },
+        "prequery_probability": 0.31631174878696405,
+        "selection_s": 0.003742299973964691,
+        "adaptation_s": 0.04663810000056401,
+        "reason": "fsbo"
+      },
+      {
+        "query": 21,
+        "index": 492,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005819",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8575816337726524,
+            "min_ttc_s": 0.7444975543827864,
+            "violations": []
+          },
+          "execution_s": 18.267105800041463
+        },
+        "prequery_probability": 0.17095386220126946,
+        "selection_s": 0.00391879997914657,
+        "adaptation_s": 0.0562559999525547,
+        "reason": "fsbo"
+      },
+      {
+        "query": 22,
+        "index": 29,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000313",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9981806251358614,
+            "min_ttc_s": 7.243361736641224,
+            "violations": []
+          },
+          "execution_s": 31.862340899999253
+        },
+        "prequery_probability": 0.09439315170597265,
+        "selection_s": 0.003997699997853488,
+        "adaptation_s": 0.05094889999600127,
+        "reason": "fsbo"
+      },
+      {
+        "query": 23,
+        "index": 230,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002785",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.7124901972861546,
+            "min_ttc_s": 0.8964090841974619,
+            "violations": []
+          },
+          "execution_s": 17.16645309998421
+        },
+        "prequery_probability": 0.08736223128233245,
+        "selection_s": 0.003797899989876896,
+        "adaptation_s": 0.05385349999414757,
+        "reason": "fsbo"
+      },
+      {
+        "query": 24,
+        "index": 182,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002126",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 28.358971400011797
+        },
+        "prequery_probability": 0.09864117874270135,
+        "selection_s": 0.003651800041552633,
+        "adaptation_s": 0.048118599981535226,
+        "reason": "fsbo"
+      },
+      {
+        "query": 25,
+        "index": 286,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003396",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.065582696408957,
+            "min_ttc_s": 9.761851762316443,
+            "violations": []
+          },
+          "execution_s": 20.95241599995643
+        },
+        "prequery_probability": 0.5166006730648147,
+        "selection_s": 0.004037100006826222,
+        "adaptation_s": 0.05326559999957681,
+        "reason": "fsbo"
+      },
+      {
+        "query": 26,
+        "index": 342,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004054",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8792199344769055,
+            "min_ttc_s": 2.746818631563041,
+            "violations": []
+          },
+          "execution_s": 15.463585500023328
+        },
+        "prequery_probability": 0.5419283342602301,
+        "selection_s": 0.003930100006982684,
+        "adaptation_s": 0.04807049996452406,
+        "reason": "fsbo"
+      },
+      {
+        "query": 27,
+        "index": 263,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003118",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 33.339616500015836
+        },
+        "prequery_probability": 0.3331809106857875,
+        "selection_s": 0.0038772000116296113,
+        "adaptation_s": 0.04813190002460033,
+        "reason": "fsbo"
+      },
+      {
+        "query": 28,
+        "index": 24,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000260",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.052702496294215,
+            "min_ttc_s": 11.282824378339232,
+            "violations": []
+          },
+          "execution_s": 27.998483300034422
+        },
+        "prequery_probability": 0.5530107563609764,
+        "selection_s": 0.003770900017116219,
+        "adaptation_s": 0.0593411999871023,
+        "reason": "fsbo"
+      },
+      {
+        "query": 29,
+        "index": 403,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004798",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 25.385419700003695
+        },
+        "prequery_probability": 0.42941538201015717,
+        "selection_s": 0.003935599990654737,
+        "adaptation_s": 0.05745480000041425,
+        "reason": "fsbo"
+      },
+      {
+        "query": 30,
+        "index": 32,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000353",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 20.244899199984502
+        },
+        "prequery_probability": 0.5739075572610761,
+        "selection_s": 0.005780800012871623,
+        "adaptation_s": 0.050105799979064614,
+        "reason": "fsbo"
+      },
+      {
+        "query": 31,
+        "index": 435,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005150",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.07754727757695,
+            "min_ttc_s": 2.8369406396107575,
+            "violations": []
+          },
+          "execution_s": 21.572594100027345
+        },
+        "prequery_probability": 0.6608887673448147,
+        "selection_s": 0.003933900035917759,
+        "adaptation_s": 0.05879450001521036,
+        "reason": "fsbo"
+      },
+      {
+        "query": 32,
+        "index": 320,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003817",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.3174894520488514,
+            "min_ttc_s": 2.354006962884606,
+            "violations": []
+          },
+          "execution_s": 27.958268799993675
+        },
+        "prequery_probability": 0.643253483468304,
+        "selection_s": 0.00398400000995025,
+        "adaptation_s": 0.05203279998386279,
+        "reason": "fsbo"
+      },
+      {
+        "query": 33,
+        "index": 74,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000934",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.795992542327115,
+            "min_ttc_s": 0.9725609018435681,
+            "violations": []
+          },
+          "execution_s": 43.47645309998188
+        },
+        "prequery_probability": 0.46677041991104873,
+        "selection_s": 0.0038668999914079905,
+        "adaptation_s": 0.05286210001213476,
+        "reason": "fsbo"
+      },
+      {
+        "query": 34,
+        "index": 181,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002121",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1060624106269703,
+            "min_ttc_s": 1.158328419583302,
+            "violations": []
+          },
+          "execution_s": 26.939284900028724
+        },
+        "prequery_probability": 0.3843153121427373,
+        "selection_s": 0.004108099965378642,
+        "adaptation_s": 0.05734370002755895,
+        "reason": "fsbo"
+      },
+      {
+        "query": 35,
+        "index": 11,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000094",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.639222188352495,
+            "min_ttc_s": 3.7466414637169305,
+            "violations": []
+          },
+          "execution_s": 21.350390400039032
+        },
+        "prequery_probability": 0.43044750403586696,
+        "selection_s": 0.003977600019425154,
+        "adaptation_s": 0.04977199999848381,
+        "reason": "fsbo"
+      },
+      {
+        "query": 36,
+        "index": 55,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000665",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.7472489659253533,
+            "min_ttc_s": 1.3061926021959664,
+            "violations": []
+          },
+          "execution_s": 19.507249899965245
+        },
+        "prequery_probability": 0.3083486806109175,
+        "selection_s": 0.0038701999583281577,
+        "adaptation_s": 0.0586891999701038,
+        "reason": "fsbo"
+      },
+      {
+        "query": 37,
+        "index": 486,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005772",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0428577730060213,
+            "min_ttc_s": 7.703590089210922,
+            "violations": []
+          },
+          "execution_s": 27.151230000017677
+        },
+        "prequery_probability": 0.3082869253714947,
+        "selection_s": 0.003957199980504811,
+        "adaptation_s": 0.05175539996707812,
+        "reason": "fsbo"
+      },
+      {
+        "query": 38,
+        "index": 379,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004422",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9978370146271183,
+            "min_ttc_s": 1.2195916961722775,
+            "violations": []
+          },
+          "execution_s": 35.163032400014345
+        },
+        "prequery_probability": 0.24541005686538692,
+        "selection_s": 0.003954100015107542,
+        "adaptation_s": 0.05377830000361428,
+        "reason": "fsbo"
+      },
+      {
+        "query": 39,
+        "index": 165,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001985",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.2192083284687791,
+            "min_ttc_s": 1.5487991153278164,
+            "violations": []
+          },
+          "execution_s": 18.579802299966104
+        },
+        "prequery_probability": 0.2946455845499225,
+        "selection_s": 0.003990299999713898,
+        "adaptation_s": 0.051035899959970266,
+        "reason": "fsbo"
+      },
+      {
+        "query": 40,
+        "index": 92,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001086",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.3227342113252754,
+            "min_ttc_s": 3.0413866657162503,
+            "violations": []
+          },
+          "execution_s": 17.24682409997331
+        },
+        "prequery_probability": 0.2278277575087379,
+        "selection_s": 0.00422850000904873,
+        "adaptation_s": 0.05267420003656298,
+        "reason": "fsbo"
+      },
+      {
+        "query": 41,
+        "index": 257,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003044",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 27.22653149999678
+        },
+        "prequery_probability": 0.2168996295462297,
+        "selection_s": 0.004897799983154982,
+        "adaptation_s": 0.051204900024458766,
+        "reason": "fsbo"
+      },
+      {
+        "query": 42,
+        "index": 441,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005196",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0861584714419457,
+            "min_ttc_s": 7.181800063722487,
+            "violations": []
+          },
+          "execution_s": 29.74203140003374
+        },
+        "prequery_probability": 0.40684015250984396,
+        "selection_s": 0.0038315000128932297,
+        "adaptation_s": 0.052231499983463436,
+        "reason": "fsbo"
+      },
+      {
+        "query": 43,
+        "index": 463,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005444",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1171645973705064,
+            "min_ttc_s": 6.282613923258808,
+            "violations": []
+          },
+          "execution_s": 25.514692099997774
+        },
+        "prequery_probability": 0.31965220316523735,
+        "selection_s": 0.003828000044450164,
+        "adaptation_s": 0.049410499981604517,
+        "reason": "fsbo"
+      },
+      {
+        "query": 44,
+        "index": 266,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003147",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.109821168377509,
+            "min_ttc_s": 10.11991757571155,
+            "violations": []
+          },
+          "execution_s": 19.41233540000394
+        },
+        "prequery_probability": 0.2246409559894882,
+        "selection_s": 0.004027999995741993,
+        "adaptation_s": 0.05130769999232143,
+        "reason": "fsbo"
+      },
+      {
+        "query": 45,
+        "index": 468,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005492",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1065153723313872,
+            "min_ttc_s": 3.1327042706669843,
+            "violations": []
+          },
+          "execution_s": 23.170138100045733
+        },
+        "prequery_probability": 0.23513401074028695,
+        "selection_s": 0.0038630000199191272,
+        "adaptation_s": 0.05273879994638264,
+        "reason": "fsbo"
+      },
+      {
+        "query": 46,
+        "index": 166,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001990",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 23.76339779997943
+        },
+        "prequery_probability": 0.2297111306054011,
+        "selection_s": 0.0038159999530762434,
+        "adaptation_s": 0.052788999979384243,
+        "reason": "fsbo"
+      },
+      {
+        "query": 47,
+        "index": 410,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004844",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.45809961590378556,
+            "min_ttc_s": 0.41652816675573834,
+            "violations": []
+          },
+          "execution_s": 44.11183000000892
+        },
+        "prequery_probability": 0.47176318464377415,
+        "selection_s": 0.00501830002758652,
+        "adaptation_s": 0.05330829997546971,
+        "reason": "fsbo"
+      },
+      {
+        "query": 48,
+        "index": 345,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004070",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.998993419525594,
+            "min_ttc_s": 1.1449804508071713,
+            "violations": []
+          },
+          "execution_s": 27.38470039999811
+        },
+        "prequery_probability": 0.3875923848648354,
+        "selection_s": 0.004161300021223724,
+        "adaptation_s": 0.05353930004639551,
+        "reason": "fsbo"
+      },
+      {
+        "query": 49,
+        "index": 108,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001286",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1984666930959575,
+            "min_ttc_s": 1.6933034413682404,
+            "violations": []
+          },
+          "execution_s": 25.59282160003204
+        },
+        "prequery_probability": 0.28681095695693154,
+        "selection_s": 0.0041446000104770064,
+        "adaptation_s": 0.05346550000831485,
+        "reason": "fsbo"
+      },
+      {
+        "query": 50,
+        "index": 228,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002779",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8529905471405863,
+            "min_ttc_s": 2.5706965130521047,
+            "violations": []
+          },
+          "execution_s": 18.189346899976954
+        },
+        "prequery_probability": 0.19974170068054709,
+        "selection_s": 0.0046721999533474445,
+        "adaptation_s": 0.05543419998139143,
+        "reason": "fsbo"
+      },
+      {
+        "query": 51,
+        "index": 118,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001380",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1311643756627558,
+            "min_ttc_s": 9.887493868928368,
+            "violations": []
+          },
+          "execution_s": 24.61130960000446
+        },
+        "prequery_probability": 0.2496884853721089,
+        "selection_s": 0.004121299949474633,
+        "adaptation_s": 0.05454380001174286,
+        "reason": "fsbo"
+      },
+      {
+        "query": 52,
+        "index": 174,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002076",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.95606129822277,
+            "min_ttc_s": 1.1972590059916695,
+            "violations": []
+          },
+          "execution_s": 47.95850040001096
+        },
+        "prequery_probability": 0.2312737411582827,
+        "selection_s": 0.004045200010295957,
+        "adaptation_s": 0.05429679999360815,
+        "reason": "fsbo"
+      },
+      {
+        "query": 53,
+        "index": 95,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001110",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9987608770741931,
+            "min_ttc_s": 1.0144947976990477,
+            "violations": []
+          },
+          "execution_s": 26.897075700049754
+        },
+        "prequery_probability": 0.2443094606920666,
+        "selection_s": 0.0038984999991953373,
+        "adaptation_s": 0.054351800004951656,
+        "reason": "fsbo"
+      },
+      {
+        "query": 54,
+        "index": 59,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000716",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9854401894273178,
+            "min_ttc_s": 7.764292813938637,
+            "violations": []
+          },
+          "execution_s": 27.30751319997944
+        },
+        "prequery_probability": 0.16663402360499135,
+        "selection_s": 0.0040417000418528914,
+        "adaptation_s": 0.0558300000266172,
+        "reason": "fsbo"
+      },
+      {
+        "query": 55,
+        "index": 201,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002340",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 27.625383600010537
+        },
+        "prequery_probability": 0.15906906110426422,
+        "selection_s": 0.004162900033406913,
+        "adaptation_s": 0.056205500033684075,
+        "reason": "fsbo"
+      },
+      {
+        "query": 56,
+        "index": 409,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004843",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 29.075798799982294
+        },
+        "prequery_probability": 0.31697850846480013,
+        "selection_s": 0.004549900011625141,
+        "adaptation_s": 0.05468559998553246,
+        "reason": "fsbo"
+      },
+      {
+        "query": 57,
+        "index": 36,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000415",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1083760989963474,
+            "min_ttc_s": 620.21497595193,
+            "violations": []
+          },
+          "execution_s": 19.618106800015084
+        },
+        "prequery_probability": 0.4475323563079582,
+        "selection_s": 0.004348699992988259,
+        "adaptation_s": 0.055457400041632354,
+        "reason": "fsbo"
+      },
+      {
+        "query": 58,
+        "index": 256,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003043",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8006874053428987,
+            "min_ttc_s": 2.1123644127147276,
+            "violations": []
+          },
+          "execution_s": 25.412131699966267
+        },
+        "prequery_probability": 0.3884173789655829,
+        "selection_s": 0.004392000031657517,
+        "adaptation_s": 0.06192509998800233,
+        "reason": "fsbo"
+      },
+      {
+        "query": 59,
+        "index": 324,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003864",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0809174912008852,
+            "min_ttc_s": 15.572129059006187,
+            "violations": []
+          },
+          "execution_s": 24.638369899999816
+        },
+        "prequery_probability": 0.3198645520935465,
+        "selection_s": 0.006047999951988459,
+        "adaptation_s": 0.05633959994884208,
+        "reason": "fsbo"
+      },
+      {
+        "query": 60,
+        "index": 138,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001640",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0202141540092997,
+            "min_ttc_s": 10.472715498518424,
+            "violations": []
+          },
+          "execution_s": 31.814838500053156
+        },
+        "prequery_probability": 0.33531664518743687,
+        "selection_s": 0.004263599985279143,
+        "adaptation_s": 0.05508610000833869,
+        "reason": "fsbo"
+      },
+      {
+        "query": 61,
+        "index": 440,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005195",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0608180557434257,
+            "min_ttc_s": 1.068544286743653,
+            "violations": []
+          },
+          "execution_s": 54.597621399967466
+        },
+        "prequery_probability": 0.21399003753773585,
+        "selection_s": 0.004172499990090728,
+        "adaptation_s": 0.059414800023660064,
+        "reason": "fsbo"
+      },
+      {
+        "query": 62,
+        "index": 156,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001848",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9824361420970907,
+            "min_ttc_s": 19.854764311654005,
+            "violations": []
+          },
+          "execution_s": 21.15457759995479
+        },
+        "prequery_probability": 0.16420277114961862,
+        "selection_s": 0.004365699947811663,
+        "adaptation_s": 0.05795010004658252,
+        "reason": "fsbo"
+      },
+      {
+        "query": 63,
+        "index": 334,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003972",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 27.304541399993468
+        },
+        "prequery_probability": 0.18667717875368056,
+        "selection_s": 0.004601599997840822,
+        "adaptation_s": 0.06655739998677745,
+        "reason": "fsbo"
+      },
+      {
+        "query": 64,
+        "index": 368,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004328",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9395606788601887,
+            "min_ttc_s": 2.148647132323985,
+            "violations": []
+          },
+          "execution_s": 28.522496699995827
+        },
+        "prequery_probability": 0.34137390790513206,
+        "selection_s": 0.004695700015872717,
+        "adaptation_s": 0.05825850000837818,
+        "reason": "fsbo"
+      },
+      {
+        "query": 65,
+        "index": 419,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004998",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9570838880629047,
+            "min_ttc_s": 0.5046916931902374,
+            "violations": []
+          },
+          "execution_s": 26.892014599987306
+        },
+        "prequery_probability": 0.24094017732331457,
+        "selection_s": 0.004114800016395748,
+        "adaptation_s": 0.060468000010587275,
+        "reason": "fsbo"
+      },
+      {
+        "query": 66,
+        "index": 497,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005849",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8462575428505861,
+            "min_ttc_s": 2.422763042200243,
+            "violations": []
+          },
+          "execution_s": 24.56998679996468
+        },
+        "prequery_probability": 0.22648542506533476,
+        "selection_s": 0.008186299994122237,
+        "adaptation_s": 0.06390800001099706,
+        "reason": "fsbo"
+      },
+      {
+        "query": 67,
+        "index": 20,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000200",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.5436734263192535,
+            "min_ttc_s": 1.9341779232064604,
+            "violations": []
+          },
+          "execution_s": 29.441722699964885
+        },
+        "prequery_probability": 0.2340082305033226,
+        "selection_s": 0.006403000035788864,
+        "adaptation_s": 0.0617738000000827,
+        "reason": "fsbo"
+      },
+      {
+        "query": 68,
+        "index": 244,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002950",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9141239115519373,
+            "min_ttc_s": 2.997435505978708,
+            "violations": []
+          },
+          "execution_s": 25.534636500000488
+        },
+        "prequery_probability": 0.21348500636823287,
+        "selection_s": 0.00437520002014935,
+        "adaptation_s": 0.061238199996296316,
+        "reason": "fsbo"
+      },
+      {
+        "query": 69,
+        "index": 458,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005409",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8526240851300205,
+            "min_ttc_s": 0.5137614380469405,
+            "violations": []
+          },
+          "execution_s": 28.788162699958775
+        },
+        "prequery_probability": 0.1783520265763633,
+        "selection_s": 0.004412700014654547,
+        "adaptation_s": 0.06378889997722581,
+        "reason": "fsbo"
+      },
+      {
+        "query": 70,
+        "index": 1,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000012",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9237204745194858,
+            "min_ttc_s": 1.1156963218660874,
+            "violations": []
+          },
+          "execution_s": 40.507882400008384
+        },
+        "prequery_probability": 0.16253913019492572,
+        "selection_s": 0.00441970000974834,
+        "adaptation_s": 0.06499280000571162,
+        "reason": "fsbo"
+      },
+      {
+        "query": 71,
+        "index": 255,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003038",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9952945490182061,
+            "min_ttc_s": 10.376611300340857,
+            "violations": []
+          },
+          "execution_s": 30.103042099974118
+        },
+        "prequery_probability": 0.14831144214303066,
+        "selection_s": 0.004451200016774237,
+        "adaptation_s": 0.06778330000815913,
+        "reason": "fsbo"
+      },
+      {
+        "query": 72,
+        "index": 312,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003724",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9869160880253983,
+            "min_ttc_s": 8.431206489541388,
+            "violations": []
+          },
+          "execution_s": 30.475148800003808
+        },
+        "prequery_probability": 0.14371349947328685,
+        "selection_s": 0.004232099978253245,
+        "adaptation_s": 0.0590315000154078,
+        "reason": "fsbo"
+      },
+      {
+        "query": 73,
+        "index": 271,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003196",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 16.847624999994878
+        },
+        "prequery_probability": 0.14477873889397555,
+        "selection_s": 0.004090900009032339,
+        "adaptation_s": 0.06129059998784214,
+        "reason": "fsbo"
+      },
+      {
+        "query": 74,
+        "index": 493,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005820",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.7218697123157212,
+            "min_ttc_s": 0.9259368489805327,
+            "violations": []
+          },
+          "execution_s": 55.677504700026475
+        },
+        "prequery_probability": 0.23390332050960072,
+        "selection_s": 0.004808800003957003,
+        "adaptation_s": 0.06163369998103008,
+        "reason": "fsbo"
+      },
+      {
+        "query": 75,
+        "index": 28,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000308",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.5595646033617308,
+            "min_ttc_s": 3.291004956011375,
+            "violations": []
+          },
+          "execution_s": 19.942622800008394
+        },
+        "prequery_probability": 0.19412805683884343,
+        "selection_s": 0.004195399989839643,
+        "adaptation_s": 0.06331840000348166,
+        "reason": "fsbo"
+      },
+      {
+        "query": 76,
+        "index": 277,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003287",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9709832624425563,
+            "min_ttc_s": 1.791467907669244,
+            "violations": []
+          },
+          "execution_s": 21.50391769997077
+        },
+        "prequery_probability": 0.15447265620410627,
+        "selection_s": 0.004559600027278066,
+        "adaptation_s": 0.06351610005367547,
+        "reason": "fsbo"
+      },
+      {
+        "query": 77,
+        "index": 145,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001708",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0542125523511707,
+            "min_ttc_s": 9.606457240745941,
+            "violations": []
+          },
+          "execution_s": 20.2831995000015
+        },
+        "prequery_probability": 0.14650244895033948,
+        "selection_s": 0.004174600006081164,
+        "adaptation_s": 0.06928030005656183,
+        "reason": "fsbo"
+      },
+      {
+        "query": 78,
+        "index": 459,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005414",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8213270709054648,
+            "min_ttc_s": 2.975793833942714,
+            "violations": []
+          },
+          "execution_s": 24.362152399960905
+        },
+        "prequery_probability": 0.1330387343822835,
+        "selection_s": 0.004691100039053708,
+        "adaptation_s": 0.0719431999605149,
+        "reason": "fsbo"
+      },
+      {
+        "query": 79,
+        "index": 505,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005952",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0501236455954717,
+            "min_ttc_s": 6.881841750618647,
+            "violations": []
+          },
+          "execution_s": 22.292148899985477
+        },
+        "prequery_probability": 0.1400655807112266,
+        "selection_s": 0.004469299979973584,
+        "adaptation_s": 0.06906280003022403,
+        "reason": "fsbo"
+      },
+      {
+        "query": 80,
+        "index": 232,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002796",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0843692330811348,
+            "min_ttc_s": 8.24699614484888,
+            "violations": []
+          },
+          "execution_s": 16.864045800000895
+        },
+        "prequery_probability": 0.14277382391888283,
+        "selection_s": 0.007371499959845096,
+        "adaptation_s": 0.06421760004013777,
+        "reason": "fsbo"
+      },
+      {
+        "query": 81,
+        "index": 371,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004372",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.4449398211519104,
+            "min_ttc_s": 2.4993381021504857,
+            "violations": []
+          },
+          "execution_s": 19.036274100013543
+        },
+        "prequery_probability": 0.12394991987368276,
+        "selection_s": 0.004579000000376254,
+        "adaptation_s": 0.07454729999881238,
+        "reason": "fsbo"
+      },
+      {
+        "query": 82,
+        "index": 426,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005076",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 17.563380000006873
+        },
+        "prequery_probability": 0.13747318533217695,
+        "selection_s": 0.004787200014106929,
+        "adaptation_s": 0.07307560002664104,
+        "reason": "fsbo"
+      },
+      {
+        "query": 83,
+        "index": 415,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004936",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999518682261347,
+            "min_ttc_s": 1.7917247774195557,
+            "violations": []
+          },
+          "execution_s": 27.17213909997372
+        },
+        "prequery_probability": 0.22602228417886716,
+        "selection_s": 0.004826200020033866,
+        "adaptation_s": 0.0664087999612093,
+        "reason": "fsbo"
+      },
+      {
+        "query": 84,
+        "index": 117,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001379",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.108296056298773,
+            "min_ttc_s": 9.541171222067815,
+            "violations": []
+          },
+          "execution_s": 22.206892199988943
+        },
+        "prequery_probability": 0.19051696078240293,
+        "selection_s": 0.004307800030801445,
+        "adaptation_s": 0.06463049998274073,
+        "reason": "fsbo"
+      },
+      {
+        "query": 85,
+        "index": 115,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001363",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9248440062444736,
+            "min_ttc_s": 1.3165401319715417,
+            "violations": []
+          },
+          "execution_s": 41.1146938999882
+        },
+        "prequery_probability": 0.15843806980724973,
+        "selection_s": 0.004516499990131706,
+        "adaptation_s": 0.06945680000353605,
+        "reason": "fsbo"
+      },
+      {
+        "query": 86,
+        "index": 154,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001800",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.2107156404280475,
+            "min_ttc_s": 1.1029060170885456,
+            "violations": []
+          },
+          "execution_s": 44.252501100010704
+        },
+        "prequery_probability": 0.14227702011809162,
+        "selection_s": 0.004723899997770786,
+        "adaptation_s": 0.07148159999633208,
+        "reason": "fsbo"
+      },
+      {
+        "query": 87,
+        "index": 254,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003028",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9260783043495995,
+            "min_ttc_s": 0.555827756035992,
+            "violations": []
+          },
+          "execution_s": 33.973839099984616
+        },
+        "prequery_probability": 0.12140608510464782,
+        "selection_s": 0.004337200021836907,
+        "adaptation_s": 0.06939680001232773,
+        "reason": "fsbo"
+      },
+      {
+        "query": 88,
+        "index": 153,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001790",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.2485659424419064,
+            "min_ttc_s": 3.2836110940720187,
+            "violations": []
+          },
+          "execution_s": 16.73257619998185
+        },
+        "prequery_probability": 0.1233412044685587,
+        "selection_s": 0.005510999995749444,
+        "adaptation_s": 0.07266409997828305,
+        "reason": "fsbo"
+      },
+      {
+        "query": 89,
+        "index": 442,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005216",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.102634541015448,
+            "min_ttc_s": 3.8136404619588546,
+            "violations": []
+          },
+          "execution_s": 28.934693599992897
+        },
+        "prequery_probability": 0.11440982735722416,
+        "selection_s": 0.004670900001656264,
+        "adaptation_s": 0.07366629998432472,
+        "reason": "fsbo"
+      },
+      {
+        "query": 90,
+        "index": 209,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002440",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 26.851258900016546
+        },
+        "prequery_probability": 0.1132871488373021,
+        "selection_s": 0.004925100016407669,
+        "adaptation_s": 0.06900059996405616,
+        "reason": "fsbo"
+      },
+      {
+        "query": 91,
+        "index": 317,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003796",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8013335793361384,
+            "min_ttc_s": 1.7623840631425127,
+            "violations": []
+          },
+          "execution_s": 29.73115859995596
+        },
+        "prequery_probability": 0.1532384871269119,
+        "selection_s": 0.004276100022252649,
+        "adaptation_s": 0.07008389994734898,
+        "reason": "fsbo"
+      },
+      {
+        "query": 92,
+        "index": 316,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003772",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.5314469978965655,
+            "min_ttc_s": 2.4701149427409486,
+            "violations": []
+          },
+          "execution_s": 22.080232599982992
+        },
+        "prequery_probability": 0.17391107723440155,
+        "selection_s": 0.004455899994354695,
+        "adaptation_s": 0.07040269998833537,
+        "reason": "fsbo"
+      },
+      {
+        "query": 93,
+        "index": 83,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001011",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 18.963132000004407
+        },
+        "prequery_probability": 0.15998792618748298,
+        "selection_s": 0.0055142000201158226,
+        "adaptation_s": 0.07296419999329373,
+        "reason": "fsbo"
+      },
+      {
+        "query": 94,
+        "index": 18,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000160",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.973376553275344,
+            "min_ttc_s": 2.54518451930114,
+            "violations": []
+          },
+          "execution_s": 19.628899099945556
+        },
+        "prequery_probability": 0.22062449144373247,
+        "selection_s": 0.004487900005187839,
+        "adaptation_s": 0.07071130000986159,
+        "reason": "fsbo"
+      },
+      {
+        "query": 95,
+        "index": 456,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005351",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 16.900297900021542
+        },
+        "prequery_probability": 0.17705758877041936,
+        "selection_s": 0.004365300002973527,
+        "adaptation_s": 0.07598710001911968,
+        "reason": "fsbo"
+      },
+      {
+        "query": 96,
+        "index": 395,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004672",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 19.452807900030166
+        },
+        "prequery_probability": 0.28744451258967196,
+        "selection_s": 0.006716999982018024,
+        "adaptation_s": 0.07292639999650419,
+        "reason": "fsbo"
+      },
+      {
+        "query": 97,
+        "index": 186,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002176",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.7043040857111331,
+            "min_ttc_s": 1.995160036157708,
+            "violations": []
+          },
+          "execution_s": 40.20836849999614
+        },
+        "prequery_probability": 0.384408037596019,
+        "selection_s": 0.0045053999638184905,
+        "adaptation_s": 0.07167450000997633,
+        "reason": "fsbo"
+      },
+      {
+        "query": 98,
+        "index": 221,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002624",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9974439215637032,
+            "min_ttc_s": 1.3827638244145384,
+            "violations": []
+          },
+          "execution_s": 35.3410356999957
+        },
+        "prequery_probability": 0.28772436968575144,
+        "selection_s": 0.004528099962044507,
+        "adaptation_s": 0.07055800000671297,
+        "reason": "fsbo"
+      },
+      {
+        "query": 99,
+        "index": 455,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005344",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.47859914317640984,
+            "min_ttc_s": 0.44563203153897507,
+            "violations": []
+          },
+          "execution_s": 83.80255319998832
+        },
+        "prequery_probability": 0.27417343622146895,
+        "selection_s": 0.004374000011011958,
+        "adaptation_s": 0.08127270004479215,
+        "reason": "fsbo"
+      },
+      {
+        "query": 100,
+        "index": 210,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002447",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 17.594762400025502
+        },
+        "prequery_probability": 0.23165575926392978,
+        "selection_s": 0.005844999977853149,
+        "adaptation_s": 0.07246890000533313,
+        "reason": "fsbo"
+      },
+      {
+        "query": 101,
+        "index": 196,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002323",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1641229800124213,
+            "min_ttc_s": 0.8868002743993003,
+            "violations": []
+          },
+          "execution_s": 36.707543099997565
+        },
+        "prequery_probability": 0.25352922297546887,
+        "selection_s": 0.004356099991127849,
+        "adaptation_s": 0.07395610003732145,
+        "reason": "fsbo"
+      },
+      {
+        "query": 102,
+        "index": 479,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005664",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.5192114230205054,
+            "min_ttc_s": 0.8678807698550954,
+            "violations": []
+          },
+          "execution_s": 30.25561709998874
+        },
+        "prequery_probability": 0.24882569646303573,
+        "selection_s": 0.004632500000298023,
+        "adaptation_s": 0.07805500004906207,
+        "reason": "fsbo"
+      },
+      {
+        "query": 103,
+        "index": 144,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001707",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1227916141135839,
+            "min_ttc_s": 0.8957062667645607,
+            "violations": []
+          },
+          "execution_s": 60.25152859999798
+        },
+        "prequery_probability": 0.2136440845483126,
+        "selection_s": 0.004454000038094819,
+        "adaptation_s": 0.07840369996847585,
+        "reason": "fsbo"
+      },
+      {
+        "query": 104,
+        "index": 132,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001543",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.86139595811695,
+            "min_ttc_s": 1.7966725432772765,
+            "violations": []
+          },
+          "execution_s": 13.72577410005033
+        },
+        "prequery_probability": 0.20590027928851157,
+        "selection_s": 0.005032799963373691,
+        "adaptation_s": 0.07864520000293851,
+        "reason": "fsbo"
+      },
+      {
+        "query": 105,
+        "index": 362,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004224",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.094225042188306,
+            "min_ttc_s": 1.51040748414696,
+            "violations": []
+          },
+          "execution_s": 43.4654695999925
+        },
+        "prequery_probability": 0.19781419168281145,
+        "selection_s": 0.0048815999762155116,
+        "adaptation_s": 0.08813589997589588,
+        "reason": "fsbo"
+      },
+      {
+        "query": 106,
+        "index": 70,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000879",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.022420097801935,
+            "min_ttc_s": 0.6141406226226465,
+            "violations": []
+          },
+          "execution_s": 34.23109749995638
+        },
+        "prequery_probability": 0.18698360517429957,
+        "selection_s": 0.004713300033472478,
+        "adaptation_s": 0.08234299998730421,
+        "reason": "fsbo"
+      },
+      {
+        "query": 107,
+        "index": 270,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003195",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.06992805607152905,
+            "min_ttc_s": 1.1623073439765108,
+            "violations": []
+          },
+          "execution_s": 19.562207699986175
+        },
+        "prequery_probability": 0.19409974761454632,
+        "selection_s": 0.004856400017160922,
+        "adaptation_s": 0.08151139999972656,
+        "reason": "fsbo"
+      },
+      {
+        "query": 108,
+        "index": 240,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002895",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8946436655817847,
+            "min_ttc_s": 1.1221583301105928,
+            "violations": []
+          },
+          "execution_s": 35.55719620001037
+        },
+        "prequery_probability": 0.1726953161714993,
+        "selection_s": 0.00471000000834465,
+        "adaptation_s": 0.07939520000945777,
+        "reason": "fsbo"
+      },
+      {
+        "query": 109,
+        "index": 396,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004679",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.3916841566142062,
+            "min_ttc_s": 1.3651761949359595,
+            "violations": []
+          },
+          "execution_s": 45.163565599999856
+        },
+        "prequery_probability": 0.16567667184999713,
+        "selection_s": 0.0047420000191777945,
+        "adaptation_s": 0.08178469998529181,
+        "reason": "fsbo"
+      },
+      {
+        "query": 110,
+        "index": 328,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003904",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 26.17097430001013
+        },
+        "prequery_probability": 0.16287886889326533,
+        "selection_s": 0.005153400008566678,
+        "adaptation_s": 0.07946229999652132,
+        "reason": "fsbo"
+      },
+      {
+        "query": 111,
+        "index": 381,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004432",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8414690058163192,
+            "min_ttc_s": 2.372019139734576,
+            "violations": []
+          },
+          "execution_s": 34.60458139999537
+        },
+        "prequery_probability": 0.16773937768157107,
+        "selection_s": 0.004856900020968169,
+        "adaptation_s": 0.09588749997783452,
+        "reason": "fsbo"
+      },
+      {
+        "query": 112,
+        "index": 447,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005256",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9857022479131675,
+            "min_ttc_s": 11.200440518865081,
+            "violations": []
+          },
+          "execution_s": 25.723918000003323
+        },
+        "prequery_probability": 0.1551024099201059,
+        "selection_s": 0.0064141000038944185,
+        "adaptation_s": 0.08320359996287152,
+        "reason": "fsbo"
+      },
+      {
+        "query": 113,
+        "index": 200,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002339",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.4480959062186374,
+            "min_ttc_s": 2.299700798455034,
+            "violations": []
+          },
+          "execution_s": 28.245110100018792
+        },
+        "prequery_probability": 0.15257344939842082,
+        "selection_s": 0.004711100016720593,
+        "adaptation_s": 0.08442999998806044,
+        "reason": "fsbo"
+      },
+      {
+        "query": 114,
+        "index": 425,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005075",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.862681969416828,
+            "min_ttc_s": 2.3952220288536696,
+            "violations": []
+          },
+          "execution_s": 16.634706299984828
+        },
+        "prequery_probability": 0.14554412760084828,
+        "selection_s": 0.0049780000117607415,
+        "adaptation_s": 0.10320250003132969,
+        "reason": "fsbo"
+      },
+      {
+        "query": 115,
+        "index": 481,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005711",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1070917956357713,
+            "min_ttc_s": 28.017836388011478,
+            "violations": []
+          },
+          "execution_s": 24.496663600031752
+        },
+        "prequery_probability": 0.13085776546949074,
+        "selection_s": 0.0047407999518327415,
+        "adaptation_s": 0.09743439999874681,
+        "reason": "fsbo"
+      },
+      {
+        "query": 116,
+        "index": 417,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:004984",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9314033659836033,
+            "min_ttc_s": 6.088722870092717,
+            "violations": []
+          },
+          "execution_s": 28.300802299985662
+        },
+        "prequery_probability": 0.12751527849803207,
+        "selection_s": 0.005265699990559369,
+        "adaptation_s": 0.09967550000874326,
+        "reason": "fsbo"
+      },
+      {
+        "query": 117,
+        "index": 37,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000424",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9942610920874893,
+            "min_ttc_s": 1.4542709038638706,
+            "violations": []
+          },
+          "execution_s": 35.921537499991246
+        },
+        "prequery_probability": 0.12228256786080133,
+        "selection_s": 0.005089999991469085,
+        "adaptation_s": 0.09831480000866577,
+        "reason": "fsbo"
+      },
+      {
+        "query": 118,
+        "index": 157,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001855",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.5132158309895196,
+            "min_ttc_s": 0.758773911933981,
+            "violations": []
+          },
+          "execution_s": 42.67612130002817
+        },
+        "prequery_probability": 0.1179306160665523,
+        "selection_s": 0.004822399991098791,
+        "adaptation_s": 0.08960609999485314,
+        "reason": "fsbo"
+      },
+      {
+        "query": 119,
+        "index": 129,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001528",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.005665722060756,
+            "min_ttc_s": 6.0533122466438485,
+            "violations": []
+          },
+          "execution_s": 26.41322390001733
+        },
+        "prequery_probability": 0.10871537153982982,
+        "selection_s": 0.005218899983447045,
+        "adaptation_s": 0.10397769999690354,
+        "reason": "fsbo"
+      },
+      {
+        "query": 120,
+        "index": 98,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001131",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.0724538290459693,
+            "min_ttc_s": 1.4983286428551312,
+            "violations": []
+          },
+          "execution_s": 23.03758399997605
+        },
+        "prequery_probability": 0.11148607302310946,
+        "selection_s": 0.005417899985332042,
+        "adaptation_s": 0.0940108000067994,
+        "reason": "fsbo"
+      },
+      {
+        "query": 121,
+        "index": 116,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:001364",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.401828767823276,
+            "min_ttc_s": 2.428372679771467,
+            "violations": []
+          },
+          "execution_s": 18.68344029999571
+        },
+        "prequery_probability": 0.10629309075710891,
+        "selection_s": 0.004747800005134195,
+        "adaptation_s": 0.0886307000182569,
+        "reason": "fsbo"
+      },
+      {
+        "query": 122,
+        "index": 327,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003887",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.166351756959434,
+            "min_ttc_s": 1.2395162150437116,
+            "violations": []
+          },
+          "execution_s": 45.156027999997605
+        },
+        "prequery_probability": 0.1069316676638021,
+        "selection_s": 0.005018299969378859,
+        "adaptation_s": 0.09503169998060912,
+        "reason": "fsbo"
+      },
+      {
+        "query": 123,
+        "index": 50,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:000615",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8505202755187512,
+            "min_ttc_s": 2.5636789302993797,
+            "violations": []
+          },
+          "execution_s": 17.680352099996526
+        },
+        "prequery_probability": 0.0971334299711516,
+        "selection_s": 0.005585499980952591,
+        "adaptation_s": 0.09173980000196025,
+        "reason": "fsbo"
+      },
+      {
+        "query": 124,
+        "index": 258,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003071",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9980540462218235,
+            "min_ttc_s": null,
+            "violations": []
+          },
+          "execution_s": 26.036061200022232
+        },
+        "prequery_probability": 0.09208964770698433,
+        "selection_s": 0.005005099985282868,
+        "adaptation_s": 0.10099439998157322,
+        "reason": "fsbo"
+      },
+      {
+        "query": 125,
+        "index": 485,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:005771",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.072424995638475,
+            "min_ttc_s": 1.5914239855480976,
+            "violations": []
+          },
+          "execution_s": 32.141315900022164
+        },
+        "prequery_probability": 0.09027393532688406,
+        "selection_s": 0.0050389000098221,
+        "adaptation_s": 0.09402429999317974,
+        "reason": "fsbo"
+      },
+      {
+        "query": 126,
+        "index": 215,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002528",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.3131273155922951,
+            "min_ttc_s": 6.2003284462613255,
+            "violations": []
+          },
+          "execution_s": 25.428826500021387
+        },
+        "prequery_probability": 0.0874097074203194,
+        "selection_s": 0.004825899959541857,
+        "adaptation_s": 0.0958976999972947,
+        "reason": "fsbo"
+      },
+      {
+        "query": 127,
+        "index": 242,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:002936",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.1490967046618654,
+            "min_ttc_s": 9.06972953457045,
+            "violations": []
+          },
+          "execution_s": 18.10326720000012
+        },
+        "prequery_probability": 0.09425724799637607,
+        "selection_s": 0.005413100006990135,
+        "adaptation_s": 0.09668739995686337,
+        "reason": "fsbo"
+      },
+      {
+        "query": 128,
+        "index": 278,
+        "feedback": {
+          "scenario_id": "lane_change_rear:hard:0:003296",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.9024077165128932,
+            "min_ttc_s": 2.517095934933804,
+            "violations": []
+          },
+          "execution_s": 15.627236999978777
+        },
+        "prequery_probability": 0.11809178253050244,
+        "selection_s": 0.004889099975116551,
+        "adaptation_s": 0.0992489000200294,
+        "reason": "fsbo"
+      }
+    ],
+    "selected_indices": [
+      159,
+      377,
+      193,
+      308,
+      499,
+      265,
+      179,
+      318,
+      309,
+      25,
+      510,
+      103,
+      109,
+      323,
+      449,
+      386,
+      298,
+      264,
+      173,
+      420,
+      492,
+      29,
+      230,
+      182,
+      286,
+      342,
+      263,
+      24,
+      403,
+      32,
+      435,
+      320,
+      74,
+      181,
+      11,
+      55,
+      486,
+      379,
+      165,
+      92,
+      257,
+      441,
+      463,
+      266,
+      468,
+      166,
+      410,
+      345,
+      108,
+      228,
+      118,
+      174,
+      95,
+      59,
+      201,
+      409,
+      36,
+      256,
+      324,
+      138,
+      440,
+      156,
+      334,
+      368,
+      419,
+      497,
+      20,
+      244,
+      458,
+      1,
+      255,
+      312,
+      271,
+      493,
+      28,
+      277,
+      145,
+      459,
+      505,
+      232,
+      371,
+      426,
+      415,
+      117,
+      115,
+      154,
+      254,
+      153,
+      442,
+      209,
+      317,
+      316,
+      83,
+      18,
+      456,
+      395,
+      186,
+      221,
+      455,
+      210,
+      196,
+      479,
+      144,
+      132,
+      362,
+      70,
+      270,
+      240,
+      396,
+      328,
+      381,
+      447,
+      200,
+      425,
+      481,
+      417,
+      37,
+      157,
+      129,
+      98,
+      116,
+      327,
+      50,
+      258,
+      485,
+      215,
+      242,
+      278
+    ],
+    "actual_queries": 128,
+    "maximum_queries": 128,
+    "termination": "budget_exhausted",
+    "feedback_used": "paid collision labels"
+  },
+  "metrics": {
+    "queries": 128,
+    "unique_collisions": 20,
+    "collision_executions": 20,
+    "discovery_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      4,
+      4,
+      4,
+      5,
+      5,
+      6,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      8,
+      8,
+      8,
+      8,
+      8,
+      9,
+      9,
+      9,
+      9,
+      9,
+      9,
+      9,
+      9,
+      9,
+      10,
+      11,
+      11,
+      11,
+      11,
+      11,
+      11,
+      11,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      14,
+      14,
+      14,
+      14,
+      14,
+      14,
+      14,
+      14,
+      15,
+      15,
+      15,
+      16,
+      16,
+      17,
+      18,
+      18,
+      18,
+      18,
+      19,
+      19,
+      19,
+      19,
+      19,
+      19,
+      19,
+      19,
+      19,
+      19,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20,
+      20
+    ],
+    "discovery_auc": 11.1875,
+    "behavior_coverage": 3,
+    "behavior_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "behavior_signatures": [
+      [
+        "lead",
+        "front",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "pre_maneuver"
+      ],
+      [
+        "rear",
+        "front",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "active_maneuver"
+      ],
+      [
+        "rear",
+        "front",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "post_maneuver"
+      ]
+    ],
+    "behavior_counts": {
+      "collision_object": {
+        "lead": 3,
+        "rear": 17
+      },
+      "contact_direction": {
+        "front": 20
+      },
+      "ego_action": {
+        "lane_keep/brake": 20
+      },
+      "event_phase": {
+        "pre_maneuver": 3,
+        "active_maneuver": 4,
+        "post_maneuver": 13
+      }
+    },
+    "first_collision_query": 9,
+    "first_collision": {
+      "time": 9,
+      "observed": true
+    },
+    "brier": 0.14795819544468725,
+    "violation_counts": {},
+    "minimum_clearance_m": 0.0,
+    "minimum_ttc_s": 0.0,
+    "equivalent_execution_s": 3418.0243765999912,
+    "selection_s": 0.5803269999451004,
+    "adaptation_s": 9.524892599903978
+  },
+  "cost": {
+    "model_construction_s": 0.011932599998544902,
+    "selector_process_wall_s": 13.958600700017996,
+    "execution_mode": "replay",
+    "actual_new_physical_calls": 0,
+    "equivalent_selected_execution_s": 3418.0243765999912,
+    "physical_bank": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\data\\collision\\targets\\target_nonlinear_trajectory\\hard\\lane_change_rear\\env_81001",
+    "physical_bank_calls": 512,
+    "physical_bank_execution_s": 11867.718869400269
+  },
+  "query_ledger": [
+    {
+      "call": 1,
+      "index": 159,
+      "scenario_id": "lane_change_rear:hard:0:001888",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002235200023278594,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001888",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000143852251435,
+          "min_ttc_s": 0.5035658138127639,
+          "violations": []
+        },
+        "execution_s": 27.141714999976102
+      }
+    },
+    {
+      "call": 2,
+      "index": 377,
+      "scenario_id": "lane_change_rear:hard:0:004415",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020364999654702842,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004415",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.997765924429991,
+          "min_ttc_s": 15.714548077119465,
+          "violations": []
+        },
+        "execution_s": 27.045480600034352
+      }
+    },
+    {
+      "call": 3,
+      "index": 193,
+      "scenario_id": "lane_change_rear:hard:0:002287",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004164399986620992,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002287",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0760267491253401,
+          "min_ttc_s": 35.187201503213736,
+          "violations": []
+        },
+        "execution_s": 27.763531900011003
+      }
+    },
+    {
+      "call": 4,
+      "index": 308,
+      "scenario_id": "lane_change_rear:hard:0:003711",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021653000148944557,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003711",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.4323627712401712,
+          "min_ttc_s": 2.235789449435467,
+          "violations": []
+        },
+        "execution_s": 22.625961899990216
+      }
+    },
+    {
+      "call": 5,
+      "index": 499,
+      "scenario_id": "lane_change_rear:hard:0:005860",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00254539999878034,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005860",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.3549544324916862,
+          "min_ttc_s": 3.029477975530264,
+          "violations": []
+        },
+        "execution_s": 17.50623270001961
+      }
+    },
+    {
+      "call": 6,
+      "index": 265,
+      "scenario_id": "lane_change_rear:hard:0:003137",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002062799991108477,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003137",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1821780593238218,
+          "min_ttc_s": 2.238001269989644,
+          "violations": []
+        },
+        "execution_s": 16.44432459998643
+      }
+    },
+    {
+      "call": 7,
+      "index": 179,
+      "scenario_id": "lane_change_rear:hard:0:002103",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021259000059217215,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002103",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.394306076740295,
+          "min_ttc_s": 1.491894646818244,
+          "violations": []
+        },
+        "execution_s": 29.880068800004665
+      }
+    },
+    {
+      "call": 8,
+      "index": 318,
+      "scenario_id": "lane_change_rear:hard:0:003811",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002115099981892854,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003811",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.122516108784404,
+          "min_ttc_s": 2.905965887402924,
+          "violations": []
+        },
+        "execution_s": 20.87195190001512
+      }
+    },
+    {
+      "call": 9,
+      "index": 309,
+      "scenario_id": "lane_change_rear:hard:0:003713",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0005314999725669622,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003713",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 8.778190300043207
+      }
+    },
+    {
+      "call": 10,
+      "index": 25,
+      "scenario_id": "lane_change_rear:hard:0:000265",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0005987000185996294,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000265",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 11.445839099993464
+      }
+    },
+    {
+      "call": 11,
+      "index": 510,
+      "scenario_id": "lane_change_rear:hard:0:006025",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020527999731712043,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:006025",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1028465176745783,
+          "min_ttc_s": 0.5507010697479309,
+          "violations": []
+        },
+        "execution_s": 18.31354870001087
+      }
+    },
+    {
+      "call": 12,
+      "index": 103,
+      "scenario_id": "lane_change_rear:hard:0:001216",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024443999864161015,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001216",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.041447087520544,
+          "min_ttc_s": 3.0995392185416506,
+          "violations": []
+        },
+        "execution_s": 17.931775700009894
+      }
+    },
+    {
+      "call": 13,
+      "index": 109,
+      "scenario_id": "lane_change_rear:hard:0:001291",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002064800006337464,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001291",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9676100085368242,
+          "min_ttc_s": 1.3691652629529096,
+          "violations": []
+        },
+        "execution_s": 14.30395440000575
+      }
+    },
+    {
+      "call": 14,
+      "index": 323,
+      "scenario_id": "lane_change_rear:hard:0:003861",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019902000203728676,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003861",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.7248239182680436,
+          "min_ttc_s": 0.6817044924699868,
+          "violations": []
+        },
+        "execution_s": 26.742805899993982
+      }
+    },
+    {
+      "call": 15,
+      "index": 449,
+      "scenario_id": "lane_change_rear:hard:0:005301",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020597000257112086,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005301",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9230529945135608,
+          "min_ttc_s": 3.080756684158747,
+          "violations": []
+        },
+        "execution_s": 18.27801130001899
+      }
+    },
+    {
+      "call": 16,
+      "index": 386,
+      "scenario_id": "lane_change_rear:hard:0:004543",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024004000006243587,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004543",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.209231095714241,
+          "min_ttc_s": null,
+          "violations": []
+        },
+        "execution_s": 19.717094199964777
+      }
+    },
+    {
+      "call": 17,
+      "index": 298,
+      "scenario_id": "lane_change_rear:hard:0:003514",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021026000031270087,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003514",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.2639284329784692,
+          "min_ttc_s": 2.469260947760383,
+          "violations": []
+        },
+        "execution_s": 16.971491799980868
+      }
+    },
+    {
+      "call": 18,
+      "index": 264,
+      "scenario_id": "lane_change_rear:hard:0:003128",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021122999605722725,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003128",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.3953834727742143,
+          "min_ttc_s": 2.740088186453369,
+          "violations": []
+        },
+        "execution_s": 24.848484400019515
+      }
+    },
+    {
+      "call": 19,
+      "index": 173,
+      "scenario_id": "lane_change_rear:hard:0:002075",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0005321999778971076,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002075",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 10.717161100008525
+      }
+    },
+    {
+      "call": 20,
+      "index": 420,
+      "scenario_id": "lane_change_rear:hard:0:005003",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020425000111572444,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005003",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8727406956660931,
+          "min_ttc_s": 1.0699048839473573,
+          "violations": []
+        },
+        "execution_s": 16.43718050001189
+      }
+    },
+    {
+      "call": 21,
+      "index": 492,
+      "scenario_id": "lane_change_rear:hard:0:005819",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002035000012256205,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005819",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8575816337726524,
+          "min_ttc_s": 0.7444975543827864,
+          "violations": []
+        },
+        "execution_s": 18.267105800041463
+      }
+    },
+    {
+      "call": 22,
+      "index": 29,
+      "scenario_id": "lane_change_rear:hard:0:000313",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024142999900504947,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000313",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9981806251358614,
+          "min_ttc_s": 7.243361736641224,
+          "violations": []
+        },
+        "execution_s": 31.862340899999253
+      }
+    },
+    {
+      "call": 23,
+      "index": 230,
+      "scenario_id": "lane_change_rear:hard:0:002785",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0034818000276573002,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002785",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.7124901972861546,
+          "min_ttc_s": 0.8964090841974619,
+          "violations": []
+        },
+        "execution_s": 17.16645309998421
+      }
+    },
+    {
+      "call": 24,
+      "index": 182,
+      "scenario_id": "lane_change_rear:hard:0:002126",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0027372000040486455,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002126",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 28.358971400011797
+      }
+    },
+    {
+      "call": 25,
+      "index": 286,
+      "scenario_id": "lane_change_rear:hard:0:003396",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021448000334203243,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003396",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.065582696408957,
+          "min_ttc_s": 9.761851762316443,
+          "violations": []
+        },
+        "execution_s": 20.95241599995643
+      }
+    },
+    {
+      "call": 26,
+      "index": 342,
+      "scenario_id": "lane_change_rear:hard:0:004054",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020902000251226127,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004054",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8792199344769055,
+          "min_ttc_s": 2.746818631563041,
+          "violations": []
+        },
+        "execution_s": 15.463585500023328
+      }
+    },
+    {
+      "call": 27,
+      "index": 263,
+      "scenario_id": "lane_change_rear:hard:0:003118",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002281000022776425,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003118",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 33.339616500015836
+      }
+    },
+    {
+      "call": 28,
+      "index": 24,
+      "scenario_id": "lane_change_rear:hard:0:000260",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002058100013528019,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000260",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.052702496294215,
+          "min_ttc_s": 11.282824378339232,
+          "violations": []
+        },
+        "execution_s": 27.998483300034422
+      }
+    },
+    {
+      "call": 29,
+      "index": 403,
+      "scenario_id": "lane_change_rear:hard:0:004798",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001684799965005368,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004798",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 25.385419700003695
+      }
+    },
+    {
+      "call": 30,
+      "index": 32,
+      "scenario_id": "lane_change_rear:hard:0:000353",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015718000358901918,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000353",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 20.244899199984502
+      }
+    },
+    {
+      "call": 31,
+      "index": 435,
+      "scenario_id": "lane_change_rear:hard:0:005150",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025822999887168407,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005150",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.07754727757695,
+          "min_ttc_s": 2.8369406396107575,
+          "violations": []
+        },
+        "execution_s": 21.572594100027345
+      }
+    },
+    {
+      "call": 32,
+      "index": 320,
+      "scenario_id": "lane_change_rear:hard:0:003817",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002399299992248416,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003817",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.3174894520488514,
+          "min_ttc_s": 2.354006962884606,
+          "violations": []
+        },
+        "execution_s": 27.958268799993675
+      }
+    },
+    {
+      "call": 33,
+      "index": 74,
+      "scenario_id": "lane_change_rear:hard:0:000934",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020747000235132873,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000934",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.795992542327115,
+          "min_ttc_s": 0.9725609018435681,
+          "violations": []
+        },
+        "execution_s": 43.47645309998188
+      }
+    },
+    {
+      "call": 34,
+      "index": 181,
+      "scenario_id": "lane_change_rear:hard:0:002121",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021832999773323536,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002121",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1060624106269703,
+          "min_ttc_s": 1.158328419583302,
+          "violations": []
+        },
+        "execution_s": 26.939284900028724
+      }
+    },
+    {
+      "call": 35,
+      "index": 11,
+      "scenario_id": "lane_change_rear:hard:0:000094",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020514000207185745,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000094",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.639222188352495,
+          "min_ttc_s": 3.7466414637169305,
+          "violations": []
+        },
+        "execution_s": 21.350390400039032
+      }
+    },
+    {
+      "call": 36,
+      "index": 55,
+      "scenario_id": "lane_change_rear:hard:0:000665",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023698999430052936,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000665",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.7472489659253533,
+          "min_ttc_s": 1.3061926021959664,
+          "violations": []
+        },
+        "execution_s": 19.507249899965245
+      }
+    },
+    {
+      "call": 37,
+      "index": 486,
+      "scenario_id": "lane_change_rear:hard:0:005772",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023056999780237675,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005772",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0428577730060213,
+          "min_ttc_s": 7.703590089210922,
+          "violations": []
+        },
+        "execution_s": 27.151230000017677
+      }
+    },
+    {
+      "call": 38,
+      "index": 379,
+      "scenario_id": "lane_change_rear:hard:0:004422",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002051000017672777,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004422",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9978370146271183,
+          "min_ttc_s": 1.2195916961722775,
+          "violations": []
+        },
+        "execution_s": 35.163032400014345
+      }
+    },
+    {
+      "call": 39,
+      "index": 165,
+      "scenario_id": "lane_change_rear:hard:0:001985",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020532000344246626,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001985",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.2192083284687791,
+          "min_ttc_s": 1.5487991153278164,
+          "violations": []
+        },
+        "execution_s": 18.579802299966104
+      }
+    },
+    {
+      "call": 40,
+      "index": 92,
+      "scenario_id": "lane_change_rear:hard:0:001086",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002048900001682341,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001086",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.3227342113252754,
+          "min_ttc_s": 3.0413866657162503,
+          "violations": []
+        },
+        "execution_s": 17.24682409997331
+      }
+    },
+    {
+      "call": 41,
+      "index": 257,
+      "scenario_id": "lane_change_rear:hard:0:003044",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001980000000912696,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003044",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 27.22653149999678
+      }
+    },
+    {
+      "call": 42,
+      "index": 441,
+      "scenario_id": "lane_change_rear:hard:0:005196",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020533999777399004,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005196",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0861584714419457,
+          "min_ttc_s": 7.181800063722487,
+          "violations": []
+        },
+        "execution_s": 29.74203140003374
+      }
+    },
+    {
+      "call": 43,
+      "index": 463,
+      "scenario_id": "lane_change_rear:hard:0:005444",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002049700007773936,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005444",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1171645973705064,
+          "min_ttc_s": 6.282613923258808,
+          "violations": []
+        },
+        "execution_s": 25.514692099997774
+      }
+    },
+    {
+      "call": 44,
+      "index": 266,
+      "scenario_id": "lane_change_rear:hard:0:003147",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002039999992121011,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003147",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.109821168377509,
+          "min_ttc_s": 10.11991757571155,
+          "violations": []
+        },
+        "execution_s": 19.41233540000394
+      }
+    },
+    {
+      "call": 45,
+      "index": 468,
+      "scenario_id": "lane_change_rear:hard:0:005492",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002150600019376725,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005492",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1065153723313872,
+          "min_ttc_s": 3.1327042706669843,
+          "violations": []
+        },
+        "execution_s": 23.170138100045733
+      }
+    },
+    {
+      "call": 46,
+      "index": 166,
+      "scenario_id": "lane_change_rear:hard:0:001990",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021498000132851303,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001990",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 23.76339779997943
+      }
+    },
+    {
+      "call": 47,
+      "index": 410,
+      "scenario_id": "lane_change_rear:hard:0:004844",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020995999802835286,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004844",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.45809961590378556,
+          "min_ttc_s": 0.41652816675573834,
+          "violations": []
+        },
+        "execution_s": 44.11183000000892
+      }
+    },
+    {
+      "call": 48,
+      "index": 345,
+      "scenario_id": "lane_change_rear:hard:0:004070",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002031999989412725,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004070",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.998993419525594,
+          "min_ttc_s": 1.1449804508071713,
+          "violations": []
+        },
+        "execution_s": 27.38470039999811
+      }
+    },
+    {
+      "call": 49,
+      "index": 108,
+      "scenario_id": "lane_change_rear:hard:0:001286",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021380999824032187,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001286",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1984666930959575,
+          "min_ttc_s": 1.6933034413682404,
+          "violations": []
+        },
+        "execution_s": 25.59282160003204
+      }
+    },
+    {
+      "call": 50,
+      "index": 228,
+      "scenario_id": "lane_change_rear:hard:0:002779",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002039400045759976,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002779",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8529905471405863,
+          "min_ttc_s": 2.5706965130521047,
+          "violations": []
+        },
+        "execution_s": 18.189346899976954
+      }
+    },
+    {
+      "call": 51,
+      "index": 118,
+      "scenario_id": "lane_change_rear:hard:0:001380",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002542099973652512,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001380",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1311643756627558,
+          "min_ttc_s": 9.887493868928368,
+          "violations": []
+        },
+        "execution_s": 24.61130960000446
+      }
+    },
+    {
+      "call": 52,
+      "index": 174,
+      "scenario_id": "lane_change_rear:hard:0:002076",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002007200033403933,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002076",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.95606129822277,
+          "min_ttc_s": 1.1972590059916695,
+          "violations": []
+        },
+        "execution_s": 47.95850040001096
+      }
+    },
+    {
+      "call": 53,
+      "index": 95,
+      "scenario_id": "lane_change_rear:hard:0:001110",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020121000125072896,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001110",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9987608770741931,
+          "min_ttc_s": 1.0144947976990477,
+          "violations": []
+        },
+        "execution_s": 26.897075700049754
+      }
+    },
+    {
+      "call": 54,
+      "index": 59,
+      "scenario_id": "lane_change_rear:hard:0:000716",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020484999986365438,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000716",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9854401894273178,
+          "min_ttc_s": 7.764292813938637,
+          "violations": []
+        },
+        "execution_s": 27.30751319997944
+      }
+    },
+    {
+      "call": 55,
+      "index": 201,
+      "scenario_id": "lane_change_rear:hard:0:002340",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001994799997191876,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002340",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 27.625383600010537
+      }
+    },
+    {
+      "call": 56,
+      "index": 409,
+      "scenario_id": "lane_change_rear:hard:0:004843",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016193000483326614,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004843",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 29.075798799982294
+      }
+    },
+    {
+      "call": 57,
+      "index": 36,
+      "scenario_id": "lane_change_rear:hard:0:000415",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020085000433027744,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000415",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1083760989963474,
+          "min_ttc_s": 620.21497595193,
+          "violations": []
+        },
+        "execution_s": 19.618106800015084
+      }
+    },
+    {
+      "call": 58,
+      "index": 256,
+      "scenario_id": "lane_change_rear:hard:0:003043",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020326999947428703,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003043",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8006874053428987,
+          "min_ttc_s": 2.1123644127147276,
+          "violations": []
+        },
+        "execution_s": 25.412131699966267
+      }
+    },
+    {
+      "call": 59,
+      "index": 324,
+      "scenario_id": "lane_change_rear:hard:0:003864",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022428000229410827,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003864",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0809174912008852,
+          "min_ttc_s": 15.572129059006187,
+          "violations": []
+        },
+        "execution_s": 24.638369899999816
+      }
+    },
+    {
+      "call": 60,
+      "index": 138,
+      "scenario_id": "lane_change_rear:hard:0:001640",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024550000089220703,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001640",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0202141540092997,
+          "min_ttc_s": 10.472715498518424,
+          "violations": []
+        },
+        "execution_s": 31.814838500053156
+      }
+    },
+    {
+      "call": 61,
+      "index": 440,
+      "scenario_id": "lane_change_rear:hard:0:005195",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002005700021982193,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005195",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0608180557434257,
+          "min_ttc_s": 1.068544286743653,
+          "violations": []
+        },
+        "execution_s": 54.597621399967466
+      }
+    },
+    {
+      "call": 62,
+      "index": 156,
+      "scenario_id": "lane_change_rear:hard:0:001848",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002022000029683113,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001848",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9824361420970907,
+          "min_ttc_s": 19.854764311654005,
+          "violations": []
+        },
+        "execution_s": 21.15457759995479
+      }
+    },
+    {
+      "call": 63,
+      "index": 334,
+      "scenario_id": "lane_change_rear:hard:0:003972",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002031399984844029,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003972",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 27.304541399993468
+      }
+    },
+    {
+      "call": 64,
+      "index": 368,
+      "scenario_id": "lane_change_rear:hard:0:004328",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002010700001846999,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004328",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9395606788601887,
+          "min_ttc_s": 2.148647132323985,
+          "violations": []
+        },
+        "execution_s": 28.522496699995827
+      }
+    },
+    {
+      "call": 65,
+      "index": 419,
+      "scenario_id": "lane_change_rear:hard:0:004998",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00243719998979941,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004998",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9570838880629047,
+          "min_ttc_s": 0.5046916931902374,
+          "violations": []
+        },
+        "execution_s": 26.892014599987306
+      }
+    },
+    {
+      "call": 66,
+      "index": 497,
+      "scenario_id": "lane_change_rear:hard:0:005849",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002153299981728196,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005849",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8462575428505861,
+          "min_ttc_s": 2.422763042200243,
+          "violations": []
+        },
+        "execution_s": 24.56998679996468
+      }
+    },
+    {
+      "call": 67,
+      "index": 20,
+      "scenario_id": "lane_change_rear:hard:0:000200",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021351000177673995,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000200",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.5436734263192535,
+          "min_ttc_s": 1.9341779232064604,
+          "violations": []
+        },
+        "execution_s": 29.441722699964885
+      }
+    },
+    {
+      "call": 68,
+      "index": 244,
+      "scenario_id": "lane_change_rear:hard:0:002950",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020718000014312565,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002950",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9141239115519373,
+          "min_ttc_s": 2.997435505978708,
+          "violations": []
+        },
+        "execution_s": 25.534636500000488
+      }
+    },
+    {
+      "call": 69,
+      "index": 458,
+      "scenario_id": "lane_change_rear:hard:0:005409",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020421999506652355,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005409",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8526240851300205,
+          "min_ttc_s": 0.5137614380469405,
+          "violations": []
+        },
+        "execution_s": 28.788162699958775
+      }
+    },
+    {
+      "call": 70,
+      "index": 1,
+      "scenario_id": "lane_change_rear:hard:0:000012",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024701999500393867,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000012",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9237204745194858,
+          "min_ttc_s": 1.1156963218660874,
+          "violations": []
+        },
+        "execution_s": 40.507882400008384
+      }
+    },
+    {
+      "call": 71,
+      "index": 255,
+      "scenario_id": "lane_change_rear:hard:0:003038",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021358999656513333,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003038",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9952945490182061,
+          "min_ttc_s": 10.376611300340857,
+          "violations": []
+        },
+        "execution_s": 30.103042099974118
+      }
+    },
+    {
+      "call": 72,
+      "index": 312,
+      "scenario_id": "lane_change_rear:hard:0:003724",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002009799994993955,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003724",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9869160880253983,
+          "min_ttc_s": 8.431206489541388,
+          "violations": []
+        },
+        "execution_s": 30.475148800003808
+      }
+    },
+    {
+      "call": 73,
+      "index": 271,
+      "scenario_id": "lane_change_rear:hard:0:003196",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0014735999866388738,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003196",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 16.847624999994878
+      }
+    },
+    {
+      "call": 74,
+      "index": 493,
+      "scenario_id": "lane_change_rear:hard:0:005820",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023325999500229955,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005820",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.7218697123157212,
+          "min_ttc_s": 0.9259368489805327,
+          "violations": []
+        },
+        "execution_s": 55.677504700026475
+      }
+    },
+    {
+      "call": 75,
+      "index": 28,
+      "scenario_id": "lane_change_rear:hard:0:000308",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002093000046443194,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000308",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.5595646033617308,
+          "min_ttc_s": 3.291004956011375,
+          "violations": []
+        },
+        "execution_s": 19.942622800008394
+      }
+    },
+    {
+      "call": 76,
+      "index": 277,
+      "scenario_id": "lane_change_rear:hard:0:003287",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002072000002954155,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003287",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9709832624425563,
+          "min_ttc_s": 1.791467907669244,
+          "violations": []
+        },
+        "execution_s": 21.50391769997077
+      }
+    },
+    {
+      "call": 77,
+      "index": 145,
+      "scenario_id": "lane_change_rear:hard:0:001708",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002116299991030246,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001708",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0542125523511707,
+          "min_ttc_s": 9.606457240745941,
+          "violations": []
+        },
+        "execution_s": 20.2831995000015
+      }
+    },
+    {
+      "call": 78,
+      "index": 459,
+      "scenario_id": "lane_change_rear:hard:0:005414",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002116299991030246,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005414",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8213270709054648,
+          "min_ttc_s": 2.975793833942714,
+          "violations": []
+        },
+        "execution_s": 24.362152399960905
+      }
+    },
+    {
+      "call": 79,
+      "index": 505,
+      "scenario_id": "lane_change_rear:hard:0:005952",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025399000151082873,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005952",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0501236455954717,
+          "min_ttc_s": 6.881841750618647,
+          "violations": []
+        },
+        "execution_s": 22.292148899985477
+      }
+    },
+    {
+      "call": 80,
+      "index": 232,
+      "scenario_id": "lane_change_rear:hard:0:002796",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002175699977669865,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002796",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0843692330811348,
+          "min_ttc_s": 8.24699614484888,
+          "violations": []
+        },
+        "execution_s": 16.864045800000895
+      }
+    },
+    {
+      "call": 81,
+      "index": 371,
+      "scenario_id": "lane_change_rear:hard:0:004372",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021066999761387706,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004372",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.4449398211519104,
+          "min_ttc_s": 2.4993381021504857,
+          "violations": []
+        },
+        "execution_s": 19.036274100013543
+      }
+    },
+    {
+      "call": 82,
+      "index": 426,
+      "scenario_id": "lane_change_rear:hard:0:005076",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0014606000040657818,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005076",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 17.563380000006873
+      }
+    },
+    {
+      "call": 83,
+      "index": 415,
+      "scenario_id": "lane_change_rear:hard:0:004936",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002449600026011467,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004936",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999518682261347,
+          "min_ttc_s": 1.7917247774195557,
+          "violations": []
+        },
+        "execution_s": 27.17213909997372
+      }
+    },
+    {
+      "call": 84,
+      "index": 117,
+      "scenario_id": "lane_change_rear:hard:0:001379",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002356999961193651,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001379",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.108296056298773,
+          "min_ttc_s": 9.541171222067815,
+          "violations": []
+        },
+        "execution_s": 22.206892199988943
+      }
+    },
+    {
+      "call": 85,
+      "index": 115,
+      "scenario_id": "lane_change_rear:hard:0:001363",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020754000288434327,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001363",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9248440062444736,
+          "min_ttc_s": 1.3165401319715417,
+          "violations": []
+        },
+        "execution_s": 41.1146938999882
+      }
+    },
+    {
+      "call": 86,
+      "index": 154,
+      "scenario_id": "lane_change_rear:hard:0:001800",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020159000414423645,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001800",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.2107156404280475,
+          "min_ttc_s": 1.1029060170885456,
+          "violations": []
+        },
+        "execution_s": 44.252501100010704
+      }
+    },
+    {
+      "call": 87,
+      "index": 254,
+      "scenario_id": "lane_change_rear:hard:0:003028",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00221800000872463,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003028",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9260783043495995,
+          "min_ttc_s": 0.555827756035992,
+          "violations": []
+        },
+        "execution_s": 33.973839099984616
+      }
+    },
+    {
+      "call": 88,
+      "index": 153,
+      "scenario_id": "lane_change_rear:hard:0:001790",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002070800052024424,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001790",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.2485659424419064,
+          "min_ttc_s": 3.2836110940720187,
+          "violations": []
+        },
+        "execution_s": 16.73257619998185
+      }
+    },
+    {
+      "call": 89,
+      "index": 442,
+      "scenario_id": "lane_change_rear:hard:0:005216",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024898999836295843,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005216",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.102634541015448,
+          "min_ttc_s": 3.8136404619588546,
+          "violations": []
+        },
+        "execution_s": 28.934693599992897
+      }
+    },
+    {
+      "call": 90,
+      "index": 209,
+      "scenario_id": "lane_change_rear:hard:0:002440",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016055999440141022,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002440",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 26.851258900016546
+      }
+    },
+    {
+      "call": 91,
+      "index": 317,
+      "scenario_id": "lane_change_rear:hard:0:003796",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020584999583661556,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003796",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8013335793361384,
+          "min_ttc_s": 1.7623840631425127,
+          "violations": []
+        },
+        "execution_s": 29.73115859995596
+      }
+    },
+    {
+      "call": 92,
+      "index": 316,
+      "scenario_id": "lane_change_rear:hard:0:003772",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020262000034563243,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003772",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.5314469978965655,
+          "min_ttc_s": 2.4701149427409486,
+          "violations": []
+        },
+        "execution_s": 22.080232599982992
+      }
+    },
+    {
+      "call": 93,
+      "index": 83,
+      "scenario_id": "lane_change_rear:hard:0:001011",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0013661000411957502,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001011",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 18.963132000004407
+      }
+    },
+    {
+      "call": 94,
+      "index": 18,
+      "scenario_id": "lane_change_rear:hard:0:000160",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025369999930262566,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000160",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.973376553275344,
+          "min_ttc_s": 2.54518451930114,
+          "violations": []
+        },
+        "execution_s": 19.628899099945556
+      }
+    },
+    {
+      "call": 95,
+      "index": 456,
+      "scenario_id": "lane_change_rear:hard:0:005351",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001338200003374368,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005351",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 16.900297900021542
+      }
+    },
+    {
+      "call": 96,
+      "index": 395,
+      "scenario_id": "lane_change_rear:hard:0:004672",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001677999971434474,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004672",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 19.452807900030166
+      }
+    },
+    {
+      "call": 97,
+      "index": 186,
+      "scenario_id": "lane_change_rear:hard:0:002176",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021291999728418887,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002176",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.7043040857111331,
+          "min_ttc_s": 1.995160036157708,
+          "violations": []
+        },
+        "execution_s": 40.20836849999614
+      }
+    },
+    {
+      "call": 98,
+      "index": 221,
+      "scenario_id": "lane_change_rear:hard:0:002624",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023231999948620796,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002624",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9974439215637032,
+          "min_ttc_s": 1.3827638244145384,
+          "violations": []
+        },
+        "execution_s": 35.3410356999957
+      }
+    },
+    {
+      "call": 99,
+      "index": 455,
+      "scenario_id": "lane_change_rear:hard:0:005344",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020826999680139124,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005344",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.47859914317640984,
+          "min_ttc_s": 0.44563203153897507,
+          "violations": []
+        },
+        "execution_s": 83.80255319998832
+      }
+    },
+    {
+      "call": 100,
+      "index": 210,
+      "scenario_id": "lane_change_rear:hard:0:002447",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017382000223733485,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002447",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 17.594762400025502
+      }
+    },
+    {
+      "call": 101,
+      "index": 196,
+      "scenario_id": "lane_change_rear:hard:0:002323",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002218899957370013,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002323",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1641229800124213,
+          "min_ttc_s": 0.8868002743993003,
+          "violations": []
+        },
+        "execution_s": 36.707543099997565
+      }
+    },
+    {
+      "call": 102,
+      "index": 479,
+      "scenario_id": "lane_change_rear:hard:0:005664",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002098199969623238,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005664",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.5192114230205054,
+          "min_ttc_s": 0.8678807698550954,
+          "violations": []
+        },
+        "execution_s": 30.25561709998874
+      }
+    },
+    {
+      "call": 103,
+      "index": 144,
+      "scenario_id": "lane_change_rear:hard:0:001707",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002069899986963719,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001707",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1227916141135839,
+          "min_ttc_s": 0.8957062667645607,
+          "violations": []
+        },
+        "execution_s": 60.25152859999798
+      }
+    },
+    {
+      "call": 104,
+      "index": 132,
+      "scenario_id": "lane_change_rear:hard:0:001543",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022099000052548945,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001543",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.86139595811695,
+          "min_ttc_s": 1.7966725432772765,
+          "violations": []
+        },
+        "execution_s": 13.72577410005033
+      }
+    },
+    {
+      "call": 105,
+      "index": 362,
+      "scenario_id": "lane_change_rear:hard:0:004224",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024965000338852406,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004224",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.094225042188306,
+          "min_ttc_s": 1.51040748414696,
+          "violations": []
+        },
+        "execution_s": 43.4654695999925
+      }
+    },
+    {
+      "call": 106,
+      "index": 70,
+      "scenario_id": "lane_change_rear:hard:0:000879",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021634000004269183,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000879",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.022420097801935,
+          "min_ttc_s": 0.6141406226226465,
+          "violations": []
+        },
+        "execution_s": 34.23109749995638
+      }
+    },
+    {
+      "call": 107,
+      "index": 270,
+      "scenario_id": "lane_change_rear:hard:0:003195",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002195000008214265,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003195",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.06992805607152905,
+          "min_ttc_s": 1.1623073439765108,
+          "violations": []
+        },
+        "execution_s": 19.562207699986175
+      }
+    },
+    {
+      "call": 108,
+      "index": 240,
+      "scenario_id": "lane_change_rear:hard:0:002895",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022234999923966825,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002895",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8946436655817847,
+          "min_ttc_s": 1.1221583301105928,
+          "violations": []
+        },
+        "execution_s": 35.55719620001037
+      }
+    },
+    {
+      "call": 109,
+      "index": 396,
+      "scenario_id": "lane_change_rear:hard:0:004679",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00256019999505952,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004679",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.3916841566142062,
+          "min_ttc_s": 1.3651761949359595,
+          "violations": []
+        },
+        "execution_s": 45.163565599999856
+      }
+    },
+    {
+      "call": 110,
+      "index": 328,
+      "scenario_id": "lane_change_rear:hard:0:003904",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015471000224351883,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003904",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 26.17097430001013
+      }
+    },
+    {
+      "call": 111,
+      "index": 381,
+      "scenario_id": "lane_change_rear:hard:0:004432",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002272399957291782,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004432",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8414690058163192,
+          "min_ttc_s": 2.372019139734576,
+          "violations": []
+        },
+        "execution_s": 34.60458139999537
+      }
+    },
+    {
+      "call": 112,
+      "index": 447,
+      "scenario_id": "lane_change_rear:hard:0:005256",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022547999978996813,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005256",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9857022479131675,
+          "min_ttc_s": 11.200440518865081,
+          "violations": []
+        },
+        "execution_s": 25.723918000003323
+      }
+    },
+    {
+      "call": 113,
+      "index": 200,
+      "scenario_id": "lane_change_rear:hard:0:002339",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022075999877415597,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002339",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.4480959062186374,
+          "min_ttc_s": 2.299700798455034,
+          "violations": []
+        },
+        "execution_s": 28.245110100018792
+      }
+    },
+    {
+      "call": 114,
+      "index": 425,
+      "scenario_id": "lane_change_rear:hard:0:005075",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002505799988284707,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005075",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.862681969416828,
+          "min_ttc_s": 2.3952220288536696,
+          "violations": []
+        },
+        "execution_s": 16.634706299984828
+      }
+    },
+    {
+      "call": 115,
+      "index": 481,
+      "scenario_id": "lane_change_rear:hard:0:005711",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.07511970004998147,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005711",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1070917956357713,
+          "min_ttc_s": 28.017836388011478,
+          "violations": []
+        },
+        "execution_s": 24.496663600031752
+      }
+    },
+    {
+      "call": 116,
+      "index": 417,
+      "scenario_id": "lane_change_rear:hard:0:004984",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022077999892644584,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:004984",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9314033659836033,
+          "min_ttc_s": 6.088722870092717,
+          "violations": []
+        },
+        "execution_s": 28.300802299985662
+      }
+    },
+    {
+      "call": 117,
+      "index": 37,
+      "scenario_id": "lane_change_rear:hard:0:000424",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002203500014729798,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000424",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9942610920874893,
+          "min_ttc_s": 1.4542709038638706,
+          "violations": []
+        },
+        "execution_s": 35.921537499991246
+      }
+    },
+    {
+      "call": 118,
+      "index": 157,
+      "scenario_id": "lane_change_rear:hard:0:001855",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021758999791927636,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001855",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.5132158309895196,
+          "min_ttc_s": 0.758773911933981,
+          "violations": []
+        },
+        "execution_s": 42.67612130002817
+      }
+    },
+    {
+      "call": 119,
+      "index": 129,
+      "scenario_id": "lane_change_rear:hard:0:001528",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025996000040322542,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001528",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.005665722060756,
+          "min_ttc_s": 6.0533122466438485,
+          "violations": []
+        },
+        "execution_s": 26.41322390001733
+      }
+    },
+    {
+      "call": 120,
+      "index": 98,
+      "scenario_id": "lane_change_rear:hard:0:001131",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002156500006094575,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001131",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.0724538290459693,
+          "min_ttc_s": 1.4983286428551312,
+          "violations": []
+        },
+        "execution_s": 23.03758399997605
+      }
+    },
+    {
+      "call": 121,
+      "index": 116,
+      "scenario_id": "lane_change_rear:hard:0:001364",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022193000186234713,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:001364",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.401828767823276,
+          "min_ttc_s": 2.428372679771467,
+          "violations": []
+        },
+        "execution_s": 18.68344029999571
+      }
+    },
+    {
+      "call": 122,
+      "index": 327,
+      "scenario_id": "lane_change_rear:hard:0:003887",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0040271999896503985,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003887",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.166351756959434,
+          "min_ttc_s": 1.2395162150437116,
+          "violations": []
+        },
+        "execution_s": 45.156027999997605
+      }
+    },
+    {
+      "call": 123,
+      "index": 50,
+      "scenario_id": "lane_change_rear:hard:0:000615",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021893999655731022,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:000615",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8505202755187512,
+          "min_ttc_s": 2.5636789302993797,
+          "violations": []
+        },
+        "execution_s": 17.680352099996526
+      }
+    },
+    {
+      "call": 124,
+      "index": 258,
+      "scenario_id": "lane_change_rear:hard:0:003071",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002522399998269975,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003071",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9980540462218235,
+          "min_ttc_s": null,
+          "violations": []
+        },
+        "execution_s": 26.036061200022232
+      }
+    },
+    {
+      "call": 125,
+      "index": 485,
+      "scenario_id": "lane_change_rear:hard:0:005771",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022207999718375504,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:005771",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.072424995638475,
+          "min_ttc_s": 1.5914239855480976,
+          "violations": []
+        },
+        "execution_s": 32.141315900022164
+      }
+    },
+    {
+      "call": 126,
+      "index": 215,
+      "scenario_id": "lane_change_rear:hard:0:002528",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021855999948456883,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002528",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.3131273155922951,
+          "min_ttc_s": 6.2003284462613255,
+          "violations": []
+        },
+        "execution_s": 25.428826500021387
+      }
+    },
+    {
+      "call": 127,
+      "index": 242,
+      "scenario_id": "lane_change_rear:hard:0:002936",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022413000115193427,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:002936",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.1490967046618654,
+          "min_ttc_s": 9.06972953457045,
+          "violations": []
+        },
+        "execution_s": 18.10326720000012
+      }
+    },
+    {
+      "call": 128,
+      "index": 278,
+      "scenario_id": "lane_change_rear:hard:0:003296",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00218990002758801,
+      "feedback": {
+        "scenario_id": "lane_change_rear:hard:0:003296",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.9024077165128932,
+          "min_ttc_s": 2.517095934933804,
+          "violations": []
+        },
+        "execution_s": 15.627236999978777
+      }
+    }
+  ]
+}
