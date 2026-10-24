@@ -39,7 +39,9 @@ def batched_acquisition(model, available, horizon, *, device):
     variance = covariance.diagonal(dim1=1, dim2=2)
     cross = covariance.permute(2, 0, 1)
     q = torch.as_tensor(model.probabilities(available), dtype=torch.float64, device=device)
-    weights = torch.as_tensor(model.log_weight, dtype=torch.float64, device=device)
+    weights = torch.as_tensor(model.log_weights_at(available).copy(), dtype=torch.float64, device=device)
+    influence = torch.as_tensor(model.reliability_influence(available, available),
+                                dtype=torch.float64, device=device)
     values = q.clone()
     positions = torch.arange(len(available), device=device)
     for label in (False, True):
@@ -54,11 +56,12 @@ def batched_acquisition(model, available, horizon, *, device):
         for node, weight in zip(NODES, WEIGHTS):
             probability += float(weight) * torch.sigmoid(conditional_mean + float(node) * conditional_sd)
         if model.fixed_weights:
-            conditional_weights = weights.exp().expand(len(available), -1)
+            conditional_weights = weights.exp()[None]
         else:
             likelihood = torch.as_tensor(logp.T, dtype=torch.float64, device=device)
-            conditional_weights = torch.softmax(weights[None] + likelihood, dim=1)
-        conditional = (probability * conditional_weights[:, :, None]).sum(1)
+            conditional_weights = torch.softmax(
+                weights[None] + likelihood[:, :, None] * influence[:, None, :], dim=1)
+        conditional = (probability * conditional_weights).sum(1)
         conditional[positions, positions] = -torch.inf
         gains = conditional.topk(horizon - 1, dim=1).values.sum(1)
         values += (q if label else 1 - q) * gains
@@ -106,7 +109,8 @@ def select(model, candidates, oracle, *, initial_indices, budget=128,
         adaptation_s = time.perf_counter() - started
         remaining.remove(index)
         queries.append({"query": step + 1, "index": index, "feedback": feedback.to_dict(),
-                        "prequery_probability": p, "source_weights": model.weights.tolist(),
+                        "prequery_probability": p,
+                        "source_weights": np.exp(model.log_weights_at([index])[:, 0]).tolist(),
                         "source_names": list(model.component_names),
                         "log_evidence": evidence, "selection_s": selection_s,
                         "adaptation_s": adaptation_s, "horizon": h,

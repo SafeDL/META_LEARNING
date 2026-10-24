@@ -1,0 +1,1347 @@
+{
+  "status": "complete",
+  "protocol": {
+    "purpose": "historical reliability geometry diagnosis; not a new online method registration",
+    "scenarios": [
+      "cut_in",
+      "cut_out"
+    ],
+    "historical_tasks": 16,
+    "settings": [
+      {
+        "name": "global",
+        "geometry": "physical",
+        "bandwidth": null
+      },
+      {
+        "name": "physical_0.15",
+        "geometry": "physical",
+        "bandwidth": 0.15
+      },
+      {
+        "name": "physical_0.3",
+        "geometry": "physical",
+        "bandwidth": 0.3
+      },
+      {
+        "name": "physical_0.6",
+        "geometry": "physical",
+        "bandwidth": 0.6
+      },
+      {
+        "name": "fixed_feature_0.15",
+        "geometry": "fixed_feature",
+        "bandwidth": 0.15
+      },
+      {
+        "name": "fixed_feature_0.3",
+        "geometry": "fixed_feature",
+        "bandwidth": 0.3
+      },
+      {
+        "name": "fixed_feature_0.6",
+        "geometry": "fixed_feature",
+        "bandwidth": 0.6
+      },
+      {
+        "name": "adapted_feature_0.15",
+        "geometry": "adapted_feature",
+        "bandwidth": 0.15
+      },
+      {
+        "name": "adapted_feature_0.3",
+        "geometry": "adapted_feature",
+        "bandwidth": 0.3
+      },
+      {
+        "name": "adapted_feature_0.6",
+        "geometry": "adapted_feature",
+        "bandwidth": 0.6
+      }
+    ],
+    "counts": [
+      8,
+      16,
+      32,
+      64,
+      128
+    ],
+    "support_count": 128,
+    "query_count": 32,
+    "permutation_seed": 1301,
+    "selected_beta": {
+      "cut_in": 1.0,
+      "cut_out": 1.0
+    },
+    "feature_scale": "fixed RMS deviation of base FSBO features on the complete 512 public historical coordinates",
+    "distance": "mean squared feature difference divided by fixed feature scale squared",
+    "dynamic_rule": "recompute locality from current target features; never recompute past prequery log likelihoods",
+    "source_mass": 0.75,
+    "target_mass": 0.25,
+    "physical_mass": 0.1,
+    "source_conditioning": "converged CPU float64; gradient at most 1e-10",
+    "target_adaptation": "reuse original 129 CUDA states; no new training",
+    "raw_probability": "unchanged cached physical component; this test isolates reliability geometry",
+    "teacher_scope": "same existing teachers; own explicit source posterior excluded; not strict held-system validation",
+    "selection": "leave one historical lineage out for bandwidth; NLL, Brier, larger bandwidth",
+    "screening": "adapted feature NLL lower and Brier no higher than global and selected fixed feature and physical distances; positive NLL gain on at least two historical lineages in each scenario",
+    "historical_evidence": {
+      "protocol.json": "e3a307d0dfe4c7ded28d73e61152ba96d4b1afe6cb8469124dd0f6b41c2157ba",
+      "history.json": "561f10dc2bd638b4864a04c802a0f9eccbeb8a2fc363e6d94b6e96bd4131fb4d",
+      "summary_audit.json": "ec06852173e1259fe9a131848bae5dbab5c9789d56414095dc4378b636ee9bc2"
+    },
+    "checkpoints": {
+      "cut_in": "ea9f411e4a451a248e55711bd1d87afcd38a28ad9b1fd59f32bd78ab9e11fe26",
+      "cut_out": "4fc91c74d106d45f2c86b1a03b1485e21c719de81646445e218172b929faa806"
+    },
+    "source_files": {
+      "benchmark/discovery_feature_reliability.py": "be4b035f03b17d0e0eab370525bf488bdf26507dc2270e24fdc91ec29764ad5e",
+      "methods/gcrt/feature_reliability.py": "81a80709b3665219bebb1b406098b3bb2e3249981fdb0daa5a0ae3fc3fc7b7e3",
+      "methods/gcrt/converged_response.py": "7ee94b0a21bd980ccb80dee5ef12e268ac168f14b32c4d650b20a6f988aabff4"
+    },
+    "new_selector_queries": 0,
+    "new_physical_calls": 0
+  },
+  "scenario": "cut_in",
+  "pseudo_target": "history_uct",
+  "lineage": "uct",
+  "source_ids": [
+    "history_beam",
+    "history_dqn",
+    "history_fvdm_lane",
+    "history_idm_mobil",
+    "history_linear_mpc",
+    "history_nonlinear_trajectory",
+    "history_ppo"
+  ],
+  "feature_scale": 0.029822481194213636,
+  "rows": [
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "global",
+      "support_count": 8,
+      "query_nll": 0.11843409657789504,
+      "query_brier": 0.013474530729820558
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 8,
+      "query_nll": 0.1311480798380348,
+      "query_brier": 0.015996018569952634
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 8,
+      "query_nll": 0.1274312766317659,
+      "query_brier": 0.015245870760786822
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 8,
+      "query_nll": 0.12212048301452416,
+      "query_brier": 0.01420341340596333
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 8,
+      "query_nll": 0.132618038944897,
+      "query_brier": 0.01634886897245493
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 8,
+      "query_nll": 0.1302973221199982,
+      "query_brier": 0.01585240272827626
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 8,
+      "query_nll": 0.12432423255494024,
+      "query_brier": 0.014594980190061549
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 8,
+      "query_nll": 0.1326790848434426,
+      "query_brier": 0.016415551949851788
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 8,
+      "query_nll": 0.1289390349117973,
+      "query_brier": 0.01565451035524285
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 8,
+      "query_nll": 0.12259413845901795,
+      "query_brier": 0.01434135451851449
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "global",
+      "support_count": 16,
+      "query_nll": 0.08996592279803738,
+      "query_brier": 0.007873574384390524
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 16,
+      "query_nll": 0.09847001748656146,
+      "query_brier": 0.009289295401358783
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 16,
+      "query_nll": 0.09621327563637025,
+      "query_brier": 0.00891797029102127
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 16,
+      "query_nll": 0.09252137048497916,
+      "query_brier": 0.008300079395606388
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 16,
+      "query_nll": 0.09954823842402066,
+      "query_brier": 0.009510254330502892
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 16,
+      "query_nll": 0.09753988898701313,
+      "query_brier": 0.009159251436939029
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 16,
+      "query_nll": 0.0926755610721636,
+      "query_brier": 0.008321947318651749
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 16,
+      "query_nll": 0.09722872323162643,
+      "query_brier": 0.009099049817146697
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 16,
+      "query_nll": 0.09392189051247782,
+      "query_brier": 0.008547231344535104
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 16,
+      "query_nll": 0.09137017814290847,
+      "query_brier": 0.008114288908525152
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "global",
+      "support_count": 32,
+      "query_nll": 0.06760367769480548,
+      "query_brier": 0.004603762927822646
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 32,
+      "query_nll": 0.0714124151555022,
+      "query_brier": 0.0050809480434518065
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 32,
+      "query_nll": 0.07028691467563386,
+      "query_brier": 0.004967415550139209
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 32,
+      "query_nll": 0.06875125090164387,
+      "query_brier": 0.0047682789423597865
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 32,
+      "query_nll": 0.07252692097433745,
+      "query_brier": 0.005241077432690243
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 32,
+      "query_nll": 0.07070723434556629,
+      "query_brier": 0.005002064070950115
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 32,
+      "query_nll": 0.067395039679964,
+      "query_brier": 0.004562898756652332
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 32,
+      "query_nll": 0.07112141563877863,
+      "query_brier": 0.005075578794432423
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 32,
+      "query_nll": 0.06951351812149742,
+      "query_brier": 0.00487708358092368
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 32,
+      "query_nll": 0.06834006081368735,
+      "query_brier": 0.004716261108445194
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "global",
+      "support_count": 64,
+      "query_nll": 0.04611118971783339,
+      "query_brier": 0.0021248879048640485
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 64,
+      "query_nll": 0.04805367105270232,
+      "query_brier": 0.0023115019468380148
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 64,
+      "query_nll": 0.0473996360509283,
+      "query_brier": 0.0022545407356404966
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 64,
+      "query_nll": 0.04665249896904467,
+      "query_brier": 0.0021814341534020514
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 64,
+      "query_nll": 0.048726909577654104,
+      "query_brier": 0.0023836501573959333
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 64,
+      "query_nll": 0.04745019086172016,
+      "query_brier": 0.00226685208864945
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 64,
+      "query_nll": 0.04543531871152761,
+      "query_brier": 0.0020792336739179416
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 64,
+      "query_nll": 0.047449559013792705,
+      "query_brier": 0.0022685231072819387
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 64,
+      "query_nll": 0.04668283923103588,
+      "query_brier": 0.00219195261945583
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 64,
+      "query_nll": 0.046291714943837596,
+      "query_brier": 0.0021462977935102403
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "global",
+      "support_count": 128,
+      "query_nll": 0.03195621225585933,
+      "query_brier": 0.0010417903477012425
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 128,
+      "query_nll": 0.03305196001030877,
+      "query_brier": 0.0011201397933522468
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 128,
+      "query_nll": 0.03267209755544746,
+      "query_brier": 0.0010957443048229905
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 128,
+      "query_nll": 0.032243336754070866,
+      "query_brier": 0.0010639956380296988
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 128,
+      "query_nll": 0.03336599008450193,
+      "query_brier": 0.0011437457444256711
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 128,
+      "query_nll": 0.03251196845980926,
+      "query_brier": 0.0010890062647113826
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 128,
+      "query_nll": 0.031297018492963985,
+      "query_brier": 0.0010096462502985973
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 128,
+      "query_nll": 0.03245874101097266,
+      "query_brier": 0.001085166823319474
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 128,
+      "query_nll": 0.032184886232199686,
+      "query_brier": 0.0010634299988924185
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_uct",
+      "lineage": "uct",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 128,
+      "query_nll": 0.03203340006632438,
+      "query_brier": 0.001048843311079669
+    }
+  ],
+  "probability_checks": [
+    {
+      "support_count": 0,
+      "probability_maximum_error": 1.1102230246251565e-16
+    },
+    {
+      "support_count": 8,
+      "probability_maximum_error": 2.0083934515469082e-13
+    },
+    {
+      "support_count": 64,
+      "probability_maximum_error": 1.9798052086628104e-12
+    },
+    {
+      "support_count": 128,
+      "probability_maximum_error": 1.57145130241787e-13
+    }
+  ],
+  "weight_checks": [
+    {
+      "setting": "global",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 8,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 8,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 8,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 8,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 8,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 8,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 16,
+      "weight_maximum_error": 9.71445146547012e-17,
+      "mixture_maximum_error": 0.0
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 16,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 16,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 16,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 16,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 16,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 16,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 32,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 32,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 32,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 32,
+      "weight_maximum_error": 2.0816681711721685e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 32,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 0.0
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 32,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 32,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 32,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 32,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 4.163336342344337e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 32,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 64,
+      "weight_maximum_error": 1.8041124150158794e-16,
+      "mixture_maximum_error": 2.0816681711721685e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 64,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 64,
+      "weight_maximum_error": 2.7755575615628914e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 64,
+      "weight_maximum_error": 3.3306690738754696e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 64,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 64,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 64,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 64,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 64,
+      "weight_maximum_error": 2.220446049250313e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 64,
+      "weight_maximum_error": 3.608224830031759e-16,
+      "mixture_maximum_error": 2.0816681711721685e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 128,
+      "weight_maximum_error": 8.881784197001252e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 128,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 128,
+      "weight_maximum_error": 2.7755575615628914e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 128,
+      "weight_maximum_error": 3.3306690738754696e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 128,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 3.469446951953614e-18
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 128,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 128,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 128,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 128,
+      "weight_maximum_error": 5.551115123125783e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 128,
+      "weight_maximum_error": 8.326672684688674e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    }
+  ],
+  "nonempty_mode_solves": 1024,
+  "maximum_final_gradient": 9.879319584626955e-11,
+  "maximum_mode_iterations": 8,
+  "backtracks": 0,
+  "wall_s": 4.298576200002572,
+  "new_selector_queries": 0,
+  "new_physical_calls": 0
+}

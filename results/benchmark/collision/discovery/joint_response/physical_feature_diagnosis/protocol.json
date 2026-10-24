@@ -1,0 +1,49 @@
+{
+  "purpose": "development-only matched paid-prefix prediction diagnosis; not an online policy comparison",
+  "tasks": "all 40 existing development tasks",
+  "support": "first 127 paid queries of joint_local",
+  "evaluation": "all 385 remaining public candidates, complete outcomes held by evaluator",
+  "models": {
+    "deep_joint": {
+      "initialization": "frozen correlated historical model",
+      "steps": 10,
+      "learning_rate": 0.003,
+      "observations": [
+        "collision",
+        "clearance"
+      ]
+    },
+    "physical_joint": {
+      "initialization": "original normalized features, mean collision=0, clearance=.5, scales=1/.3, correlation=-.5, lengthscale=.3",
+      "parameters": 6,
+      "steps": 10,
+      "learning_rate": 0.01,
+      "observations": [
+        "collision",
+        "clearance"
+      ]
+    },
+    "physical_binary": {
+      "initialization": "existing ClassificationKernel default, original normalized features",
+      "parameters": 3,
+      "steps": 10,
+      "learning_rate": 0.01,
+      "observations": [
+        "collision"
+      ]
+    }
+  },
+  "seed": 1301,
+  "device": "cuda",
+  "metrics": [
+    "remaining-pool collision NLL",
+    "Brier",
+    "ranks of remaining collision points"
+  ],
+  "no_hyperparameter_selection": true,
+  "additional_selector_queries": 0,
+  "new_physical_calls": 0,
+  "formal_targets_excluded": true,
+  "historical_training_of_raw_kernels": false,
+  "search_protocol_reference": "joint_response/protocol.json"
+}

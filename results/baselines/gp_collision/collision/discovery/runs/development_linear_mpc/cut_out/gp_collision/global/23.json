@@ -1,0 +1,5948 @@
+{
+  "specification": {
+    "metadata": {
+      "target_id": "development_linear_mpc",
+      "lineage": "linear_mpc",
+      "family": "optimization",
+      "scenario": "cut_out",
+      "condition": "development",
+      "environment_seed": 81001,
+      "algorithm_seed": 23,
+      "method": "gp_collision",
+      "experiment": "discovery",
+      "discovery_contract": {
+        "benchmark/discovery.py": "8ae33dac69b5979d28f0206e468d15a869f2fcafd63b6a08fb1f6e7509b2ce57",
+        "benchmark/discovery_config.py": "9d8caac38b0a8e405ffa0ad2100c8d9ad34c23927c05bc9bcabef61f3cdb2e29",
+        "benchmark/discovery_diagnosis.py": "287841fa8bb1f25ff49883a3a1dc5af00ba03014dcc8666a11f4dfbb496ad03a",
+        "benchmark/collision_runs.py": "e775ed1f1fa367545f6b6843ffc115d8b9dad3639309e9fca03d34790bc0a9f8",
+        "benchmark/collision_metrics.py": "e22f73b9be740c30128a6fff53669039e5a6066959105a1979777939ee96be39",
+        "benchmark/query.py": "85415dcbfb556f49bb4e51c3257fdd202d52bcbfdf89d963e515a213b56553d8",
+        "methods/gcrt/discovery.py": "43d689f585e4ba7e61f2384651de7bf4dd9ae8ae6d35b809a1f9f1eeaa466737",
+        "methods/gcrt/posterior.py": "bc775a7137904a0e15e719810e86c589e2077d15128953cec9daa494384709ff",
+        "methods/gcrt/selection.py": "9cdbe2abe8d778059a6bbb0fdf93faef0862ad04cf9138e0e3688e2d3bb4fa35"
+      }
+    },
+    "construction": {
+      "bank_contract": {
+        "source_files": {
+          "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+          "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+          "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+          "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+          "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+          "controllers/highway/optimization.py": "f0db475db0c18b299409923839e3f7fd1d6bf700f3b5e49b40bbe8c67a211a4c",
+          "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+        },
+        "object": {
+          "sut_id": "development_linear_mpc",
+          "family": "optimization",
+          "lineage": "linear_mpc",
+          "version": "development",
+          "role": "development",
+          "parameters": {
+            "horizon_s": 3,
+            "desired_speed_mps": 31,
+            "headway_s": 1.7,
+            "effort_weight": 0.1
+          },
+          "training_run": null,
+          "training_seed": null,
+          "reference_id": null,
+          "supported_scenarios": [
+            "front_brake",
+            "cut_in",
+            "cut_out",
+            "lane_change_rear"
+          ]
+        },
+        "episode_duration_s": 10.0,
+        "highway_env": "1.9.1",
+        "numpy": "2.2.6"
+      },
+      "candidate_ids": [
+        "cut_out:development:0:000000",
+        "cut_out:development:0:000004",
+        "cut_out:development:0:000011",
+        "cut_out:development:0:000012",
+        "cut_out:development:0:000014",
+        "cut_out:development:0:000018",
+        "cut_out:development:0:000021",
+        "cut_out:development:0:000023",
+        "cut_out:development:0:000024",
+        "cut_out:development:0:000033",
+        "cut_out:development:0:000034",
+        "cut_out:development:0:000037",
+        "cut_out:development:0:000040",
+        "cut_out:development:0:000042",
+        "cut_out:development:0:000047",
+        "cut_out:development:0:000051",
+        "cut_out:development:0:000052",
+        "cut_out:development:0:000054",
+        "cut_out:development:0:000060",
+        "cut_out:development:0:000064",
+        "cut_out:development:0:000068",
+        "cut_out:development:0:000072",
+        "cut_out:development:0:000074",
+        "cut_out:development:0:000077",
+        "cut_out:development:0:000081",
+        "cut_out:development:0:000084",
+        "cut_out:development:0:000086",
+        "cut_out:development:0:000090",
+        "cut_out:development:0:000098",
+        "cut_out:development:0:000102",
+        "cut_out:development:0:000105",
+        "cut_out:development:0:000108",
+        "cut_out:development:0:000110",
+        "cut_out:development:0:000112",
+        "cut_out:development:0:000116",
+        "cut_out:development:0:000119",
+        "cut_out:development:0:000122",
+        "cut_out:development:0:000137",
+        "cut_out:development:0:000142",
+        "cut_out:development:0:000144",
+        "cut_out:development:0:000146",
+        "cut_out:development:0:000151",
+        "cut_out:development:0:000156",
+        "cut_out:development:0:000159",
+        "cut_out:development:0:000166",
+        "cut_out:development:0:000167",
+        "cut_out:development:0:000168",
+        "cut_out:development:0:000170",
+        "cut_out:development:0:000173",
+        "cut_out:development:0:000175",
+        "cut_out:development:0:000180",
+        "cut_out:development:0:000182",
+        "cut_out:development:0:000185",
+        "cut_out:development:0:000186",
+        "cut_out:development:0:000190",
+        "cut_out:development:0:000197",
+        "cut_out:development:0:000202",
+        "cut_out:development:0:000205",
+        "cut_out:development:0:000209",
+        "cut_out:development:0:000211",
+        "cut_out:development:0:000212",
+        "cut_out:development:0:000214",
+        "cut_out:development:0:000216",
+        "cut_out:development:0:000220",
+        "cut_out:development:0:000235",
+        "cut_out:development:0:000236",
+        "cut_out:development:0:000238",
+        "cut_out:development:0:000240",
+        "cut_out:development:0:000242",
+        "cut_out:development:0:000245",
+        "cut_out:development:0:000247",
+        "cut_out:development:0:000253",
+        "cut_out:development:0:000257",
+        "cut_out:development:0:000259",
+        "cut_out:development:0:000260",
+        "cut_out:development:0:000262",
+        "cut_out:development:0:000268",
+        "cut_out:development:0:000270",
+        "cut_out:development:0:000271",
+        "cut_out:development:0:000279",
+        "cut_out:development:0:000280",
+        "cut_out:development:0:000282",
+        "cut_out:development:0:000285",
+        "cut_out:development:0:000288",
+        "cut_out:development:0:000290",
+        "cut_out:development:0:000293",
+        "cut_out:development:0:000295",
+        "cut_out:development:0:000298",
+        "cut_out:development:0:000301",
+        "cut_out:development:0:000302",
+        "cut_out:development:0:000313",
+        "cut_out:development:0:000315",
+        "cut_out:development:0:000316",
+        "cut_out:development:0:000318",
+        "cut_out:development:0:000320",
+        "cut_out:development:0:000322",
+        "cut_out:development:0:000328",
+        "cut_out:development:0:000332",
+        "cut_out:development:0:000340",
+        "cut_out:development:0:000342",
+        "cut_out:development:0:000345",
+        "cut_out:development:0:000347",
+        "cut_out:development:0:000350",
+        "cut_out:development:0:000355",
+        "cut_out:development:0:000356",
+        "cut_out:development:0:000358",
+        "cut_out:development:0:000361",
+        "cut_out:development:0:000366",
+        "cut_out:development:0:000374",
+        "cut_out:development:0:000376",
+        "cut_out:development:0:000378",
+        "cut_out:development:0:000383",
+        "cut_out:development:0:000385",
+        "cut_out:development:0:000390",
+        "cut_out:development:0:000392",
+        "cut_out:development:0:000395",
+        "cut_out:development:0:000400",
+        "cut_out:development:0:000408",
+        "cut_out:development:0:000410",
+        "cut_out:development:0:000415",
+        "cut_out:development:0:000416",
+        "cut_out:development:0:000418",
+        "cut_out:development:0:000423",
+        "cut_out:development:0:000424",
+        "cut_out:development:0:000431",
+        "cut_out:development:0:000433",
+        "cut_out:development:0:000434",
+        "cut_out:development:0:000438",
+        "cut_out:development:0:000443",
+        "cut_out:development:0:000444",
+        "cut_out:development:0:000446",
+        "cut_out:development:0:000448",
+        "cut_out:development:0:000450",
+        "cut_out:development:0:000453",
+        "cut_out:development:0:000455",
+        "cut_out:development:0:000458",
+        "cut_out:development:0:000462",
+        "cut_out:development:0:000464",
+        "cut_out:development:0:000467",
+        "cut_out:development:0:000468",
+        "cut_out:development:0:000471",
+        "cut_out:development:0:000473",
+        "cut_out:development:0:000476",
+        "cut_out:development:0:000478",
+        "cut_out:development:0:000480",
+        "cut_out:development:0:000483",
+        "cut_out:development:0:000484",
+        "cut_out:development:0:000490",
+        "cut_out:development:0:000494",
+        "cut_out:development:0:000498",
+        "cut_out:development:0:000501",
+        "cut_out:development:0:000504",
+        "cut_out:development:0:000506",
+        "cut_out:development:0:000509",
+        "cut_out:development:0:000511",
+        "cut_out:development:0:000514",
+        "cut_out:development:0:000520",
+        "cut_out:development:0:000522",
+        "cut_out:development:0:000525",
+        "cut_out:development:0:000529",
+        "cut_out:development:0:000532",
+        "cut_out:development:0:000534",
+        "cut_out:development:0:000536",
+        "cut_out:development:0:000539",
+        "cut_out:development:0:000540",
+        "cut_out:development:0:000543",
+        "cut_out:development:0:000550",
+        "cut_out:development:0:000553",
+        "cut_out:development:0:000555",
+        "cut_out:development:0:000556",
+        "cut_out:development:0:000560",
+        "cut_out:development:0:000562",
+        "cut_out:development:0:000565",
+        "cut_out:development:0:000573",
+        "cut_out:development:0:000574",
+        "cut_out:development:0:000576",
+        "cut_out:development:0:000580",
+        "cut_out:development:0:000585",
+        "cut_out:development:0:000586",
+        "cut_out:development:0:000590",
+        "cut_out:development:0:000592",
+        "cut_out:development:0:000594",
+        "cut_out:development:0:000597",
+        "cut_out:development:0:000599",
+        "cut_out:development:0:000600",
+        "cut_out:development:0:000604",
+        "cut_out:development:0:000612",
+        "cut_out:development:0:000616",
+        "cut_out:development:0:000618",
+        "cut_out:development:0:000623",
+        "cut_out:development:0:000625",
+        "cut_out:development:0:000627",
+        "cut_out:development:0:000628",
+        "cut_out:development:0:000630",
+        "cut_out:development:0:000633",
+        "cut_out:development:0:000634",
+        "cut_out:development:0:000637",
+        "cut_out:development:0:000638",
+        "cut_out:development:0:000640",
+        "cut_out:development:0:000643",
+        "cut_out:development:0:000644",
+        "cut_out:development:0:000647",
+        "cut_out:development:0:000648",
+        "cut_out:development:0:000650",
+        "cut_out:development:0:000653",
+        "cut_out:development:0:000655",
+        "cut_out:development:0:000657",
+        "cut_out:development:0:000659",
+        "cut_out:development:0:000660",
+        "cut_out:development:0:000662",
+        "cut_out:development:0:000664",
+        "cut_out:development:0:000670",
+        "cut_out:development:0:000673",
+        "cut_out:development:0:000681",
+        "cut_out:development:0:000683",
+        "cut_out:development:0:000684",
+        "cut_out:development:0:000686",
+        "cut_out:development:0:000688",
+        "cut_out:development:0:000690",
+        "cut_out:development:0:000695",
+        "cut_out:development:0:000696",
+        "cut_out:development:0:000698",
+        "cut_out:development:0:000708",
+        "cut_out:development:0:000713",
+        "cut_out:development:0:000716",
+        "cut_out:development:0:000718",
+        "cut_out:development:0:000720",
+        "cut_out:development:0:000722",
+        "cut_out:development:0:000725",
+        "cut_out:development:0:000731",
+        "cut_out:development:0:000738",
+        "cut_out:development:0:000742",
+        "cut_out:development:0:000744",
+        "cut_out:development:0:000746",
+        "cut_out:development:0:000749",
+        "cut_out:development:0:000751",
+        "cut_out:development:0:000755",
+        "cut_out:development:0:000756",
+        "cut_out:development:0:000763",
+        "cut_out:development:0:000766",
+        "cut_out:development:0:000768",
+        "cut_out:development:0:000770",
+        "cut_out:development:0:000773",
+        "cut_out:development:0:000775",
+        "cut_out:development:0:000781",
+        "cut_out:development:0:000784",
+        "cut_out:development:0:000787",
+        "cut_out:development:0:000788",
+        "cut_out:development:0:000793",
+        "cut_out:development:0:000795",
+        "cut_out:development:0:000796",
+        "cut_out:development:0:000798",
+        "cut_out:development:0:000803",
+        "cut_out:development:0:000804",
+        "cut_out:development:0:000806",
+        "cut_out:development:0:000809",
+        "cut_out:development:0:000822",
+        "cut_out:development:0:000824",
+        "cut_out:development:0:000826",
+        "cut_out:development:0:000829",
+        "cut_out:development:0:000831",
+        "cut_out:development:0:000833",
+        "cut_out:development:0:000836",
+        "cut_out:development:0:000838",
+        "cut_out:development:0:000840",
+        "cut_out:development:0:000848",
+        "cut_out:development:0:000855",
+        "cut_out:development:0:000856",
+        "cut_out:development:0:000858",
+        "cut_out:development:0:000861",
+        "cut_out:development:0:000863",
+        "cut_out:development:0:000864",
+        "cut_out:development:0:000866",
+        "cut_out:development:0:000869",
+        "cut_out:development:0:000871",
+        "cut_out:development:0:000872",
+        "cut_out:development:0:000874",
+        "cut_out:development:0:000881",
+        "cut_out:development:0:000882",
+        "cut_out:development:0:000886",
+        "cut_out:development:0:000889",
+        "cut_out:development:0:000892",
+        "cut_out:development:0:000894",
+        "cut_out:development:0:000896",
+        "cut_out:development:0:000898",
+        "cut_out:development:0:000901",
+        "cut_out:development:0:000903",
+        "cut_out:development:0:000904",
+        "cut_out:development:0:000908",
+        "cut_out:development:0:000911",
+        "cut_out:development:0:000918",
+        "cut_out:development:0:000921",
+        "cut_out:development:0:000924",
+        "cut_out:development:0:000926",
+        "cut_out:development:0:000929",
+        "cut_out:development:0:000931",
+        "cut_out:development:0:000932",
+        "cut_out:development:0:000934",
+        "cut_out:development:0:000942",
+        "cut_out:development:0:000946",
+        "cut_out:development:0:000950",
+        "cut_out:development:0:000952",
+        "cut_out:development:0:000954",
+        "cut_out:development:0:000959",
+        "cut_out:development:0:000963",
+        "cut_out:development:0:000964",
+        "cut_out:development:0:000966",
+        "cut_out:development:0:000968",
+        "cut_out:development:0:000972",
+        "cut_out:development:0:000976",
+        "cut_out:development:0:000980",
+        "cut_out:development:0:000986",
+        "cut_out:development:0:000989",
+        "cut_out:development:0:000992",
+        "cut_out:development:0:000994",
+        "cut_out:development:0:000999",
+        "cut_out:development:0:001001",
+        "cut_out:development:0:001002",
+        "cut_out:development:0:001005",
+        "cut_out:development:0:001006",
+        "cut_out:development:0:001012",
+        "cut_out:development:0:001019",
+        "cut_out:development:0:001020",
+        "cut_out:development:0:001022",
+        "cut_out:development:0:001030",
+        "cut_out:development:0:001033",
+        "cut_out:development:0:001036",
+        "cut_out:development:0:001038",
+        "cut_out:development:0:001040",
+        "cut_out:development:0:001047",
+        "cut_out:development:0:001050",
+        "cut_out:development:0:001056",
+        "cut_out:development:0:001063",
+        "cut_out:development:0:001064",
+        "cut_out:development:0:001066",
+        "cut_out:development:0:001069",
+        "cut_out:development:0:001073",
+        "cut_out:development:0:001075",
+        "cut_out:development:0:001076",
+        "cut_out:development:0:001078",
+        "cut_out:development:0:001086",
+        "cut_out:development:0:001089",
+        "cut_out:development:0:001090",
+        "cut_out:development:0:001093",
+        "cut_out:development:0:001094",
+        "cut_out:development:0:001096",
+        "cut_out:development:0:001098",
+        "cut_out:development:0:001103",
+        "cut_out:development:0:001107",
+        "cut_out:development:0:001108",
+        "cut_out:development:0:001110",
+        "cut_out:development:0:001116",
+        "cut_out:development:0:001124",
+        "cut_out:development:0:001129",
+        "cut_out:development:0:001131",
+        "cut_out:development:0:001132",
+        "cut_out:development:0:001134",
+        "cut_out:development:0:001136",
+        "cut_out:development:0:001138",
+        "cut_out:development:0:001141",
+        "cut_out:development:0:001148",
+        "cut_out:development:0:001152",
+        "cut_out:development:0:001154",
+        "cut_out:development:0:001158",
+        "cut_out:development:0:001163",
+        "cut_out:development:0:001164",
+        "cut_out:development:0:001166",
+        "cut_out:development:0:001168",
+        "cut_out:development:0:001170",
+        "cut_out:development:0:001173",
+        "cut_out:development:0:001175",
+        "cut_out:development:0:001177",
+        "cut_out:development:0:001184",
+        "cut_out:development:0:001186",
+        "cut_out:development:0:001194",
+        "cut_out:development:0:001197",
+        "cut_out:development:0:001199",
+        "cut_out:development:0:001201",
+        "cut_out:development:0:001203",
+        "cut_out:development:0:001204",
+        "cut_out:development:0:001206",
+        "cut_out:development:0:001208",
+        "cut_out:development:0:001211",
+        "cut_out:development:0:001212",
+        "cut_out:development:0:001224",
+        "cut_out:development:0:001226",
+        "cut_out:development:0:001229",
+        "cut_out:development:0:001231",
+        "cut_out:development:0:001233",
+        "cut_out:development:0:001236",
+        "cut_out:development:0:001238",
+        "cut_out:development:0:001242",
+        "cut_out:development:0:001246",
+        "cut_out:development:0:001251",
+        "cut_out:development:0:001257",
+        "cut_out:development:0:001260",
+        "cut_out:development:0:001262",
+        "cut_out:development:0:001264",
+        "cut_out:development:0:001266",
+        "cut_out:development:0:001269",
+        "cut_out:development:0:001271",
+        "cut_out:development:0:001272",
+        "cut_out:development:0:001281",
+        "cut_out:development:0:001284",
+        "cut_out:development:0:001286",
+        "cut_out:development:0:001290",
+        "cut_out:development:0:001294",
+        "cut_out:development:0:001304",
+        "cut_out:development:0:001306",
+        "cut_out:development:0:001311",
+        "cut_out:development:0:001312",
+        "cut_out:development:0:001314",
+        "cut_out:development:0:001317",
+        "cut_out:development:0:001319",
+        "cut_out:development:0:001320",
+        "cut_out:development:0:001324",
+        "cut_out:development:0:001329",
+        "cut_out:development:0:001340",
+        "cut_out:development:0:001342",
+        "cut_out:development:0:001344",
+        "cut_out:development:0:001346",
+        "cut_out:development:0:001349",
+        "cut_out:development:0:001351",
+        "cut_out:development:0:001353",
+        "cut_out:development:0:001354",
+        "cut_out:development:0:001357",
+        "cut_out:development:0:001358",
+        "cut_out:development:0:001360",
+        "cut_out:development:0:001362",
+        "cut_out:development:0:001366",
+        "cut_out:development:0:001371",
+        "cut_out:development:0:001372",
+        "cut_out:development:0:001374",
+        "cut_out:development:0:001377",
+        "cut_out:development:0:001380",
+        "cut_out:development:0:001382",
+        "cut_out:development:0:001387",
+        "cut_out:development:0:001392",
+        "cut_out:development:0:001394",
+        "cut_out:development:0:001400",
+        "cut_out:development:0:001402",
+        "cut_out:development:0:001405",
+        "cut_out:development:0:001408",
+        "cut_out:development:0:001411",
+        "cut_out:development:0:001412",
+        "cut_out:development:0:001422",
+        "cut_out:development:0:001426",
+        "cut_out:development:0:001430",
+        "cut_out:development:0:001432",
+        "cut_out:development:0:001434",
+        "cut_out:development:0:001437",
+        "cut_out:development:0:001439",
+        "cut_out:development:0:001440",
+        "cut_out:development:0:001442",
+        "cut_out:development:0:001445",
+        "cut_out:development:0:001454",
+        "cut_out:development:0:001459",
+        "cut_out:development:0:001460",
+        "cut_out:development:0:001463",
+        "cut_out:development:0:001465",
+        "cut_out:development:0:001468",
+        "cut_out:development:0:001470",
+        "cut_out:development:0:001472",
+        "cut_out:development:0:001479",
+        "cut_out:development:0:001480",
+        "cut_out:development:0:001484",
+        "cut_out:development:0:001485",
+        "cut_out:development:0:001489",
+        "cut_out:development:0:001490",
+        "cut_out:development:0:001493",
+        "cut_out:development:0:001494",
+        "cut_out:development:0:001497",
+        "cut_out:development:0:001499",
+        "cut_out:development:0:001500",
+        "cut_out:development:0:001502",
+        "cut_out:development:0:001505",
+        "cut_out:development:0:001507",
+        "cut_out:development:0:001510",
+        "cut_out:development:0:001512",
+        "cut_out:development:0:001520",
+        "cut_out:development:0:001528",
+        "cut_out:development:0:001530",
+        "cut_out:development:0:001535",
+        "cut_out:development:0:001536",
+        "cut_out:development:0:001540",
+        "cut_out:development:0:001544",
+        "cut_out:development:0:001546",
+        "cut_out:development:0:001551",
+        "cut_out:development:0:001555",
+        "cut_out:development:0:001556",
+        "cut_out:development:0:001558",
+        "cut_out:development:0:001561",
+        "cut_out:development:0:001566",
+        "cut_out:development:0:001568",
+        "cut_out:development:0:001572",
+        "cut_out:development:0:001577",
+        "cut_out:development:0:001582",
+        "cut_out:development:0:001584",
+        "cut_out:development:0:001586",
+        "cut_out:development:0:001591",
+        "cut_out:development:0:001592",
+        "cut_out:development:0:001602",
+        "cut_out:development:0:001609",
+        "cut_out:development:0:001611",
+        "cut_out:development:0:001612",
+        "cut_out:development:0:001616",
+        "cut_out:development:0:001618",
+        "cut_out:development:0:001621",
+        "cut_out:development:0:001623",
+        "cut_out:development:0:001626",
+        "cut_out:development:0:001630",
+        "cut_out:development:0:001634"
+      ],
+      "history_ids": [],
+      "history_contracts": [],
+      "history_fingerprints": {},
+      "method": "gp_collision",
+      "algorithm_seed": 23,
+      "budget": 128,
+      "initial_count": 8,
+      "horizon": 5
+    }
+  },
+  "result": {
+    "method": "gp_collision",
+    "queries": [
+      {
+        "query": 1,
+        "index": 61,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000214",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9956969240077977,
+            "min_ttc_s": 2.981127430383286,
+            "violations": []
+          },
+          "execution_s": 1.596523199987132
+        },
+        "prequery_probability": 0.5,
+        "selection_s": 0.0050751000017044134,
+        "adaptation_s": 1.2010498999989068,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 2,
+        "index": 487,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001551",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8320659803936192,
+            "min_ttc_s": 2.2101629550348187,
+            "violations": []
+          },
+          "execution_s": 1.5831196999642998
+        },
+        "prequery_probability": 0.47847416169484214,
+        "selection_s": 0.006236399996851105,
+        "adaptation_s": 0.03918150000026799,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 3,
+        "index": 266,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000855",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000541783388703,
+            "min_ttc_s": 6.089696039704812,
+            "violations": []
+          },
+          "execution_s": 2.041879999975208
+        },
+        "prequery_probability": 0.45883504980416867,
+        "selection_s": 0.00305579999985639,
+        "adaptation_s": 0.041311000000860076,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 4,
+        "index": 317,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001002",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001729350510344,
+            "min_ttc_s": 4.367204996757822,
+            "violations": []
+          },
+          "execution_s": 1.5227775999810547
+        },
+        "prequery_probability": 0.47162819268388245,
+        "selection_s": 0.006391099999746075,
+        "adaptation_s": 0.03757250000126078,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 5,
+        "index": 427,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001360",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.4513545174993965,
+            "min_ttc_s": 0.8269344717933408,
+            "violations": []
+          },
+          "execution_s": 1.3944431000272743
+        },
+        "prequery_probability": 0.4745389008037959,
+        "selection_s": 0.002867700000933837,
+        "adaptation_s": 0.035371999998460524,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 6,
+        "index": 435,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001382",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.998864419514722,
+            "min_ttc_s": 2.140439697109039,
+            "violations": []
+          },
+          "execution_s": 1.5630801999941468
+        },
+        "prequery_probability": 0.4578429225683121,
+        "selection_s": 0.0032241999979305547,
+        "adaptation_s": 0.037139899999601766,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 7,
+        "index": 363,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001158",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0008862546541244,
+            "min_ttc_s": 5.481027674227128,
+            "violations": []
+          },
+          "execution_s": 1.991813100001309
+        },
+        "prequery_probability": 0.4270148461383454,
+        "selection_s": 0.0029389999981503934,
+        "adaptation_s": 0.038756699999794364,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 8,
+        "index": 420,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001346",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999262094032838,
+            "min_ttc_s": 1.3731582898600587,
+            "violations": []
+          },
+          "execution_s": 1.6291104999836534
+        },
+        "prequery_probability": 0.45810743315824953,
+        "selection_s": 0.003018999999767402,
+        "adaptation_s": 0.0375041000006604,
+        "reason": "common_initialization"
+      },
+      {
+        "query": 9,
+        "index": 360,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001148",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.749271390843821,
+            "min_ttc_s": 1.6489996927737691,
+            "violations": []
+          },
+          "execution_s": 1.4744974999921396
+        },
+        "prequery_probability": 0.46906018664405086,
+        "selection_s": 0.0029494000009435695,
+        "adaptation_s": 0.03784520000044722,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 10,
+        "index": 103,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000355",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9582589100820604,
+            "min_ttc_s": 2.691291633118114,
+            "violations": []
+          },
+          "execution_s": 1.481692400004249
+        },
+        "prequery_probability": 0.4654888005498925,
+        "selection_s": 0.003095299998676637,
+        "adaptation_s": 0.03771050000068499,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 11,
+        "index": 183,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000599",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.997764321771521,
+            "min_ttc_s": 2.4029431563672707,
+            "violations": []
+          },
+          "execution_s": 1.7570155000430532
+        },
+        "prequery_probability": 0.463785697097966,
+        "selection_s": 0.0032191999998758547,
+        "adaptation_s": 0.03922299999976531,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 12,
+        "index": 273,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000869",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999034791744434,
+            "min_ttc_s": 2.9703534536013096,
+            "violations": []
+          },
+          "execution_s": 1.5106334000010975
+        },
+        "prequery_probability": 0.4609064094236099,
+        "selection_s": 0.003061100000195438,
+        "adaptation_s": 0.03758620000007795,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 13,
+        "index": 246,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000787",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000034302519012,
+            "min_ttc_s": 4.5014403588597505,
+            "violations": []
+          },
+          "execution_s": 1.3226785999722779
+        },
+        "prequery_probability": 0.456199715863851,
+        "selection_s": 0.0030879999976605177,
+        "adaptation_s": 0.0383127000022796,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 14,
+        "index": 27,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000090",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.1168519000057131
+        },
+        "prequery_probability": 0.4546379150244171,
+        "selection_s": 0.003000900000188267,
+        "adaptation_s": 0.03847260000111419,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 15,
+        "index": 147,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000490",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.4010994000127539
+        },
+        "prequery_probability": 0.5031810898911642,
+        "selection_s": 0.0030547999995178543,
+        "adaptation_s": 0.03743989999929909,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 16,
+        "index": 258,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000826",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.21141579997492954
+        },
+        "prequery_probability": 0.5453844492975713,
+        "selection_s": 0.003029800001968397,
+        "adaptation_s": 0.03986829999848851,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 17,
+        "index": 501,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001602",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.31372790003661066
+        },
+        "prequery_probability": 0.5619042889425181,
+        "selection_s": 0.003020000000105938,
+        "adaptation_s": 0.03842070000246167,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 18,
+        "index": 486,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001546",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.5667499999981374
+        },
+        "prequery_probability": 0.5671948157887887,
+        "selection_s": 0.0031223999976646155,
+        "adaptation_s": 0.038376799999241484,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 19,
+        "index": 121,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000418",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996522784305681,
+            "min_ttc_s": 1.1649178539148999,
+            "violations": []
+          },
+          "execution_s": 1.4412603999953717
+        },
+        "prequery_probability": 0.5775703842997948,
+        "selection_s": 0.0031006999997771345,
+        "adaptation_s": 0.03801720000046771,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 20,
+        "index": 468,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001490",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000735243329784,
+            "min_ttc_s": 0.8516849778233851,
+            "violations": []
+          },
+          "execution_s": 1.651284100022167
+        },
+        "prequery_probability": 0.5348406342160525,
+        "selection_s": 0.0031731000017316546,
+        "adaptation_s": 0.03740810000090278,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 21,
+        "index": 411,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001314",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.7457724999985658
+        },
+        "prequery_probability": 0.5191743546687999,
+        "selection_s": 0.003086300002905773,
+        "adaptation_s": 0.038347400000930065,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 22,
+        "index": 188,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000618",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.089845833662182,
+            "min_ttc_s": 1.3848669214526752,
+            "violations": []
+          },
+          "execution_s": 1.610881500004325
+        },
+        "prequery_probability": 0.5425873424860003,
+        "selection_s": 0.003077199999097502,
+        "adaptation_s": 0.04497560000163503,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 23,
+        "index": 47,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000170",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000438523757064,
+            "min_ttc_s": 0.9493738937138779,
+            "violations": []
+          },
+          "execution_s": 1.5075643000309356
+        },
+        "prequery_probability": 0.5044104220954784,
+        "selection_s": 0.002965899999253452,
+        "adaptation_s": 0.03847699999823817,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 24,
+        "index": 5,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000018",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.3226414999808185
+        },
+        "prequery_probability": 0.4795936184286469,
+        "selection_s": 0.0033844999998109415,
+        "adaptation_s": 0.04218129999935627,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 25,
+        "index": 496,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001582",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.8767060000100173
+        },
+        "prequery_probability": 0.5077975874698032,
+        "selection_s": 0.005520700000488432,
+        "adaptation_s": 0.03880910000225413,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 26,
+        "index": 203,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000650",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.3371131000458263
+        },
+        "prequery_probability": 0.5471252271943975,
+        "selection_s": 0.0030904000013833866,
+        "adaptation_s": 0.03919390000010026,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 27,
+        "index": 68,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000242",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997646657352475,
+            "min_ttc_s": 1.216716214194768,
+            "violations": []
+          },
+          "execution_s": 1.6727069000480697
+        },
+        "prequery_probability": 0.5564221737329501,
+        "selection_s": 0.003153800000291085,
+        "adaptation_s": 0.041071899999224115,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 28,
+        "index": 334,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001066",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.4271899825755727,
+            "min_ttc_s": 1.1350006650544862,
+            "violations": []
+          },
+          "execution_s": 1.486920099996496
+        },
+        "prequery_probability": 0.5013296127060034,
+        "selection_s": 0.0033375999992131256,
+        "adaptation_s": 0.03998640000281739,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 29,
+        "index": 452,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001440",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9498215303877715,
+            "min_ttc_s": 0.8013823586144696,
+            "violations": []
+          },
+          "execution_s": 1.4278394000139087
+        },
+        "prequery_probability": 0.4924042984904051,
+        "selection_s": 0.003249999997933628,
+        "adaptation_s": 0.04910799999925075,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 30,
+        "index": 481,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001530",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.2611398999579251
+        },
+        "prequery_probability": 0.48469431643597394,
+        "selection_s": 0.00611159999971278,
+        "adaptation_s": 0.03908450000017183,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 31,
+        "index": 66,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000238",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.25242570001864806
+        },
+        "prequery_probability": 0.49907287433141434,
+        "selection_s": 0.003084099997067824,
+        "adaptation_s": 0.04144490000180667,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 32,
+        "index": 110,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000378",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 1.2638316999655217
+        },
+        "prequery_probability": 0.5111848745022979,
+        "selection_s": 0.003078799996728776,
+        "adaptation_s": 0.03947180000250228,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 33,
+        "index": 118,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000410",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.7835501582727442,
+            "min_ttc_s": 0.9655932195611239,
+            "violations": []
+          },
+          "execution_s": 2.1048908999655396
+        },
+        "prequery_probability": 0.5527958836671669,
+        "selection_s": 0.0035385000010137446,
+        "adaptation_s": 0.040953299998363946,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 34,
+        "index": 346,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001098",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.31054760003462434
+        },
+        "prequery_probability": 0.5135456183441243,
+        "selection_s": 0.00355660000059288,
+        "adaptation_s": 0.041635700003098464,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 35,
+        "index": 132,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000450",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.30288720002863556
+        },
+        "prequery_probability": 0.5415306271008549,
+        "selection_s": 0.0032448999991174787,
+        "adaptation_s": 0.04060699999899953,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 36,
+        "index": 102,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000350",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.7843189000268467
+        },
+        "prequery_probability": 0.5174114005789963,
+        "selection_s": 0.0031062999987625517,
+        "adaptation_s": 0.04058009999789647,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 37,
+        "index": 56,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000202",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 1.0418866000254638
+        },
+        "prequery_probability": 0.5597310688037576,
+        "selection_s": 0.003567200001270976,
+        "adaptation_s": 0.043196299997362075,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 38,
+        "index": 390,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001238",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9434711723038458,
+            "min_ttc_s": 1.1230038267050853,
+            "violations": []
+          },
+          "execution_s": 1.5923218000098132
+        },
+        "prequery_probability": 0.5667844136813316,
+        "selection_s": 0.0031391000011353754,
+        "adaptation_s": 0.04382449999684468,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 39,
+        "index": 314,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000994",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.24728469998808578
+        },
+        "prequery_probability": 0.5447008689684076,
+        "selection_s": 0.003412199999729637,
+        "adaptation_s": 0.04238230000191834,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 40,
+        "index": 374,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001194",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999793937577304,
+            "min_ttc_s": 1.3251574458649023,
+            "violations": []
+          },
+          "execution_s": 1.786242600006517
+        },
+        "prequery_probability": 0.5536714154916091,
+        "selection_s": 0.0038320999992720317,
+        "adaptation_s": 0.04812579999997979,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 41,
+        "index": 174,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000574",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.4135833999607712
+        },
+        "prequery_probability": 0.5311101707411796,
+        "selection_s": 0.003068499998335028,
+        "adaptation_s": 0.04296059999978752,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 42,
+        "index": 391,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001242",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.24214099999517202
+        },
+        "prequery_probability": 0.534925366008979,
+        "selection_s": 0.0031601000009686686,
+        "adaptation_s": 0.04923360000248067,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 43,
+        "index": 171,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000562",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.876424749605281,
+            "min_ttc_s": 1.0762719169205297,
+            "violations": []
+          },
+          "execution_s": 1.6560645999852568
+        },
+        "prequery_probability": 0.5541017348181272,
+        "selection_s": 0.0049259000006713904,
+        "adaptation_s": 0.052898499998264015,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 44,
+        "index": 271,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000864",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.25386215170621385,
+            "min_ttc_s": 0.469917424880727,
+            "violations": []
+          },
+          "execution_s": 1.909118099953048
+        },
+        "prequery_probability": 0.5280280245313668,
+        "selection_s": 0.0031505000006291084,
+        "adaptation_s": 0.042932699998345925,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 45,
+        "index": 426,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001358",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.35010409995447844
+        },
+        "prequery_probability": 0.5197193627037351,
+        "selection_s": 0.0032481000016559847,
+        "adaptation_s": 0.04120609999881708,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 46,
+        "index": 53,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000186",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999221464725096,
+            "min_ttc_s": 1.1471479419715158,
+            "violations": []
+          },
+          "execution_s": 1.4081882000318728
+        },
+        "prequery_probability": 0.523363426056357,
+        "selection_s": 0.0035189000009268057,
+        "adaptation_s": 0.042073200002050726,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 47,
+        "index": 405,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001290",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.09010691380112235,
+            "min_ttc_s": 0.17740494673116952,
+            "violations": []
+          },
+          "execution_s": 1.7343171000247821
+        },
+        "prequery_probability": 0.5181744882195176,
+        "selection_s": 0.0037034999986644834,
+        "adaptation_s": 0.04532149999795365,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 48,
+        "index": 368,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001170",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.2942441999912262
+        },
+        "prequery_probability": 0.5020520965025352,
+        "selection_s": 0.003444800000579562,
+        "adaptation_s": 0.0420851999988372,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 49,
+        "index": 81,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000282",
+          "collision": true,
+          "safety": {
+            "min_clearance_m": 0.0,
+            "min_ttc_s": 0.0,
+            "violations": []
+          },
+          "execution_s": 0.31651789997704327
+        },
+        "prequery_probability": 0.513431240526607,
+        "selection_s": 0.003376700002263533,
+        "adaptation_s": 0.04857319999791798,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 50,
+        "index": 453,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001442",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.4922901453353794,
+            "min_ttc_s": 1.6487882672139138,
+            "violations": []
+          },
+          "execution_s": 1.4343338000471704
+        },
+        "prequery_probability": 0.5205787294859967,
+        "selection_s": 0.004738300001918105,
+        "adaptation_s": 0.04357270000036806,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 51,
+        "index": 195,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000634",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.20923597128334281,
+            "min_ttc_s": 0.2825995115346854,
+            "violations": []
+          },
+          "execution_s": 1.8389572000014596
+        },
+        "prequery_probability": 0.513318227831111,
+        "selection_s": 0.0035767999979725573,
+        "adaptation_s": 0.043539900001633214,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 52,
+        "index": 447,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001430",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999635071041153,
+            "min_ttc_s": 1.0564449147420374,
+            "violations": []
+          },
+          "execution_s": 1.54608780000126
+        },
+        "prequery_probability": 0.5031354714679195,
+        "selection_s": 0.0041775999998208135,
+        "adaptation_s": 0.04536720000032801,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 53,
+        "index": 181,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000594",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.26482257347898314,
+            "min_ttc_s": 0.6564874451453401,
+            "violations": []
+          },
+          "execution_s": 1.9270231000264175
+        },
+        "prequery_probability": 0.49553414069708324,
+        "selection_s": 0.00356639999881736,
+        "adaptation_s": 0.044069600000511855,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 54,
+        "index": 113,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000390",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998565529823555,
+            "min_ttc_s": 1.1030489242267916,
+            "violations": []
+          },
+          "execution_s": 1.4040281000197865
+        },
+        "prequery_probability": 0.4889392998132699,
+        "selection_s": 0.0034943999999086373,
+        "adaptation_s": 0.044100800001615426,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 55,
+        "index": 268,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000858",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.858574855646694,
+            "min_ttc_s": 1.102341555101474,
+            "violations": []
+          },
+          "execution_s": 1.7720770000014454
+        },
+        "prequery_probability": 0.48173523547055647,
+        "selection_s": 0.004147499999817228,
+        "adaptation_s": 0.044660399998974754,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 56,
+        "index": 428,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001362",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997660868746785,
+            "min_ttc_s": 1.2446833600641989,
+            "violations": []
+          },
+          "execution_s": 1.4356868999893777
+        },
+        "prequery_probability": 0.47881976220970773,
+        "selection_s": 0.0039639999995415565,
+        "adaptation_s": 0.04925089999960619,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 57,
+        "index": 95,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000322",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.4256847374961572,
+            "min_ttc_s": 0.921370525738241,
+            "violations": []
+          },
+          "execution_s": 1.627025900001172
+        },
+        "prequery_probability": 0.4674871513049701,
+        "selection_s": 0.0034106999992218334,
+        "adaptation_s": 0.04617270000017015,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 58,
+        "index": 136,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000462",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.2355447029410536,
+            "min_ttc_s": 0.38195017751333765,
+            "violations": []
+          },
+          "execution_s": 1.958816000027582
+        },
+        "prequery_probability": 0.46471222116271266,
+        "selection_s": 0.003490099999908125,
+        "adaptation_s": 0.045656900001631584,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 59,
+        "index": 510,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001630",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9993385446627476,
+            "min_ttc_s": 1.28437242315752,
+            "violations": []
+          },
+          "execution_s": 1.3642012000200339
+        },
+        "prequery_probability": 0.4597236412224879,
+        "selection_s": 0.003519800000503892,
+        "adaptation_s": 0.0480176000019128,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 60,
+        "index": 173,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000573",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999776506062089,
+            "min_ttc_s": 3.1892127610948107,
+            "violations": []
+          },
+          "execution_s": 1.591507899982389
+        },
+        "prequery_probability": 0.4517049524077571,
+        "selection_s": 0.004181399999652058,
+        "adaptation_s": 0.04605959999753395,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 61,
+        "index": 327,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001038",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9977213908939813,
+            "min_ttc_s": 1.1958278911569722,
+            "violations": []
+          },
+          "execution_s": 1.5971983000054024
+        },
+        "prequery_probability": 0.45034099977220904,
+        "selection_s": 0.003757700000278419,
+        "adaptation_s": 0.04645620000155759,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 62,
+        "index": 439,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001400",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8823732255098826,
+            "min_ttc_s": 1.3620293870848004,
+            "violations": []
+          },
+          "execution_s": 1.5430521999951452
+        },
+        "prequery_probability": 0.44999481996609453,
+        "selection_s": 0.0036741000003530644,
+        "adaptation_s": 0.04858809999859659,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 63,
+        "index": 323,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001022",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999292260783528,
+            "min_ttc_s": 1.7441784059456877,
+            "violations": []
+          },
+          "execution_s": 1.3849406999652274
+        },
+        "prequery_probability": 0.44749524881506,
+        "selection_s": 0.00336050000260002,
+        "adaptation_s": 0.04748190000100294,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 64,
+        "index": 418,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001342",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.416639123815837,
+            "min_ttc_s": 2.083064663469145,
+            "violations": []
+          },
+          "execution_s": 1.3890211000107229
+        },
+        "prequery_probability": 0.4441024847179357,
+        "selection_s": 0.003377200002432801,
+        "adaptation_s": 0.05508399999962421,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 65,
+        "index": 472,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001499",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9933115575607634,
+            "min_ttc_s": 3.6804265314394033,
+            "violations": []
+          },
+          "execution_s": 1.648301100009121
+        },
+        "prequery_probability": 0.43164630372210977,
+        "selection_s": 0.004361799998150673,
+        "adaptation_s": 0.04891729999872041,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 66,
+        "index": 76,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000268",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9992734900703393,
+            "min_ttc_s": 7.208796573941299,
+            "violations": []
+          },
+          "execution_s": 1.940711300005205
+        },
+        "prequery_probability": 0.42838330858506196,
+        "selection_s": 0.0037004000005254056,
+        "adaptation_s": 0.04966700000295532,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 67,
+        "index": 318,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001005",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000061798653238,
+            "min_ttc_s": 3.8398064163574084,
+            "violations": []
+          },
+          "execution_s": 1.6669110000366345
+        },
+        "prequery_probability": 0.4261906336527325,
+        "selection_s": 0.0035452999982226174,
+        "adaptation_s": 0.055463299999246374,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 68,
+        "index": 358,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001138",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.4155350345818953,
+            "min_ttc_s": 1.2538236946747066,
+            "violations": []
+          },
+          "execution_s": 1.4395848999847658
+        },
+        "prequery_probability": 0.42107213933927456,
+        "selection_s": 0.0038105999992694706,
+        "adaptation_s": 0.04750229999990552,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 69,
+        "index": 142,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000476",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9995417605288301,
+            "min_ttc_s": 6.730157713501184,
+            "violations": []
+          },
+          "execution_s": 1.4324591999757104
+        },
+        "prequery_probability": 0.41861385944537444,
+        "selection_s": 0.0034827999988920055,
+        "adaptation_s": 0.0497877999987395,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 70,
+        "index": 295,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000931",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997601333827888,
+            "min_ttc_s": 6.571844195423658,
+            "violations": []
+          },
+          "execution_s": 1.5703825000091456
+        },
+        "prequery_probability": 0.4162646502005027,
+        "selection_s": 0.0037903999982518144,
+        "adaptation_s": 0.05048720000195317,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 71,
+        "index": 225,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000718",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8111917616677027,
+            "min_ttc_s": 0.7624256063441028,
+            "violations": []
+          },
+          "execution_s": 1.8606573999859393
+        },
+        "prequery_probability": 0.41564805524239734,
+        "selection_s": 0.0036823000009462703,
+        "adaptation_s": 0.051836099999491125,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 72,
+        "index": 457,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001460",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998243609383328,
+            "min_ttc_s": 7.103589317095746,
+            "violations": []
+          },
+          "execution_s": 1.4482353000203148
+        },
+        "prequery_probability": 0.4156588004029935,
+        "selection_s": 0.0036407000006875023,
+        "adaptation_s": 0.05703019999782555,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 73,
+        "index": 484,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001540",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997640984250278,
+            "min_ttc_s": 2.296151559111271,
+            "violations": []
+          },
+          "execution_s": 1.6700972000253387
+        },
+        "prequery_probability": 0.41284837165208815,
+        "selection_s": 0.003486099998553982,
+        "adaptation_s": 0.049668600000586594,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 74,
+        "index": 233,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000746",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.449626610158084,
+            "min_ttc_s": 1.0814156177916618,
+            "violations": []
+          },
+          "execution_s": 1.7192588999751024
+        },
+        "prequery_probability": 0.4125027042700001,
+        "selection_s": 0.0037105999981577042,
+        "adaptation_s": 0.05153689999860944,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 75,
+        "index": 138,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000467",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9995171204763578,
+            "min_ttc_s": 4.3273888040207,
+            "violations": []
+          },
+          "execution_s": 1.8793342999997549
+        },
+        "prequery_probability": 0.4105922866569507,
+        "selection_s": 0.003476599998975871,
+        "adaptation_s": 0.05273300000044401,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 76,
+        "index": 108,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000374",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9990221716761214,
+            "min_ttc_s": 1.5505358346987397,
+            "violations": []
+          },
+          "execution_s": 1.5445614999625832
+        },
+        "prequery_probability": 0.4049090378346457,
+        "selection_s": 0.003745800000615418,
+        "adaptation_s": 0.05113290000008419,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 77,
+        "index": 176,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000580",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9991894379180843,
+            "min_ttc_s": 7.3953746820838235,
+            "violations": []
+          },
+          "execution_s": 1.7708432999788783
+        },
+        "prequery_probability": 0.39455891471313176,
+        "selection_s": 0.004042100001242943,
+        "adaptation_s": 0.051497699998435564,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 78,
+        "index": 449,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001434",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998689676909138,
+            "min_ttc_s": 1.2899570092939223,
+            "violations": []
+          },
+          "execution_s": 1.6308496000128798
+        },
+        "prequery_probability": 0.3938743097004623,
+        "selection_s": 0.003980599998612888,
+        "adaptation_s": 0.05207760000121198,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 79,
+        "index": 193,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000630",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997822123281885,
+            "min_ttc_s": 1.4640501338660388,
+            "violations": []
+          },
+          "execution_s": 1.364951999974437
+        },
+        "prequery_probability": 0.3922328455970054,
+        "selection_s": 0.003688799999508774,
+        "adaptation_s": 0.0579652000014903,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 80,
+        "index": 158,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000525",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.7251990441680132,
+            "min_ttc_s": 1.9828079884602179,
+            "violations": []
+          },
+          "execution_s": 1.4303394999587908
+        },
+        "prequery_probability": 0.3917193615589267,
+        "selection_s": 0.003573299996787682,
+        "adaptation_s": 0.05392980000033276,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 81,
+        "index": 386,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001229",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9955508998459188,
+            "min_ttc_s": 2.6998924938793216,
+            "violations": []
+          },
+          "execution_s": 1.6260509000276215
+        },
+        "prequery_probability": 0.39061458301759877,
+        "selection_s": 0.004262599999492522,
+        "adaptation_s": 0.05615510000279755,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 82,
+        "index": 276,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000874",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9928899876877857,
+            "min_ttc_s": 1.0354947892069963,
+            "violations": []
+          },
+          "execution_s": 1.8191642999881878
+        },
+        "prequery_probability": 0.38875636550828296,
+        "selection_s": 0.0035723000000871252,
+        "adaptation_s": 0.058141400000749854,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 83,
+        "index": 404,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001286",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8284670804599132,
+            "min_ttc_s": 1.1565080286706184,
+            "violations": []
+          },
+          "execution_s": 1.403886899992358
+        },
+        "prequery_probability": 0.38860241552325725,
+        "selection_s": 0.0035285999983898364,
+        "adaptation_s": 0.060296899999229936,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 84,
+        "index": 43,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000159",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998810258469777,
+            "min_ttc_s": 6.019823227028428,
+            "violations": []
+          },
+          "execution_s": 1.521019400039222
+        },
+        "prequery_probability": 0.38316689502445883,
+        "selection_s": 0.003603499997552717,
+        "adaptation_s": 0.06754250000085449,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 85,
+        "index": 55,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000197",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001115912501235,
+            "min_ttc_s": 3.8040042272904837,
+            "violations": []
+          },
+          "execution_s": 1.8102538000093773
+        },
+        "prequery_probability": 0.3827915537079689,
+        "selection_s": 0.006807100002333755,
+        "adaptation_s": 0.06426549999741837,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 86,
+        "index": 251,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000798",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.094787201257626,
+            "min_ttc_s": 0.9860485512978684,
+            "violations": []
+          },
+          "execution_s": 1.7772336000343785
+        },
+        "prequery_probability": 0.38149825046897023,
+        "selection_s": 0.0037201999984972645,
+        "adaptation_s": 0.05938439999954426,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 87,
+        "index": 378,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001203",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000166983631322,
+            "min_ttc_s": 5.610346268353736,
+            "violations": []
+          },
+          "execution_s": 1.370138099999167
+        },
+        "prequery_probability": 0.3764709528365846,
+        "selection_s": 0.003626599998824531,
+        "adaptation_s": 0.07051169999976992,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 88,
+        "index": 18,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000060",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998576703649782,
+            "min_ttc_s": 5.690620163570202,
+            "violations": []
+          },
+          "execution_s": 1.0864921999746002
+        },
+        "prequery_probability": 0.3720551558048446,
+        "selection_s": 0.004102400002011564,
+        "adaptation_s": 0.06051049999950919,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 89,
+        "index": 509,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001626",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9975300620942462,
+            "min_ttc_s": 1.7692868004181685,
+            "violations": []
+          },
+          "execution_s": 1.7634518000413664
+        },
+        "prequery_probability": 0.37199059726853745,
+        "selection_s": 0.0037348000005295034,
+        "adaptation_s": 0.06341030000112369,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 90,
+        "index": 469,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001493",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9990871374936585,
+            "min_ttc_s": 2.4291832546845287,
+            "violations": []
+          },
+          "execution_s": 1.5355590000399388
+        },
+        "prequery_probability": 0.36797075332290374,
+        "selection_s": 0.004005499999038875,
+        "adaptation_s": 0.06489839999994729,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 91,
+        "index": 304,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000963",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9912315430072245,
+            "min_ttc_s": 6.008828759951386,
+            "violations": []
+          },
+          "execution_s": 1.7692103000008501
+        },
+        "prequery_probability": 0.3656374259105943,
+        "selection_s": 0.0036990000007790513,
+        "adaptation_s": 0.061422499999025604,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 92,
+        "index": 370,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001175",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0002322697892216,
+            "min_ttc_s": 5.686852779746481,
+            "violations": []
+          },
+          "execution_s": 1.9078912999830209
+        },
+        "prequery_probability": 0.3643851057910028,
+        "selection_s": 0.004055999997945037,
+        "adaptation_s": 0.06009040000208188,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 93,
+        "index": 175,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000576",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9987035506672974,
+            "min_ttc_s": 1.5905766881578511,
+            "violations": []
+          },
+          "execution_s": 1.4389560999698006
+        },
+        "prequery_probability": 0.36348911116760824,
+        "selection_s": 0.003755300000193529,
+        "adaptation_s": 0.06449630000133766,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 94,
+        "index": 184,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000600",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999569642716848,
+            "min_ttc_s": 5.689505139283876,
+            "violations": []
+          },
+          "execution_s": 1.6294309999793768
+        },
+        "prequery_probability": 0.3563948004681785,
+        "selection_s": 0.003663399998913519,
+        "adaptation_s": 0.060493100001622224,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 95,
+        "index": 301,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000952",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000146263644065,
+            "min_ttc_s": 1.238946217843686,
+            "violations": []
+          },
+          "execution_s": 1.7065359000116587
+        },
+        "prequery_probability": 0.35571555206589556,
+        "selection_s": 0.004168199997366173,
+        "adaptation_s": 0.062454800001432886,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 96,
+        "index": 209,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000662",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0089517759831788,
+            "min_ttc_s": 1.2436194721722056,
+            "violations": []
+          },
+          "execution_s": 1.3935674999956973
+        },
+        "prequery_probability": 0.3527059106459318,
+        "selection_s": 0.003546600000845501,
+        "adaptation_s": 0.07441719999769703,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 97,
+        "index": 221,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000698",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997929638211966,
+            "min_ttc_s": 2.9754820091990983,
+            "violations": []
+          },
+          "execution_s": 1.736302799952682
+        },
+        "prequery_probability": 0.35280171119464,
+        "selection_s": 0.003696199997648364,
+        "adaptation_s": 0.06444850000116276,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 98,
+        "index": 99,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000342",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.998697745348095,
+            "min_ttc_s": 4.459800455795039,
+            "violations": []
+          },
+          "execution_s": 1.7532258999999613
+        },
+        "prequery_probability": 0.34959121342660876,
+        "selection_s": 0.003742599998076912,
+        "adaptation_s": 0.08925509999971837,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 99,
+        "index": 408,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001306",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000263059709492,
+            "min_ttc_s": 1.3869689874365196,
+            "violations": []
+          },
+          "execution_s": 1.5376750999712385
+        },
+        "prequery_probability": 0.3472741344561609,
+        "selection_s": 0.0036282999972172547,
+        "adaptation_s": 0.06633299999884912,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 100,
+        "index": 31,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000108",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.00000996286053,
+            "min_ttc_s": 2.507040746085619,
+            "violations": []
+          },
+          "execution_s": 0.9670160000096075
+        },
+        "prequery_probability": 0.345821510380682,
+        "selection_s": 0.0041364999997313134,
+        "adaptation_s": 0.06372830000327667,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 101,
+        "index": 361,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001152",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0039136770726835,
+            "min_ttc_s": 1.4181785068043515,
+            "violations": []
+          },
+          "execution_s": 1.258465700026136
+        },
+        "prequery_probability": 0.34341542175710726,
+        "selection_s": 0.0037545000013778917,
+        "adaptation_s": 0.06814569999914966,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 102,
+        "index": 164,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000540",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001220635608616,
+            "min_ttc_s": 7.828710749800074,
+            "violations": []
+          },
+          "execution_s": 1.8855381000321358
+        },
+        "prequery_probability": 0.33893045791251264,
+        "selection_s": 0.0038271999983408023,
+        "adaptation_s": 0.07045839999773307,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 103,
+        "index": 150,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000501",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996373048149074,
+            "min_ttc_s": 4.449660001996863,
+            "violations": []
+          },
+          "execution_s": 1.7305844000075012
+        },
+        "prequery_probability": 0.3375548519621734,
+        "selection_s": 0.004066199999215314,
+        "adaptation_s": 0.06891250000262517,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 104,
+        "index": 199,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000643",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.990527477425911,
+            "min_ttc_s": 5.369328260423803,
+            "violations": []
+          },
+          "execution_s": 1.7633407000103034
+        },
+        "prequery_probability": 0.33608723083844627,
+        "selection_s": 0.0072546000010333955,
+        "adaptation_s": 0.07288390000030631,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 105,
+        "index": 380,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001206",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000109954176751,
+            "min_ttc_s": 1.5606586148989288,
+            "violations": []
+          },
+          "execution_s": 1.435706200019922
+        },
+        "prequery_probability": 0.33589578952821175,
+        "selection_s": 0.006354699999064906,
+        "adaptation_s": 0.07423949999792967,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 106,
+        "index": 13,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000042",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.7397493924178897,
+            "min_ttc_s": 1.4302130135034739,
+            "violations": []
+          },
+          "execution_s": 1.0064475000253879
+        },
+        "prequery_probability": 0.3345156528059109,
+        "selection_s": 0.004134200000407873,
+        "adaptation_s": 0.07688430000052904,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 107,
+        "index": 214,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000683",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000143032887663,
+            "min_ttc_s": 5.308114445795798,
+            "violations": []
+          },
+          "execution_s": 1.4922116000088863
+        },
+        "prequery_probability": 0.3331063351967936,
+        "selection_s": 0.007014999999228166,
+        "adaptation_s": 0.08155709999846295,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 108,
+        "index": 231,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000742",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.7097620159607695,
+            "min_ttc_s": 0.44096905608481995,
+            "violations": []
+          },
+          "execution_s": 2.7996776000363752
+        },
+        "prequery_probability": 0.33222243029741494,
+        "selection_s": 0.003964299998187926,
+        "adaptation_s": 0.06916909999927157,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 109,
+        "index": 67,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000240",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.1181285002166996,
+            "min_ttc_s": 2.4758798993832065,
+            "violations": []
+          },
+          "execution_s": 1.4429442000109702
+        },
+        "prequery_probability": 0.3318255501465025,
+        "selection_s": 0.004020500000478933,
+        "adaptation_s": 0.08396469999934197,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 110,
+        "index": 393,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001251",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999723917927231,
+            "min_ttc_s": 4.357906227093329,
+            "violations": []
+          },
+          "execution_s": 1.4906285999459215
+        },
+        "prequery_probability": 0.32696839480278317,
+        "selection_s": 0.00397010000233422,
+        "adaptation_s": 0.06988410000121803,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 111,
+        "index": 85,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000293",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.8617580327645668,
+            "min_ttc_s": 0.7010216124188328,
+            "violations": []
+          },
+          "execution_s": 1.667807999998331
+        },
+        "prequery_probability": 0.3267703940844405,
+        "selection_s": 0.004482800002733711,
+        "adaptation_s": 0.07800590000260854,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 112,
+        "index": 343,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001093",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000061920916457,
+            "min_ttc_s": 4.672483759260818,
+            "violations": []
+          },
+          "execution_s": 1.6594844000064768
+        },
+        "prequery_probability": 0.3244911711528561,
+        "selection_s": 0.005232899999100482,
+        "adaptation_s": 0.0769060000020545,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 113,
+        "index": 15,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000051",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9897945346569759,
+            "min_ttc_s": 2.5318201389934236,
+            "violations": []
+          },
+          "execution_s": 1.1590182000072673
+        },
+        "prequery_probability": 0.322595185663211,
+        "selection_s": 0.004950400001689559,
+        "adaptation_s": 0.07334170000103768,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 114,
+        "index": 0,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000000",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9650916139993726,
+            "min_ttc_s": 1.432038081293983,
+            "violations": []
+          },
+          "execution_s": 1.0073443000437692
+        },
+        "prequery_probability": 0.3213105633798785,
+        "selection_s": 0.004856899999140296,
+        "adaptation_s": 0.07598219999999856,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 115,
+        "index": 278,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000882",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999372552196209,
+            "min_ttc_s": 1.3503547485260974,
+            "violations": []
+          },
+          "execution_s": 1.6122116000042297
+        },
+        "prequery_probability": 0.3167975809729373,
+        "selection_s": 0.004012699999293545,
+        "adaptation_s": 0.07690680000087013,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 116,
+        "index": 461,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001470",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999935028292193,
+            "min_ttc_s": 1.3837264236982414,
+            "violations": []
+          },
+          "execution_s": 1.4454191999975592
+        },
+        "prequery_probability": 0.31561642591856487,
+        "selection_s": 0.004159899999649497,
+        "adaptation_s": 0.07781549999708659,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 117,
+        "index": 475,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001505",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000263608679303,
+            "min_ttc_s": 4.935810705350418,
+            "violations": []
+          },
+          "execution_s": 1.613862700003665
+        },
+        "prequery_probability": 0.31339631851282823,
+        "selection_s": 0.004404800001793774,
+        "adaptation_s": 0.08146239999769023,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 118,
+        "index": 287,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000904",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001141546957113,
+            "min_ttc_s": 5.997751048354445,
+            "violations": []
+          },
+          "execution_s": 1.533756299992092
+        },
+        "prequery_probability": 0.3128043949980166,
+        "selection_s": 0.004025599999295082,
+        "adaptation_s": 0.08510329999990063,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 119,
+        "index": 72,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000257",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.1685785431574915,
+            "min_ttc_s": 2.3456590508382416,
+            "violations": []
+          },
+          "execution_s": 1.4924508000258356
+        },
+        "prequery_probability": 0.3117482377797939,
+        "selection_s": 0.004037200000311714,
+        "adaptation_s": 0.07854429999861168,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 120,
+        "index": 349,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001108",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9895915823542145,
+            "min_ttc_s": 3.1552355868478847,
+            "violations": []
+          },
+          "execution_s": 1.469545100000687
+        },
+        "prequery_probability": 0.3117206000125843,
+        "selection_s": 0.004283499998564366,
+        "adaptation_s": 0.0763249999981781,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 121,
+        "index": 300,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000950",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9928911516242773,
+            "min_ttc_s": 1.9797517459675336,
+            "violations": []
+          },
+          "execution_s": 1.5314753000275232
+        },
+        "prequery_probability": 0.31100435958163125,
+        "selection_s": 0.0038571999975829385,
+        "adaptation_s": 0.07950549999804934,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 122,
+        "index": 155,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000514",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001973267646025,
+            "min_ttc_s": 1.6929792559588694,
+            "violations": []
+          },
+          "execution_s": 1.634984199947212
+        },
+        "prequery_probability": 0.3070809299123306,
+        "selection_s": 0.004816000000573695,
+        "adaptation_s": 0.08159050000176649,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 123,
+        "index": 186,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000612",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.4175624103483098,
+            "min_ttc_s": 0.31827549089556906,
+            "violations": []
+          },
+          "execution_s": 2.06000989995664
+        },
+        "prequery_probability": 0.3058357583963617,
+        "selection_s": 0.004235699998389464,
+        "adaptation_s": 0.09175220000179252,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 124,
+        "index": 129,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000444",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000228527497104,
+            "min_ttc_s": 7.905932935662178,
+            "violations": []
+          },
+          "execution_s": 1.4974782000062987
+        },
+        "prequery_probability": 0.30440910757284717,
+        "selection_s": 0.004346699999587145,
+        "adaptation_s": 0.08737879999898723,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 125,
+        "index": 366,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001166",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 0.6428111780608596,
+            "min_ttc_s": 0.6197977221653164,
+            "violations": []
+          },
+          "execution_s": 1.8487800000002608
+        },
+        "prequery_probability": 0.3010370081012724,
+        "selection_s": 0.00670430000172928,
+        "adaptation_s": 0.08176319999984116,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 126,
+        "index": 36,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000122",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000141551830934,
+            "min_ttc_s": 2.9462230704075205,
+            "violations": []
+          },
+          "execution_s": 1.4007637000177056
+        },
+        "prequery_probability": 0.29652563812725363,
+        "selection_s": 0.004230099999404047,
+        "adaptation_s": 0.08438920000116923,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 127,
+        "index": 9,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:000033",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9869529368768146,
+            "min_ttc_s": 2.085021749783054,
+            "violations": []
+          },
+          "execution_s": 1.2404816000489518
+        },
+        "prequery_probability": 0.29589858094213006,
+        "selection_s": 0.004078300000401214,
+        "adaptation_s": 0.08501700000124401,
+        "reason": "gp_collision"
+      },
+      {
+        "query": 128,
+        "index": 342,
+        "feedback": {
+          "scenario_id": "cut_out:development:0:001090",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997052166513838,
+            "min_ttc_s": 4.467394651418646,
+            "violations": []
+          },
+          "execution_s": 1.6739856000058353
+        },
+        "prequery_probability": 0.2943846041904259,
+        "selection_s": 0.00414680000176304,
+        "adaptation_s": 0.09288250000099652,
+        "reason": "gp_collision"
+      }
+    ],
+    "selected_indices": [
+      61,
+      487,
+      266,
+      317,
+      427,
+      435,
+      363,
+      420,
+      360,
+      103,
+      183,
+      273,
+      246,
+      27,
+      147,
+      258,
+      501,
+      486,
+      121,
+      468,
+      411,
+      188,
+      47,
+      5,
+      496,
+      203,
+      68,
+      334,
+      452,
+      481,
+      66,
+      110,
+      118,
+      346,
+      132,
+      102,
+      56,
+      390,
+      314,
+      374,
+      174,
+      391,
+      171,
+      271,
+      426,
+      53,
+      405,
+      368,
+      81,
+      453,
+      195,
+      447,
+      181,
+      113,
+      268,
+      428,
+      95,
+      136,
+      510,
+      173,
+      327,
+      439,
+      323,
+      418,
+      472,
+      76,
+      318,
+      358,
+      142,
+      295,
+      225,
+      457,
+      484,
+      233,
+      138,
+      108,
+      176,
+      449,
+      193,
+      158,
+      386,
+      276,
+      404,
+      43,
+      55,
+      251,
+      378,
+      18,
+      509,
+      469,
+      304,
+      370,
+      175,
+      184,
+      301,
+      209,
+      221,
+      99,
+      408,
+      31,
+      361,
+      164,
+      150,
+      199,
+      380,
+      13,
+      214,
+      231,
+      67,
+      393,
+      85,
+      343,
+      15,
+      0,
+      278,
+      461,
+      475,
+      287,
+      72,
+      349,
+      300,
+      155,
+      186,
+      129,
+      366,
+      36,
+      9,
+      342
+    ],
+    "actual_queries": 128,
+    "maximum_queries": 128,
+    "termination": "budget_exhausted",
+    "feedback_used": "paid collision labels"
+  },
+  "metrics": {
+    "queries": 128,
+    "unique_collisions": 22,
+    "collision_executions": 22,
+    "discovery_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      5,
+      5,
+      6,
+      6,
+      6,
+      7,
+      8,
+      9,
+      9,
+      9,
+      9,
+      10,
+      11,
+      12,
+      12,
+      13,
+      14,
+      15,
+      16,
+      16,
+      17,
+      17,
+      18,
+      19,
+      19,
+      19,
+      20,
+      20,
+      20,
+      21,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22,
+      22
+    ],
+    "discovery_auc": 16.8984375,
+    "behavior_coverage": 3,
+    "behavior_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "behavior_signatures": [
+      [
+        "lead",
+        "front",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "active_event"
+      ],
+      [
+        "lead",
+        "front",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "pre_event"
+      ],
+      [
+        "lead",
+        "right",
+        [
+          "lane_keep",
+          "brake"
+        ],
+        "active_event"
+      ]
+    ],
+    "behavior_counts": {
+      "collision_object": {
+        "lead": 22
+      },
+      "contact_direction": {
+        "front": 20,
+        "right": 2
+      },
+      "ego_action": {
+        "lane_keep/brake": 22
+      },
+      "event_phase": {
+        "pre_event": 13,
+        "active_event": 9
+      }
+    },
+    "first_collision_query": 14,
+    "first_collision": {
+      "time": 14,
+      "observed": true
+    },
+    "brier": 0.18426517896222364,
+    "violation_counts": {},
+    "minimum_clearance_m": 0.0,
+    "minimum_ttc_s": 0.0,
+    "equivalent_execution_s": 179.070757600246,
+    "selection_s": 0.4962912999690161,
+    "adaptation_s": 8.189648800012947,
+    "pool_unique_collisions": 24,
+    "collision_recall": 0.9166666666666666,
+    "recall_curve": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.041666666666666664,
+      0.08333333333333333,
+      0.125,
+      0.16666666666666666,
+      0.20833333333333334,
+      0.20833333333333334,
+      0.20833333333333334,
+      0.25,
+      0.25,
+      0.25,
+      0.2916666666666667,
+      0.3333333333333333,
+      0.375,
+      0.375,
+      0.375,
+      0.375,
+      0.4166666666666667,
+      0.4583333333333333,
+      0.5,
+      0.5,
+      0.5416666666666666,
+      0.5833333333333334,
+      0.625,
+      0.6666666666666666,
+      0.6666666666666666,
+      0.7083333333333334,
+      0.7083333333333334,
+      0.75,
+      0.7916666666666666,
+      0.7916666666666666,
+      0.7916666666666666,
+      0.8333333333333334,
+      0.8333333333333334,
+      0.8333333333333334,
+      0.875,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666,
+      0.9166666666666666
+    ],
+    "recall_auc": 0.7041015625,
+    "checkpoints": {
+      "16": {
+        "unique_collisions": 3,
+        "collision_recall": 0.125
+      },
+      "32": {
+        "unique_collisions": 12,
+        "collision_recall": 0.5
+      },
+      "64": {
+        "unique_collisions": 22,
+        "collision_recall": 0.9166666666666666
+      },
+      "128": {
+        "unique_collisions": 22,
+        "collision_recall": 0.9166666666666666
+      }
+    }
+  },
+  "cost": {
+    "model_construction_s": 0.00010699999984353781,
+    "selector_process_wall_s": 12.265887099998508,
+    "execution_mode": "replay",
+    "actual_new_physical_calls": 0,
+    "equivalent_selected_execution_s": 179.070757600246,
+    "physical_bank": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\data\\collision\\physical\\development\\cut_out\\development_linear_mpc",
+    "physical_bank_calls": 512,
+    "physical_bank_execution_s": 783.4072078015306
+  },
+  "query_ledger": [
+    {
+      "call": 1,
+      "index": 61,
+      "scenario_id": "cut_out:development:0:000214",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020124000002397224,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000214",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9956969240077977,
+          "min_ttc_s": 2.981127430383286,
+          "violations": []
+        },
+        "execution_s": 1.596523199987132
+      }
+    },
+    {
+      "call": 2,
+      "index": 487,
+      "scenario_id": "cut_out:development:0:001551",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0038869000018166844,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001551",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8320659803936192,
+          "min_ttc_s": 2.2101629550348187,
+          "violations": []
+        },
+        "execution_s": 1.5831196999642998
+      }
+    },
+    {
+      "call": 3,
+      "index": 266,
+      "scenario_id": "cut_out:development:0:000855",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002556600000389153,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000855",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000541783388703,
+          "min_ttc_s": 6.089696039704812,
+          "violations": []
+        },
+        "execution_s": 2.041879999975208
+      }
+    },
+    {
+      "call": 4,
+      "index": 317,
+      "scenario_id": "cut_out:development:0:001002",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002800599999318365,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001002",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001729350510344,
+          "min_ttc_s": 4.367204996757822,
+          "violations": []
+        },
+        "execution_s": 1.5227775999810547
+      }
+    },
+    {
+      "call": 5,
+      "index": 427,
+      "scenario_id": "cut_out:development:0:001360",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017004999972414225,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001360",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.4513545174993965,
+          "min_ttc_s": 0.8269344717933408,
+          "violations": []
+        },
+        "execution_s": 1.3944431000272743
+      }
+    },
+    {
+      "call": 6,
+      "index": 435,
+      "scenario_id": "cut_out:development:0:001382",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020068000012543052,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001382",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.998864419514722,
+          "min_ttc_s": 2.140439697109039,
+          "violations": []
+        },
+        "execution_s": 1.5630801999941468
+      }
+    },
+    {
+      "call": 7,
+      "index": 363,
+      "scenario_id": "cut_out:development:0:001158",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017178000016428996,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001158",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0008862546541244,
+          "min_ttc_s": 5.481027674227128,
+          "violations": []
+        },
+        "execution_s": 1.991813100001309
+      }
+    },
+    {
+      "call": 8,
+      "index": 420,
+      "scenario_id": "cut_out:development:0:001346",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020176999969407916,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001346",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999262094032838,
+          "min_ttc_s": 1.3731582898600587,
+          "violations": []
+        },
+        "execution_s": 1.6291104999836534
+      }
+    },
+    {
+      "call": 9,
+      "index": 360,
+      "scenario_id": "cut_out:development:0:001148",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017417000017303508,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001148",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.749271390843821,
+          "min_ttc_s": 1.6489996927737691,
+          "violations": []
+        },
+        "execution_s": 1.4744974999921396
+      }
+    },
+    {
+      "call": 10,
+      "index": 103,
+      "scenario_id": "cut_out:development:0:000355",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016988999996101484,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000355",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9582589100820604,
+          "min_ttc_s": 2.691291633118114,
+          "violations": []
+        },
+        "execution_s": 1.481692400004249
+      }
+    },
+    {
+      "call": 11,
+      "index": 183,
+      "scenario_id": "cut_out:development:0:000599",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017039000013028271,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000599",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.997764321771521,
+          "min_ttc_s": 2.4029431563672707,
+          "violations": []
+        },
+        "execution_s": 1.7570155000430532
+      }
+    },
+    {
+      "call": 12,
+      "index": 273,
+      "scenario_id": "cut_out:development:0:000869",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017192999985127244,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000869",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999034791744434,
+          "min_ttc_s": 2.9703534536013096,
+          "violations": []
+        },
+        "execution_s": 1.5106334000010975
+      }
+    },
+    {
+      "call": 13,
+      "index": 246,
+      "scenario_id": "cut_out:development:0:000787",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002000399999815272,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000787",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000034302519012,
+          "min_ttc_s": 4.5014403588597505,
+          "violations": []
+        },
+        "execution_s": 1.3226785999722779
+      }
+    },
+    {
+      "call": 14,
+      "index": 27,
+      "scenario_id": "cut_out:development:0:000090",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0004932000010740012,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000090",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.1168519000057131
+      }
+    },
+    {
+      "call": 15,
+      "index": 147,
+      "scenario_id": "cut_out:development:0:000490",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0004650000009860378,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000490",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.4010994000127539
+      }
+    },
+    {
+      "call": 16,
+      "index": 258,
+      "scenario_id": "cut_out:development:0:000826",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0008766999999352265,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000826",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.21141579997492954
+      }
+    },
+    {
+      "call": 17,
+      "index": 501,
+      "scenario_id": "cut_out:development:0:001602",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007169999989855569,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001602",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.31372790003661066
+      }
+    },
+    {
+      "call": 18,
+      "index": 486,
+      "scenario_id": "cut_out:development:0:001546",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0005110000020067673,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001546",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.5667499999981374
+      }
+    },
+    {
+      "call": 19,
+      "index": 121,
+      "scenario_id": "cut_out:development:0:000418",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001685799998085713,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000418",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996522784305681,
+          "min_ttc_s": 1.1649178539148999,
+          "violations": []
+        },
+        "execution_s": 1.4412603999953717
+      }
+    },
+    {
+      "call": 20,
+      "index": 468,
+      "scenario_id": "cut_out:development:0:001490",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017102000019804109,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001490",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000735243329784,
+          "min_ttc_s": 0.8516849778233851,
+          "violations": []
+        },
+        "execution_s": 1.651284100022167
+      }
+    },
+    {
+      "call": 21,
+      "index": 411,
+      "scenario_id": "cut_out:development:0:001314",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007852000017010141,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001314",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.7457724999985658
+      }
+    },
+    {
+      "call": 22,
+      "index": 188,
+      "scenario_id": "cut_out:development:0:000618",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025453000016568694,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000618",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.089845833662182,
+          "min_ttc_s": 1.3848669214526752,
+          "violations": []
+        },
+        "execution_s": 1.610881500004325
+      }
+    },
+    {
+      "call": 23,
+      "index": 47,
+      "scenario_id": "cut_out:development:0:000170",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024116999993566424,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000170",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000438523757064,
+          "min_ttc_s": 0.9493738937138779,
+          "violations": []
+        },
+        "execution_s": 1.5075643000309356
+      }
+    },
+    {
+      "call": 24,
+      "index": 5,
+      "scenario_id": "cut_out:development:0:000018",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007664000004297122,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000018",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.3226414999808185
+      }
+    },
+    {
+      "call": 25,
+      "index": 496,
+      "scenario_id": "cut_out:development:0:001582",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.000545599999895785,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001582",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.8767060000100173
+      }
+    },
+    {
+      "call": 26,
+      "index": 203,
+      "scenario_id": "cut_out:development:0:000650",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00044020000132150017,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000650",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.3371131000458263
+      }
+    },
+    {
+      "call": 27,
+      "index": 68,
+      "scenario_id": "cut_out:development:0:000242",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016901999988476746,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000242",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997646657352475,
+          "min_ttc_s": 1.216716214194768,
+          "violations": []
+        },
+        "execution_s": 1.6727069000480697
+      }
+    },
+    {
+      "call": 28,
+      "index": 334,
+      "scenario_id": "cut_out:development:0:001066",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018763000007311348,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001066",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.4271899825755727,
+          "min_ttc_s": 1.1350006650544862,
+          "violations": []
+        },
+        "execution_s": 1.486920099996496
+      }
+    },
+    {
+      "call": 29,
+      "index": 452,
+      "scenario_id": "cut_out:development:0:001440",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017543000030855183,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001440",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9498215303877715,
+          "min_ttc_s": 0.8013823586144696,
+          "violations": []
+        },
+        "execution_s": 1.4278394000139087
+      }
+    },
+    {
+      "call": 30,
+      "index": 481,
+      "scenario_id": "cut_out:development:0:001530",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0004090000002179295,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001530",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.2611398999579251
+      }
+    },
+    {
+      "call": 31,
+      "index": 66,
+      "scenario_id": "cut_out:development:0:000238",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00043279999954393134,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000238",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.25242570001864806
+      }
+    },
+    {
+      "call": 32,
+      "index": 110,
+      "scenario_id": "cut_out:development:0:000378",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.000791499998740619,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000378",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 1.2638316999655217
+      }
+    },
+    {
+      "call": 33,
+      "index": 118,
+      "scenario_id": "cut_out:development:0:000410",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001763199998094933,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000410",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.7835501582727442,
+          "min_ttc_s": 0.9655932195611239,
+          "violations": []
+        },
+        "execution_s": 2.1048908999655396
+      }
+    },
+    {
+      "call": 34,
+      "index": 346,
+      "scenario_id": "cut_out:development:0:001098",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00042690000191214494,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001098",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.31054760003462434
+      }
+    },
+    {
+      "call": 35,
+      "index": 132,
+      "scenario_id": "cut_out:development:0:000450",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007941000003484078,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000450",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.30288720002863556
+      }
+    },
+    {
+      "call": 36,
+      "index": 102,
+      "scenario_id": "cut_out:development:0:000350",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0008134000017889775,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000350",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.7843189000268467
+      }
+    },
+    {
+      "call": 37,
+      "index": 56,
+      "scenario_id": "cut_out:development:0:000202",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0006155000010039657,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000202",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 1.0418866000254638
+      }
+    },
+    {
+      "call": 38,
+      "index": 390,
+      "scenario_id": "cut_out:development:0:001238",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017989000007219147,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001238",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9434711723038458,
+          "min_ttc_s": 1.1230038267050853,
+          "violations": []
+        },
+        "execution_s": 1.5923218000098132
+      }
+    },
+    {
+      "call": 39,
+      "index": 314,
+      "scenario_id": "cut_out:development:0:000994",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00040979999903356656,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000994",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.24728469998808578
+      }
+    },
+    {
+      "call": 40,
+      "index": 374,
+      "scenario_id": "cut_out:development:0:001194",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017345999985991511,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001194",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999793937577304,
+          "min_ttc_s": 1.3251574458649023,
+          "violations": []
+        },
+        "execution_s": 1.786242600006517
+      }
+    },
+    {
+      "call": 41,
+      "index": 174,
+      "scenario_id": "cut_out:development:0:000574",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00045790000149281695,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000574",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.4135833999607712
+      }
+    },
+    {
+      "call": 42,
+      "index": 391,
+      "scenario_id": "cut_out:development:0:001242",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0004528999998001382,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001242",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.24214099999517202
+      }
+    },
+    {
+      "call": 43,
+      "index": 171,
+      "scenario_id": "cut_out:development:0:000562",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001882699998532189,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000562",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.876424749605281,
+          "min_ttc_s": 1.0762719169205297,
+          "violations": []
+        },
+        "execution_s": 1.6560645999852568
+      }
+    },
+    {
+      "call": 44,
+      "index": 271,
+      "scenario_id": "cut_out:development:0:000864",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0026149999976041727,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000864",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.25386215170621385,
+          "min_ttc_s": 0.469917424880727,
+          "violations": []
+        },
+        "execution_s": 1.909118099953048
+      }
+    },
+    {
+      "call": 45,
+      "index": 426,
+      "scenario_id": "cut_out:development:0:001358",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007122000024537556,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001358",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.35010409995447844
+      }
+    },
+    {
+      "call": 46,
+      "index": 53,
+      "scenario_id": "cut_out:development:0:000186",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002964100000099279,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000186",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999221464725096,
+          "min_ttc_s": 1.1471479419715158,
+          "violations": []
+        },
+        "execution_s": 1.4081882000318728
+      }
+    },
+    {
+      "call": 47,
+      "index": 405,
+      "scenario_id": "cut_out:development:0:001290",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017291000003751833,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001290",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.09010691380112235,
+          "min_ttc_s": 0.17740494673116952,
+          "violations": []
+        },
+        "execution_s": 1.7343171000247821
+      }
+    },
+    {
+      "call": 48,
+      "index": 368,
+      "scenario_id": "cut_out:development:0:001170",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007980000009411015,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001170",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.2942441999912262
+      }
+    },
+    {
+      "call": 49,
+      "index": 81,
+      "scenario_id": "cut_out:development:0:000282",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0007517000012740027,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000282",
+        "collision": true,
+        "safety": {
+          "min_clearance_m": 0.0,
+          "min_ttc_s": 0.0,
+          "violations": []
+        },
+        "execution_s": 0.31651789997704327
+      }
+    },
+    {
+      "call": 50,
+      "index": 453,
+      "scenario_id": "cut_out:development:0:001442",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001768800000718329,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001442",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.4922901453353794,
+          "min_ttc_s": 1.6487882672139138,
+          "violations": []
+        },
+        "execution_s": 1.4343338000471704
+      }
+    },
+    {
+      "call": 51,
+      "index": 195,
+      "scenario_id": "cut_out:development:0:000634",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016737000005377922,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000634",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.20923597128334281,
+          "min_ttc_s": 0.2825995115346854,
+          "violations": []
+        },
+        "execution_s": 1.8389572000014596
+      }
+    },
+    {
+      "call": 52,
+      "index": 447,
+      "scenario_id": "cut_out:development:0:001430",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016369000004488043,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001430",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999635071041153,
+          "min_ttc_s": 1.0564449147420374,
+          "violations": []
+        },
+        "execution_s": 1.54608780000126
+      }
+    },
+    {
+      "call": 53,
+      "index": 181,
+      "scenario_id": "cut_out:development:0:000594",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019654999996419065,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000594",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.26482257347898314,
+          "min_ttc_s": 0.6564874451453401,
+          "violations": []
+        },
+        "execution_s": 1.9270231000264175
+      }
+    },
+    {
+      "call": 54,
+      "index": 113,
+      "scenario_id": "cut_out:development:0:000390",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017115999980887864,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000390",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998565529823555,
+          "min_ttc_s": 1.1030489242267916,
+          "violations": []
+        },
+        "execution_s": 1.4040281000197865
+      }
+    },
+    {
+      "call": 55,
+      "index": 268,
+      "scenario_id": "cut_out:development:0:000858",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017504000024928246,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000858",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.858574855646694,
+          "min_ttc_s": 1.102341555101474,
+          "violations": []
+        },
+        "execution_s": 1.7720770000014454
+      }
+    },
+    {
+      "call": 56,
+      "index": 428,
+      "scenario_id": "cut_out:development:0:001362",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017025000015564729,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001362",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997660868746785,
+          "min_ttc_s": 1.2446833600641989,
+          "violations": []
+        },
+        "execution_s": 1.4356868999893777
+      }
+    },
+    {
+      "call": 57,
+      "index": 95,
+      "scenario_id": "cut_out:development:0:000322",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001691400000709109,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000322",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.4256847374961572,
+          "min_ttc_s": 0.921370525738241,
+          "violations": []
+        },
+        "execution_s": 1.627025900001172
+      }
+    },
+    {
+      "call": 58,
+      "index": 136,
+      "scenario_id": "cut_out:development:0:000462",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019267999996372964,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000462",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.2355447029410536,
+          "min_ttc_s": 0.38195017751333765,
+          "violations": []
+        },
+        "execution_s": 1.958816000027582
+      }
+    },
+    {
+      "call": 59,
+      "index": 510,
+      "scenario_id": "cut_out:development:0:001630",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020724000023619737,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001630",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9993385446627476,
+          "min_ttc_s": 1.28437242315752,
+          "violations": []
+        },
+        "execution_s": 1.3642012000200339
+      }
+    },
+    {
+      "call": 60,
+      "index": 173,
+      "scenario_id": "cut_out:development:0:000573",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019121999976050574,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000573",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999776506062089,
+          "min_ttc_s": 3.1892127610948107,
+          "violations": []
+        },
+        "execution_s": 1.591507899982389
+      }
+    },
+    {
+      "call": 61,
+      "index": 327,
+      "scenario_id": "cut_out:development:0:001038",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018619000002217945,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001038",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9977213908939813,
+          "min_ttc_s": 1.1958278911569722,
+          "violations": []
+        },
+        "execution_s": 1.5971983000054024
+      }
+    },
+    {
+      "call": 62,
+      "index": 439,
+      "scenario_id": "cut_out:development:0:001400",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017078999990189914,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001400",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8823732255098826,
+          "min_ttc_s": 1.3620293870848004,
+          "violations": []
+        },
+        "execution_s": 1.5430521999951452
+      }
+    },
+    {
+      "call": 63,
+      "index": 323,
+      "scenario_id": "cut_out:development:0:001022",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002040899998974055,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001022",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999292260783528,
+          "min_ttc_s": 1.7441784059456877,
+          "violations": []
+        },
+        "execution_s": 1.3849406999652274
+      }
+    },
+    {
+      "call": 64,
+      "index": 418,
+      "scenario_id": "cut_out:development:0:001342",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018070000005536713,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001342",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.416639123815837,
+          "min_ttc_s": 2.083064663469145,
+          "violations": []
+        },
+        "execution_s": 1.3890211000107229
+      }
+    },
+    {
+      "call": 65,
+      "index": 472,
+      "scenario_id": "cut_out:development:0:001499",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001735099998768419,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001499",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9933115575607634,
+          "min_ttc_s": 3.6804265314394033,
+          "violations": []
+        },
+        "execution_s": 1.648301100009121
+      }
+    },
+    {
+      "call": 66,
+      "index": 76,
+      "scenario_id": "cut_out:development:0:000268",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017982999997911975,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000268",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9992734900703393,
+          "min_ttc_s": 7.208796573941299,
+          "violations": []
+        },
+        "execution_s": 1.940711300005205
+      }
+    },
+    {
+      "call": 67,
+      "index": 318,
+      "scenario_id": "cut_out:development:0:001005",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017116999988502357,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001005",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000061798653238,
+          "min_ttc_s": 3.8398064163574084,
+          "violations": []
+        },
+        "execution_s": 1.6669110000366345
+      }
+    },
+    {
+      "call": 68,
+      "index": 358,
+      "scenario_id": "cut_out:development:0:001138",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001931999999214895,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001138",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.4155350345818953,
+          "min_ttc_s": 1.2538236946747066,
+          "violations": []
+        },
+        "execution_s": 1.4395848999847658
+      }
+    },
+    {
+      "call": 69,
+      "index": 142,
+      "scenario_id": "cut_out:development:0:000476",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019633999982033856,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000476",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9995417605288301,
+          "min_ttc_s": 6.730157713501184,
+          "violations": []
+        },
+        "execution_s": 1.4324591999757104
+      }
+    },
+    {
+      "call": 70,
+      "index": 295,
+      "scenario_id": "cut_out:development:0:000931",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017465000019001309,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000931",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997601333827888,
+          "min_ttc_s": 6.571844195423658,
+          "violations": []
+        },
+        "execution_s": 1.5703825000091456
+      }
+    },
+    {
+      "call": 71,
+      "index": 225,
+      "scenario_id": "cut_out:development:0:000718",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017059000019798987,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000718",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8111917616677027,
+          "min_ttc_s": 0.7624256063441028,
+          "violations": []
+        },
+        "execution_s": 1.8606573999859393
+      }
+    },
+    {
+      "call": 72,
+      "index": 457,
+      "scenario_id": "cut_out:development:0:001460",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0026595000017550774,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001460",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998243609383328,
+          "min_ttc_s": 7.103589317095746,
+          "violations": []
+        },
+        "execution_s": 1.4482353000203148
+      }
+    },
+    {
+      "call": 73,
+      "index": 484,
+      "scenario_id": "cut_out:development:0:001540",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002256899999338202,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001540",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997640984250278,
+          "min_ttc_s": 2.296151559111271,
+          "violations": []
+        },
+        "execution_s": 1.6700972000253387
+      }
+    },
+    {
+      "call": 74,
+      "index": 233,
+      "scenario_id": "cut_out:development:0:000746",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021416999989014585,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000746",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.449626610158084,
+          "min_ttc_s": 1.0814156177916618,
+          "violations": []
+        },
+        "execution_s": 1.7192588999751024
+      }
+    },
+    {
+      "call": 75,
+      "index": 138,
+      "scenario_id": "cut_out:development:0:000467",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017172000007121824,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000467",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9995171204763578,
+          "min_ttc_s": 4.3273888040207,
+          "violations": []
+        },
+        "execution_s": 1.8793342999997549
+      }
+    },
+    {
+      "call": 76,
+      "index": 108,
+      "scenario_id": "cut_out:development:0:000374",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018434000012348406,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000374",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9990221716761214,
+          "min_ttc_s": 1.5505358346987397,
+          "violations": []
+        },
+        "execution_s": 1.5445614999625832
+      }
+    },
+    {
+      "call": 77,
+      "index": 176,
+      "scenario_id": "cut_out:development:0:000580",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018497000019124243,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000580",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9991894379180843,
+          "min_ttc_s": 7.3953746820838235,
+          "violations": []
+        },
+        "execution_s": 1.7708432999788783
+      }
+    },
+    {
+      "call": 78,
+      "index": 449,
+      "scenario_id": "cut_out:development:0:001434",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001767699999618344,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001434",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998689676909138,
+          "min_ttc_s": 1.2899570092939223,
+          "violations": []
+        },
+        "execution_s": 1.6308496000128798
+      }
+    },
+    {
+      "call": 79,
+      "index": 193,
+      "scenario_id": "cut_out:development:0:000630",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001998799998546019,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000630",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997822123281885,
+          "min_ttc_s": 1.4640501338660388,
+          "violations": []
+        },
+        "execution_s": 1.364951999974437
+      }
+    },
+    {
+      "call": 80,
+      "index": 158,
+      "scenario_id": "cut_out:development:0:000525",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019119999997201376,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000525",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.7251990441680132,
+          "min_ttc_s": 1.9828079884602179,
+          "violations": []
+        },
+        "execution_s": 1.4303394999587908
+      }
+    },
+    {
+      "call": 81,
+      "index": 386,
+      "scenario_id": "cut_out:development:0:001229",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001757400001224596,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001229",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9955508998459188,
+          "min_ttc_s": 2.6998924938793216,
+          "violations": []
+        },
+        "execution_s": 1.6260509000276215
+      }
+    },
+    {
+      "call": 82,
+      "index": 276,
+      "scenario_id": "cut_out:development:0:000874",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019394999981159344,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000874",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9928899876877857,
+          "min_ttc_s": 1.0354947892069963,
+          "violations": []
+        },
+        "execution_s": 1.8191642999881878
+      }
+    },
+    {
+      "call": 83,
+      "index": 404,
+      "scenario_id": "cut_out:development:0:001286",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018868000006477814,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001286",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8284670804599132,
+          "min_ttc_s": 1.1565080286706184,
+          "violations": []
+        },
+        "execution_s": 1.403886899992358
+      }
+    },
+    {
+      "call": 84,
+      "index": 43,
+      "scenario_id": "cut_out:development:0:000159",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022965000025578775,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000159",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998810258469777,
+          "min_ttc_s": 6.019823227028428,
+          "violations": []
+        },
+        "execution_s": 1.521019400039222
+      }
+    },
+    {
+      "call": 85,
+      "index": 55,
+      "scenario_id": "cut_out:development:0:000197",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003186099998856662,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000197",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001115912501235,
+          "min_ttc_s": 3.8040042272904837,
+          "violations": []
+        },
+        "execution_s": 1.8102538000093773
+      }
+    },
+    {
+      "call": 86,
+      "index": 251,
+      "scenario_id": "cut_out:development:0:000798",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001890399998956127,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000798",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.094787201257626,
+          "min_ttc_s": 0.9860485512978684,
+          "violations": []
+        },
+        "execution_s": 1.7772336000343785
+      }
+    },
+    {
+      "call": 87,
+      "index": 378,
+      "scenario_id": "cut_out:development:0:001203",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017437999995308928,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001203",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000166983631322,
+          "min_ttc_s": 5.610346268353736,
+          "violations": []
+        },
+        "execution_s": 1.370138099999167
+      }
+    },
+    {
+      "call": 88,
+      "index": 18,
+      "scenario_id": "cut_out:development:0:000060",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001800300000468269,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000060",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998576703649782,
+          "min_ttc_s": 5.690620163570202,
+          "violations": []
+        },
+        "execution_s": 1.0864921999746002
+      }
+    },
+    {
+      "call": 89,
+      "index": 509,
+      "scenario_id": "cut_out:development:0:001626",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020671999991463963,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001626",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9975300620942462,
+          "min_ttc_s": 1.7692868004181685,
+          "violations": []
+        },
+        "execution_s": 1.7634518000413664
+      }
+    },
+    {
+      "call": 90,
+      "index": 469,
+      "scenario_id": "cut_out:development:0:001493",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018111999997927342,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001493",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9990871374936585,
+          "min_ttc_s": 2.4291832546845287,
+          "violations": []
+        },
+        "execution_s": 1.5355590000399388
+      }
+    },
+    {
+      "call": 91,
+      "index": 304,
+      "scenario_id": "cut_out:development:0:000963",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017287000009673648,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000963",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9912315430072245,
+          "min_ttc_s": 6.008828759951386,
+          "violations": []
+        },
+        "execution_s": 1.7692103000008501
+      }
+    },
+    {
+      "call": 92,
+      "index": 370,
+      "scenario_id": "cut_out:development:0:001175",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018225999992864672,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001175",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0002322697892216,
+          "min_ttc_s": 5.686852779746481,
+          "violations": []
+        },
+        "execution_s": 1.9078912999830209
+      }
+    },
+    {
+      "call": 93,
+      "index": 175,
+      "scenario_id": "cut_out:development:0:000576",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001815599996916717,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000576",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9987035506672974,
+          "min_ttc_s": 1.5905766881578511,
+          "violations": []
+        },
+        "execution_s": 1.4389560999698006
+      }
+    },
+    {
+      "call": 94,
+      "index": 184,
+      "scenario_id": "cut_out:development:0:000600",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022023999990778975,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000600",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999569642716848,
+          "min_ttc_s": 5.689505139283876,
+          "violations": []
+        },
+        "execution_s": 1.6294309999793768
+      }
+    },
+    {
+      "call": 95,
+      "index": 301,
+      "scenario_id": "cut_out:development:0:000952",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00178329999835114,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000952",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000146263644065,
+          "min_ttc_s": 1.238946217843686,
+          "violations": []
+        },
+        "execution_s": 1.7065359000116587
+      }
+    },
+    {
+      "call": 96,
+      "index": 209,
+      "scenario_id": "cut_out:development:0:000662",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002413700000033714,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000662",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0089517759831788,
+          "min_ttc_s": 1.2436194721722056,
+          "violations": []
+        },
+        "execution_s": 1.3935674999956973
+      }
+    },
+    {
+      "call": 97,
+      "index": 221,
+      "scenario_id": "cut_out:development:0:000698",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018822999991243705,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000698",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997929638211966,
+          "min_ttc_s": 2.9754820091990983,
+          "violations": []
+        },
+        "execution_s": 1.736302799952682
+      }
+    },
+    {
+      "call": 98,
+      "index": 99,
+      "scenario_id": "cut_out:development:0:000342",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00216069999805768,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000342",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.998697745348095,
+          "min_ttc_s": 4.459800455795039,
+          "violations": []
+        },
+        "execution_s": 1.7532258999999613
+      }
+    },
+    {
+      "call": 99,
+      "index": 408,
+      "scenario_id": "cut_out:development:0:001306",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018850000014936086,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001306",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000263059709492,
+          "min_ttc_s": 1.3869689874365196,
+          "violations": []
+        },
+        "execution_s": 1.5376750999712385
+      }
+    },
+    {
+      "call": 100,
+      "index": 31,
+      "scenario_id": "cut_out:development:0:000108",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002130199998646276,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000108",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.00000996286053,
+          "min_ttc_s": 2.507040746085619,
+          "violations": []
+        },
+        "execution_s": 0.9670160000096075
+      }
+    },
+    {
+      "call": 101,
+      "index": 361,
+      "scenario_id": "cut_out:development:0:001152",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017382000005454756,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001152",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0039136770726835,
+          "min_ttc_s": 1.4181785068043515,
+          "violations": []
+        },
+        "execution_s": 1.258465700026136
+      }
+    },
+    {
+      "call": 102,
+      "index": 164,
+      "scenario_id": "cut_out:development:0:000540",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019542999980330933,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000540",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001220635608616,
+          "min_ttc_s": 7.828710749800074,
+          "violations": []
+        },
+        "execution_s": 1.8855381000321358
+      }
+    },
+    {
+      "call": 103,
+      "index": 150,
+      "scenario_id": "cut_out:development:0:000501",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001765299999533454,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000501",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996373048149074,
+          "min_ttc_s": 4.449660001996863,
+          "violations": []
+        },
+        "execution_s": 1.7305844000075012
+      }
+    },
+    {
+      "call": 104,
+      "index": 199,
+      "scenario_id": "cut_out:development:0:000643",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018352999977651052,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000643",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.990527477425911,
+          "min_ttc_s": 5.369328260423803,
+          "violations": []
+        },
+        "execution_s": 1.7633407000103034
+      }
+    },
+    {
+      "call": 105,
+      "index": 380,
+      "scenario_id": "cut_out:development:0:001206",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00250150000283611,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001206",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000109954176751,
+          "min_ttc_s": 1.5606586148989288,
+          "violations": []
+        },
+        "execution_s": 1.435706200019922
+      }
+    },
+    {
+      "call": 106,
+      "index": 13,
+      "scenario_id": "cut_out:development:0:000042",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00199609999981476,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000042",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.7397493924178897,
+          "min_ttc_s": 1.4302130135034739,
+          "violations": []
+        },
+        "execution_s": 1.0064475000253879
+      }
+    },
+    {
+      "call": 107,
+      "index": 214,
+      "scenario_id": "cut_out:development:0:000683",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002120899996953085,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000683",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000143032887663,
+          "min_ttc_s": 5.308114445795798,
+          "violations": []
+        },
+        "execution_s": 1.4922116000088863
+      }
+    },
+    {
+      "call": 108,
+      "index": 231,
+      "scenario_id": "cut_out:development:0:000742",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002126199997292133,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000742",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.7097620159607695,
+          "min_ttc_s": 0.44096905608481995,
+          "violations": []
+        },
+        "execution_s": 2.7996776000363752
+      }
+    },
+    {
+      "call": 109,
+      "index": 67,
+      "scenario_id": "cut_out:development:0:000240",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001966200001334073,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000240",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.1181285002166996,
+          "min_ttc_s": 2.4758798993832065,
+          "violations": []
+        },
+        "execution_s": 1.4429442000109702
+      }
+    },
+    {
+      "call": 110,
+      "index": 393,
+      "scenario_id": "cut_out:development:0:001251",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022319000017887447,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001251",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999723917927231,
+          "min_ttc_s": 4.357906227093329,
+          "violations": []
+        },
+        "execution_s": 1.4906285999459215
+      }
+    },
+    {
+      "call": 111,
+      "index": 85,
+      "scenario_id": "cut_out:development:0:000293",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019315999998070765,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000293",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.8617580327645668,
+          "min_ttc_s": 0.7010216124188328,
+          "violations": []
+        },
+        "execution_s": 1.667807999998331
+      }
+    },
+    {
+      "call": 112,
+      "index": 343,
+      "scenario_id": "cut_out:development:0:001093",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018341000031796284,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001093",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000061920916457,
+          "min_ttc_s": 4.672483759260818,
+          "violations": []
+        },
+        "execution_s": 1.6594844000064768
+      }
+    },
+    {
+      "call": 113,
+      "index": 15,
+      "scenario_id": "cut_out:development:0:000051",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018879000017477665,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000051",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9897945346569759,
+          "min_ttc_s": 2.5318201389934236,
+          "violations": []
+        },
+        "execution_s": 1.1590182000072673
+      }
+    },
+    {
+      "call": 114,
+      "index": 0,
+      "scenario_id": "cut_out:development:0:000000",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018865999991248827,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000000",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9650916139993726,
+          "min_ttc_s": 1.432038081293983,
+          "violations": []
+        },
+        "execution_s": 1.0073443000437692
+      }
+    },
+    {
+      "call": 115,
+      "index": 278,
+      "scenario_id": "cut_out:development:0:000882",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023246000018843915,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000882",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999372552196209,
+          "min_ttc_s": 1.3503547485260974,
+          "violations": []
+        },
+        "execution_s": 1.6122116000042297
+      }
+    },
+    {
+      "call": 116,
+      "index": 461,
+      "scenario_id": "cut_out:development:0:001470",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019683999998960644,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001470",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999935028292193,
+          "min_ttc_s": 1.3837264236982414,
+          "violations": []
+        },
+        "execution_s": 1.4454191999975592
+      }
+    },
+    {
+      "call": 117,
+      "index": 475,
+      "scenario_id": "cut_out:development:0:001505",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019881999978679232,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001505",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000263608679303,
+          "min_ttc_s": 4.935810705350418,
+          "violations": []
+        },
+        "execution_s": 1.613862700003665
+      }
+    },
+    {
+      "call": 118,
+      "index": 287,
+      "scenario_id": "cut_out:development:0:000904",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001973599999473663,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000904",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001141546957113,
+          "min_ttc_s": 5.997751048354445,
+          "violations": []
+        },
+        "execution_s": 1.533756299992092
+      }
+    },
+    {
+      "call": 119,
+      "index": 72,
+      "scenario_id": "cut_out:development:0:000257",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002290199998242315,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000257",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.1685785431574915,
+          "min_ttc_s": 2.3456590508382416,
+          "violations": []
+        },
+        "execution_s": 1.4924508000258356
+      }
+    },
+    {
+      "call": 120,
+      "index": 349,
+      "scenario_id": "cut_out:development:0:001108",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023102999984985217,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001108",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9895915823542145,
+          "min_ttc_s": 3.1552355868478847,
+          "violations": []
+        },
+        "execution_s": 1.469545100000687
+      }
+    },
+    {
+      "call": 121,
+      "index": 300,
+      "scenario_id": "cut_out:development:0:000950",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019441999975242652,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000950",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9928911516242773,
+          "min_ttc_s": 1.9797517459675336,
+          "violations": []
+        },
+        "execution_s": 1.5314753000275232
+      }
+    },
+    {
+      "call": 122,
+      "index": 155,
+      "scenario_id": "cut_out:development:0:000514",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0020478999977058265,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000514",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001973267646025,
+          "min_ttc_s": 1.6929792559588694,
+          "violations": []
+        },
+        "execution_s": 1.634984199947212
+      }
+    },
+    {
+      "call": 123,
+      "index": 186,
+      "scenario_id": "cut_out:development:0:000612",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001850399999966612,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000612",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.4175624103483098,
+          "min_ttc_s": 0.31827549089556906,
+          "violations": []
+        },
+        "execution_s": 2.06000989995664
+      }
+    },
+    {
+      "call": 124,
+      "index": 129,
+      "scenario_id": "cut_out:development:0:000444",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018307999998796731,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000444",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000228527497104,
+          "min_ttc_s": 7.905932935662178,
+          "violations": []
+        },
+        "execution_s": 1.4974782000062987
+      }
+    },
+    {
+      "call": 125,
+      "index": 366,
+      "scenario_id": "cut_out:development:0:001166",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019274000005680136,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001166",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 0.6428111780608596,
+          "min_ttc_s": 0.6197977221653164,
+          "violations": []
+        },
+        "execution_s": 1.8487800000002608
+      }
+    },
+    {
+      "call": 126,
+      "index": 36,
+      "scenario_id": "cut_out:development:0:000122",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021884000016143546,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000122",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000141551830934,
+          "min_ttc_s": 2.9462230704075205,
+          "violations": []
+        },
+        "execution_s": 1.4007637000177056
+      }
+    },
+    {
+      "call": 127,
+      "index": 9,
+      "scenario_id": "cut_out:development:0:000033",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002280400000017835,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:000033",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9869529368768146,
+          "min_ttc_s": 2.085021749783054,
+          "violations": []
+        },
+        "execution_s": 1.2404816000489518
+      }
+    },
+    {
+      "call": 128,
+      "index": 342,
+      "scenario_id": "cut_out:development:0:001090",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018935000007331837,
+      "feedback": {
+        "scenario_id": "cut_out:development:0:001090",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997052166513838,
+          "min_ttc_s": 4.467394651418646,
+          "violations": []
+        },
+        "execution_s": 1.6739856000058353
+      }
+    }
+  ]
+}

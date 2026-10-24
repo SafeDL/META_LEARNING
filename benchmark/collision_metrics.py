@@ -8,6 +8,33 @@ import numpy as np
 from .scenarios import dedup_key
 
 
+def collision_recall(candidates, pool_collisions, queries, *, checkpoints=(16, 32, 64, 128)):
+    """Evaluator-only exhaustive denominator; never passed to the selector."""
+    labels = list(pool_collisions)
+    if len(labels) != len(candidates) or any(type(y) is not bool for y in labels):
+        raise ValueError("Recall requires one measured Boolean per complete pool coordinate")
+    failures = {dedup_key(s) for s, y in zip(candidates, labels) if y}
+    found, counts = set(), []
+    for q in queries:
+        index = q["index"]
+        if not 0 <= index < len(candidates):
+            raise ValueError("Recall query index is outside the full pool")
+        if (q["feedback"]["scenario_id"] != candidates[index].scenario_id
+                or type(q["feedback"]["collision"]) is not bool
+                or q["feedback"]["collision"] != labels[index]):
+            raise ValueError("Recall feedback differs from the sealed execution pool")
+        if labels[index]:
+            found.add(dedup_key(candidates[index]))
+        counts.append(len(found))
+    curve = [n / len(failures) if failures else None for n in counts]
+    return {"pool_unique_collisions": len(failures), "collision_recall": curve[-1] if curve else None,
+            "recall_curve": curve,
+            "recall_auc": float(np.mean(curve)) if failures and curve else None,
+            "checkpoints": {str(b): {"unique_collisions": counts[b - 1],
+                                      "collision_recall": curve[b - 1]}
+                            for b in checkpoints if b <= len(queries)}}
+
+
 def behavior_signature(scenario, trajectory):
     collided = [(i, row) for i, row in enumerate(trajectory) if row["collision"]]
     if not collided:

@@ -1,0 +1,102 @@
+{
+  "purpose": "historical reliability geometry diagnosis; not a new online method registration",
+  "scenarios": [
+    "cut_in",
+    "cut_out"
+  ],
+  "historical_tasks": 16,
+  "settings": [
+    {
+      "name": "global",
+      "geometry": "physical",
+      "bandwidth": null
+    },
+    {
+      "name": "physical_0.15",
+      "geometry": "physical",
+      "bandwidth": 0.15
+    },
+    {
+      "name": "physical_0.3",
+      "geometry": "physical",
+      "bandwidth": 0.3
+    },
+    {
+      "name": "physical_0.6",
+      "geometry": "physical",
+      "bandwidth": 0.6
+    },
+    {
+      "name": "fixed_feature_0.15",
+      "geometry": "fixed_feature",
+      "bandwidth": 0.15
+    },
+    {
+      "name": "fixed_feature_0.3",
+      "geometry": "fixed_feature",
+      "bandwidth": 0.3
+    },
+    {
+      "name": "fixed_feature_0.6",
+      "geometry": "fixed_feature",
+      "bandwidth": 0.6
+    },
+    {
+      "name": "adapted_feature_0.15",
+      "geometry": "adapted_feature",
+      "bandwidth": 0.15
+    },
+    {
+      "name": "adapted_feature_0.3",
+      "geometry": "adapted_feature",
+      "bandwidth": 0.3
+    },
+    {
+      "name": "adapted_feature_0.6",
+      "geometry": "adapted_feature",
+      "bandwidth": 0.6
+    }
+  ],
+  "counts": [
+    8,
+    16,
+    32,
+    64,
+    128
+  ],
+  "support_count": 128,
+  "query_count": 32,
+  "permutation_seed": 1301,
+  "selected_beta": {
+    "cut_in": 1.0,
+    "cut_out": 1.0
+  },
+  "feature_scale": "fixed RMS deviation of base FSBO features on the complete 512 public historical coordinates",
+  "distance": "mean squared feature difference divided by fixed feature scale squared",
+  "dynamic_rule": "recompute locality from current target features; never recompute past prequery log likelihoods",
+  "source_mass": 0.75,
+  "target_mass": 0.25,
+  "physical_mass": 0.1,
+  "source_conditioning": "converged CPU float64; gradient at most 1e-10",
+  "target_adaptation": "reuse original 129 CUDA states; no new training",
+  "raw_probability": "unchanged cached physical component; this test isolates reliability geometry",
+  "teacher_scope": "same existing teachers; own explicit source posterior excluded; not strict held-system validation",
+  "selection": "leave one historical lineage out for bandwidth; NLL, Brier, larger bandwidth",
+  "screening": "adapted feature NLL lower and Brier no higher than global and selected fixed feature and physical distances; positive NLL gain on at least two historical lineages in each scenario",
+  "historical_evidence": {
+    "protocol.json": "e3a307d0dfe4c7ded28d73e61152ba96d4b1afe6cb8469124dd0f6b41c2157ba",
+    "history.json": "561f10dc2bd638b4864a04c802a0f9eccbeb8a2fc363e6d94b6e96bd4131fb4d",
+    "summary_audit.json": "ec06852173e1259fe9a131848bae5dbab5c9789d56414095dc4378b636ee9bc2"
+  },
+  "checkpoints": {
+    "cut_in": "ea9f411e4a451a248e55711bd1d87afcd38a28ad9b1fd59f32bd78ab9e11fe26",
+    "cut_out": "4fc91c74d106d45f2c86b1a03b1485e21c719de81646445e218172b929faa806"
+  },
+  "source_files": {
+    "benchmark/discovery_feature_reliability.py": "be4b035f03b17d0e0eab370525bf488bdf26507dc2270e24fdc91ec29764ad5e",
+    "methods/gcrt/feature_reliability.py": "81a80709b3665219bebb1b406098b3bb2e3249981fdb0daa5a0ae3fc3fc7b7e3",
+    "methods/gcrt/converged_response.py": "7ee94b0a21bd980ccb80dee5ef12e268ac168f14b32c4d650b20a6f988aabff4"
+  },
+  "new_selector_queries": 0,
+  "new_physical_calls": 0
+}

@@ -1,0 +1,1347 @@
+{
+  "status": "complete",
+  "protocol": {
+    "purpose": "historical reliability geometry diagnosis; not a new online method registration",
+    "scenarios": [
+      "cut_in",
+      "cut_out"
+    ],
+    "historical_tasks": 16,
+    "settings": [
+      {
+        "name": "global",
+        "geometry": "physical",
+        "bandwidth": null
+      },
+      {
+        "name": "physical_0.15",
+        "geometry": "physical",
+        "bandwidth": 0.15
+      },
+      {
+        "name": "physical_0.3",
+        "geometry": "physical",
+        "bandwidth": 0.3
+      },
+      {
+        "name": "physical_0.6",
+        "geometry": "physical",
+        "bandwidth": 0.6
+      },
+      {
+        "name": "fixed_feature_0.15",
+        "geometry": "fixed_feature",
+        "bandwidth": 0.15
+      },
+      {
+        "name": "fixed_feature_0.3",
+        "geometry": "fixed_feature",
+        "bandwidth": 0.3
+      },
+      {
+        "name": "fixed_feature_0.6",
+        "geometry": "fixed_feature",
+        "bandwidth": 0.6
+      },
+      {
+        "name": "adapted_feature_0.15",
+        "geometry": "adapted_feature",
+        "bandwidth": 0.15
+      },
+      {
+        "name": "adapted_feature_0.3",
+        "geometry": "adapted_feature",
+        "bandwidth": 0.3
+      },
+      {
+        "name": "adapted_feature_0.6",
+        "geometry": "adapted_feature",
+        "bandwidth": 0.6
+      }
+    ],
+    "counts": [
+      8,
+      16,
+      32,
+      64,
+      128
+    ],
+    "support_count": 128,
+    "query_count": 32,
+    "permutation_seed": 1301,
+    "selected_beta": {
+      "cut_in": 1.0,
+      "cut_out": 1.0
+    },
+    "feature_scale": "fixed RMS deviation of base FSBO features on the complete 512 public historical coordinates",
+    "distance": "mean squared feature difference divided by fixed feature scale squared",
+    "dynamic_rule": "recompute locality from current target features; never recompute past prequery log likelihoods",
+    "source_mass": 0.75,
+    "target_mass": 0.25,
+    "physical_mass": 0.1,
+    "source_conditioning": "converged CPU float64; gradient at most 1e-10",
+    "target_adaptation": "reuse original 129 CUDA states; no new training",
+    "raw_probability": "unchanged cached physical component; this test isolates reliability geometry",
+    "teacher_scope": "same existing teachers; own explicit source posterior excluded; not strict held-system validation",
+    "selection": "leave one historical lineage out for bandwidth; NLL, Brier, larger bandwidth",
+    "screening": "adapted feature NLL lower and Brier no higher than global and selected fixed feature and physical distances; positive NLL gain on at least two historical lineages in each scenario",
+    "historical_evidence": {
+      "protocol.json": "e3a307d0dfe4c7ded28d73e61152ba96d4b1afe6cb8469124dd0f6b41c2157ba",
+      "history.json": "561f10dc2bd638b4864a04c802a0f9eccbeb8a2fc363e6d94b6e96bd4131fb4d",
+      "summary_audit.json": "ec06852173e1259fe9a131848bae5dbab5c9789d56414095dc4378b636ee9bc2"
+    },
+    "checkpoints": {
+      "cut_in": "ea9f411e4a451a248e55711bd1d87afcd38a28ad9b1fd59f32bd78ab9e11fe26",
+      "cut_out": "4fc91c74d106d45f2c86b1a03b1485e21c719de81646445e218172b929faa806"
+    },
+    "source_files": {
+      "benchmark/discovery_feature_reliability.py": "be4b035f03b17d0e0eab370525bf488bdf26507dc2270e24fdc91ec29764ad5e",
+      "methods/gcrt/feature_reliability.py": "81a80709b3665219bebb1b406098b3bb2e3249981fdb0daa5a0ae3fc3fc7b7e3",
+      "methods/gcrt/converged_response.py": "7ee94b0a21bd980ccb80dee5ef12e268ac168f14b32c4d650b20a6f988aabff4"
+    },
+    "new_selector_queries": 0,
+    "new_physical_calls": 0
+  },
+  "scenario": "cut_in",
+  "pseudo_target": "history_ppo",
+  "lineage": "ppo",
+  "source_ids": [
+    "history_beam",
+    "history_dqn",
+    "history_fvdm_lane",
+    "history_idm_mobil",
+    "history_linear_mpc",
+    "history_nonlinear_trajectory",
+    "history_uct"
+  ],
+  "feature_scale": 0.029822481194213636,
+  "rows": [
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "global",
+      "support_count": 8,
+      "query_nll": 0.12419957142232631,
+      "query_brier": 0.014904395827645233
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 8,
+      "query_nll": 0.13709649864473064,
+      "query_brier": 0.017357255628155637
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 8,
+      "query_nll": 0.13382333255993603,
+      "query_brier": 0.01671618707411123
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 8,
+      "query_nll": 0.12833905349277433,
+      "query_brier": 0.015671419906033913
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 8,
+      "query_nll": 0.13850248874622823,
+      "query_brier": 0.01769947434914138
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 8,
+      "query_nll": 0.13565066011904306,
+      "query_brier": 0.017054521508511337
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 8,
+      "query_nll": 0.1283091842033623,
+      "query_brier": 0.015444404116454005
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 8,
+      "query_nll": 0.139235972796101,
+      "query_brier": 0.01796729924133863
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 8,
+      "query_nll": 0.1362156620365907,
+      "query_brier": 0.017403373488545492
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 8,
+      "query_nll": 0.12923228920013338,
+      "query_brier": 0.01594223517455234
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "global",
+      "support_count": 16,
+      "query_nll": 0.09395451062948673,
+      "query_brier": 0.008657265405214252
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 16,
+      "query_nll": 0.1032337663013286,
+      "query_brier": 0.010171131409520508
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 16,
+      "query_nll": 0.10129134941675923,
+      "query_brier": 0.009871442721719087
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 16,
+      "query_nll": 0.09715402909050655,
+      "query_brier": 0.009176662929692518
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 16,
+      "query_nll": 0.1042538976605582,
+      "query_brier": 0.01038104679594522
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 16,
+      "query_nll": 0.10177850580671002,
+      "query_brier": 0.009930025370272747
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 16,
+      "query_nll": 0.0956306033770434,
+      "query_brier": 0.008828635656671493
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 16,
+      "query_nll": 0.10182065466176643,
+      "query_brier": 0.009948518626864567
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 16,
+      "query_nll": 0.09851350108339163,
+      "query_brier": 0.009405660433175617
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 16,
+      "query_nll": 0.09568202320295519,
+      "query_brier": 0.008939064587738844
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "global",
+      "support_count": 32,
+      "query_nll": 0.06940841189581451,
+      "query_brier": 0.00494315323949008
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 32,
+      "query_nll": 0.07261621226228931,
+      "query_brier": 0.005220959371961253
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 32,
+      "query_nll": 0.07174189211184057,
+      "query_brier": 0.0051721147882316
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 32,
+      "query_nll": 0.07054588686990372,
+      "query_brier": 0.005077289489905849
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 32,
+      "query_nll": 0.07390871688514491,
+      "query_brier": 0.00540655032124584
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 32,
+      "query_nll": 0.07156584758553264,
+      "query_brier": 0.005095897586612724
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 32,
+      "query_nll": 0.0676108157709813,
+      "query_brier": 0.004586566489559801
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 32,
+      "query_nll": 0.0724345424621157,
+      "query_brier": 0.005239801555533743
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 32,
+      "query_nll": 0.07126608907490412,
+      "query_brier": 0.005152677084468064
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 32,
+      "query_nll": 0.0702587421733632,
+      "query_brier": 0.005054745416249807
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "global",
+      "support_count": 64,
+      "query_nll": 0.046805443826415424,
+      "query_brier": 0.0022167209448198666
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 64,
+      "query_nll": 0.0485770026256063,
+      "query_brier": 0.002352823672287397
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 64,
+      "query_nll": 0.0480250767478791,
+      "query_brier": 0.0023154388502504455
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 64,
+      "query_nll": 0.04739974629703593,
+      "query_brier": 0.002271137670160548
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 64,
+      "query_nll": 0.04932414446933972,
+      "query_brier": 0.00243420413324709
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 64,
+      "query_nll": 0.04764344799274732,
+      "query_brier": 0.0022789025389247193
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 64,
+      "query_nll": 0.04521578333347429,
+      "query_brier": 0.002059131559420485
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 64,
+      "query_nll": 0.04788642874451009,
+      "query_brier": 0.002309746101463241
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 64,
+      "query_nll": 0.04734259837101194,
+      "query_brier": 0.002272515840723589
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 64,
+      "query_nll": 0.047004390397128934,
+      "query_brier": 0.002238660840073402
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "global",
+      "support_count": 128,
+      "query_nll": 0.0321577716210932,
+      "query_brier": 0.0010627455814406614
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.15",
+      "support_count": 128,
+      "query_nll": 0.033207796362649256,
+      "query_brier": 0.0011265619929557093
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.3",
+      "support_count": 128,
+      "query_nll": 0.032882084949223324,
+      "query_brier": 0.001109719683206113
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "physical_0.6",
+      "support_count": 128,
+      "query_nll": 0.03249820197552851,
+      "query_brier": 0.001086910049664031
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.15",
+      "support_count": 128,
+      "query_nll": 0.033529944292634714,
+      "query_brier": 0.001151501955465166
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.3",
+      "support_count": 128,
+      "query_nll": 0.03241888491170641,
+      "query_brier": 0.0010805129090241436
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "fixed_feature_0.6",
+      "support_count": 128,
+      "query_nll": 0.031009232911206785,
+      "query_brier": 0.0009907751476765057
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.15",
+      "support_count": 128,
+      "query_nll": 0.03250682868006197,
+      "query_brier": 0.0010875046919949676
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.3",
+      "support_count": 128,
+      "query_nll": 0.03235993473692995,
+      "query_brier": 0.0010808097197336744
+    },
+    {
+      "scenario": "cut_in",
+      "pseudo_target": "history_ppo",
+      "lineage": "ppo",
+      "source_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane",
+        "history_idm_mobil",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_uct"
+      ],
+      "setting": "adapted_feature_0.6",
+      "support_count": 128,
+      "query_nll": 0.03224610951102946,
+      "query_brier": 0.0010706220685071594
+    }
+  ],
+  "probability_checks": [
+    {
+      "support_count": 0,
+      "probability_maximum_error": 1.1102230246251565e-16
+    },
+    {
+      "support_count": 8,
+      "probability_maximum_error": 2.0083934515469082e-13
+    },
+    {
+      "support_count": 64,
+      "probability_maximum_error": 1.9798052086628104e-12
+    },
+    {
+      "support_count": 128,
+      "probability_maximum_error": 1.57145130241787e-13
+    }
+  ],
+  "weight_checks": [
+    {
+      "setting": "global",
+      "support_count": 8,
+      "weight_maximum_error": 9.71445146547012e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 8,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.1102230246251565e-16
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 8,
+      "weight_maximum_error": 2.7755575615628914e-17,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 8,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 8,
+      "weight_maximum_error": 9.71445146547012e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 8,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 8,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 8,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 0.0
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 5.551115123125783e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 16,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 16,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 16,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 0.0
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 16,
+      "weight_maximum_error": 9.71445146547012e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 16,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 16,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 32,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 32,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 32,
+      "weight_maximum_error": 1.6653345369377348e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 32,
+      "weight_maximum_error": 1.8041124150158794e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 32,
+      "weight_maximum_error": 2.7755575615628914e-17,
+      "mixture_maximum_error": 0.0
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 32,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 32,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 32,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 32,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 32,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 4.163336342344337e-17
+    },
+    {
+      "setting": "global",
+      "support_count": 64,
+      "weight_maximum_error": 2.220446049250313e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 64,
+      "weight_maximum_error": 8.326672684688674e-17,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 64,
+      "weight_maximum_error": 2.7755575615628914e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 64,
+      "weight_maximum_error": 2.220446049250313e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 64,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 0.0
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 64,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 64,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 64,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 64,
+      "weight_maximum_error": 1.249000902703301e-16,
+      "mixture_maximum_error": 2.0816681711721685e-17
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 64,
+      "weight_maximum_error": 2.220446049250313e-16,
+      "mixture_maximum_error": 3.469446951953614e-18
+    },
+    {
+      "setting": "global",
+      "support_count": 128,
+      "weight_maximum_error": 2.914335439641036e-16,
+      "mixture_maximum_error": 2.7755575615628914e-17
+    },
+    {
+      "setting": "physical_0.15",
+      "support_count": 128,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "physical_0.3",
+      "support_count": 128,
+      "weight_maximum_error": 2.7755575615628914e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "physical_0.6",
+      "support_count": 128,
+      "weight_maximum_error": 3.885780586188048e-16,
+      "mixture_maximum_error": 1.3877787807814457e-17
+    },
+    {
+      "setting": "fixed_feature_0.15",
+      "support_count": 128,
+      "weight_maximum_error": 5.551115123125783e-17,
+      "mixture_maximum_error": 3.469446951953614e-18
+    },
+    {
+      "setting": "fixed_feature_0.3",
+      "support_count": 128,
+      "weight_maximum_error": 1.1102230246251565e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "fixed_feature_0.6",
+      "support_count": 128,
+      "weight_maximum_error": 1.3877787807814457e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "adapted_feature_0.15",
+      "support_count": 128,
+      "weight_maximum_error": 1.942890293094024e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "adapted_feature_0.3",
+      "support_count": 128,
+      "weight_maximum_error": 2.498001805406602e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    },
+    {
+      "setting": "adapted_feature_0.6",
+      "support_count": 128,
+      "weight_maximum_error": 4.996003610813204e-16,
+      "mixture_maximum_error": 6.938893903907228e-18
+    }
+  ],
+  "nonempty_mode_solves": 1024,
+  "maximum_final_gradient": 9.795009248136921e-11,
+  "maximum_mode_iterations": 8,
+  "backtracks": 0,
+  "wall_s": 4.26540049999312,
+  "new_selector_queries": 0,
+  "new_physical_calls": 0
+}

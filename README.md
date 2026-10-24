@@ -2,6 +2,8 @@
 
 本项目研究：已经测试过一些驾驶系统，知道它们在哪些交通场景中容易出事故；换成一个新系统后，能否利用这些历史经验，再结合少量新测试，更快找到它的碰撞场景？
 
+当前研究优先检验历史后验与目标反馈的互补：在相同历史训练信息下，分别比较显式来源后验和目标反馈的作用。局部权重、来源协方差及前瞻由匹配消融决定是否保留；当前证据、最小对照矩阵及独立新系统验证条件见[研究主张和证据路线](docs/collision_discovery_research_focus.md)。原冻结实验与开发失败记录继续保留，新的机制矩阵和独立目标尚未执行。
+
 主要实验让各种测试方法从同一批备选场景中挑选测试。驾驶系统负责开车，测试方法负责决定下一次测哪个场景。下面说明已经实际采用的实验设置和结果。
 
 项目同时保留 [HighwayEnv](simulation/highway/README.md) 和 [MetaDrive](simulation/metadrive/README.md) 两个仿真平台。本文所列主实验使用 HighwayEnv；MetaDrive 的源码、场景配置、运行脚本和回归测试继续保留在工程中。
@@ -148,7 +150,7 @@ python -B -m pytest tests simulation/metadrive/tests -q -p no:cacheprovider
 python -B -m benchmark.qualification
 ```
 
-上面的测试命令同时检查主工程和 MetaDrive。本轮整理后共 239 项通过；环境与规划求解器的提示保留在测试输出中。
+上面的测试命令同时检查主工程和 MetaDrive。2026年10月24日清理后，全量回归共 517 项通过；历史 JUnit 结果和开发诊断进展见[执行记录](docs/collision_discovery_execution.md)。环境与规划求解器的提示保留在测试输出中。
 
 资格记录与轨迹位于 `results/benchmark/collision/qualification/`。`python -B -m controllers.highway.train` 从头训练历史及开发对象，通过后冻结训练配置，再训练最终目标；已有运行不会被自动覆盖。
 
@@ -169,6 +171,13 @@ python -B -m benchmark.qualification
 | [simulation/highway/collision_env.py](simulation/highway/collision_env.py) | 四类场景、共同动力学、可见状态和独立轨迹 |
 | [tests](tests/) | 新协议验收及保留的有效回归测试 |
 | [docs/style.md](docs/style.md) | 代码与文档规范 |
+| [碰撞发现执行方案](docs/collision_discovery_plan.md)、[执行记录](docs/collision_discovery_execution.md) | 局部历史经验的独立开发实验、召回率口径与实际进展 |
+| [后续开发协议](docs/collision_discovery_recovery.md)、[新增开发结果](results/benchmark/collision/discovery/post_decision_summary/report.md) | 保留128次预算，以剩余漏检减少比例判断后续收益；保留原失败结论 |
+| [强目标分量结果](results/benchmark/collision/discovery/adaptive_target/report.md)、[联合响应方案](docs/collision_discovery_joint_response.md) | 目标适配与历史来源的机制对照，以及分别建模碰撞和连续安全响应的后续开发 |
+| [物理分量验证方案](docs/collision_discovery_physical_mixture.md)、[完整结果](results/benchmark/collision/discovery/physical_mixture/report.md) | 320项开发运行全部完成并独立审计；主方法漏检减少35.69%，未通过50%门槛 |
+| [阶段响应方案](docs/collision_discovery_phase_response.md) | 检验早期碰撞中止后的删失与跨系统阶段响应；先做同付费前缀、同信息对照的预测诊断 |
+| [历史残差尺度方案](docs/collision_discovery_residual_scale.md) | 保持碰撞为唯一在线监督，用历史系统间差异估计残差幅度，并预登记同信息控制与新的开发矩阵 |
+| [收敛来源推断及几何诊断](docs/collision_discovery_converged_inference.md)、[完整结果](results/benchmark/collision/discovery/converged_search/report.md) | 160项及480次独立重建已验收，指定主方法未通过50%漏检减少门槛；历史核保留/适配筛选亦未通过，未进入C/D/E |
 
 完整旧工程快照位于工作区旁的 `META_LEARNING_archive/before_collision_rebuild.zip`，包含源码、结果、Git 历史及归档时的未提交改动，已通过 CRC 校验。旧风险实验的数据、结果和旧 PPO 权重移至 `META_LEARNING_archive/legacy/`，保留原文件与目录结构。MetaDrive 的代码和测试保留在当前工程中。DART、HGT、LRT、CG-BRT 属于内部未发表版本，不作为当前实验的外部基线。
 

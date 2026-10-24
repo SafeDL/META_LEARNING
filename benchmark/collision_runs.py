@@ -9,20 +9,24 @@ from benchmark.initialization import initial_indices
 from methods.gcrt.prior import posterior
 from methods.gcrt.selection import select
 from methods.gcrt.train import load_encoder
+from methods.gcrt.discovery import discovery_posterior
 from methods.common.response import archive_fingerprints
 
 from methods.baselines.response_baselines.collision import METHODS, run as run_baseline
-from .collision_metrics import summarize
+from .collision_metrics import collision_recall, summarize
 from .query import QueryLedger, run_isolated
 from .scenarios import features
 
 
 MAIN_METHODS = ("history_response", "no_response", "fixed_weights", "no_target", "greedy")
+DISCOVERY_METHODS = ("source_global", "shared_local", "source_local",
+                     "source_global_h5", "source_global_full", "source_local_h5", "source_local_full")
 
 
 def run_task(bank, history, *, method, algorithm_seed, budget, initial_count,
-             destination, metadata, checkpoint=None, horizon=5):
-    if method not in (*MAIN_METHODS, *METHODS):
+             destination, metadata, checkpoint=None, horizon=5, bandwidth=None,
+             pool_collisions=None):
+    if method not in (*MAIN_METHODS, *METHODS, *DISCOVERY_METHODS):
         raise ValueError(f"Unknown registered method: {method}")
     history = tuple(history)
     candidates = bank.candidates
@@ -37,6 +41,8 @@ def run_task(bank, history, *, method, algorithm_seed, budget, initial_count,
         checkpoint = Path(checkpoint)
         construction["checkpoint"] = {"path": str(checkpoint),
                                       "sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest()}
+    if method in DISCOVERY_METHODS:
+        construction["bandwidth"] = bandwidth
     specification = json.loads(json.dumps({"metadata": metadata, "construction": construction}))
     destination = Path(destination)
     if destination.exists():
@@ -49,17 +55,26 @@ def run_task(bank, history, *, method, algorithm_seed, budget, initial_count,
     started = time.perf_counter()
     public = {"candidates": candidates, "initial_indices": initial_indices(
         len(candidates), initial_count, algorithm_seed), "budget": budget}
-    if method in MAIN_METHODS:
+    if method in (*MAIN_METHODS, *DISCOVERY_METHODS):
         encoder, model_metadata = load_encoder(checkpoint)
         if set(model_metadata["history_ids"]) != {a.source_id for a in history}:
             raise ValueError("Main representation and prior must use the same allowed sources")
         if model_metadata["history_fingerprints"] != construction["history_fingerprints"]:
             raise ValueError("Representation was trained on different historical responses")
-        public.update(model=posterior(encoder, features(candidates), history,
+        if method in DISCOVERY_METHODS:
+            if ("local" in method) != (bandwidth is not None):
+                raise ValueError("Only spatial-reliability methods require a bandwidth")
+            model = discovery_posterior(encoder, features(candidates), history,
+                                        independent=method != "shared_local", bandwidth=bandwidth,
+                                        target_weight=model_metadata["config"]["target_weight"])
+            greedy = method in ("source_global", "shared_local", "source_local")
+        else:
+            model = posterior(encoder, features(candidates), history,
                                       response=method != "no_response", target=method != "no_target",
                                       fixed_weights=method == "fixed_weights",
-                                      target_weight=model_metadata["config"]["target_weight"]),
-                      horizon=horizon, greedy=method == "greedy")
+                                      target_weight=model_metadata["config"]["target_weight"])
+            greedy = method == "greedy"
+        public.update(model=model, horizon=horizon, greedy=greedy)
         selector = select
     else:
         public.update(method=method, seed=algorithm_seed)
@@ -83,6 +98,8 @@ def run_task(bank, history, *, method, algorithm_seed, budget, initial_count,
     result = run_isolated(selector, public, ledger)
     process_wall_s = time.perf_counter() - started
     metrics = summarize(candidates, result["queries"], ledger.trajectories)
+    if pool_collisions is not None:
+        metrics.update(collision_recall(candidates, pool_collisions, result["queries"]))
     output = {"specification": specification, "result": result, "metrics": metrics,
               "cost": {"model_construction_s": model_construction_s,
                        "selector_process_wall_s": process_wall_s, "execution_mode": "replay",

@@ -37,7 +37,14 @@ class CollisionPosterior:
                                 self.covariance.diagonal(axis1=1, axis2=2)[:, indices])[0]
 
     def probabilities(self, indices=None):
-        return self.weights @ self.component_probabilities(indices)
+        indices = np.arange(self.mean.shape[1]) if indices is None else np.asarray(indices)
+        return (np.exp(self.log_weights_at(indices)) * self.component_probabilities(indices)).sum(0)
+
+    def log_weights_at(self, indices):
+        return np.broadcast_to(self.log_weight[:, None], (len(self.log_weight), len(indices)))
+
+    def reliability_influence(self, queries, candidates):
+        return np.ones((len(queries), len(candidates)))
 
     def conditional_probabilities(self, index, label, indices):
         """Virtual ADF update; this method never changes evidence or arrays."""
@@ -49,7 +56,13 @@ class CollisionPosterior:
         variance = (self.covariance.diagonal(axis1=1, axis2=2)[:, indices]
                     + curvature[:, None] * cross**2)
         p = logistic_moments(mean, variance)[0]
-        return self._conditional_weights(index, label) @ p
+        log_likelihood = site_derivatives(
+            self.mean[:, index], self.covariance[:, index, index], label)[0]
+        log_weights = self.log_weights_at(indices).copy()
+        if not self.fixed_weights:
+            log_weights += log_likelihood[:, None] * self.reliability_influence([index], indices)
+        weights = np.exp(log_weights - logsumexp(log_weights, axis=0))
+        return (weights * p).sum(0)
 
     def _conditional_weights(self, index, label):
         if self.fixed_weights:

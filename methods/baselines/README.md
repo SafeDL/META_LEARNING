@@ -7,6 +7,8 @@
 | [response_baselines](response_baselines/README.md) | 随机、参数空间分散选点、历史危险排序、最近来源加残差修正、无历史 GP |
 | [pooled_ft](pooled_ft/README.md) | 混合历史测试样本预训练，再用目标反馈微调 |
 | [fsbo](fsbo/README.md) | 把各历史系统当作独立任务学习共享模型，再用目标反馈微调 |
+| [rgpe](rgpe/README.md) | 用已查询碰撞排序对给来源GP与目标GP赋权；80项分类改编比较已完成并独立审计 |
+| [scaml_gp](scaml_gp/README.md) | 将多来源后验组合为一个GP，用目标碰撞学习来源系数与残差核；四模式160项比较已完成并独立审计 |
 | [indago/search.py](indago/search.py) | 用历史分类器预测危险程度，沿影响预测较大的参数寻找更危险的新场景 |
 | [samota/search.py](samota/search.py) | 结合多个预测模型、全局搜索和分组后的局部搜索提出场景 |
 | [deep_hyperion/search.py](deep_hyperion/search.py) | 按两个场景特征划分格子，在各格中保留更危险的场景，再变异生成新场景 |
@@ -15,6 +17,6 @@
 
 构建使用 `python -B -m benchmark.build_collision_models core` 和 `complete`；比较与报告入口见 [实验运行说明](../../benchmark/README.md)。
 
-以上为已经实现并执行比较的方法。文献核查还识别出与主任务直接相关的 ENS 主动搜索、RGPE 多来源加权迁移，以及自动驾驶场景排序方法；这些尚未加入当前比较，现有集合不表述为已穷尽相关基线。
+以上方法已执行相应比较；RGPE与ScaML-GP另外完成了固定碰撞发现协议下的80项和160项独立审计。ENS主动搜索、层次GP，以及自动驾驶场景排序方法尚未加入当前比较，现有集合不表述为已穷尽相关基线。
 
 DART、HGT、LRT、CG-BRT 属于内部未发表版本，原源码及旧风险实验已在工程外归档，不作为外部基线。

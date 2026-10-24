@@ -7,3 +7,5 @@ FSBO 是 Few-Shot Bayesian Optimization（少样本贝叶斯优化），是一�
 该适配使用 Bernoulli 二分类观测和 Laplace 近似；输出为碰撞概率，选例按碰撞概率进行。它与原论文面向连续目标优化的设置有区别，报告中统一称“FSBO 碰撞适配”。
 
 [method.py](method.py) 提供训练与加载，[build.py](build.py) 可单独构建全来源和严格留类别模型；完整实验构建入口为 `python -B -m benchmark.build_collision_models complete`。已完成 20 个 FSBO 模型及正式比较，模型与结果索引见 [基线结果说明](../../../results/baselines/README.md)。
+
+[search.py](search.py) 为后续开发提供显式设备的同一适配与贪心规则，直接复用原分类核、概率函数和10步/0.003目标适配。CPU入口已与既有逐次结果核对一致，CUDA入口及128支持点已作独立数值检查。[物理分量实验](../../../docs/collision_discovery_physical_mixture.md)同时比较原FSBO的CUDA执行及其与同一物理GP的混合，旧CPU实验保留原样。
