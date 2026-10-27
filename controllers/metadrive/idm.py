@@ -1,4 +1,5 @@
 """Lane-stable native IDM implementation behind the black-box SUT boundary."""
+
 from __future__ import annotations
 
 import math
@@ -7,7 +8,8 @@ from typing import Any, Mapping
 import numpy as np
 from metadrive.policy.idm_policy import FrontBackObjects, IDMPolicy
 
-from simulation.metadrive.safety.dynamics import VehicleActionProjector
+from simulator.metadrive.safety.dynamics import VehicleActionProjector
+
 from .base import ControllerProfile
 
 
@@ -42,24 +44,26 @@ class LaneStableNativeIDMPolicy(IDMPolicy):
     def _curve_safe_speed(lane: Any, position: Any) -> float:
         radius = float(getattr(lane, "radius", math.inf))
         if math.isfinite(radius) and radius > 0.0:
-            return math.sqrt(LaneStableNativeIDMPolicy.COMFORTABLE_LATERAL_ACCELERATION_MPS2 *
-                             radius)
+            return math.sqrt(
+                LaneStableNativeIDMPolicy.COMFORTABLE_LATERAL_ACCELERATION_MPS2 * radius
+            )
         longitudinal, _ = lane.local_coordinates(position)
         lookahead = min(float(lane.length), float(longitudinal) + 8.0)
         distance = max(lookahead - float(longitudinal), 1e-3)
         heading_delta = math.atan2(
             math.sin(
-                float(lane.heading_theta_at(lookahead)) -
-                float(lane.heading_theta_at(longitudinal))),
+                float(lane.heading_theta_at(lookahead)) - float(lane.heading_theta_at(longitudinal))
+            ),
             math.cos(
-                float(lane.heading_theta_at(lookahead)) -
-                float(lane.heading_theta_at(longitudinal))),
+                float(lane.heading_theta_at(lookahead)) - float(lane.heading_theta_at(longitudinal))
+            ),
         )
         curvature = abs(heading_delta) / distance
         if curvature <= 1e-4:
             return math.inf
-        return math.sqrt(LaneStableNativeIDMPolicy.COMFORTABLE_LATERAL_ACCELERATION_MPS2 /
-                         curvature)
+        return math.sqrt(
+            LaneStableNativeIDMPolicy.COMFORTABLE_LATERAL_ACCELERATION_MPS2 / curvature
+        )
 
     def _stable_target_lane(self) -> Any:
         navigation_lane = getattr(self.control_object.navigation, "current_lane", None)
@@ -127,8 +131,10 @@ class IDMSUTAdapter:
         policy = env.engine.get_policy(vehicle.id)
         policy.configure_speed(profile.speed_ratio, speed_limit_mps, nominal_speed_mps)
         policy.configure_dynamics(
-            VehicleActionProjector(vehicle, speed_limit_mps) if float(
-                vehicle.config.get("max_engine_force", 0.0)) == 825.0 else None)
+            VehicleActionProjector(vehicle, speed_limit_mps)
+            if float(vehicle.config.get("max_engine_force", 0.0)) == 825.0
+            else None
+        )
         # Stage 1 uses lane-stable SUT routes.  Keep the tested controller
         # longitudinal-only so its response remains interpretable.
         policy.enable_lane_change = False

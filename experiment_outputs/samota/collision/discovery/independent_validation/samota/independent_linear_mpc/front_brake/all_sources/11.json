@@ -1,0 +1,6904 @@
+{
+  "specification": {
+    "task": {
+      "target_id": "independent_linear_mpc",
+      "family": "optimization",
+      "lineage": "linear_mpc",
+      "scenario": "front_brake",
+      "condition": "all_sources",
+      "environment_seed": 81001,
+      "algorithm_seed": 11
+    },
+    "method": "samota",
+    "protocol_sha256": "f904528080bf4aff8309d0528f7d6c70607011e53267e0eecf28cf90b6aaae99",
+    "bank_contract": {
+      "source_files": {
+        "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+        "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+        "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+        "controllers/highway/factory.py": "c901f5a878050afe4bc71035ec2b138a2368eb2caaf7d710382632614efc1ba2",
+        "controllers/highway/decision_interface.py": "cea8723deba7a1d0fdfe2ffb0eb1b58ee4aa53536802001d71c8f7aeb227b604",
+        "controllers/highway/optimization.py": "f0db475db0c18b299409923839e3f7fd1d6bf700f3b5e49b40bbe8c67a211a4c",
+        "controllers/highway/planning.py": "07b8639513cf2bef9889ae3e04e52b469762130910ce260082361d7e31ffe6fb"
+      },
+      "object": {
+        "sut_id": "independent_linear_mpc",
+        "family": "optimization",
+        "lineage": "linear_mpc",
+        "version": "independent",
+        "role": "independent",
+        "parameters": {
+          "horizon_s": 4,
+          "desired_speed_mps": 31,
+          "headway_s": 1.7,
+          "effort_weight": 0.15
+        },
+        "training_run": null,
+        "training_seed": null,
+        "reference_id": "history_linear_mpc",
+        "supported_scenarios": [
+          "front_brake",
+          "cut_in",
+          "cut_out",
+          "lane_change_rear",
+          "cut_in_interaction"
+        ]
+      },
+      "episode_duration_s": 10.0,
+      "highway_env": "1.9.1",
+      "numpy": "2.2.6"
+    },
+    "candidate_ids": [
+      "front_brake:new:0:000000",
+      "front_brake:new:0:000001",
+      "front_brake:new:0:000002",
+      "front_brake:new:0:000003",
+      "front_brake:new:0:000004",
+      "front_brake:new:0:000005",
+      "front_brake:new:0:000006",
+      "front_brake:new:0:000007",
+      "front_brake:new:0:000008",
+      "front_brake:new:0:000009",
+      "front_brake:new:0:000010",
+      "front_brake:new:0:000011",
+      "front_brake:new:0:000012",
+      "front_brake:new:0:000013",
+      "front_brake:new:0:000014",
+      "front_brake:new:0:000015",
+      "front_brake:new:0:000016",
+      "front_brake:new:0:000017",
+      "front_brake:new:0:000018",
+      "front_brake:new:0:000019",
+      "front_brake:new:0:000020",
+      "front_brake:new:0:000021",
+      "front_brake:new:0:000023",
+      "front_brake:new:0:000024",
+      "front_brake:new:0:000025",
+      "front_brake:new:0:000026",
+      "front_brake:new:0:000027",
+      "front_brake:new:0:000029",
+      "front_brake:new:0:000030",
+      "front_brake:new:0:000031",
+      "front_brake:new:0:000032",
+      "front_brake:new:0:000033",
+      "front_brake:new:0:000034",
+      "front_brake:new:0:000035",
+      "front_brake:new:0:000036",
+      "front_brake:new:0:000037",
+      "front_brake:new:0:000039",
+      "front_brake:new:0:000040",
+      "front_brake:new:0:000041",
+      "front_brake:new:0:000042",
+      "front_brake:new:0:000043",
+      "front_brake:new:0:000045",
+      "front_brake:new:0:000046",
+      "front_brake:new:0:000047",
+      "front_brake:new:0:000048",
+      "front_brake:new:0:000049",
+      "front_brake:new:0:000050",
+      "front_brake:new:0:000051",
+      "front_brake:new:0:000052",
+      "front_brake:new:0:000053",
+      "front_brake:new:0:000054",
+      "front_brake:new:0:000055",
+      "front_brake:new:0:000056",
+      "front_brake:new:0:000057",
+      "front_brake:new:0:000058",
+      "front_brake:new:0:000059",
+      "front_brake:new:0:000060",
+      "front_brake:new:0:000061",
+      "front_brake:new:0:000062",
+      "front_brake:new:0:000063",
+      "front_brake:new:0:000064",
+      "front_brake:new:0:000065",
+      "front_brake:new:0:000066",
+      "front_brake:new:0:000067",
+      "front_brake:new:0:000068",
+      "front_brake:new:0:000069",
+      "front_brake:new:0:000070",
+      "front_brake:new:0:000071",
+      "front_brake:new:0:000072",
+      "front_brake:new:0:000073",
+      "front_brake:new:0:000074",
+      "front_brake:new:0:000075",
+      "front_brake:new:0:000076",
+      "front_brake:new:0:000077",
+      "front_brake:new:0:000078",
+      "front_brake:new:0:000079",
+      "front_brake:new:0:000080",
+      "front_brake:new:0:000081",
+      "front_brake:new:0:000083",
+      "front_brake:new:0:000084",
+      "front_brake:new:0:000085",
+      "front_brake:new:0:000086",
+      "front_brake:new:0:000087",
+      "front_brake:new:0:000089",
+      "front_brake:new:0:000090",
+      "front_brake:new:0:000091",
+      "front_brake:new:0:000092",
+      "front_brake:new:0:000093",
+      "front_brake:new:0:000094",
+      "front_brake:new:0:000095",
+      "front_brake:new:0:000096",
+      "front_brake:new:0:000097",
+      "front_brake:new:0:000099",
+      "front_brake:new:0:000100",
+      "front_brake:new:0:000101",
+      "front_brake:new:0:000102",
+      "front_brake:new:0:000103",
+      "front_brake:new:0:000105",
+      "front_brake:new:0:000106",
+      "front_brake:new:0:000107",
+      "front_brake:new:0:000108",
+      "front_brake:new:0:000109",
+      "front_brake:new:0:000110",
+      "front_brake:new:0:000111",
+      "front_brake:new:0:000112",
+      "front_brake:new:0:000113",
+      "front_brake:new:0:000114",
+      "front_brake:new:0:000115",
+      "front_brake:new:0:000116",
+      "front_brake:new:0:000117",
+      "front_brake:new:0:000118",
+      "front_brake:new:0:000119",
+      "front_brake:new:0:000120",
+      "front_brake:new:0:000121",
+      "front_brake:new:0:000122",
+      "front_brake:new:0:000123",
+      "front_brake:new:0:000124",
+      "front_brake:new:0:000125",
+      "front_brake:new:0:000126",
+      "front_brake:new:0:000127",
+      "front_brake:new:0:000129",
+      "front_brake:new:0:000130",
+      "front_brake:new:0:000131",
+      "front_brake:new:0:000132",
+      "front_brake:new:0:000133",
+      "front_brake:new:0:000134",
+      "front_brake:new:0:000135",
+      "front_brake:new:0:000136",
+      "front_brake:new:0:000137",
+      "front_brake:new:0:000139",
+      "front_brake:new:0:000140",
+      "front_brake:new:0:000141",
+      "front_brake:new:0:000142",
+      "front_brake:new:0:000143",
+      "front_brake:new:0:000144",
+      "front_brake:new:0:000145",
+      "front_brake:new:0:000146",
+      "front_brake:new:0:000147",
+      "front_brake:new:0:000148",
+      "front_brake:new:0:000149",
+      "front_brake:new:0:000150",
+      "front_brake:new:0:000151",
+      "front_brake:new:0:000152",
+      "front_brake:new:0:000153",
+      "front_brake:new:0:000154",
+      "front_brake:new:0:000155",
+      "front_brake:new:0:000156",
+      "front_brake:new:0:000157",
+      "front_brake:new:0:000158",
+      "front_brake:new:0:000159",
+      "front_brake:new:0:000160",
+      "front_brake:new:0:000161",
+      "front_brake:new:0:000162",
+      "front_brake:new:0:000163",
+      "front_brake:new:0:000165",
+      "front_brake:new:0:000166",
+      "front_brake:new:0:000167",
+      "front_brake:new:0:000168",
+      "front_brake:new:0:000169",
+      "front_brake:new:0:000170",
+      "front_brake:new:0:000171",
+      "front_brake:new:0:000172",
+      "front_brake:new:0:000173",
+      "front_brake:new:0:000174",
+      "front_brake:new:0:000175",
+      "front_brake:new:0:000177",
+      "front_brake:new:0:000178",
+      "front_brake:new:0:000179",
+      "front_brake:new:0:000180",
+      "front_brake:new:0:000181",
+      "front_brake:new:0:000182",
+      "front_brake:new:0:000183",
+      "front_brake:new:0:000184",
+      "front_brake:new:0:000185",
+      "front_brake:new:0:000186",
+      "front_brake:new:0:000187",
+      "front_brake:new:0:000188",
+      "front_brake:new:0:000189",
+      "front_brake:new:0:000190",
+      "front_brake:new:0:000191",
+      "front_brake:new:0:000192",
+      "front_brake:new:0:000193",
+      "front_brake:new:0:000194",
+      "front_brake:new:0:000195",
+      "front_brake:new:0:000197",
+      "front_brake:new:0:000198",
+      "front_brake:new:0:000199",
+      "front_brake:new:0:000200",
+      "front_brake:new:0:000201",
+      "front_brake:new:0:000202",
+      "front_brake:new:0:000203",
+      "front_brake:new:0:000204",
+      "front_brake:new:0:000205",
+      "front_brake:new:0:000207",
+      "front_brake:new:0:000208",
+      "front_brake:new:0:000209",
+      "front_brake:new:0:000210",
+      "front_brake:new:0:000211",
+      "front_brake:new:0:000212",
+      "front_brake:new:0:000213",
+      "front_brake:new:0:000214",
+      "front_brake:new:0:000215",
+      "front_brake:new:0:000216",
+      "front_brake:new:0:000217",
+      "front_brake:new:0:000218",
+      "front_brake:new:0:000219",
+      "front_brake:new:0:000220",
+      "front_brake:new:0:000221",
+      "front_brake:new:0:000222",
+      "front_brake:new:0:000223",
+      "front_brake:new:0:000224",
+      "front_brake:new:0:000225",
+      "front_brake:new:0:000226",
+      "front_brake:new:0:000227",
+      "front_brake:new:0:000228",
+      "front_brake:new:0:000229",
+      "front_brake:new:0:000230",
+      "front_brake:new:0:000231",
+      "front_brake:new:0:000232",
+      "front_brake:new:0:000233",
+      "front_brake:new:0:000235",
+      "front_brake:new:0:000236",
+      "front_brake:new:0:000237",
+      "front_brake:new:0:000238",
+      "front_brake:new:0:000239",
+      "front_brake:new:0:000240",
+      "front_brake:new:0:000241",
+      "front_brake:new:0:000242",
+      "front_brake:new:0:000243",
+      "front_brake:new:0:000245",
+      "front_brake:new:0:000246",
+      "front_brake:new:0:000247",
+      "front_brake:new:0:000248",
+      "front_brake:new:0:000249",
+      "front_brake:new:0:000250",
+      "front_brake:new:0:000251",
+      "front_brake:new:0:000252",
+      "front_brake:new:0:000253",
+      "front_brake:new:0:000254",
+      "front_brake:new:0:000255",
+      "front_brake:new:0:000256",
+      "front_brake:new:0:000257",
+      "front_brake:new:0:000258",
+      "front_brake:new:0:000259",
+      "front_brake:new:0:000260",
+      "front_brake:new:0:000261",
+      "front_brake:new:0:000262",
+      "front_brake:new:0:000263",
+      "front_brake:new:0:000264",
+      "front_brake:new:0:000265",
+      "front_brake:new:0:000266",
+      "front_brake:new:0:000267",
+      "front_brake:new:0:000268",
+      "front_brake:new:0:000269",
+      "front_brake:new:0:000270",
+      "front_brake:new:0:000271",
+      "front_brake:new:0:000272",
+      "front_brake:new:0:000273",
+      "front_brake:new:0:000274",
+      "front_brake:new:0:000275",
+      "front_brake:new:0:000277",
+      "front_brake:new:0:000278",
+      "front_brake:new:0:000279",
+      "front_brake:new:0:000280",
+      "front_brake:new:0:000281",
+      "front_brake:new:0:000282",
+      "front_brake:new:0:000283",
+      "front_brake:new:0:000284",
+      "front_brake:new:0:000285",
+      "front_brake:new:0:000286",
+      "front_brake:new:0:000287",
+      "front_brake:new:0:000288",
+      "front_brake:new:0:000289",
+      "front_brake:new:0:000290",
+      "front_brake:new:0:000291",
+      "front_brake:new:0:000293",
+      "front_brake:new:0:000294",
+      "front_brake:new:0:000295",
+      "front_brake:new:0:000296",
+      "front_brake:new:0:000297",
+      "front_brake:new:0:000298",
+      "front_brake:new:0:000299",
+      "front_brake:new:0:000300",
+      "front_brake:new:0:000301",
+      "front_brake:new:0:000303",
+      "front_brake:new:0:000304",
+      "front_brake:new:0:000305",
+      "front_brake:new:0:000306",
+      "front_brake:new:0:000307",
+      "front_brake:new:0:000308",
+      "front_brake:new:0:000309",
+      "front_brake:new:0:000310",
+      "front_brake:new:0:000311",
+      "front_brake:new:0:000312",
+      "front_brake:new:0:000313",
+      "front_brake:new:0:000315",
+      "front_brake:new:0:000316",
+      "front_brake:new:0:000317",
+      "front_brake:new:0:000318",
+      "front_brake:new:0:000319",
+      "front_brake:new:0:000320",
+      "front_brake:new:0:000321",
+      "front_brake:new:0:000322",
+      "front_brake:new:0:000323",
+      "front_brake:new:0:000324",
+      "front_brake:new:0:000325",
+      "front_brake:new:0:000326",
+      "front_brake:new:0:000327",
+      "front_brake:new:0:000328",
+      "front_brake:new:0:000329",
+      "front_brake:new:0:000330",
+      "front_brake:new:0:000331",
+      "front_brake:new:0:000332",
+      "front_brake:new:0:000333",
+      "front_brake:new:0:000334",
+      "front_brake:new:0:000335",
+      "front_brake:new:0:000337",
+      "front_brake:new:0:000338",
+      "front_brake:new:0:000339",
+      "front_brake:new:0:000340",
+      "front_brake:new:0:000341",
+      "front_brake:new:0:000342",
+      "front_brake:new:0:000343",
+      "front_brake:new:0:000344",
+      "front_brake:new:0:000345",
+      "front_brake:new:0:000347",
+      "front_brake:new:0:000348",
+      "front_brake:new:0:000349",
+      "front_brake:new:0:000350",
+      "front_brake:new:0:000351",
+      "front_brake:new:0:000353",
+      "front_brake:new:0:000354",
+      "front_brake:new:0:000355",
+      "front_brake:new:0:000356",
+      "front_brake:new:0:000357",
+      "front_brake:new:0:000358",
+      "front_brake:new:0:000359",
+      "front_brake:new:0:000360",
+      "front_brake:new:0:000361",
+      "front_brake:new:0:000363",
+      "front_brake:new:0:000364",
+      "front_brake:new:0:000365",
+      "front_brake:new:0:000366",
+      "front_brake:new:0:000367",
+      "front_brake:new:0:000368",
+      "front_brake:new:0:000369",
+      "front_brake:new:0:000370",
+      "front_brake:new:0:000371",
+      "front_brake:new:0:000373",
+      "front_brake:new:0:000374",
+      "front_brake:new:0:000375",
+      "front_brake:new:0:000376",
+      "front_brake:new:0:000377",
+      "front_brake:new:0:000378",
+      "front_brake:new:0:000379",
+      "front_brake:new:0:000380",
+      "front_brake:new:0:000381",
+      "front_brake:new:0:000382",
+      "front_brake:new:0:000383",
+      "front_brake:new:0:000384",
+      "front_brake:new:0:000385",
+      "front_brake:new:0:000387",
+      "front_brake:new:0:000388",
+      "front_brake:new:0:000389",
+      "front_brake:new:0:000390",
+      "front_brake:new:0:000391",
+      "front_brake:new:0:000392",
+      "front_brake:new:0:000393",
+      "front_brake:new:0:000394",
+      "front_brake:new:0:000395",
+      "front_brake:new:0:000396",
+      "front_brake:new:0:000397",
+      "front_brake:new:0:000398",
+      "front_brake:new:0:000399",
+      "front_brake:new:0:000400",
+      "front_brake:new:0:000401",
+      "front_brake:new:0:000402",
+      "front_brake:new:0:000403",
+      "front_brake:new:0:000404",
+      "front_brake:new:0:000405",
+      "front_brake:new:0:000406",
+      "front_brake:new:0:000407",
+      "front_brake:new:0:000408",
+      "front_brake:new:0:000409",
+      "front_brake:new:0:000410",
+      "front_brake:new:0:000411",
+      "front_brake:new:0:000412",
+      "front_brake:new:0:000413",
+      "front_brake:new:0:000414",
+      "front_brake:new:0:000415",
+      "front_brake:new:0:000416",
+      "front_brake:new:0:000417",
+      "front_brake:new:0:000418",
+      "front_brake:new:0:000419",
+      "front_brake:new:0:000420",
+      "front_brake:new:0:000421",
+      "front_brake:new:0:000422",
+      "front_brake:new:0:000423",
+      "front_brake:new:0:000424",
+      "front_brake:new:0:000425",
+      "front_brake:new:0:000426",
+      "front_brake:new:0:000427",
+      "front_brake:new:0:000428",
+      "front_brake:new:0:000429",
+      "front_brake:new:0:000430",
+      "front_brake:new:0:000431",
+      "front_brake:new:0:000432",
+      "front_brake:new:0:000433",
+      "front_brake:new:0:000435",
+      "front_brake:new:0:000436",
+      "front_brake:new:0:000437",
+      "front_brake:new:0:000438",
+      "front_brake:new:0:000439",
+      "front_brake:new:0:000441",
+      "front_brake:new:0:000442",
+      "front_brake:new:0:000443",
+      "front_brake:new:0:000444",
+      "front_brake:new:0:000445",
+      "front_brake:new:0:000446",
+      "front_brake:new:0:000447",
+      "front_brake:new:0:000448",
+      "front_brake:new:0:000449",
+      "front_brake:new:0:000450",
+      "front_brake:new:0:000451",
+      "front_brake:new:0:000452",
+      "front_brake:new:0:000453",
+      "front_brake:new:0:000455",
+      "front_brake:new:0:000456",
+      "front_brake:new:0:000457",
+      "front_brake:new:0:000458",
+      "front_brake:new:0:000459",
+      "front_brake:new:0:000460",
+      "front_brake:new:0:000461",
+      "front_brake:new:0:000462",
+      "front_brake:new:0:000463",
+      "front_brake:new:0:000464",
+      "front_brake:new:0:000465",
+      "front_brake:new:0:000466",
+      "front_brake:new:0:000467",
+      "front_brake:new:0:000468",
+      "front_brake:new:0:000469",
+      "front_brake:new:0:000470",
+      "front_brake:new:0:000471",
+      "front_brake:new:0:000472",
+      "front_brake:new:0:000473",
+      "front_brake:new:0:000474",
+      "front_brake:new:0:000475",
+      "front_brake:new:0:000476",
+      "front_brake:new:0:000477",
+      "front_brake:new:0:000478",
+      "front_brake:new:0:000479",
+      "front_brake:new:0:000480",
+      "front_brake:new:0:000481",
+      "front_brake:new:0:000482",
+      "front_brake:new:0:000483",
+      "front_brake:new:0:000484",
+      "front_brake:new:0:000485",
+      "front_brake:new:0:000486",
+      "front_brake:new:0:000487",
+      "front_brake:new:0:000489",
+      "front_brake:new:0:000490",
+      "front_brake:new:0:000491",
+      "front_brake:new:0:000492",
+      "front_brake:new:0:000493",
+      "front_brake:new:0:000494",
+      "front_brake:new:0:000495",
+      "front_brake:new:0:000496",
+      "front_brake:new:0:000497",
+      "front_brake:new:0:000498",
+      "front_brake:new:0:000499",
+      "front_brake:new:0:000500",
+      "front_brake:new:0:000501",
+      "front_brake:new:0:000503",
+      "front_brake:new:0:000504",
+      "front_brake:new:0:000505",
+      "front_brake:new:0:000506",
+      "front_brake:new:0:000507",
+      "front_brake:new:0:000509",
+      "front_brake:new:0:000510",
+      "front_brake:new:0:000511",
+      "front_brake:new:0:000512",
+      "front_brake:new:0:000513",
+      "front_brake:new:0:000514",
+      "front_brake:new:0:000515",
+      "front_brake:new:0:000516",
+      "front_brake:new:0:000517",
+      "front_brake:new:0:000519",
+      "front_brake:new:0:000520",
+      "front_brake:new:0:000521",
+      "front_brake:new:0:000522",
+      "front_brake:new:0:000523",
+      "front_brake:new:0:000524",
+      "front_brake:new:0:000525",
+      "front_brake:new:0:000526",
+      "front_brake:new:0:000527",
+      "front_brake:new:0:000528",
+      "front_brake:new:0:000529",
+      "front_brake:new:0:000530",
+      "front_brake:new:0:000531",
+      "front_brake:new:0:000532",
+      "front_brake:new:0:000533",
+      "front_brake:new:0:000534",
+      "front_brake:new:0:000535",
+      "front_brake:new:0:000537",
+      "front_brake:new:0:000538",
+      "front_brake:new:0:000539",
+      "front_brake:new:0:000540",
+      "front_brake:new:0:000541",
+      "front_brake:new:0:000542",
+      "front_brake:new:0:000543",
+      "front_brake:new:0:000544",
+      "front_brake:new:0:000545"
+    ],
+    "bank_audit_sha256": "a2fdb22e690d33b8cd7add6771f4dc076814b2722bc7b212e722dccc3363792d"
+  },
+  "initial_indices": [
+    159,
+    377,
+    193,
+    308,
+    499,
+    265,
+    179,
+    318
+  ],
+  "result": {
+    "method": "samota",
+    "queries": [
+      {
+        "query": 1,
+        "index": 159,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000170",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997988518451095,
+            "min_ttc_s": 6.163391650445955,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.599623200017959
+        },
+        "prequery_probability": null,
+        "selection_s": 1.0000003385357559e-06,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 2,
+        "index": 377,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000403",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996819108828359,
+            "min_ttc_s": 7.287111007117895,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.8358679999946617
+        },
+        "prequery_probability": null,
+        "selection_s": 8.999995770864189e-07,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 3,
+        "index": 193,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000207",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000180688767967,
+            "min_ttc_s": 14.14034454166305,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.326198700000532
+        },
+        "prequery_probability": null,
+        "selection_s": 8.999995770864189e-07,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 4,
+        "index": 308,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000328",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999012625337849,
+            "min_ttc_s": 10.025614844943084,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 3.4435006999992765
+        },
+        "prequery_probability": null,
+        "selection_s": 7.999988156370819e-07,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 5,
+        "index": 499,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000532",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9990813646150118,
+            "min_ttc_s": 2.131672250980513,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -24.25
+          },
+          "execution_s": 2.8829863000137266
+        },
+        "prequery_probability": null,
+        "selection_s": 8.999995770864189e-07,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 6,
+        "index": 265,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000282",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000433169213188,
+            "min_ttc_s": 4.109826847755346,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7641546999802813
+        },
+        "prequery_probability": null,
+        "selection_s": 1.2000018614344299e-06,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 7,
+        "index": 179,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000191",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999622442090734,
+            "min_ttc_s": 11.818431584234418,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.735030600015307
+        },
+        "prequery_probability": null,
+        "selection_s": 1.2999953469261527e-06,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 8,
+        "index": 318,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000339",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001524458562723,
+            "min_ttc_s": 18.17608312315321,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.442865899996832
+        },
+        "prequery_probability": null,
+        "selection_s": 1.1000010999850929e-06,
+        "adaptation_s": 0.0,
+        "reason": "common_initialization",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 9,
+        "index": 74,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000078",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001530776582968,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7427021999901626
+        },
+        "prequery_probability": null,
+        "selection_s": 0.2451271000027191,
+        "adaptation_s": 4.23461149999639,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 10,
+        "index": 264,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000281",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000084389997864,
+            "min_ttc_s": 85.77673568516421,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.725459800014505
+        },
+        "prequery_probability": null,
+        "selection_s": 6.70000008540228e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 11,
+        "index": 195,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000209",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000007111765463,
+            "min_ttc_s": 7.374504191821383,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.5719642999756616
+        },
+        "prequery_probability": null,
+        "selection_s": 6.400005077011883e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 12,
+        "index": 0,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000000",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999454243867596,
+            "min_ttc_s": 11.917261196315382,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.333333333333334
+          },
+          "execution_s": 2.8347536000073887
+        },
+        "prequery_probability": null,
+        "selection_s": 6.70000008540228e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 13,
+        "index": 434,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000463",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000109441841666,
+            "min_ttc_s": 33.70085336122331,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.3224383000051603
+        },
+        "prequery_probability": null,
+        "selection_s": 6.499998562503606e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 14,
+        "index": 173,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000185",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998566130881352,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7075324000034016
+        },
+        "prequery_probability": null,
+        "selection_s": 7.399998139590025e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 15,
+        "index": 11,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000011",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999273019360473,
+            "min_ttc_s": 10.27865284086305,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.333333333333334
+          },
+          "execution_s": 2.923709200025769
+        },
+        "prequery_probability": null,
+        "selection_s": 0.002652999995916616,
+        "adaptation_s": 3.6512655000042287,
+        "reason": "local",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 16,
+        "index": 362,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000388",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9994792438451279,
+            "min_ttc_s": 2.4968038234071614,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -24.25
+          },
+          "execution_s": 2.633552899991628
+        },
+        "prequery_probability": null,
+        "selection_s": 4.1000021155923605e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 17,
+        "index": 430,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000459",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9991397050831399,
+            "min_ttc_s": 10.220738932994907,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.885095799982082
+        },
+        "prequery_probability": null,
+        "selection_s": 0.183509900001809,
+        "adaptation_s": 6.484777600002417,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 18,
+        "index": 306,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000326",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9987362402656563,
+            "min_ttc_s": 29.00779363125821,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.9666774999932386
+        },
+        "prequery_probability": null,
+        "selection_s": 7.299997378140688e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 19,
+        "index": 48,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000052",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9991150677872245,
+            "min_ttc_s": 1.2126609264790835,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -24.25
+          },
+          "execution_s": 2.9801013999967836
+        },
+        "prequery_probability": null,
+        "selection_s": 6.70000008540228e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 20,
+        "index": 132,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000142",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.016109352345122,
+            "min_ttc_s": 3.718004877185875,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.560202799999388
+        },
+        "prequery_probability": null,
+        "selection_s": 5.699999746866524e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 21,
+        "index": 324,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000345",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9990334629297946,
+            "min_ttc_s": 5.8787362916779475,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.5932421000034083
+        },
+        "prequery_probability": null,
+        "selection_s": 9.10000380827114e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 22,
+        "index": 26,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000027",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999610240932805,
+            "min_ttc_s": 10.54446879515016,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 3.280014600022696
+        },
+        "prequery_probability": null,
+        "selection_s": 0.002476499998010695,
+        "adaptation_s": 2.843307100003585,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 23,
+        "index": 390,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000416",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9988744029607695,
+            "min_ttc_s": 2.538540684405056,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 2.961043899995275
+        },
+        "prequery_probability": null,
+        "selection_s": 8.200004231184721e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 24,
+        "index": 188,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000201",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0008588969522076,
+            "min_ttc_s": 27.851427174679504,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.686928999988595
+        },
+        "prequery_probability": null,
+        "selection_s": 0.3613767999995616,
+        "adaptation_s": 9.139762400001928,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 25,
+        "index": 277,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000295",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999069793646873,
+            "min_ttc_s": 6.09321974288255,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.958743199997116
+        },
+        "prequery_probability": null,
+        "selection_s": 2.9000002541579306e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 26,
+        "index": 210,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000224",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9990664133473814,
+            "min_ttc_s": 4.63897214961786,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 2.685798300022725
+        },
+        "prequery_probability": null,
+        "selection_s": 1.8999999156221747e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 27,
+        "index": 296,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000316",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001954987617956,
+            "min_ttc_s": 4.647723266598691,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 3.019847599993227
+        },
+        "prequery_probability": null,
+        "selection_s": 2.9000002541579306e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 28,
+        "index": 420,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000448",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9994975129930417,
+            "min_ttc_s": 3.717594199610217,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 2.8376209000125527
+        },
+        "prequery_probability": null,
+        "selection_s": 0.0035998999956063926,
+        "adaptation_s": 2.2835085000042454,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 29,
+        "index": 128,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000137",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999283469014933,
+            "min_ttc_s": 9.305076392688665,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.6480493000126444
+        },
+        "prequery_probability": null,
+        "selection_s": 9.2999980552122e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 30,
+        "index": 314,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000334",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.373596942934368,
+            "min_ttc_s": 2.1078986981139307,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.333333333333334
+          },
+          "execution_s": 2.441045599989593
+        },
+        "prequery_probability": null,
+        "selection_s": 0.5390313000098104,
+        "adaptation_s": 13.045171499994467,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 31,
+        "index": 396,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000422",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9992654263802747,
+            "min_ttc_s": 51.25069885997175,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.8225181000016164
+        },
+        "prequery_probability": null,
+        "selection_s": 3.4999975468963385e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 32,
+        "index": 267,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000284",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000909673011673,
+            "min_ttc_s": 13.020255360146647,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 2.6713416000129655
+        },
+        "prequery_probability": null,
+        "selection_s": 2.2000021999701858e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 33,
+        "index": 447,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000476",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999535346728523,
+            "min_ttc_s": 11.316811151633704,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.931466400012141
+        },
+        "prequery_probability": null,
+        "selection_s": 3.6999990697950125e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 34,
+        "index": 96,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000103",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000724991549204,
+            "min_ttc_s": 15.253469615855867,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.6966638000158127
+        },
+        "prequery_probability": null,
+        "selection_s": 0.005399499990744516,
+        "adaptation_s": 2.046341300003405,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 35,
+        "index": 192,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000205",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997509466006365,
+            "min_ttc_s": 7.571444459342412,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.782503299997188
+        },
+        "prequery_probability": null,
+        "selection_s": 6.099995516706258e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 36,
+        "index": 368,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000394",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0885065760248174,
+            "min_ttc_s": 3.7274024824715393,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 2.604105400008848
+        },
+        "prequery_probability": null,
+        "selection_s": 0.4918019999968237,
+        "adaptation_s": 16.103184000006877,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 37,
+        "index": 55,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000059",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000175671921454,
+            "min_ttc_s": 10.306815527016816,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 3.556075000000419
+        },
+        "prequery_probability": null,
+        "selection_s": 3.0000010156072676e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 38,
+        "index": 333,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000356",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000080157316473,
+            "min_ttc_s": 3.0489830057177794,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -24.25
+          },
+          "execution_s": 2.7971668999816757
+        },
+        "prequery_probability": null,
+        "selection_s": 3.0000010156072676e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 39,
+        "index": 10,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000010",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999098691283112,
+            "min_ttc_s": 152.6643698913301,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.734904499986442
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004277499989257194,
+        "adaptation_s": 2.8510214000052656,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 40,
+        "index": 9,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000009",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996899209903238,
+            "min_ttc_s": 7.793068174259241,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7196779000223614
+        },
+        "prequery_probability": null,
+        "selection_s": 7.099995855242014e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 41,
+        "index": 379,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000405",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000322120411305,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.793633699999191
+        },
+        "prequery_probability": null,
+        "selection_s": 4.441508099997009,
+        "adaptation_s": 15.368047100004333,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 42,
+        "index": 508,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000542",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0349847945851014,
+            "min_ttc_s": 13.179042922364411,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.4089970999921206
+        },
+        "prequery_probability": null,
+        "selection_s": 8.39999847812578e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 43,
+        "index": 209,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000223",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999624065554071,
+            "min_ttc_s": 6.494972151643482,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.979747400007909
+        },
+        "prequery_probability": null,
+        "selection_s": 0.00404040000285022,
+        "adaptation_s": 4.119980399998894,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 44,
+        "index": 258,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000274",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.001259842687516,
+            "min_ttc_s": 13.173863483418492,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.976650200027507
+        },
+        "prequery_probability": null,
+        "selection_s": 3.7999998312443495e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 45,
+        "index": 1,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000001",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996906718816734,
+            "min_ttc_s": 20.156617653885398,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.3333333333333333
+          },
+          "execution_s": 2.9882113999919966
+        },
+        "prequery_probability": null,
+        "selection_s": 1.9918431000041892,
+        "adaptation_s": 15.212996499998553,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 46,
+        "index": 151,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000161",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.055329887126778,
+            "min_ttc_s": 5.3275962317066226,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.183064500015462
+        },
+        "prequery_probability": null,
+        "selection_s": 3.1000017770566046e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 47,
+        "index": 439,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000468",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 4.598113136432026,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -24.11111111111111
+          },
+          "execution_s": 2.7136993999884
+        },
+        "prequery_probability": null,
+        "selection_s": 3.2999960239976645e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 48,
+        "index": 506,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000540",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999073432382122,
+            "min_ttc_s": 60.18649488978853,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.559633600001689
+        },
+        "prequery_probability": null,
+        "selection_s": 2.4999972083605826e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 49,
+        "index": 406,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000432",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999250633767173,
+            "min_ttc_s": 7.542066124698638,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.688166200008709
+        },
+        "prequery_probability": null,
+        "selection_s": 0.0027495999966049567,
+        "adaptation_s": 3.0481598999976995,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 50,
+        "index": 155,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000166",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.04253219457277,
+            "min_ttc_s": 8.520583931464868,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.2354885000095237
+        },
+        "prequery_probability": null,
+        "selection_s": 3.3999967854470015e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 51,
+        "index": 393,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000419",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9992699460257501,
+            "min_ttc_s": 31.39775207149546,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.880922799988184
+        },
+        "prequery_probability": null,
+        "selection_s": 1.9293169000084163,
+        "adaptation_s": 16.941293699994276,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 52,
+        "index": 91,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000097",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000143737242917,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.609738400002243
+        },
+        "prequery_probability": null,
+        "selection_s": 2.9000002541579306e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 53,
+        "index": 123,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000132",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 24.74809223599732,
+            "min_ttc_s": 15.584594816219475,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.03448275862069
+          },
+          "execution_s": 3.9910246999934316
+        },
+        "prequery_probability": null,
+        "selection_s": 3.2000025385059416e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 54,
+        "index": 57,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000061",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9994180474498566,
+            "min_ttc_s": 13.888440411282891,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7147715000028256
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004548000011709519,
+        "adaptation_s": 5.281339699991804,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 55,
+        "index": 64,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000068",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998477173627975,
+            "min_ttc_s": 4.466359063103175,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 2.6248441000061575
+        },
+        "prequery_probability": null,
+        "selection_s": 8.700000762473792e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 56,
+        "index": 39,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000042",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.019970750721678,
+            "min_ttc_s": 4.336970438050663,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.5348261000181083
+        },
+        "prequery_probability": null,
+        "selection_s": 2.4985175000038,
+        "adaptation_s": 21.682588800002122,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 57,
+        "index": 403,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000429",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999997776211384,
+            "min_ttc_s": 20.7314618497107,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.8969983000133652
+        },
+        "prequery_probability": null,
+        "selection_s": 6.400005077011883e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 58,
+        "index": 256,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000272",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999063226478342,
+            "min_ttc_s": 577.4361928025999,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 3.269327300018631
+        },
+        "prequery_probability": null,
+        "selection_s": 6.699992809444666e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 59,
+        "index": 465,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000495",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999255290126137,
+            "min_ttc_s": 16.773836045026755,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.6760118000092916
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004583700007060543,
+        "adaptation_s": 5.717045699995651,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 60,
+        "index": 30,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000032",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001365114380776,
+            "min_ttc_s": 8.898396902028471,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 2.9053810000186786
+        },
+        "prequery_probability": null,
+        "selection_s": 9.10000380827114e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 61,
+        "index": 365,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000391",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999901782094183,
+            "min_ttc_s": 20.182153881933598,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.0231882000225596
+        },
+        "prequery_probability": null,
+        "selection_s": 0.5914921000003233,
+        "adaptation_s": 23.47046849999606,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 62,
+        "index": 467,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000497",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.001514351583065,
+            "min_ttc_s": 7.841136050069188,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.285944200004451
+        },
+        "prequery_probability": null,
+        "selection_s": 8.100003469735384e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 63,
+        "index": 446,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000475",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000073183174925,
+            "min_ttc_s": 7.493416104847034,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 2.716844400012633
+        },
+        "prequery_probability": null,
+        "selection_s": 0.0043810999995912425,
+        "adaptation_s": 5.05942579999828,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 64,
+        "index": 245,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000261",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000077246484436,
+            "min_ttc_s": 31.099952676649607,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.909484900010284
+        },
+        "prequery_probability": null,
+        "selection_s": 6.300004315562546e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 65,
+        "index": 127,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000136",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000845660206625,
+            "min_ttc_s": 299.6605874519446,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 2.6058876999886706
+        },
+        "prequery_probability": null,
+        "selection_s": 0.4099707000059425,
+        "adaptation_s": 26.70732969999517,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 66,
+        "index": 330,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000353",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999634232156483,
+            "min_ttc_s": 11.057021335980744,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7876242000202183
+        },
+        "prequery_probability": null,
+        "selection_s": 7.100003131199628e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 67,
+        "index": 114,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000122",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0001459591633246,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.731683599995449
+        },
+        "prequery_probability": null,
+        "selection_s": 7.800001185387373e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 68,
+        "index": 59,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000063",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997357704190764,
+            "min_ttc_s": 10.308944768698357,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.8215445000096224
+        },
+        "prequery_probability": null,
+        "selection_s": 0.005304000005708076,
+        "adaptation_s": 4.650824999996985,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 69,
+        "index": 361,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000387",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998811703328734,
+            "min_ttc_s": 11.24677348399293,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.682058500009589
+        },
+        "prequery_probability": null,
+        "selection_s": 4.699999408330768e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 70,
+        "index": 370,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000396",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000004642612392,
+            "min_ttc_s": 54.64463041822248,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.837267900002189
+        },
+        "prequery_probability": null,
+        "selection_s": 0.40777990000060527,
+        "adaptation_s": 23.94902269999875,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 71,
+        "index": 285,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000304",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9995624927079971,
+            "min_ttc_s": 1.5247277025288422,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 2.8930186000070535
+        },
+        "prequery_probability": null,
+        "selection_s": 7.90000194683671e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 72,
+        "index": 339,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000363",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 6.069511579172395,
+            "min_ttc_s": 6.910209541086146,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.09090909090909091
+          },
+          "execution_s": 3.5227299999969546
+        },
+        "prequery_probability": null,
+        "selection_s": 9.700001101009548e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 73,
+        "index": 410,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000437",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999380424386792,
+            "min_ttc_s": 28.294043942032943,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.6955586000112817
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004937399993650615,
+        "adaptation_s": 4.022898100003658,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 74,
+        "index": 46,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000050",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999066920562176,
+            "min_ttc_s": 16.948662691845534,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 2.813311000005342
+        },
+        "prequery_probability": null,
+        "selection_s": 3.1000017770566046e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 75,
+        "index": 293,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000312",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999918644565182,
+            "min_ttc_s": 27.870358755534024,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.7351263999880757
+        },
+        "prequery_probability": null,
+        "selection_s": 0.31123749999824213,
+        "adaptation_s": 20.12787450000178,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 76,
+        "index": 102,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000110",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.6089321061920583,
+            "min_ttc_s": 1.4914251231566606,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.272658300003968
+        },
+        "prequery_probability": null,
+        "selection_s": 7.999995432328433e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 77,
+        "index": 176,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000188",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000144508089477,
+            "min_ttc_s": 17.218754033525993,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 2.734599299990805
+        },
+        "prequery_probability": null,
+        "selection_s": 8.100003469735384e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 78,
+        "index": 363,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000389",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996748211321627,
+            "min_ttc_s": 19.931274768341286,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.89734560000943
+        },
+        "prequery_probability": null,
+        "selection_s": 0.005010900000343099,
+        "adaptation_s": 5.273842499998864,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 79,
+        "index": 144,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000154",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9990304720393395,
+            "min_ttc_s": 13.539373296565346,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.5975194000056945
+        },
+        "prequery_probability": null,
+        "selection_s": 3.1999952625483274e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 80,
+        "index": 122,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000131",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999959176059381,
+            "min_ttc_s": 21.320797559959438,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 3.127305100002559
+        },
+        "prequery_probability": null,
+        "selection_s": 0.5130576999945333,
+        "adaptation_s": 18.945046200002253,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 81,
+        "index": 491,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000524",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000038530978915,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 2.764254100009566
+        },
+        "prequery_probability": null,
+        "selection_s": 9.60000033956021e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 82,
+        "index": 325,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000347",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000230936422401,
+            "min_ttc_s": 14.47171455609898,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.249019300012151
+        },
+        "prequery_probability": null,
+        "selection_s": 0.005024300000513904,
+        "adaptation_s": 5.843197499998496,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 83,
+        "index": 392,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000418",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999454354097865,
+            "min_ttc_s": 9.034116340967334,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.7236826999869663
+        },
+        "prequery_probability": null,
+        "selection_s": 4.699999408330768e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 84,
+        "index": 426,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000455",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000086845067854,
+            "min_ttc_s": 7.995884070922639,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.891007800004445
+        },
+        "prequery_probability": null,
+        "selection_s": 1.2823217999975896,
+        "adaptation_s": 25.241260000002512,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 85,
+        "index": 375,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000401",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997961100634412,
+            "min_ttc_s": 19.456260087984777,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.781518399977358
+        },
+        "prequery_probability": null,
+        "selection_s": 2.2000021999701858e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 86,
+        "index": 459,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000489",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998747923314621,
+            "min_ttc_s": 14.560501766874438,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.078708100016229
+        },
+        "prequery_probability": null,
+        "selection_s": 2.1000014385208488e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 87,
+        "index": 472,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000503",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998200719748886,
+            "min_ttc_s": 19.832555382183596,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.483058300014818
+        },
+        "prequery_probability": null,
+        "selection_s": 0.0046764000071561895,
+        "adaptation_s": 5.815696599995135,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 88,
+        "index": 174,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000186",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0007003683444067,
+            "min_ttc_s": 5.251838853529087,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.5028847999928985
+        },
+        "prequery_probability": null,
+        "selection_s": 9.099996532313526e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 89,
+        "index": 2,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000002",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0020354601026233,
+            "min_ttc_s": 2.1933222111748534,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.958684400015045
+        },
+        "prequery_probability": null,
+        "selection_s": 1.4426571000003605,
+        "adaptation_s": 24.63161759999639,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 90,
+        "index": 178,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000190",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.99928867248649,
+            "min_ttc_s": 29.358874614143566,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.5231115000206046
+        },
+        "prequery_probability": null,
+        "selection_s": 4.1000021155923605e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 91,
+        "index": 295,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000315",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999848585754668,
+            "min_ttc_s": 9.58317427433848,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.886615900002653
+        },
+        "prequery_probability": null,
+        "selection_s": 2.4999972083605826e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 92,
+        "index": 216,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000230",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999526904079723,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.7584931000019424
+        },
+        "prequery_probability": null,
+        "selection_s": 3.4999975468963385e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 93,
+        "index": 239,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000255",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000167344301635,
+            "min_ttc_s": 19.546899789508814,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.520297000010032
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004555700004857499,
+        "adaptation_s": 5.30593649999355,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 94,
+        "index": 448,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000477",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999993806005071,
+            "min_ttc_s": 7.1384310727841,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.630581900011748
+        },
+        "prequery_probability": null,
+        "selection_s": 8.000002708286047e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 95,
+        "index": 343,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000367",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000054153414601,
+            "min_ttc_s": 8.044941799890768,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7810934000008274
+        },
+        "prequery_probability": null,
+        "selection_s": 0.8425921999951242,
+        "adaptation_s": 26.368103699998755,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 96,
+        "index": 500,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000533",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998178963333846,
+            "min_ttc_s": 20.580832138113887,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.961722000007285
+        },
+        "prequery_probability": null,
+        "selection_s": 6.800000846851617e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 97,
+        "index": 29,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000031",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998375872460235,
+            "min_ttc_s": 22.345390201092,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 3.687105999997584
+        },
+        "prequery_probability": null,
+        "selection_s": 8.39999847812578e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 98,
+        "index": 23,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000024",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997550779101598,
+            "min_ttc_s": 17.703415483634863,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 3.083307299995795
+        },
+        "prequery_probability": null,
+        "selection_s": 0.003215299999283161,
+        "adaptation_s": 5.06070550000004,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 99,
+        "index": 460,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000490",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9992159116715114,
+            "min_ttc_s": 8.50484033001937,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.612739399977727
+        },
+        "prequery_probability": null,
+        "selection_s": 4.900000931229442e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 100,
+        "index": 357,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000382",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.015926016691836,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.4958989000006113
+        },
+        "prequery_probability": null,
+        "selection_s": 1.630440400003863,
+        "adaptation_s": 26.61965479999344,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 101,
+        "index": 105,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000113",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997814741755267,
+            "min_ttc_s": 41.83015817401442,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.775940499996068
+        },
+        "prequery_probability": null,
+        "selection_s": 7.300004654098302e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 102,
+        "index": 60,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000064",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999194308278758,
+            "min_ttc_s": 42.03381029107343,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 2.822359499987215
+        },
+        "prequery_probability": null,
+        "selection_s": 9.60000033956021e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 103,
+        "index": 262,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000279",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0000011726227815,
+            "min_ttc_s": 10.015270052590306,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.8832228999817744
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004829400000744499,
+        "adaptation_s": 5.2361639000009745,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 104,
+        "index": 66,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000070",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.036502852546084,
+            "min_ttc_s": 3.0378159424132645,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.211068599979626
+        },
+        "prequery_probability": null,
+        "selection_s": 3.2000025385059416e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 105,
+        "index": 322,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000343",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997873039696215,
+            "min_ttc_s": 7.872778599980828,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.8921664000081364
+        },
+        "prequery_probability": null,
+        "selection_s": 0.2340732000011485,
+        "adaptation_s": 30.966565800001263,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 106,
+        "index": 27,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000029",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999938745645185,
+            "min_ttc_s": 13.59883506733802,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.966453000000911
+        },
+        "prequery_probability": null,
+        "selection_s": 5.899993993807584e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 107,
+        "index": 401,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000427",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999478367740584,
+            "min_ttc_s": 7.284980433695063,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.922195399994962
+        },
+        "prequery_probability": null,
+        "selection_s": 8.200004231184721e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 108,
+        "index": 319,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000340",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 6.800209711139429,
+            "min_ttc_s": 48.236704223870085,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.083333333333332
+          },
+          "execution_s": 3.6849784000078216
+        },
+        "prequery_probability": null,
+        "selection_s": 7.700000423938036e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 109,
+        "index": 4,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000004",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999869350111624,
+            "min_ttc_s": 16.27171208745886,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 3.136318899982143
+        },
+        "prequery_probability": null,
+        "selection_s": 0.003989799995906651,
+        "adaptation_s": 5.626812200003769,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 110,
+        "index": 335,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000358",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.008966160275618,
+            "min_ttc_s": 4.725484211240571,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.5983248999982607
+        },
+        "prequery_probability": null,
+        "selection_s": 6.999995093792677e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 111,
+        "index": 270,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000287",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0003120647666215,
+            "min_ttc_s": 10.150198079763053,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7550889999838546
+        },
+        "prequery_probability": null,
+        "selection_s": 1.6543944000004558,
+        "adaptation_s": 32.61770539999998,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 112,
+        "index": 372,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000398",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0034923997326497,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.6917112999944948
+        },
+        "prequery_probability": null,
+        "selection_s": 7.299997378140688e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 113,
+        "index": 252,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000268",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999872811802648,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.25
+          },
+          "execution_s": 2.8143766000284813
+        },
+        "prequery_probability": null,
+        "selection_s": 1.09999964479357e-05,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 114,
+        "index": 5,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000005",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000013882724442,
+            "min_ttc_s": 10.672027214279131,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.8075177000137046
+        },
+        "prequery_probability": null,
+        "selection_s": 0.005107199991471134,
+        "adaptation_s": 5.3795513000077335,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 115,
+        "index": 280,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000298",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.000043078944936,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.9098880999954417
+        },
+        "prequery_probability": null,
+        "selection_s": 2.2000021999701858e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 116,
+        "index": 3,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000003",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9996812157690547,
+            "min_ttc_s": 11.63680726395225,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 3.423027100012405
+        },
+        "prequery_probability": null,
+        "selection_s": 1.1592563000012888,
+        "adaptation_s": 33.61787929999991,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 117,
+        "index": 253,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000269",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999745527914872,
+            "min_ttc_s": 9.038335496671074,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.89350619999459
+        },
+        "prequery_probability": null,
+        "selection_s": 2.6000052457675338e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 118,
+        "index": 148,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000158",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.6827996255355613,
+            "min_ttc_s": 1.654487904653642,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.266522399993846
+        },
+        "prequery_probability": null,
+        "selection_s": 2.4999972083605826e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 119,
+        "index": 289,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000308",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997527668410608,
+            "min_ttc_s": 317.4322332526177,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -20.333333333333332
+          },
+          "execution_s": 2.875093900016509
+        },
+        "prequery_probability": null,
+        "selection_s": 3.2000025385059416e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 120,
+        "index": 220,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000235",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0002012961159887,
+            "min_ttc_s": 18.227666154187386,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -8.25
+          },
+          "execution_s": 3.678803200018592
+        },
+        "prequery_probability": null,
+        "selection_s": 0.004664300002332311,
+        "adaptation_s": 5.898399099998642,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 121,
+        "index": 118,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000126",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 2.0006942675173325,
+            "min_ttc_s": 10.512287039973007,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.5094283999933396
+        },
+        "prequery_probability": null,
+        "selection_s": 1.0200004908256233e-05,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 122,
+        "index": 147,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000157",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9999831458849864,
+            "min_ttc_s": 10.421764230006582,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.7700767000205815
+        },
+        "prequery_probability": null,
+        "selection_s": 0.3006655999997747,
+        "adaptation_s": 33.37847209999745,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 123,
+        "index": 228,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000243",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9980727005405887,
+            "min_ttc_s": 9.618188915333636,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.3333333333333333
+          },
+          "execution_s": 2.9083671999978833
+        },
+        "prequery_probability": null,
+        "selection_s": 3.1000017770566046e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 124,
+        "index": 28,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000030",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.8960483057264608,
+            "min_ttc_s": 3.122269399224007,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.4840153999975882
+        },
+        "prequery_probability": null,
+        "selection_s": 2.5000044843181968e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 125,
+        "index": 225,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000240",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9995324121315643,
+            "min_ttc_s": 4.613413137518672,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -16.25
+          },
+          "execution_s": 2.9819738999940455
+        },
+        "prequery_probability": null,
+        "selection_s": 0.002879500010749325,
+        "adaptation_s": 4.91980889999104,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 126,
+        "index": 33,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000035",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.999728774518319,
+            "min_ttc_s": 5.308985092215925,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -12.25
+          },
+          "execution_s": 2.4584804000041913
+        },
+        "prequery_probability": null,
+        "selection_s": 2.3999964469112456e-06,
+        "adaptation_s": 0.0,
+        "reason": "local",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 127,
+        "index": 242,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000258",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9998033860821502,
+            "min_ttc_s": null,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -4.25
+          },
+          "execution_s": 2.582049899996491
+        },
+        "prequery_probability": null,
+        "selection_s": 0.23083429999678629,
+        "adaptation_s": 28.70235810000304,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      },
+      {
+        "query": 128,
+        "index": 135,
+        "feedback": {
+          "scenario_id": "front_brake:new:0:000145",
+          "collision": false,
+          "safety": {
+            "min_clearance_m": 1.9997598352599928,
+            "min_ttc_s": 189.013576909555,
+            "violations": [],
+            "impact_delta_v_mps": null,
+            "driving_quality_score": -0.25
+          },
+          "execution_s": 2.661013600009028
+        },
+        "prequery_probability": null,
+        "selection_s": 1.7999991541728377e-06,
+        "adaptation_s": 0.0,
+        "reason": "global",
+        "covered_objectives": [
+          2
+        ],
+        "coverage_restarts": 0
+      }
+    ],
+    "selected_indices": [
+      159,
+      377,
+      193,
+      308,
+      499,
+      265,
+      179,
+      318,
+      74,
+      264,
+      195,
+      0,
+      434,
+      173,
+      11,
+      362,
+      430,
+      306,
+      48,
+      132,
+      324,
+      26,
+      390,
+      188,
+      277,
+      210,
+      296,
+      420,
+      128,
+      314,
+      396,
+      267,
+      447,
+      96,
+      192,
+      368,
+      55,
+      333,
+      10,
+      9,
+      379,
+      508,
+      209,
+      258,
+      1,
+      151,
+      439,
+      506,
+      406,
+      155,
+      393,
+      91,
+      123,
+      57,
+      64,
+      39,
+      403,
+      256,
+      465,
+      30,
+      365,
+      467,
+      446,
+      245,
+      127,
+      330,
+      114,
+      59,
+      361,
+      370,
+      285,
+      339,
+      410,
+      46,
+      293,
+      102,
+      176,
+      363,
+      144,
+      122,
+      491,
+      325,
+      392,
+      426,
+      375,
+      459,
+      472,
+      174,
+      2,
+      178,
+      295,
+      216,
+      239,
+      448,
+      343,
+      500,
+      29,
+      23,
+      460,
+      357,
+      105,
+      60,
+      262,
+      66,
+      322,
+      27,
+      401,
+      319,
+      4,
+      335,
+      270,
+      372,
+      252,
+      5,
+      280,
+      3,
+      253,
+      148,
+      289,
+      220,
+      118,
+      147,
+      228,
+      28,
+      225,
+      33,
+      242,
+      135
+    ],
+    "actual_queries": 128,
+    "maximum_queries": 128,
+    "termination": "budget_exhausted",
+    "config": {
+      "rbf_centers": 10,
+      "rbf_epochs": 1000,
+      "elite_fraction": 0.2,
+      "min_cluster_size": 5,
+      "thresholds": [
+        0.0,
+        0.0,
+        0.2
+      ]
+    },
+    "coverage_restarts": [],
+    "feedback_used": [
+      "paid collision Boolean",
+      "paid clearance",
+      "paid minimum TTC"
+    ],
+    "adaptation": "finite pool exact global/local acquisition; restart fully covered objectives"
+  },
+  "query_ledger": [
+    {
+      "call": 1,
+      "index": 159,
+      "scenario_id": "front_brake:new:0:000170",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0026698000001488253,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000170",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997988518451095,
+          "min_ttc_s": 6.163391650445955,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.599623200017959
+      }
+    },
+    {
+      "call": 2,
+      "index": 377,
+      "scenario_id": "front_brake:new:0:000403",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023628000053577125,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000403",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996819108828359,
+          "min_ttc_s": 7.287111007117895,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.8358679999946617
+      }
+    },
+    {
+      "call": 3,
+      "index": 193,
+      "scenario_id": "front_brake:new:0:000207",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002140500000678003,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000207",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000180688767967,
+          "min_ttc_s": 14.14034454166305,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.326198700000532
+      }
+    },
+    {
+      "call": 4,
+      "index": 308,
+      "scenario_id": "front_brake:new:0:000328",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002195599998231046,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000328",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999012625337849,
+          "min_ttc_s": 10.025614844943084,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 3.4435006999992765
+      }
+    },
+    {
+      "call": 5,
+      "index": 499,
+      "scenario_id": "front_brake:new:0:000532",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030118000067886896,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000532",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9990813646150118,
+          "min_ttc_s": 2.131672250980513,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -24.25
+        },
+        "execution_s": 2.8829863000137266
+      }
+    },
+    {
+      "call": 6,
+      "index": 265,
+      "scenario_id": "front_brake:new:0:000282",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023782999996910803,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000282",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000433169213188,
+          "min_ttc_s": 4.109826847755346,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7641546999802813
+      }
+    },
+    {
+      "call": 7,
+      "index": 179,
+      "scenario_id": "front_brake:new:0:000191",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002296700004080776,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000191",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999622442090734,
+          "min_ttc_s": 11.818431584234418,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.735030600015307
+      }
+    },
+    {
+      "call": 8,
+      "index": 318,
+      "scenario_id": "front_brake:new:0:000339",
+      "purpose": "initial",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023101999977370724,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000339",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001524458562723,
+          "min_ttc_s": 18.17608312315321,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.442865899996832
+      }
+    },
+    {
+      "call": 9,
+      "index": 74,
+      "scenario_id": "front_brake:new:0:000078",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003314200002932921,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000078",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001530776582968,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7427021999901626
+      }
+    },
+    {
+      "call": 10,
+      "index": 264,
+      "scenario_id": "front_brake:new:0:000281",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004691800000728108,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000281",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000084389997864,
+          "min_ttc_s": 85.77673568516421,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.725459800014505
+      }
+    },
+    {
+      "call": 11,
+      "index": 195,
+      "scenario_id": "front_brake:new:0:000209",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002886500005843118,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000209",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000007111765463,
+          "min_ttc_s": 7.374504191821383,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.5719642999756616
+      }
+    },
+    {
+      "call": 12,
+      "index": 0,
+      "scenario_id": "front_brake:new:0:000000",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030174999992595986,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000000",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999454243867596,
+          "min_ttc_s": 11.917261196315382,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.333333333333334
+        },
+        "execution_s": 2.8347536000073887
+      }
+    },
+    {
+      "call": 13,
+      "index": 434,
+      "scenario_id": "front_brake:new:0:000463",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002780000002530869,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000463",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000109441841666,
+          "min_ttc_s": 33.70085336122331,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.3224383000051603
+      }
+    },
+    {
+      "call": 14,
+      "index": 173,
+      "scenario_id": "front_brake:new:0:000185",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0028758999978890643,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000185",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998566130881352,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7075324000034016
+      }
+    },
+    {
+      "call": 15,
+      "index": 11,
+      "scenario_id": "front_brake:new:0:000011",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024836000011418946,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000011",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999273019360473,
+          "min_ttc_s": 10.27865284086305,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.333333333333334
+        },
+        "execution_s": 2.923709200025769
+      }
+    },
+    {
+      "call": 16,
+      "index": 362,
+      "scenario_id": "front_brake:new:0:000388",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029973999990033917,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000388",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9994792438451279,
+          "min_ttc_s": 2.4968038234071614,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -24.25
+        },
+        "execution_s": 2.633552899991628
+      }
+    },
+    {
+      "call": 17,
+      "index": 430,
+      "scenario_id": "front_brake:new:0:000459",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029609999983222224,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000459",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9991397050831399,
+          "min_ttc_s": 10.220738932994907,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.885095799982082
+      }
+    },
+    {
+      "call": 18,
+      "index": 306,
+      "scenario_id": "front_brake:new:0:000326",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0031388999996124767,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000326",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9987362402656563,
+          "min_ttc_s": 29.00779363125821,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.9666774999932386
+      }
+    },
+    {
+      "call": 19,
+      "index": 48,
+      "scenario_id": "front_brake:new:0:000052",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002910799994424451,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000052",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9991150677872245,
+          "min_ttc_s": 1.2126609264790835,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -24.25
+        },
+        "execution_s": 2.9801013999967836
+      }
+    },
+    {
+      "call": 20,
+      "index": 132,
+      "scenario_id": "front_brake:new:0:000142",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003011999993759673,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000142",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.016109352345122,
+          "min_ttc_s": 3.718004877185875,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.560202799999388
+      }
+    },
+    {
+      "call": 21,
+      "index": 324,
+      "scenario_id": "front_brake:new:0:000345",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0031302999996114522,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000345",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9990334629297946,
+          "min_ttc_s": 5.8787362916779475,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.5932421000034083
+      }
+    },
+    {
+      "call": 22,
+      "index": 26,
+      "scenario_id": "front_brake:new:0:000027",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004918300001008902,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000027",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999610240932805,
+          "min_ttc_s": 10.54446879515016,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 3.280014600022696
+      }
+    },
+    {
+      "call": 23,
+      "index": 390,
+      "scenario_id": "front_brake:new:0:000416",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0031607999990228564,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000416",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9988744029607695,
+          "min_ttc_s": 2.538540684405056,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 2.961043899995275
+      }
+    },
+    {
+      "call": 24,
+      "index": 188,
+      "scenario_id": "front_brake:new:0:000201",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023708999942755327,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000201",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0008588969522076,
+          "min_ttc_s": 27.851427174679504,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.686928999988595
+      }
+    },
+    {
+      "call": 25,
+      "index": 277,
+      "scenario_id": "front_brake:new:0:000295",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021960000012768432,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000295",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999069793646873,
+          "min_ttc_s": 6.09321974288255,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.958743199997116
+      }
+    },
+    {
+      "call": 26,
+      "index": 210,
+      "scenario_id": "front_brake:new:0:000224",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002110800000082236,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000224",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9990664133473814,
+          "min_ttc_s": 4.63897214961786,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 2.685798300022725
+      }
+    },
+    {
+      "call": 27,
+      "index": 296,
+      "scenario_id": "front_brake:new:0:000316",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00231089999579126,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000316",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001954987617956,
+          "min_ttc_s": 4.647723266598691,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 3.019847599993227
+      }
+    },
+    {
+      "call": 28,
+      "index": 420,
+      "scenario_id": "front_brake:new:0:000448",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0052723000044352375,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000448",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9994975129930417,
+          "min_ttc_s": 3.717594199610217,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 2.8376209000125527
+      }
+    },
+    {
+      "call": 29,
+      "index": 128,
+      "scenario_id": "front_brake:new:0:000137",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002930399998149369,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000137",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999283469014933,
+          "min_ttc_s": 9.305076392688665,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.6480493000126444
+      }
+    },
+    {
+      "call": 30,
+      "index": 314,
+      "scenario_id": "front_brake:new:0:000334",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023291000034078024,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000334",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.373596942934368,
+          "min_ttc_s": 2.1078986981139307,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.333333333333334
+        },
+        "execution_s": 2.441045599989593
+      }
+    },
+    {
+      "call": 31,
+      "index": 396,
+      "scenario_id": "front_brake:new:0:000422",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00215829999797279,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000422",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9992654263802747,
+          "min_ttc_s": 51.25069885997175,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.8225181000016164
+      }
+    },
+    {
+      "call": 32,
+      "index": 267,
+      "scenario_id": "front_brake:new:0:000284",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022339999995892867,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000284",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000909673011673,
+          "min_ttc_s": 13.020255360146647,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 2.6713416000129655
+      }
+    },
+    {
+      "call": 33,
+      "index": 447,
+      "scenario_id": "front_brake:new:0:000476",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004237699999066535,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000476",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999535346728523,
+          "min_ttc_s": 11.316811151633704,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.931466400012141
+      }
+    },
+    {
+      "call": 34,
+      "index": 96,
+      "scenario_id": "front_brake:new:0:000103",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0034776000029523857,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000103",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000724991549204,
+          "min_ttc_s": 15.253469615855867,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.6966638000158127
+      }
+    },
+    {
+      "call": 35,
+      "index": 192,
+      "scenario_id": "front_brake:new:0:000205",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0028448000011849217,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000205",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997509466006365,
+          "min_ttc_s": 7.571444459342412,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.782503299997188
+      }
+    },
+    {
+      "call": 36,
+      "index": 368,
+      "scenario_id": "front_brake:new:0:000394",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0023405000029015355,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000394",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0885065760248174,
+          "min_ttc_s": 3.7274024824715393,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 2.604105400008848
+      }
+    },
+    {
+      "call": 37,
+      "index": 55,
+      "scenario_id": "front_brake:new:0:000059",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002066299995931331,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000059",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000175671921454,
+          "min_ttc_s": 10.306815527016816,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 3.556075000000419
+      }
+    },
+    {
+      "call": 38,
+      "index": 333,
+      "scenario_id": "front_brake:new:0:000356",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021262999944156036,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000356",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000080157316473,
+          "min_ttc_s": 3.0489830057177794,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -24.25
+        },
+        "execution_s": 2.7971668999816757
+      }
+    },
+    {
+      "call": 39,
+      "index": 10,
+      "scenario_id": "front_brake:new:0:000010",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030370999957085587,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000010",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999098691283112,
+          "min_ttc_s": 152.6643698913301,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.734904499986442
+      }
+    },
+    {
+      "call": 40,
+      "index": 9,
+      "scenario_id": "front_brake:new:0:000009",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.00407219999760855,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000009",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996899209903238,
+          "min_ttc_s": 7.793068174259241,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7196779000223614
+      }
+    },
+    {
+      "call": 41,
+      "index": 379,
+      "scenario_id": "front_brake:new:0:000405",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003610400002798997,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000405",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000322120411305,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.793633699999191
+      }
+    },
+    {
+      "call": 42,
+      "index": 508,
+      "scenario_id": "front_brake:new:0:000542",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0031875999993644655,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000542",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0349847945851014,
+          "min_ttc_s": 13.179042922364411,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.4089970999921206
+      }
+    },
+    {
+      "call": 43,
+      "index": 209,
+      "scenario_id": "front_brake:new:0:000223",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002438299998175353,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000223",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999624065554071,
+          "min_ttc_s": 6.494972151643482,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.979747400007909
+      }
+    },
+    {
+      "call": 44,
+      "index": 258,
+      "scenario_id": "front_brake:new:0:000274",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002274899998155888,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000274",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.001259842687516,
+          "min_ttc_s": 13.173863483418492,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.976650200027507
+      }
+    },
+    {
+      "call": 45,
+      "index": 1,
+      "scenario_id": "front_brake:new:0:000001",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001607400001375936,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000001",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996906718816734,
+          "min_ttc_s": 20.156617653885398,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.3333333333333333
+        },
+        "execution_s": 2.9882113999919966
+      }
+    },
+    {
+      "call": 46,
+      "index": 151,
+      "scenario_id": "front_brake:new:0:000161",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002168099999835249,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000161",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.055329887126778,
+          "min_ttc_s": 5.3275962317066226,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.183064500015462
+      }
+    },
+    {
+      "call": 47,
+      "index": 439,
+      "scenario_id": "front_brake:new:0:000468",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015300000013667159,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000468",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 4.598113136432026,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -24.11111111111111
+        },
+        "execution_s": 2.7136993999884
+      }
+    },
+    {
+      "call": 48,
+      "index": 506,
+      "scenario_id": "front_brake:new:0:000540",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001494199997978285,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000540",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999073432382122,
+          "min_ttc_s": 60.18649488978853,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.559633600001689
+      }
+    },
+    {
+      "call": 49,
+      "index": 406,
+      "scenario_id": "front_brake:new:0:000432",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002326800000446383,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000432",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999250633767173,
+          "min_ttc_s": 7.542066124698638,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.688166200008709
+      }
+    },
+    {
+      "call": 50,
+      "index": 155,
+      "scenario_id": "front_brake:new:0:000166",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002166500002203975,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000166",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.04253219457277,
+          "min_ttc_s": 8.520583931464868,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.2354885000095237
+      }
+    },
+    {
+      "call": 51,
+      "index": 393,
+      "scenario_id": "front_brake:new:0:000419",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002424799997243099,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000419",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9992699460257501,
+          "min_ttc_s": 31.39775207149546,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.880922799988184
+      }
+    },
+    {
+      "call": 52,
+      "index": 91,
+      "scenario_id": "front_brake:new:0:000097",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0026710000020102598,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000097",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000143737242917,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.609738400002243
+      }
+    },
+    {
+      "call": 53,
+      "index": 123,
+      "scenario_id": "front_brake:new:0:000132",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0021502000017790124,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000132",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 24.74809223599732,
+          "min_ttc_s": 15.584594816219475,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.03448275862069
+        },
+        "execution_s": 3.9910246999934316
+      }
+    },
+    {
+      "call": 54,
+      "index": 57,
+      "scenario_id": "front_brake:new:0:000061",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0031145000029937364,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000061",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9994180474498566,
+          "min_ttc_s": 13.888440411282891,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7147715000028256
+      }
+    },
+    {
+      "call": 55,
+      "index": 64,
+      "scenario_id": "front_brake:new:0:000068",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002751499996520579,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000068",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998477173627975,
+          "min_ttc_s": 4.466359063103175,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 2.6248441000061575
+      }
+    },
+    {
+      "call": 56,
+      "index": 39,
+      "scenario_id": "front_brake:new:0:000042",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030048000044189394,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000042",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.019970750721678,
+          "min_ttc_s": 4.336970438050663,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.5348261000181083
+      }
+    },
+    {
+      "call": 57,
+      "index": 403,
+      "scenario_id": "front_brake:new:0:000429",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002921699997386895,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000429",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999997776211384,
+          "min_ttc_s": 20.7314618497107,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.8969983000133652
+      }
+    },
+    {
+      "call": 58,
+      "index": 256,
+      "scenario_id": "front_brake:new:0:000272",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003983299997344147,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000272",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999063226478342,
+          "min_ttc_s": 577.4361928025999,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 3.269327300018631
+      }
+    },
+    {
+      "call": 59,
+      "index": 465,
+      "scenario_id": "front_brake:new:0:000495",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003189900002325885,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000495",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999255290126137,
+          "min_ttc_s": 16.773836045026755,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.6760118000092916
+      }
+    },
+    {
+      "call": 60,
+      "index": 30,
+      "scenario_id": "front_brake:new:0:000032",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002787700002954807,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000032",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001365114380776,
+          "min_ttc_s": 8.898396902028471,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 2.9053810000186786
+      }
+    },
+    {
+      "call": 61,
+      "index": 365,
+      "scenario_id": "front_brake:new:0:000391",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029657999984920025,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000391",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999901782094183,
+          "min_ttc_s": 20.182153881933598,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.0231882000225596
+      }
+    },
+    {
+      "call": 62,
+      "index": 467,
+      "scenario_id": "front_brake:new:0:000497",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0028448000011849217,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000497",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.001514351583065,
+          "min_ttc_s": 7.841136050069188,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.285944200004451
+      }
+    },
+    {
+      "call": 63,
+      "index": 446,
+      "scenario_id": "front_brake:new:0:000475",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029100999963702634,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000475",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000073183174925,
+          "min_ttc_s": 7.493416104847034,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 2.716844400012633
+      }
+    },
+    {
+      "call": 64,
+      "index": 245,
+      "scenario_id": "front_brake:new:0:000261",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0042673999996623024,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000261",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000077246484436,
+          "min_ttc_s": 31.099952676649607,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.909484900010284
+      }
+    },
+    {
+      "call": 65,
+      "index": 127,
+      "scenario_id": "front_brake:new:0:000136",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0035879999995813705,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000136",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000845660206625,
+          "min_ttc_s": 299.6605874519446,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 2.6058876999886706
+      }
+    },
+    {
+      "call": 66,
+      "index": 330,
+      "scenario_id": "front_brake:new:0:000353",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003108500000962522,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000353",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999634232156483,
+          "min_ttc_s": 11.057021335980744,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7876242000202183
+      }
+    },
+    {
+      "call": 67,
+      "index": 114,
+      "scenario_id": "front_brake:new:0:000122",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030502999943564646,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000122",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0001459591633246,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.731683599995449
+      }
+    },
+    {
+      "call": 68,
+      "index": 59,
+      "scenario_id": "front_brake:new:0:000063",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024340000018128194,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000063",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997357704190764,
+          "min_ttc_s": 10.308944768698357,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.8215445000096224
+      }
+    },
+    {
+      "call": 69,
+      "index": 361,
+      "scenario_id": "front_brake:new:0:000387",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022415000057662837,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000387",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998811703328734,
+          "min_ttc_s": 11.24677348399293,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.682058500009589
+      }
+    },
+    {
+      "call": 70,
+      "index": 370,
+      "scenario_id": "front_brake:new:0:000396",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004687100001319777,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000396",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000004642612392,
+          "min_ttc_s": 54.64463041822248,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.837267900002189
+      }
+    },
+    {
+      "call": 71,
+      "index": 285,
+      "scenario_id": "front_brake:new:0:000304",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0032121000040206127,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000304",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9995624927079971,
+          "min_ttc_s": 1.5247277025288422,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 2.8930186000070535
+      }
+    },
+    {
+      "call": 72,
+      "index": 339,
+      "scenario_id": "front_brake:new:0:000363",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029378999970504083,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000363",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 6.069511579172395,
+          "min_ttc_s": 6.910209541086146,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.09090909090909091
+        },
+        "execution_s": 3.5227299999969546
+      }
+    },
+    {
+      "call": 73,
+      "index": 410,
+      "scenario_id": "front_brake:new:0:000437",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015745999990031123,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000437",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999380424386792,
+          "min_ttc_s": 28.294043942032943,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.6955586000112817
+      }
+    },
+    {
+      "call": 74,
+      "index": 46,
+      "scenario_id": "front_brake:new:0:000050",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002397900003415998,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000050",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999066920562176,
+          "min_ttc_s": 16.948662691845534,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 2.813311000005342
+      }
+    },
+    {
+      "call": 75,
+      "index": 293,
+      "scenario_id": "front_brake:new:0:000312",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003438299994741101,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000312",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999918644565182,
+          "min_ttc_s": 27.870358755534024,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.7351263999880757
+      }
+    },
+    {
+      "call": 76,
+      "index": 102,
+      "scenario_id": "front_brake:new:0:000110",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004557299995212816,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000110",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.6089321061920583,
+          "min_ttc_s": 1.4914251231566606,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.272658300003968
+      }
+    },
+    {
+      "call": 77,
+      "index": 176,
+      "scenario_id": "front_brake:new:0:000188",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029794999936711974,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000188",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000144508089477,
+          "min_ttc_s": 17.218754033525993,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 2.734599299990805
+      }
+    },
+    {
+      "call": 78,
+      "index": 363,
+      "scenario_id": "front_brake:new:0:000389",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015694000030634925,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000389",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996748211321627,
+          "min_ttc_s": 19.931274768341286,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.89734560000943
+      }
+    },
+    {
+      "call": 79,
+      "index": 144,
+      "scenario_id": "front_brake:new:0:000154",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001535100003820844,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000154",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9990304720393395,
+          "min_ttc_s": 13.539373296565346,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.5975194000056945
+      }
+    },
+    {
+      "call": 80,
+      "index": 122,
+      "scenario_id": "front_brake:new:0:000131",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030171999969752505,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000131",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999959176059381,
+          "min_ttc_s": 21.320797559959438,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 3.127305100002559
+      }
+    },
+    {
+      "call": 81,
+      "index": 491,
+      "scenario_id": "front_brake:new:0:000524",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0028053000060026534,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000524",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000038530978915,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 2.764254100009566
+      }
+    },
+    {
+      "call": 82,
+      "index": 325,
+      "scenario_id": "front_brake:new:0:000347",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002234400002635084,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000347",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000230936422401,
+          "min_ttc_s": 14.47171455609898,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.249019300012151
+      }
+    },
+    {
+      "call": 83,
+      "index": 392,
+      "scenario_id": "front_brake:new:0:000418",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001636799999687355,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000418",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999454354097865,
+          "min_ttc_s": 9.034116340967334,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.7236826999869663
+      }
+    },
+    {
+      "call": 84,
+      "index": 426,
+      "scenario_id": "front_brake:new:0:000455",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002262699999846518,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000455",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000086845067854,
+          "min_ttc_s": 7.995884070922639,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.891007800004445
+      }
+    },
+    {
+      "call": 85,
+      "index": 375,
+      "scenario_id": "front_brake:new:0:000401",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0014134000011836179,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000401",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997961100634412,
+          "min_ttc_s": 19.456260087984777,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.781518399977358
+      }
+    },
+    {
+      "call": 86,
+      "index": 459,
+      "scenario_id": "front_brake:new:0:000489",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0014253999979700893,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000489",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998747923314621,
+          "min_ttc_s": 14.560501766874438,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.078708100016229
+      }
+    },
+    {
+      "call": 87,
+      "index": 472,
+      "scenario_id": "front_brake:new:0:000503",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0032043000028352253,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000503",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998200719748886,
+          "min_ttc_s": 19.832555382183596,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.483058300014818
+      }
+    },
+    {
+      "call": 88,
+      "index": 174,
+      "scenario_id": "front_brake:new:0:000186",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004666699998779222,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000186",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0007003683444067,
+          "min_ttc_s": 5.251838853529087,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.5028847999928985
+      }
+    },
+    {
+      "call": 89,
+      "index": 2,
+      "scenario_id": "front_brake:new:0:000002",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002270400000270456,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000002",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0020354601026233,
+          "min_ttc_s": 2.1933222111748534,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.958684400015045
+      }
+    },
+    {
+      "call": 90,
+      "index": 178,
+      "scenario_id": "front_brake:new:0:000190",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015112000037333928,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000190",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.99928867248649,
+          "min_ttc_s": 29.358874614143566,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.5231115000206046
+      }
+    },
+    {
+      "call": 91,
+      "index": 295,
+      "scenario_id": "front_brake:new:0:000315",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0019267999959993176,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000315",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999848585754668,
+          "min_ttc_s": 9.58317427433848,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.886615900002653
+      }
+    },
+    {
+      "call": 92,
+      "index": 216,
+      "scenario_id": "front_brake:new:0:000230",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022554000024683774,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000230",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999526904079723,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.7584931000019424
+      }
+    },
+    {
+      "call": 93,
+      "index": 239,
+      "scenario_id": "front_brake:new:0:000255",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0030413999993470497,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000255",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000167344301635,
+          "min_ttc_s": 19.546899789508814,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.520297000010032
+      }
+    },
+    {
+      "call": 94,
+      "index": 448,
+      "scenario_id": "front_brake:new:0:000477",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004337899998063222,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000477",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999993806005071,
+          "min_ttc_s": 7.1384310727841,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.630581900011748
+      }
+    },
+    {
+      "call": 95,
+      "index": 343,
+      "scenario_id": "front_brake:new:0:000367",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.003070299993851222,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000367",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000054153414601,
+          "min_ttc_s": 8.044941799890768,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7810934000008274
+      }
+    },
+    {
+      "call": 96,
+      "index": 500,
+      "scenario_id": "front_brake:new:0:000533",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0026772999990498647,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000533",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998178963333846,
+          "min_ttc_s": 20.580832138113887,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.961722000007285
+      }
+    },
+    {
+      "call": 97,
+      "index": 29,
+      "scenario_id": "front_brake:new:0:000031",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002704400001675822,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000031",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998375872460235,
+          "min_ttc_s": 22.345390201092,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 3.687105999997584
+      }
+    },
+    {
+      "call": 98,
+      "index": 23,
+      "scenario_id": "front_brake:new:0:000024",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0018554999987827614,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000024",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997550779101598,
+          "min_ttc_s": 17.703415483634863,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 3.083307299995795
+      }
+    },
+    {
+      "call": 99,
+      "index": 460,
+      "scenario_id": "front_brake:new:0:000490",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015830999982426874,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000490",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9992159116715114,
+          "min_ttc_s": 8.50484033001937,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.612739399977727
+      }
+    },
+    {
+      "call": 100,
+      "index": 357,
+      "scenario_id": "front_brake:new:0:000382",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0032406000027549453,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000382",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.015926016691836,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.4958989000006113
+      }
+    },
+    {
+      "call": 101,
+      "index": 105,
+      "scenario_id": "front_brake:new:0:000113",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0028659000017796643,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000113",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997814741755267,
+          "min_ttc_s": 41.83015817401442,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.775940499996068
+      }
+    },
+    {
+      "call": 102,
+      "index": 60,
+      "scenario_id": "front_brake:new:0:000064",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002752100001089275,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000064",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999194308278758,
+          "min_ttc_s": 42.03381029107343,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 2.822359499987215
+      }
+    },
+    {
+      "call": 103,
+      "index": 262,
+      "scenario_id": "front_brake:new:0:000279",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024292000016430393,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000279",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0000011726227815,
+          "min_ttc_s": 10.015270052590306,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.8832228999817744
+      }
+    },
+    {
+      "call": 104,
+      "index": 66,
+      "scenario_id": "front_brake:new:0:000070",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0022123000017018057,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000070",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.036502852546084,
+          "min_ttc_s": 3.0378159424132645,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.211068599979626
+      }
+    },
+    {
+      "call": 105,
+      "index": 322,
+      "scenario_id": "front_brake:new:0:000343",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.004494299995712936,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000343",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997873039696215,
+          "min_ttc_s": 7.872778599980828,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.8921664000081364
+      }
+    },
+    {
+      "call": 106,
+      "index": 27,
+      "scenario_id": "front_brake:new:0:000029",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.8198644000003696,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000029",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999938745645185,
+          "min_ttc_s": 13.59883506733802,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.966453000000911
+      }
+    },
+    {
+      "call": 107,
+      "index": 401,
+      "scenario_id": "front_brake:new:0:000427",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0029078000006848015,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000427",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999478367740584,
+          "min_ttc_s": 7.284980433695063,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.922195399994962
+      }
+    },
+    {
+      "call": 108,
+      "index": 319,
+      "scenario_id": "front_brake:new:0:000340",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0027921999935642816,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000340",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 6.800209711139429,
+          "min_ttc_s": 48.236704223870085,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.083333333333332
+        },
+        "execution_s": 3.6849784000078216
+      }
+    },
+    {
+      "call": 109,
+      "index": 4,
+      "scenario_id": "front_brake:new:0:000004",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002733599998464342,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000004",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999869350111624,
+          "min_ttc_s": 16.27171208745886,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 3.136318899982143
+      }
+    },
+    {
+      "call": 110,
+      "index": 335,
+      "scenario_id": "front_brake:new:0:000358",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0028212999968673103,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000358",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.008966160275618,
+          "min_ttc_s": 4.725484211240571,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.5983248999982607
+      }
+    },
+    {
+      "call": 111,
+      "index": 270,
+      "scenario_id": "front_brake:new:0:000287",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0036738999988301657,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000287",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0003120647666215,
+          "min_ttc_s": 10.150198079763053,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7550889999838546
+      }
+    },
+    {
+      "call": 112,
+      "index": 372,
+      "scenario_id": "front_brake:new:0:000398",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.005022699995606672,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000398",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0034923997326497,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.6917112999944948
+      }
+    },
+    {
+      "call": 113,
+      "index": 252,
+      "scenario_id": "front_brake:new:0:000268",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0033605999997234903,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000268",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999872811802648,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.25
+        },
+        "execution_s": 2.8143766000284813
+      }
+    },
+    {
+      "call": 114,
+      "index": 5,
+      "scenario_id": "front_brake:new:0:000005",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0026609999986249022,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000005",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000013882724442,
+          "min_ttc_s": 10.672027214279131,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.8075177000137046
+      }
+    },
+    {
+      "call": 115,
+      "index": 280,
+      "scenario_id": "front_brake:new:0:000298",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0016104000023915432,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000298",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.000043078944936,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.9098880999954417
+      }
+    },
+    {
+      "call": 116,
+      "index": 3,
+      "scenario_id": "front_brake:new:0:000003",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025504000004730187,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000003",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9996812157690547,
+          "min_ttc_s": 11.63680726395225,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 3.423027100012405
+      }
+    },
+    {
+      "call": 117,
+      "index": 253,
+      "scenario_id": "front_brake:new:0:000269",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0024071999941952527,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000269",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999745527914872,
+          "min_ttc_s": 9.038335496671074,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.89350619999459
+      }
+    },
+    {
+      "call": 118,
+      "index": 148,
+      "scenario_id": "front_brake:new:0:000158",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017249000011361204,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000158",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.6827996255355613,
+          "min_ttc_s": 1.654487904653642,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.266522399993846
+      }
+    },
+    {
+      "call": 119,
+      "index": 289,
+      "scenario_id": "front_brake:new:0:000308",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015318000005208887,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000308",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997527668410608,
+          "min_ttc_s": 317.4322332526177,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -20.333333333333332
+        },
+        "execution_s": 2.875093900016509
+      }
+    },
+    {
+      "call": 120,
+      "index": 220,
+      "scenario_id": "front_brake:new:0:000235",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0034744000004138798,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000235",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0002012961159887,
+          "min_ttc_s": 18.227666154187386,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -8.25
+        },
+        "execution_s": 3.678803200018592
+      }
+    },
+    {
+      "call": 121,
+      "index": 118,
+      "scenario_id": "front_brake:new:0:000126",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0034331999995629303,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000126",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 2.0006942675173325,
+          "min_ttc_s": 10.512287039973007,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.5094283999933396
+      }
+    },
+    {
+      "call": 122,
+      "index": 147,
+      "scenario_id": "front_brake:new:0:000157",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.001731099997414276,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000157",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9999831458849864,
+          "min_ttc_s": 10.421764230006582,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.7700767000205815
+      }
+    },
+    {
+      "call": 123,
+      "index": 228,
+      "scenario_id": "front_brake:new:0:000243",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002535599996917881,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000243",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9980727005405887,
+          "min_ttc_s": 9.618188915333636,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.3333333333333333
+        },
+        "execution_s": 2.9083671999978833
+      }
+    },
+    {
+      "call": 124,
+      "index": 28,
+      "scenario_id": "front_brake:new:0:000030",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0031143000014708377,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000030",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.8960483057264608,
+          "min_ttc_s": 3.122269399224007,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.4840153999975882
+      }
+    },
+    {
+      "call": 125,
+      "index": 225,
+      "scenario_id": "front_brake:new:0:000240",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0017253000041819178,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000240",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9995324121315643,
+          "min_ttc_s": 4.613413137518672,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -16.25
+        },
+        "execution_s": 2.9819738999940455
+      }
+    },
+    {
+      "call": 126,
+      "index": 33,
+      "scenario_id": "front_brake:new:0:000035",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0015939999939291738,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000035",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.999728774518319,
+          "min_ttc_s": 5.308985092215925,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -12.25
+        },
+        "execution_s": 2.4584804000041913
+      }
+    },
+    {
+      "call": 127,
+      "index": 242,
+      "scenario_id": "front_brake:new:0:000258",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.0025144999963231385,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000258",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9998033860821502,
+          "min_ttc_s": null,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -4.25
+        },
+        "execution_s": 2.582049899996491
+      }
+    },
+    {
+      "call": 128,
+      "index": 135,
+      "scenario_id": "front_brake:new:0:000145",
+      "purpose": "target",
+      "account": "target",
+      "status": "complete",
+      "wall_s": 0.002283799993165303,
+      "feedback": {
+        "scenario_id": "front_brake:new:0:000145",
+        "collision": false,
+        "safety": {
+          "min_clearance_m": 1.9997598352599928,
+          "min_ttc_s": 189.013576909555,
+          "violations": [],
+          "impact_delta_v_mps": null,
+          "driving_quality_score": -0.25
+        },
+        "execution_s": 2.661013600009028
+      }
+    }
+  ],
+  "metrics": {
+    "queries": 128,
+    "unique_collisions": 0,
+    "collision_executions": 0,
+    "discovery_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "discovery_auc": 0.0,
+    "behavior_coverage": 0,
+    "behavior_curve": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "behavior_signatures": [],
+    "behavior_counts": {
+      "collision_object": {},
+      "contact_direction": {},
+      "ego_action": {},
+      "event_phase": {}
+    },
+    "first_collision_query": null,
+    "first_collision": {
+      "time": 128,
+      "observed": false
+    },
+    "brier": null,
+    "violation_counts": {},
+    "minimum_clearance_m": 1.373596942934368,
+    "minimum_ttc_s": 1.2126609264790835,
+    "equivalent_execution_s": 363.3727679003496,
+    "selection_s": 23.786136900031124,
+    "adaptation_s": 593.4910238999801,
+    "pool_unique_collisions": 0,
+    "collision_recall": null,
+    "recall_curve": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "recall_auc": null,
+    "checkpoints": {
+      "16": {
+        "unique_collisions": 0,
+        "collision_recall": null
+      },
+      "32": {
+        "unique_collisions": 0,
+        "collision_recall": null
+      },
+      "64": {
+        "unique_collisions": 0,
+        "collision_recall": null
+      },
+      "128": {
+        "unique_collisions": 0,
+        "collision_recall": null
+      }
+    }
+  },
+  "cost": {
+    "wall_s": 636.0859816999946,
+    "construction_and_loading_s": 0.33394209999823943,
+    "model_inference_s": 0,
+    "equivalent_queries": 128,
+    "new_physical_calls": 0,
+    "cached_scalar_derivation": "audited same paid raw execution; never sent before its metered query"
+  }
+}

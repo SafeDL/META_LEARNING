@@ -1,0 +1,221 @@
+{
+  "status": "running",
+  "specification": {
+    "scenario": "cut_in",
+    "held_family": "rule",
+    "history": {
+      "history_beam": "daf0cf9d9d56277061c85c1b25849434f88ff61e327e4b066051cd1479dddae1",
+      "history_dqn": "9231d00293e66a6bba581fa1d64d1e623071684ad2dc4978b488718cb333fa98",
+      "history_linear_mpc": "4ca64d1bb8d2ea9f26cbee1018e4aa535378014114caa7e0ebba25e2feff1521",
+      "history_nonlinear_trajectory": "4e549c0e439356e4c102a0daa027b31e0390d27e0329b6f1454fe20e5fa6bae8",
+      "history_ppo": "5304b2a1fc358107344e77f1173ee37d17c75ccd56edf8ec66c95423eaacc22e",
+      "history_uct": "8a9ca51493c29c0942266855fb5a09fdab8fad290b00e0adebe6b02efab45f63"
+    },
+    "development": {
+      "development_linear_mpc": "cb54185ec5e5d70394771e8202f5ac938c6c3d2cd4d66fdecbce852128aab9db",
+      "development_ppo": "ba43d52a22594933b9c4fb66545e89fe8af1df8218ed0f62e19b9d0c33ed5192",
+      "development_uct": "5fb2ecb1afa8315343efa8ea5e8ed7c2628db591a42e07df37ea6cd766e1f229"
+    },
+    "main": {
+      "history_fingerprints": {
+        "history_beam": "daf0cf9d9d56277061c85c1b25849434f88ff61e327e4b066051cd1479dddae1",
+        "history_dqn": "9231d00293e66a6bba581fa1d64d1e623071684ad2dc4978b488718cb333fa98",
+        "history_linear_mpc": "4ca64d1bb8d2ea9f26cbee1018e4aa535378014114caa7e0ebba25e2feff1521",
+        "history_nonlinear_trajectory": "4e549c0e439356e4c102a0daa027b31e0390d27e0329b6f1454fe20e5fa6bae8",
+        "history_ppo": "5304b2a1fc358107344e77f1173ee37d17c75ccd56edf8ec66c95423eaacc22e",
+        "history_uct": "8a9ca51493c29c0942266855fb5a09fdab8fad290b00e0adebe6b02efab45f63"
+      },
+      "development_fingerprints": {
+        "development_linear_mpc": "cb54185ec5e5d70394771e8202f5ac938c6c3d2cd4d66fdecbce852128aab9db",
+        "development_ppo": "ba43d52a22594933b9c4fb66545e89fe8af1df8218ed0f62e19b9d0c33ed5192",
+        "development_uct": "5fb2ecb1afa8315343efa8ea5e8ed7c2628db591a42e07df37ea6cd766e1f229"
+      },
+      "held_family": "rule",
+      "config": {
+        "steps": 1500,
+        "learning_rate": 0.001,
+        "support_counts": [
+          8,
+          16,
+          32,
+          64,
+          128
+        ],
+        "query_count": 32,
+        "historical_context": 64,
+        "validation_interval": 100,
+        "seed": 1301,
+        "validation_seed": 1319
+      },
+      "covariance_mode": "diagonal",
+      "training_contract": {
+        "methods/gcrt/domain_training.py": "1bf0f40bfff539bf1c8d9ed257c29018b4b9ad4bd5ce518596e19c27f31e85e6",
+        "methods/gcrt/domain_consistency.py": "de3c1f3ceee424ad36860678e8f5f258de6da1b1e0f70b7ce9b2ad8cfe3f2036",
+        "methods/gcrt/joint_response.py": "6b2c2d865b10a6f5e2c079ecf39c0711859199bcf8b8a8d31c6e1bd05cfbc421",
+        "methods/gcrt/converged_response.py": "7ee94b0a21bd980ccb80dee5ef12e268ac168f14b32c4d650b20a6f988aabff4",
+        "methods/common/gp_classifier.py": "f489979c31892f379d62f5ef3227a9ae48a573606421b45166244006178f2b85",
+        "methods/common/gp_laplace.py": "d41ebc23e6394a0f02c46a816353517b20fa7eef532becb98c1683f926db7f8b",
+        "methods/common/classification.py": "6d6116b7b8c0d12412441dd9d06ec56429aab08f8e98f76b399a53d9da8271b8",
+        "methods/common/response.py": "2566a6fc9955cd8530f123dec7a5507f4343109b9a2fa08b084749a7c0d47660",
+        "benchmark/scenarios.py": "3a379a0be1d6afda557bf205114990a9d1768df319fcdcca72dff90f24f38dc9"
+      },
+      "online_features": "float64",
+      "training_device": "cpu",
+      "training_threads": 1,
+      "target_feedback": "collision Boolean only",
+      "historical_feedback": "collision and clearance"
+    },
+    "indago": {
+      "layers": 4,
+      "epochs": 20,
+      "batch_size": 64,
+      "learning_rate": 0.0003,
+      "validation_fraction": 0.2,
+      "seed": 1409
+    },
+    "scenario_fuzz": {
+      "hidden_dim": 64,
+      "heads": 4,
+      "epochs": 1000,
+      "batch_size": 16,
+      "learning_rate": 0.001,
+      "seed": 1409
+    },
+    "classifier_device": "cpu",
+    "workers": 4,
+    "indago_single_class_rule": "retain two logits and train cross entropy on observed historical classes; missing-class weight zero",
+    "source_files": {
+      "benchmark/independent_models.py": "fda15bb968000930d7b10ab0d16db185caec0bdafc29d84744fc46e3e29b4fc7",
+      "methods/baselines/indago/method.py": "0762fe6f88bc92397a861be1c8d875149f0be04a6f2967c5c80b496916900d32",
+      "methods/baselines/scenario_fuzz/model.py": "bac71b7a4ab807acf43bbac4534630ce80c263f5b97065f03c9864cf669fc778",
+      "methods/baselines/scenario_fuzz/graphs.py": "25abec1c3bbdf4e11be150454b97be52d79af7be2cb57cb6c5eda7b433a3aa6a"
+    }
+  },
+  "reports": {
+    "indago": {
+      "format": "indago-historical-classifier",
+      "dimension": 7,
+      "config": {
+        "layers": 4,
+        "epochs": 20,
+        "batch_size": 64,
+        "learning_rate": 0.0003,
+        "validation_fraction": 0.2,
+        "seed": 1409
+      },
+      "history_ids": [
+        "history_beam",
+        "history_dqn",
+        "history_linear_mpc",
+        "history_nonlinear_trajectory",
+        "history_ppo",
+        "history_uct"
+      ],
+      "history_fingerprints": {
+        "history_beam": "daf0cf9d9d56277061c85c1b25849434f88ff61e327e4b066051cd1479dddae1",
+        "history_dqn": "9231d00293e66a6bba581fa1d64d1e623071684ad2dc4978b488718cb333fa98",
+        "history_linear_mpc": "4ca64d1bb8d2ea9f26cbee1018e4aa535378014114caa7e0ebba25e2feff1521",
+        "history_nonlinear_trajectory": "4e549c0e439356e4c102a0daa027b31e0390d27e0329b6f1454fe20e5fa6bae8",
+        "history_ppo": "5304b2a1fc358107344e77f1173ee37d17c75ccd56edf8ec66c95423eaacc22e",
+        "history_uct": "8a9ca51493c29c0942266855fb5a09fdab8fad290b00e0adebe6b02efab45f63"
+      },
+      "held_family": "rule",
+      "data_role": "finished historical systems; not target policy training logs",
+      "training_rows": 2460,
+      "validation_rows": 612,
+      "class_weights": [
+        0.5483726859092712,
+        5.668202877044678
+      ],
+      "curve": [
+        {
+          "epoch": 1,
+          "historical_validation_cross_entropy": 0.6935901641845703
+        },
+        {
+          "epoch": 2,
+          "historical_validation_cross_entropy": 0.6896831393241882
+        },
+        {
+          "epoch": 3,
+          "historical_validation_cross_entropy": 0.68989497423172
+        },
+        {
+          "epoch": 4,
+          "historical_validation_cross_entropy": 0.6892601251602173
+        },
+        {
+          "epoch": 5,
+          "historical_validation_cross_entropy": 0.6883805990219116
+        },
+        {
+          "epoch": 6,
+          "historical_validation_cross_entropy": 0.6877818703651428
+        },
+        {
+          "epoch": 7,
+          "historical_validation_cross_entropy": 0.6883241534233093
+        },
+        {
+          "epoch": 8,
+          "historical_validation_cross_entropy": 0.6884229779243469
+        },
+        {
+          "epoch": 9,
+          "historical_validation_cross_entropy": 0.687423050403595
+        },
+        {
+          "epoch": 10,
+          "historical_validation_cross_entropy": 0.6872511506080627
+        },
+        {
+          "epoch": 11,
+          "historical_validation_cross_entropy": 0.6866644620895386
+        },
+        {
+          "epoch": 12,
+          "historical_validation_cross_entropy": 0.6862306594848633
+        },
+        {
+          "epoch": 13,
+          "historical_validation_cross_entropy": 0.686040461063385
+        },
+        {
+          "epoch": 14,
+          "historical_validation_cross_entropy": 0.6867659091949463
+        },
+        {
+          "epoch": 15,
+          "historical_validation_cross_entropy": 0.6855475902557373
+        },
+        {
+          "epoch": 16,
+          "historical_validation_cross_entropy": 0.6859392523765564
+        },
+        {
+          "epoch": 17,
+          "historical_validation_cross_entropy": 0.6859101057052612
+        },
+        {
+          "epoch": 18,
+          "historical_validation_cross_entropy": 0.6853218078613281
+        },
+        {
+          "epoch": 19,
+          "historical_validation_cross_entropy": 0.6845667362213135
+        },
+        {
+          "epoch": 20,
+          "historical_validation_cross_entropy": 0.6841335296630859
+        }
+      ],
+      "historical_training_class_counts": [
+        2243,
+        217
+      ],
+      "missing_class_policy": "balanced weights over observed classes; retain two logits and train the observed evidence",
+      "training_s": 2.4563724999898113
+    }
+  },
+  "elapsed_s": 2.486163200024748
+}

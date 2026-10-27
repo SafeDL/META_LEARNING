@@ -1,4 +1,5 @@
 """Black-box SUT contract; profiles are runner metadata, never learned input."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

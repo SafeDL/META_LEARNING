@@ -17,5 +17,6 @@ def create(sut_id):
         policy = SearchController(sut.lineage, sut.parameters)
     else:
         from .learning import LearnedController
+
         policy = LearnedController(sut)
     return DecisionInterface(policy)

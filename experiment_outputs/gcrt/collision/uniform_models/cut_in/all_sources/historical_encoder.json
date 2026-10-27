@@ -1,0 +1,2013 @@
+{
+  "status": "complete",
+  "specification": {
+    "history_fingerprints": {
+      "history_beam": "daf0cf9d9d56277061c85c1b25849434f88ff61e327e4b066051cd1479dddae1",
+      "history_dqn": "9231d00293e66a6bba581fa1d64d1e623071684ad2dc4978b488718cb333fa98",
+      "history_fvdm_lane": "9fda9e896e0b0b71443e2a58acf2149509f119b2984ed2daf42977fabc409bc9",
+      "history_idm_mobil": "faa1a67413d0d716353a824cb2fbed418abccf9b99e5ef42b38e72a6bd71c269",
+      "history_linear_mpc": "4ca64d1bb8d2ea9f26cbee1018e4aa535378014114caa7e0ebba25e2feff1521",
+      "history_nonlinear_trajectory": "4e549c0e439356e4c102a0daa027b31e0390d27e0329b6f1454fe20e5fa6bae8",
+      "history_ppo": "5304b2a1fc358107344e77f1173ee37d17c75ccd56edf8ec66c95423eaacc22e",
+      "history_uct": "8a9ca51493c29c0942266855fb5a09fdab8fad290b00e0adebe6b02efab45f63"
+    },
+    "development_fingerprints": {
+      "development_idm_mobil": "065eac056ba79e9c0234797388bd4cd24dc3cf72a8338cbb33ffd6ea9fee6bcc",
+      "development_linear_mpc": "cb54185ec5e5d70394771e8202f5ac938c6c3d2cd4d66fdecbce852128aab9db",
+      "development_ppo": "ba43d52a22594933b9c4fb66545e89fe8af1df8218ed0f62e19b9d0c33ed5192",
+      "development_uct": "5fb2ecb1afa8315343efa8ea5e8ed7c2628db591a42e07df37ea6cd766e1f229"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "support_counts": [
+        8,
+        16,
+        32,
+        64,
+        128
+      ],
+      "query_count": 32,
+      "historical_context": 64,
+      "validation_interval": 100,
+      "seed": 1301,
+      "validation_seed": 1319
+    },
+    "covariance_mode": "diagonal",
+    "training_contract": {
+      "methods/gcrt/domain_training.py": "2a0eb2798e21f0c5f83134382e13f4be65548fa326b60b957237481f741a0c70",
+      "methods/gcrt/domain_consistency.py": "de3c1f3ceee424ad36860678e8f5f258de6da1b1e0f70b7ce9b2ad8cfe3f2036",
+      "methods/gcrt/joint_response.py": "6b2c2d865b10a6f5e2c079ecf39c0711859199bcf8b8a8d31c6e1bd05cfbc421",
+      "methods/gcrt/converged_response.py": "7ee94b0a21bd980ccb80dee5ef12e268ac168f14b32c4d650b20a6f988aabff4",
+      "methods/common/gp_classifier.py": "f489979c31892f379d62f5ef3227a9ae48a573606421b45166244006178f2b85",
+      "methods/common/gp_laplace.py": "d41ebc23e6394a0f02c46a816353517b20fa7eef532becb98c1683f926db7f8b",
+      "methods/common/classification.py": "6d6116b7b8c0d12412441dd9d06ec56429aab08f8e98f76b399a53d9da8271b8",
+      "methods/common/response.py": "6a5128078e8d2496207ebc746422e4d4ce59c2ff32805b5c66b6bbc5d8c5393a",
+      "benchmark/scenarios.py": "3a379a0be1d6afda557bf205114990a9d1768df319fcdcca72dff90f24f38dc9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "collision Boolean only",
+    "historical_feedback": "collision and clearance"
+  },
+  "curve": [
+    {
+      "step": 100,
+      "training_nll": 0.13163222815378842,
+      "validation": {
+        "collision_nll": 0.09097800533082509,
+        "brier": 0.015002289803288984
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.1650961841004486,
+          "brier": 0.033567638333608235
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.1289558746219693,
+          "brier": 0.025916495857456347
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.11965530719740922,
+          "brier": 0.023089574714319362
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.14999344591996905,
+          "brier": 0.039010442504845665
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.09769190207103687,
+          "brier": 0.022388406346689926
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.16041270220889337,
+          "brier": 0.032649221927423866
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.12429664418313112,
+          "brier": 0.023027139448010076
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.0865678328318695,
+          "brier": 0.011661410246083748
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.10822989900042673,
+          "brier": 0.027033354658477587
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.10431467026758252,
+          "brier": 0.024564767692988702
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08876837678843787,
+          "brier": 0.007924471225702896
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06821010219195503,
+          "brier": 0.004639746024829281
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.055395730220038256,
+          "brier": 0.0030690494435800077
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04366746470753288,
+          "brier": 0.0019270084005536458
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.03113114819891881,
+          "brier": 0.0010083970732722672
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08876837678843787,
+          "brier": 0.007924471225702896
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06821010219195503,
+          "brier": 0.004639746024829281
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.055395730220038256,
+          "brier": 0.0030690494435800077
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04366746470753288,
+          "brier": 0.0019270084005536458
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.03113114819891881,
+          "brier": 0.0010083970732722672
+        }
+      ]
+    },
+    {
+      "step": 200,
+      "training_nll": 0.12423045953948969,
+      "validation": {
+        "collision_nll": 0.08753897404819946,
+        "brier": 0.01363751558184699
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.16002725654816866,
+          "brier": 0.029325746373077423
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.1261822892516062,
+          "brier": 0.02556625536869379
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.11438329957571003,
+          "brier": 0.020615580187574367
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.13348040278348305,
+          "brier": 0.03338399290104971
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.08407976075901727,
+          "brier": 0.016132431473777065
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.15958528870439642,
+          "brier": 0.0317852791343497
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.1212884344181474,
+          "brier": 0.021047521311380372
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.08352719360997686,
+          "brier": 0.010254223087229525
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.10374282898771252,
+          "brier": 0.02553071382571931
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.09968661787222305,
+          "brier": 0.02370636235006647
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08737279424470926,
+          "brier": 0.007542271060009147
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.0665503076875885,
+          "brier": 0.004357328739896742
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.054588317081776624,
+          "brier": 0.0029565424182126506
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04315113672497455,
+          "brier": 0.0018683448746360807
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.030735498487724916,
+          "brier": 0.0009766157192564143
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08737279424470926,
+          "brier": 0.007542271060009147
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.0665503076875885,
+          "brier": 0.004357328739896742
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.054588317081776624,
+          "brier": 0.0029565424182126506
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04315113672497455,
+          "brier": 0.0018683448746360807
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.030735498487724916,
+          "brier": 0.0009766157192564143
+        }
+      ]
+    },
+    {
+      "step": 300,
+      "training_nll": 0.16543549940866809,
+      "validation": {
+        "collision_nll": 0.08975306115255785,
+        "brier": 0.014588281339628325
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.16993521456654198,
+          "brier": 0.035071847606794555
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.13639785463543178,
+          "brier": 0.029503553269597256
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.13800317831738934,
+          "brier": 0.030751865876826857
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.13268982173952582,
+          "brier": 0.03459812834409902
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.08099561940817547,
+          "brier": 0.014717439211636736
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.16038401323987428,
+          "brier": 0.03201985505200938
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.12351532177597867,
+          "brier": 0.021138939316218908
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.0852924700300449,
+          "brier": 0.010427000288931242
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.10556496832838924,
+          "brier": 0.02609110633517002
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.09477019551130117,
+          "brier": 0.021433000708462827
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08764039940294283,
+          "brier": 0.007648625224638241
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06725501408085911,
+          "brier": 0.004496466090353261
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05479163998868239,
+          "brier": 0.002989369103332323
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04325042309271153,
+          "brier": 0.0018880819961770996
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.030818806184056285,
+          "brier": 0.0009839029769089453
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08764039940294283,
+          "brier": 0.007648625224638241
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06725501408085911,
+          "brier": 0.004496466090353261
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05479163998868239,
+          "brier": 0.002989369103332323
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04325042309271153,
+          "brier": 0.0018880819961770996
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.030818806184056285,
+          "brier": 0.0009839029769089453
+        }
+      ]
+    },
+    {
+      "step": 400,
+      "training_nll": 0.0358377650034007,
+      "validation": {
+        "collision_nll": 0.0867950705220861,
+        "brier": 0.013639033014518066
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.16262358585439268,
+          "brier": 0.03284253292322716
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.13009345846335132,
+          "brier": 0.027788269075011248
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.1249364542433615,
+          "brier": 0.02637587302774462
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.11335699578717978,
+          "brier": 0.024940208267279967
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.0680199281118895,
+          "brier": 0.008583105266379613
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.15635909270861392,
+          "brier": 0.03196267661156577
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.12204980330088218,
+          "brier": 0.0219029473348477
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.08704856140782286,
+          "brier": 0.011852278430442575
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.11216849398810688,
+          "brier": 0.02894766070859916
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.09623443419068138,
+          "brier": 0.022450773410431786
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08670571184241675,
+          "brier": 0.007442804360644182
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06643909305438843,
+          "brier": 0.0043525304278126346
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05434395811519889,
+          "brier": 0.0029214590181937256
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.043134651158671586,
+          "brier": 0.0018661440134601398
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.030881887022044266,
+          "brier": 0.000984229797305156
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08670571184241675,
+          "brier": 0.007442804360644182
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06643909305438843,
+          "brier": 0.0043525304278126346
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05434395811519889,
+          "brier": 0.0029214590181937256
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.043134651158671586,
+          "brier": 0.0018661440134601398
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.030881887022044266,
+          "brier": 0.000984229797305156
+        }
+      ]
+    },
+    {
+      "step": 500,
+      "training_nll": 0.2037712835895027,
+      "validation": {
+        "collision_nll": 0.08649835781214125,
+        "brier": 0.013550486675635201
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.15487594236324043,
+          "brier": 0.028337977184242275
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.1261795686334678,
+          "brier": 0.025856520060735667
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.10435751388579932,
+          "brier": 0.01638350590346405
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.12557755847182686,
+          "brier": 0.029460736534902984
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.07896869895436692,
+          "brier": 0.014954476421012022
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.15276460821419113,
+          "brier": 0.030303960048228842
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.12441503732237208,
+          "brier": 0.02285742839858511
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.08614800266379308,
+          "brier": 0.012314070576351026
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.11726904807648188,
+          "brier": 0.03103722982982238
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.10193845082100386,
+          "brier": 0.02497241878573976
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08533020515486012,
+          "brier": 0.007275307913105331
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06603188516585262,
+          "brier": 0.004309863229278562
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05387524855634969,
+          "brier": 0.002871769873401832
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04278480769836462,
+          "brier": 0.001834256106946439
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.030714216842713922,
+          "brier": 0.0009745077620777873
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08533020515486012,
+          "brier": 0.007275307913105331
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06603188516585262,
+          "brier": 0.004309863229278562
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05387524855634969,
+          "brier": 0.002871769873401832
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04278480769836462,
+          "brier": 0.001834256106946439
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.030714216842713922,
+          "brier": 0.0009745077620777873
+        }
+      ]
+    },
+    {
+      "step": 600,
+      "training_nll": 0.08567763008843243,
+      "validation": {
+        "collision_nll": 0.08469834313918936,
+        "brier": 0.012461937471786047
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.1581012933666663,
+          "brier": 0.029549210036781938
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.12763136281783283,
+          "brier": 0.026090358902190317
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.11753239165390071,
+          "brier": 0.022093194082425226
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.12106663207195306,
+          "brier": 0.02912677690256233
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.07224877048367938,
+          "brier": 0.012048309187037667
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.14892777628020382,
+          "brier": 0.027643910062803107
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.1151247603231923,
+          "brier": 0.017876229454641193
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.08185236225427912,
+          "brier": 0.008747008922305455
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.09019980473690509,
+          "brier": 0.01945051087060653
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.09001788035284569,
+          "brier": 0.019791104734037956
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08666600688828272,
+          "brier": 0.007654317947992647
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06753382261663513,
+          "brier": 0.004575572222798739
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05570582833583632,
+          "brier": 0.003134967351599016
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04425145346517679,
+          "brier": 0.0020070241374400026
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.0314748029152337,
+          "brier": 0.001039186480334206
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08666600688828272,
+          "brier": 0.007654317947992647
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06753382261663513,
+          "brier": 0.004575572222798739
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05570582833583632,
+          "brier": 0.003134967351599016
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04425145346517679,
+          "brier": 0.0020070241374400026
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.0314748029152337,
+          "brier": 0.001039186480334206
+        }
+      ]
+    },
+    {
+      "step": 700,
+      "training_nll": 0.143952610177975,
+      "validation": {
+        "collision_nll": 0.08617824441618745,
+        "brier": 0.013344486476470746
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.1534951570984442,
+          "brier": 0.02853378778687645
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.12589608102069483,
+          "brier": 0.02499453109054206
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.12060956543884252,
+          "brier": 0.0234445991714475
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.10633910485295395,
+          "brier": 0.022462016612702425
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.06352732783983626,
+          "brier": 0.007765591936320896
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.15548413795148888,
+          "brier": 0.03196172792502696
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.12752182286061484,
+          "brier": 0.024099734129897573
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.08724406261859835,
+          "brier": 0.012034448118046236
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.11891133495792877,
+          "brier": 0.030666916740310843
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.10983795375481803,
+          "brier": 0.02707541434130432
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08450635674771008,
+          "brier": 0.007039148456037857
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.0656554769295097,
+          "brier": 0.004246912383781773
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.053795875961665254,
+          "brier": 0.0028509560664521988
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04280954777060003,
+          "brier": 0.001830245994754825
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.030581912555279048,
+          "brier": 0.0009582179374431672
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08450635674771008,
+          "brier": 0.007039148456037857
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.0656554769295097,
+          "brier": 0.004246912383781773
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.053795875961665254,
+          "brier": 0.0028509560664521988
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04280954777060003,
+          "brier": 0.001830245994754825
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.030581912555279048,
+          "brier": 0.0009582179374431672
+        }
+      ]
+    },
+    {
+      "step": 800,
+      "training_nll": 0.06633796529028507,
+      "validation": {
+        "collision_nll": 0.08623524317878836,
+        "brier": 0.01306948023940796
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.15918220749647455,
+          "brier": 0.02982658589026539
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.12601944661711187,
+          "brier": 0.02378415486928936
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.1168701532935405,
+          "brier": 0.01978311252354316
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.11231406585027592,
+          "brier": 0.024233889098107503
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.07235900485438315,
+          "brier": 0.01204207611949327
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.1576022362143084,
+          "brier": 0.03161878660257767
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.12998466735825898,
+          "brier": 0.02474721037024938
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.09024188619717972,
+          "brier": 0.0125244436673677
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.10442004294146175,
+          "brier": 0.025293663054723598
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.09367831021783413,
+          "brier": 0.022245384054739952
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08554641726850562,
+          "brier": 0.007326736646135432
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06650301756618429,
+          "brier": 0.004430365292866159
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05469105326139149,
+          "brier": 0.002992455151973463
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04334638559799417,
+          "brier": 0.0019040763710416043
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.03092954757339365,
+          "brier": 0.0009915158068844433
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08554641726850562,
+          "brier": 0.007326736646135432
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06650301756618429,
+          "brier": 0.004430365292866159
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05469105326139149,
+          "brier": 0.002992455151973463
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04334638559799417,
+          "brier": 0.0019040763710416043
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.03092954757339365,
+          "brier": 0.0009915158068844433
+        }
+      ]
+    },
+    {
+      "step": 900,
+      "training_nll": 0.08650187969522066,
+      "validation": {
+        "collision_nll": 0.08216635062419961,
+        "brier": 0.01194218328001496
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.15865470362414785,
+          "brier": 0.031770074996372945
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.1283564632069781,
+          "brier": 0.026540351915417836
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.11531378898430654,
+          "brier": 0.021412679886677787
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.10539340941616923,
+          "brier": 0.022468281083587248
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.0644873204919328,
+          "brier": 0.008952542234569037
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.1488286344007615,
+          "brier": 0.02833336395499133
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.11513286831841457,
+          "brier": 0.018520759593804052
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.07987173428083662,
+          "brier": 0.008783681958447694
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.0888596579637303,
+          "brier": 0.019874169818205195
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.0815453196358508,
+          "brier": 0.017604203382665228
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.0846872655269122,
+          "brier": 0.007180239191805601
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06584228301090206,
+          "brier": 0.004332617688049002
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05430814016160973,
+          "brier": 0.002951214988958858
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.0430037697826374,
+          "brier": 0.0018643890378186648
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.03060009759837067,
+          "brier": 0.0009633174811483015
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.0846872655269122,
+          "brier": 0.007180239191805601
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06584228301090206,
+          "brier": 0.004332617688049002
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05430814016160973,
+          "brier": 0.002951214988958858
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.0430037697826374,
+          "brier": 0.0018643890378186648
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.03060009759837067,
+          "brier": 0.0009633174811483015
+        }
+      ]
+    },
+    {
+      "step": 1000,
+      "training_nll": 0.03440650712102365,
+      "validation": {
+        "collision_nll": 0.07785514277724948,
+        "brier": 0.010261452987874583
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.14972160840033444,
+          "brier": 0.028332022268384542
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.12509602342844547,
+          "brier": 0.02535852339392754
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.10932371521824659,
+          "brier": 0.01806247637910969
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.09264791937227067,
+          "brier": 0.016335064188416442
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.05267611911809503,
+          "brier": 0.004391290492287723
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.1371486669978729,
+          "brier": 0.02384831297418711
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.09724224029435537,
+          "brier": 0.012997968828371762
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.07305590855172359,
+          "brier": 0.006767331446181159
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.08384800546432261,
+          "brier": 0.016973501554683912
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.07584190308201869,
+          "brier": 0.01589808114460187
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08441827826921178,
+          "brier": 0.00744768280781935
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06669906190483312,
+          "brier": 0.004623209636047259
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05475280555827721,
+          "brier": 0.0030827260831281164
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04356738150238486,
+          "brier": 0.001983493769637545
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.030812845573945164,
+          "brier": 0.000995131247037685
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08441827826921178,
+          "brier": 0.00744768280781935
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06669906190483312,
+          "brier": 0.004623209636047259
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05475280555827721,
+          "brier": 0.0030827260831281164
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04356738150238486,
+          "brier": 0.001983493769637545
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.030812845573945164,
+          "brier": 0.000995131247037685
+        }
+      ]
+    },
+    {
+      "step": 1100,
+      "training_nll": 0.10592893346073093,
+      "validation": {
+        "collision_nll": 0.08206428881297209,
+        "brier": 0.01195392066872148
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.15021100500899426,
+          "brier": 0.02685024743846371
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.12088279708262534,
+          "brier": 0.022749576319139576
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.10505497392753654,
+          "brier": 0.015347550325113932
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.10291248380835953,
+          "brier": 0.020613074070262395
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.06205949358885454,
+          "brier": 0.008276762696539763
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.14749974902989316,
+          "brier": 0.028734164662446264
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.11766323966859615,
+          "brier": 0.021034042738632713
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.08242330757417954,
+          "brier": 0.010141365654496776
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.09983098418986269,
+          "brier": 0.023772735474686602
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.10668983130922091,
+          "brier": 0.02725283097131073
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08297916132764345,
+          "brier": 0.007127218414939136
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06453710636340193,
+          "brier": 0.004304981134404402
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.053107447745728065,
+          "brier": 0.0028984414571293434
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04215495335396912,
+          "brier": 0.0018577825868306141
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.0302502867449171,
+          "brier": 0.0009646079183650924
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08297916132764345,
+          "brier": 0.007127218414939136
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06453710636340193,
+          "brier": 0.004304981134404402
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.053107447745728065,
+          "brier": 0.0028984414571293434
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04215495335396912,
+          "brier": 0.0018577825868306141
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.0302502867449171,
+          "brier": 0.0009646079183650924
+        }
+      ]
+    },
+    {
+      "step": 1200,
+      "training_nll": 0.06328030698657493,
+      "validation": {
+        "collision_nll": 0.07885316766095264,
+        "brier": 0.011496105155780253
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.1383194348103008,
+          "brier": 0.02441985981300071
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.11799526021187692,
+          "brier": 0.023369642713925984
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.10053638487239511,
+          "brier": 0.01537888518508574
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.08781926548322484,
+          "brier": 0.014284152985362859
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.054200302442322296,
+          "brier": 0.004956287895831787
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.14572116154764042,
+          "brier": 0.029843542432121395
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.11223484841762717,
+          "brier": 0.021036553441747173
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.07864053958695388,
+          "brier": 0.010605025386518084
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.11165274560157533,
+          "brier": 0.027700850754142456
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.11278291640535734,
+          "brier": 0.028637617104726534
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.07731407184643371,
+          "brier": 0.006055383173741039
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06091026397382937,
+          "brier": 0.0037004522499535387
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05038816608504718,
+          "brier": 0.0025241991273398986
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04051473678252426,
+          "brier": 0.0016637402843733221
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.0294530082320548,
+          "brier": 0.0009010678661633673
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.07731407184643371,
+          "brier": 0.006055383173741039
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06091026397382937,
+          "brier": 0.0037004522499535387
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05038816608504718,
+          "brier": 0.0025241991273398986
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04051473678252426,
+          "brier": 0.0016637402843733221
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.0294530082320548,
+          "brier": 0.0009010678661633673
+        }
+      ]
+    },
+    {
+      "step": 1300,
+      "training_nll": 0.09311348679320543,
+      "validation": {
+        "collision_nll": 0.07305214102869675,
+        "brier": 0.009303770581722258
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.13617950978977503,
+          "brier": 0.023506905620502356
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.12176459739794371,
+          "brier": 0.02610450826671875
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.0957712849993606,
+          "brier": 0.014890878465496533
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.07282202234841664,
+          "brier": 0.007799208794127598
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.048598856321029726,
+          "brier": 0.004025307538962871
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.1341440183220146,
+          "brier": 0.024759895045807633
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.10320910821436728,
+          "brier": 0.01654691819614261
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.07197513036570617,
+          "brier": 0.00802506480980541
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.07590912599540917,
+          "brier": 0.014335008364177275
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.07422921621072412,
+          "brier": 0.014415578353269662
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.07914211716969759,
+          "brier": 0.00659422948744581
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.062045090931734825,
+          "brier": 0.003914102037166611
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05149508533240678,
+          "brier": 0.0026997297044730334
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04087159288995975,
+          "brier": 0.001703403985933326
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.029666088980795126,
+          "brier": 0.0009216038746984422
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.07914211716969759,
+          "brier": 0.00659422948744581
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.062045090931734825,
+          "brier": 0.003914102037166611
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05149508533240678,
+          "brier": 0.0026997297044730334
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04087159288995975,
+          "brier": 0.001703403985933326
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.029666088980795126,
+          "brier": 0.0009216038746984422
+        }
+      ]
+    },
+    {
+      "step": 1400,
+      "training_nll": 0.07286191278129595,
+      "validation": {
+        "collision_nll": 0.07385812212108275,
+        "brier": 0.00962140561670728
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.12825696272433515,
+          "brier": 0.020585269114442903
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.11185856333011746,
+          "brier": 0.021058677635871194
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.09202150154314534,
+          "brier": 0.013484035364468284
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.09474624492350664,
+          "brier": 0.018445718092774448
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.06386583603527239,
+          "brier": 0.010459498014129024
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.1279487648554719,
+          "brier": 0.021702641823274506
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.0956355703031541,
+          "brier": 0.013882678804581883
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.06863684181625633,
+          "brier": 0.0067173105857667205
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.07132479900033963,
+          "brier": 0.01279797672467935
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.08805187101301216,
+          "brier": 0.019673355451718964
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.08225888443185991,
+          "brier": 0.0074502751474506395
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06247001955247689,
+          "brier": 0.003978230351969591
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.051610708532251415,
+          "brier": 0.002716281256028933
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04118162400129195,
+          "brier": 0.001733730048359762
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.029886506920641685,
+          "brier": 0.0009319585574102514
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.08225888443185991,
+          "brier": 0.0074502751474506395
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06247001955247689,
+          "brier": 0.003978230351969591
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.051610708532251415,
+          "brier": 0.002716281256028933
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04118162400129195,
+          "brier": 0.001733730048359762
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.029886506920641685,
+          "brier": 0.0009319585574102514
+        }
+      ]
+    },
+    {
+      "step": 1500,
+      "training_nll": 0.1532153761086748,
+      "validation": {
+        "collision_nll": 0.0669125385026643,
+        "brier": 0.0073612962759532635
+      },
+      "episodes": [
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 8,
+          "collision_nll": 0.13020158667350928,
+          "brier": 0.022272368109172394
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 16,
+          "collision_nll": 0.10967272339099167,
+          "brier": 0.02170260031914327
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 32,
+          "collision_nll": 0.076851670204468,
+          "brier": 0.008561470666118799
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 64,
+          "collision_nll": 0.060419457138071786,
+          "brier": 0.0046246915469703425
+        },
+        {
+          "source_id": "development_idm_mobil",
+          "support_count": 128,
+          "collision_nll": 0.04046374244811706,
+          "brier": 0.001888122701349929
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 8,
+          "collision_nll": 0.11732634013462459,
+          "brier": 0.018065624218826164
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 16,
+          "collision_nll": 0.09000190988740893,
+          "brier": 0.011917774738880609
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 32,
+          "collision_nll": 0.06129804446853905,
+          "brier": 0.004950709530243403
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 64,
+          "collision_nll": 0.05743628610118536,
+          "brier": 0.006981054505969803
+        },
+        {
+          "source_id": "development_linear_mpc",
+          "support_count": 128,
+          "collision_nll": 0.06895751574085984,
+          "brier": 0.011911580656287113
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 8,
+          "collision_nll": 0.0792969037442819,
+          "brier": 0.007191859568114093
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 16,
+          "collision_nll": 0.06287548004675633,
+          "brier": 0.004477656858817089
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 32,
+          "collision_nll": 0.05120360386860515,
+          "brier": 0.002833503222683997
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 64,
+          "collision_nll": 0.04043980180226531,
+          "brier": 0.001761897809630618
+        },
+        {
+          "source_id": "development_ppo",
+          "support_count": 128,
+          "collision_nll": 0.02899495747084654,
+          "brier": 0.0009100468038059187
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 8,
+          "collision_nll": 0.0792969037442819,
+          "brier": 0.007191859568114093
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 16,
+          "collision_nll": 0.06287548004675633,
+          "brier": 0.004477656858817089
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 32,
+          "collision_nll": 0.05120360386860515,
+          "brier": 0.002833503222683997
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 64,
+          "collision_nll": 0.04043980180226531,
+          "brier": 0.001761897809630618
+        },
+        {
+          "source_id": "development_uct",
+          "support_count": 128,
+          "collision_nll": 0.02899495747084654,
+          "brier": 0.0009100468038059187
+        }
+      ]
+    }
+  ],
+  "best_score": [
+    0.0669125385026643,
+    0.0073612962759532635
+  ],
+  "prefix_cache_s": 553.8147058999998,
+  "training_s": 7620.245428600001
+}

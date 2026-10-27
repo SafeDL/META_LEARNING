@@ -1,0 +1,201 @@
+{
+  "status": "passed",
+  "verified_utc": "2026-10-25T17:40:43.172808+00:00",
+  "scope": "Approved E1 E2 E3 independent evidence only",
+  "requirements_checked": 21,
+  "runs": 1880,
+  "equivalent_queries": 240640,
+  "reused_references": 600,
+  "logical_comparison_rows": 2480,
+  "new_selector_queries_during_completion_review": 0,
+  "new_physical_calls_during_completion_review": 0,
+  "checks": [
+    {
+      "requirement": "Frozen method, model artifacts, source files, regression records and bank contracts unchanged",
+      "status": "passed",
+      "evidence": {
+        "protocol": "protocol.json",
+        "protocol_sha256": "f904528080bf4aff8309d0528f7d6c70607011e53267e0eecf28cf90b6aaae99",
+        "model_artifacts": 157
+      }
+    },
+    {
+      "requirement": "All predeclared unique selector runs present exactly once",
+      "status": "passed",
+      "evidence": "run_index.json; independent_protocol.jobs"
+    },
+    {
+      "requirement": "Only the three approved experiment groups executed",
+      "status": "passed",
+      "evidence": {
+        "E1": 1400,
+        "E2": 400,
+        "E3": 80
+      }
+    },
+    {
+      "requirement": "Every original selector output retained through metadata recovery",
+      "status": "passed",
+      "evidence": "index_recovery/cached_runs_before.json"
+    },
+    {
+      "requirement": "Paid budget includes initialization with no repeated candidates",
+      "status": "passed",
+      "evidence": {
+        "runs": 1880,
+        "queries_per_run": 128,
+        "total_queries": 240640,
+        "full_feedback_and_initialization_audit": "audit.json"
+      }
+    },
+    {
+      "requirement": "All source-agnostic reuse references retained without duplicate charges",
+      "status": "passed",
+      "evidence": "reuse_index.json; full public-input equivalence audit in audit.json"
+    },
+    {
+      "requirement": "Complete independent numerical and feedback audit passed",
+      "status": "passed",
+      "evidence": "audit.json"
+    },
+    {
+      "requirement": "First tasks audited before full execution and reused",
+      "status": "passed",
+      "evidence": "first_audit.json"
+    },
+    {
+      "requirement": "All independent raw target executions audited",
+      "status": "passed",
+      "evidence": "evaluation_bank_audit.json"
+    },
+    {
+      "requirement": "uniform_model_audit.json",
+      "status": "passed",
+      "evidence": "model_construction/uniform_model_audit.json"
+    },
+    {
+      "requirement": "public_prior_audit.json",
+      "status": "passed",
+      "evidence": "model_construction/public_prior_audit.json"
+    },
+    {
+      "requirement": "Zero-collision tasks retained with undefined recall rather than dropped",
+      "status": "passed",
+      "evidence": {
+        "tasks_per_method_condition": 200,
+        "valid_recall_tasks": 160,
+        "retained_zero_collision_tasks": 40
+      }
+    },
+    {
+      "requirement": "Discovery and recall curves agree with all four prefix checkpoints and endpoints",
+      "status": "passed",
+      "evidence": {
+        "file": "curves.json",
+        "method_condition_curves": 12,
+        "separate_budget_experiments": 0
+      }
+    },
+    {
+      "requirement": "Only the approved two new mechanism controls used",
+      "status": "passed",
+      "evidence": "report.json:mechanisms; no new H0F0 or full factorial interaction claim"
+    },
+    {
+      "requirement": "All 2048 open/restricted parameter pairs retained",
+      "status": "passed",
+      "evidence": {
+        "neither": 1532,
+        "restricted_only": 284,
+        "open_only": 23,
+        "both": 209
+      }
+    },
+    {
+      "requirement": "Interaction queries share one budget and include driving responses and collision partners",
+      "status": "passed",
+      "evidence": {
+        "allocation_rows": 1120,
+        "shared_budget": 128,
+        "file": "report.json:interaction_task"
+      }
+    },
+    {
+      "requirement": "Offline construction, online adaptation, selection, physical bank and reuse costs separated",
+      "status": "passed",
+      "evidence": "report.json:cost; original component times and new charged costs separate"
+    },
+    {
+      "requirement": "Independent labels excluded from model selection and historical gates preserved",
+      "status": "passed",
+      "evidence": "protocol.json; report.json"
+    },
+    {
+      "requirement": "Relevant engineering and integration regressions passed",
+      "status": "passed",
+      "evidence": {
+        "reduced_regression.xml": {
+          "tests": 608,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        },
+        "reduced_integration_regression.xml": {
+          "tests": 25,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0
+        }
+      }
+    },
+    {
+      "requirement": "Actual scientific charts exported and visually reviewed",
+      "status": "passed",
+      "evidence": {
+        "exports": [
+          {
+            "path": "discovery_curves.png",
+            "bytes": 272707,
+            "pixels": [
+              1961,
+              1254
+            ]
+          },
+          {
+            "path": "discovery_curves.svg",
+            "bytes": 119708
+          },
+          {
+            "path": "discovery_curves.pdf",
+            "bytes": 31637,
+            "pages": 1
+          },
+          {
+            "path": "mechanism_curves.png",
+            "bytes": 119010,
+            "pixels": [
+              1780,
+              729
+            ]
+          },
+          {
+            "path": "mechanism_curves.svg",
+            "bytes": 73654
+          },
+          {
+            "path": "mechanism_curves.pdf",
+            "bytes": 22061,
+            "pages": 1
+          }
+        ],
+        "visual_review": "Both actual PNGs inspected at original resolution; readable legends and axes; no clipping or preview watermark"
+      }
+    },
+    {
+      "requirement": "No physical calls or selector reruns during final recovery and review",
+      "status": "passed",
+      "evidence": "index_recovery.json; audit.json"
+    }
+  ],
+  "next_work": "Organize existing evidence into manuscript; no additional experiment is currently necessary"
+}

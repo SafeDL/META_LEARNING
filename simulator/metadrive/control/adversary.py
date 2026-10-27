@@ -1,0 +1,100 @@
+"""Frenet-planning SAC interface and deterministic vehicle tracking."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+import numpy as np
+
+from ..safety.dynamics import VehicleActionProjector
+from ..scenario.frenet import FrenetReferenceState
+from ..scenario.semantics import ScenarioActionAdapter
+
+
+@dataclass(frozen=True)
+class FrenetControlDecision:
+    planner_action: np.ndarray
+    raw_vehicle_action: np.ndarray
+    speed_limited_vehicle_action: np.ndarray
+    projected_vehicle_action: np.ndarray
+    reference: FrenetReferenceState
+
+
+class FrenetSACAdversaryController:
+    """Convert a four-dimensional planner action into physical controls."""
+
+    stanley_cross_track_gain = 0.5
+    heading_error_gain = 1.0
+    stanley_soft_speed_mps = 2.0
+
+    def __init__(
+        self,
+        episode: Any,
+        family: str,
+        schedule: ScenarioActionAdapter,
+    ) -> None:
+        self.episode = episode
+        self.family = str(family)
+        self.schedule = schedule
+        self.projector = VehicleActionProjector(
+            episode.adversary,
+            float(episode.layout.traffic_contract.speed_limit_mps),
+            max_jerk_mps3=1.5,
+        )
+
+    def observe_environment(self, info: Any) -> None:
+        """MetaDrive arrival does not end the SUT-completion test."""
+
+    def actuator_state(self) -> tuple[float, float]:
+        """Expose the state used by the next physical action projection."""
+        return (
+            self.projector.previous_acceleration_mps2,
+            float(getattr(self.episode.adversary, "steering", 0.0)),
+        )
+
+    def action(self, sac_action: np.ndarray) -> FrenetControlDecision:
+        planner_action = self.schedule.apply_planner_action(
+            sac_action,
+            current_acceleration_mps2=self.projector.previous_acceleration_mps2,
+            decision_seconds=self.projector._step_seconds(self.episode.adversary),
+        )
+        reference = self.schedule.maneuver_reference()
+        steering = 0.0
+        active = bool(
+            self.family != "cutin"
+            or (self.schedule.state.maneuver_latched and reference.start_remaining_m <= 0.0)
+        )
+        vehicle = self.episode.adversary
+        speed = float(vehicle.speed_km_h) / 3.6
+        if active:
+            wheelbase = max(0.6 * float(vehicle.LENGTH), 1.0)
+            feedforward = float(np.arctan(wheelbase * reference.curvature_m_inv))
+            cross_track = float(
+                np.arctan2(
+                    self.stanley_cross_track_gain * reference.lateral_error_m,
+                    self.stanley_soft_speed_mps + speed,
+                )
+            )
+            steering_angle = (
+                feedforward - cross_track - self.heading_error_gain * reference.heading_error_rad
+            )
+            max_steering = np.deg2rad(float(vehicle.config["max_steering"]))
+            steering = float(steering_angle / max(max_steering, 1e-6))
+        raw_vehicle_action = np.asarray((steering, float(planner_action[3])), dtype=np.float32)
+        speed_limited = raw_vehicle_action.copy()
+        if speed > reference.speed_limit_mps:
+            speed_limited[1] = min(
+                float(speed_limited[1]),
+                -min(1.0, (speed - reference.speed_limit_mps) / 2.0),
+            )
+        return FrenetControlDecision(
+            planner_action=planner_action,
+            raw_vehicle_action=raw_vehicle_action,
+            speed_limited_vehicle_action=speed_limited,
+            projected_vehicle_action=self.projector.project(speed_limited),
+            reference=reference,
+        )
+
+    def destroy(self) -> None:
+        """The deterministic tracker owns no native policy resources."""

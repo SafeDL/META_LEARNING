@@ -1,0 +1,25 @@
+{
+  "status": "resolved_before_formal_freeze",
+  "actual_index": 141,
+  "query": 32,
+  "checks": [
+    {
+      "device": "cpu",
+      "index": 392,
+      "maximum_component_error": 0.047910339767032406,
+      "maximum_weight_error": 2.220446049250313e-16
+    },
+    {
+      "device": "cuda",
+      "index": 141,
+      "maximum_component_error": 2.220446049250313e-16,
+      "maximum_weight_error": 2.220446049250313e-16
+    }
+  ],
+  "root_cause": "float32 deep-feature gradients differ between CPU and CUDA; Adam amplifies near-zero gradient cancellation in embedding biases",
+  "next_action": "use float64 online deep features, then repeat the independent CPU/CUDA audit before freeze",
+  "formal_runs": 0,
+  "new_physical_calls": 0,
+  "resolution": "float64 online feature adaptation; independent NumPy and CPU/CUDA full-pool acquisition checks passed for all four cells",
+  "resolution_audit": "results/gcrt/collision/discovery/domain_comparison/stage_a/audit.json"
+}

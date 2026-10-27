@@ -1,0 +1,623 @@
+{
+  "purpose": "Stage D construction before independent discovery outcomes",
+  "objects": [
+    {
+      "sut_id": "independent_idm_mobil",
+      "family": "rule",
+      "lineage": "idm_mobil",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "headway_s": 1.3,
+        "desired_speed_mps": 31,
+        "politeness": 0.5,
+        "rear_brake_limit": 2.5
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_idm_mobil",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_fvdm_lane",
+      "family": "rule",
+      "lineage": "fvdm_lane",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "headway_s": 1.8,
+        "desired_speed_mps": 29,
+        "velocity_gain": 0.5,
+        "rear_brake_limit": 4
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_fvdm_lane",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_linear_mpc",
+      "family": "optimization",
+      "lineage": "linear_mpc",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_s": 4,
+        "desired_speed_mps": 31,
+        "headway_s": 1.7,
+        "effort_weight": 0.15
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_linear_mpc",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_nonlinear_trajectory",
+      "family": "optimization",
+      "lineage": "nonlinear_trajectory",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_s": 2,
+        "desired_speed_mps": 29,
+        "headway_s": 1.3,
+        "effort_weight": 0.1
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_nonlinear_trajectory",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_uct",
+      "family": "search",
+      "lineage": "uct",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_steps": 6,
+        "iterations": 128,
+        "exploration": 1.2,
+        "desired_speed_mps": 31
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_uct",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_beam",
+      "family": "search",
+      "lineage": "beam",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_steps": 4,
+        "beam_width": 16,
+        "desired_speed_mps": 29
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_beam",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_ppo",
+      "family": "learning",
+      "lineage": "ppo",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {},
+      "training_run": "independent_ppo_persistent_speed",
+      "training_seed": 5107,
+      "reference_id": "history_ppo",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    },
+    {
+      "sut_id": "independent_dqn",
+      "family": "learning",
+      "lineage": "dqn",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {},
+      "training_run": "independent_dqn_persistent_speed",
+      "training_seed": 5113,
+      "reference_id": "history_dqn",
+      "supported_scenarios": [
+        "front_brake",
+        "cut_in",
+        "cut_out",
+        "lane_change_rear",
+        "cut_in_interaction"
+      ]
+    }
+  ],
+  "scenarios": {
+    "front_brake": {
+      "bounds": {
+        "ego_speed_mps": [
+          18,
+          34
+        ],
+        "gap_m": [
+          8,
+          65
+        ],
+        "closing_speed_mps": [
+          -4,
+          8
+        ],
+        "deceleration_mps2": [
+          2,
+          9
+        ],
+        "event_time_s": [
+          0.5,
+          3
+        ],
+        "brake_ramp_s": [
+          0.1,
+          1.5
+        ]
+      },
+      "quantization": {
+        "ego_speed_mps": 1,
+        "gap_m": 2,
+        "closing_speed_mps": 1,
+        "deceleration_mps2": 0.5,
+        "event_time_s": 0.2,
+        "brake_ramp_s": 0.1
+      },
+      "categories": {}
+    },
+    "cut_in": {
+      "bounds": {
+        "ego_speed_mps": [
+          18,
+          34
+        ],
+        "gap_m": [
+          5,
+          50
+        ],
+        "closing_speed_mps": [
+          -4,
+          10
+        ],
+        "lateral_duration_s": [
+          1.8,
+          4
+        ],
+        "event_time_s": [
+          0.5,
+          3
+        ]
+      },
+      "quantization": {
+        "ego_speed_mps": 1,
+        "gap_m": 2,
+        "closing_speed_mps": 1,
+        "lateral_duration_s": 0.2,
+        "event_time_s": 0.2
+      },
+      "categories": {
+        "side": [
+          "left",
+          "right"
+        ]
+      }
+    },
+    "cut_out": {
+      "bounds": {
+        "ego_speed_mps": [
+          18,
+          34
+        ],
+        "gap_m": [
+          8,
+          50
+        ],
+        "lead_speed_mps": [
+          14,
+          32
+        ],
+        "obstacle_distance_m": [
+          65,
+          160
+        ],
+        "event_time_s": [
+          0.5,
+          2
+        ],
+        "lateral_duration_s": [
+          1.8,
+          4
+        ]
+      },
+      "quantization": {
+        "ego_speed_mps": 1,
+        "gap_m": 2,
+        "lead_speed_mps": 1,
+        "obstacle_distance_m": 3,
+        "event_time_s": 0.2,
+        "lateral_duration_s": 0.2
+      },
+      "categories": {}
+    },
+    "lane_change_rear": {
+      "bounds": {
+        "ego_speed_mps": [
+          18,
+          34
+        ],
+        "lead_gap_m": [
+          10,
+          55
+        ],
+        "lead_speed_mps": [
+          10,
+          26
+        ],
+        "rear_gap_m": [
+          5,
+          50
+        ],
+        "rear_speed_mps": [
+          22,
+          38
+        ],
+        "adjacent_front_gap_m": [
+          15,
+          90
+        ]
+      },
+      "quantization": {
+        "ego_speed_mps": 1,
+        "lead_gap_m": 2,
+        "lead_speed_mps": 1,
+        "rear_gap_m": 2,
+        "rear_speed_mps": 1,
+        "adjacent_front_gap_m": 3
+      },
+      "categories": {}
+    },
+    "cut_in_interaction": {
+      "bounds": {
+        "ego_speed_mps": [
+          18,
+          34
+        ],
+        "gap_m": [
+          5,
+          50
+        ],
+        "closing_speed_mps": [
+          -4,
+          10
+        ],
+        "lateral_duration_s": [
+          1.8,
+          4
+        ],
+        "event_time_s": [
+          0.5,
+          3
+        ]
+      },
+      "quantization": {
+        "ego_speed_mps": 1,
+        "gap_m": 2,
+        "closing_speed_mps": 1,
+        "lateral_duration_s": 0.2,
+        "event_time_s": 0.2
+      },
+      "categories": {
+        "side": [
+          "left",
+          "right"
+        ],
+        "adjacent_space": [
+          "open",
+          "restricted"
+        ]
+      }
+    }
+  },
+  "interaction": {
+    "kind": "cut_in_interaction",
+    "paired_parameters": true,
+    "open": 256,
+    "restricted": 256,
+    "joint_budget": 128,
+    "guard_front_gap_m": 10.0,
+    "guard_rear_gap_m": 10.0,
+    "guard_speed": "initial ego speed; constant and independent of ego control",
+    "guard_lane": "opposite the cut-in origin",
+    "ego_lane_centers_m": [
+      0,
+      4,
+      8
+    ]
+  },
+  "qualification_courses": [
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "qualification:normal",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "gap_m": 65,
+          "closing_speed_mps": 0,
+          "deceleration_mps2": 4,
+          "event_time_s": 3,
+          "brake_ramp_s": 1
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "qualification:braking",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "gap_m": 50,
+          "closing_speed_mps": 0,
+          "deceleration_mps2": 4,
+          "event_time_s": 1,
+          "brake_ramp_s": 1
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "qualification:stop",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "gap_m": 65,
+          "closing_speed_mps": 0,
+          "deceleration_mps2": 4,
+          "event_time_s": 2,
+          "brake_ramp_s": 1
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "qualification:lane_change",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "lead_gap_m": 35,
+          "lead_speed_mps": 12,
+          "rear_gap_m": 50,
+          "rear_speed_mps": 22,
+          "adjacent_front_gap_m": 90
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "qualification:rear_guard",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "lead_gap_m": 35,
+          "lead_speed_mps": 20,
+          "rear_gap_m": 5,
+          "rear_speed_mps": 38,
+          "adjacent_front_gap_m": 15
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    }
+  ],
+  "policy_training": {
+    "total_timesteps": 4194304,
+    "workers": 8,
+    "evaluation_interval": 32768,
+    "action_interface": {
+      "actions": [
+        "left",
+        "keep",
+        "right",
+        "faster",
+        "slower"
+      ],
+      "speed_increment_mps": 5.0,
+      "speed_gain_per_s": 2.0,
+      "minimum_target_speed_mps": 0.0,
+      "maximum_target_speed_mps": 35.0,
+      "observation_dimension": 83
+    },
+    "policy_network": [
+      128,
+      128
+    ],
+    "gamma": 0.99,
+    "ppo": {
+      "learning_rate": 0.0003,
+      "n_steps": 1024,
+      "batch_size": 256,
+      "n_epochs": 10,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01
+    },
+    "dqn": {
+      "learning_rate": 5e-05,
+      "buffer_size": 200000,
+      "learning_starts": 20000,
+      "batch_size": 256,
+      "train_freq": 4,
+      "gradient_steps": 1,
+      "target_update_interval": 10000,
+      "exploration_fraction": 0.4,
+      "exploration_final_eps": 0.1
+    }
+  },
+  "policy_training_source": {
+    "controllers/highway/train.py": "f4591bf011e95d2a964498aa74fc8b63113e4384527133c3d1f75952fb7d6365",
+    "controllers/highway/learning.py": "ac96bec438f7260f689bba977d0b181b6dda3577b6f3f28d08b9df5320269b68",
+    "simulation/highway/training_env.py": "00c14b105917ad9d80cb3768b57ce9824d908e3ef468e6dfd9e4f05f7d33866e",
+    "simulation/highway/observation.py": "942c1c943c9fbad2ab6a44a551bf1b308ae1957cf5b8102bd84f62d1024b63e3",
+    "simulation/highway/collision_env.py": "7ec18e23fbe678e2ff5fa07c9c8b8299eb3fce7ab01fefd2a2e6bb7cd776e05c",
+    "controllers/highway/control.py": "d9aee3ddbe6a3ddb448f4cd0494a95a1a140542bad7e816d6d688e1113904dea",
+    "benchmark/scenarios.py": "3a379a0be1d6afda557bf205114990a9d1768df319fcdcca72dff90f24f38dc9",
+    "benchmark/qualification.py": "f6a6233f3ca9d573e61776e95d2abc7d4c967b3fa34d0738728e664e17275a7f"
+  },
+  "historical_model_training": {
+    "steps": 1500,
+    "learning_rate": 0.001,
+    "support_counts": [
+      8,
+      16,
+      32,
+      64,
+      128
+    ],
+    "query_count": 32,
+    "historical_context": 64,
+    "validation_interval": 100,
+    "seed": 1301,
+    "validation_seed": 1319
+  },
+  "data_roles": {
+    "history": [
+      "history_idm_mobil",
+      "history_fvdm_lane",
+      "history_linear_mpc",
+      "history_nonlinear_trajectory",
+      "history_uct",
+      "history_beam",
+      "history_ppo",
+      "history_dqn"
+    ],
+    "development": [
+      "development_idm_mobil",
+      "development_linear_mpc",
+      "development_uct",
+      "development_ppo"
+    ]
+  },
+  "source_conditions": [
+    "all_sources",
+    "strict_leave_family"
+  ],
+  "baseline_coverage": "all six references, including Indago, in both source conditions",
+  "main_runs": 2800,
+  "mechanism_controls": [
+    "H0F0",
+    "H1F0",
+    "H0F1"
+  ],
+  "mechanism_scope": "all eight independent systems, five scenes, five seeds; all_sources",
+  "additional_mechanism_runs": 600,
+  "equivalent_queries": 435200,
+  "new_interaction_history_development_calls": 6144,
+  "new_target_pool_calls": 20480,
+  "qualification_and_policy_training_calls": "metered separately; no discovery-based replacement",
+  "source_files": {
+    "benchmark/independent_preparation.py": "18a8594fbc071ee922d4fda8b492393be681aaccefab57c916f661e6bb4f03d3",
+    "benchmark/scenarios.py": "3a379a0be1d6afda557bf205114990a9d1768df319fcdcca72dff90f24f38dc9",
+    "benchmark/executions.py": "78a2dfb4a34ea6925a08001f6d27dd52b4ae01d8a841bc2e5c9e73db3ecd6eee",
+    "benchmark/execution_events.py": "d866a91a9c7eb358a087c1c839ee797e1868eec4b052d5d6f69e6b6754521c8c",
+    "benchmark/construction.py": "a4a1ad905532c3cf28014b2748fca58db618b7392290a354f1143767b57cda35",
+    "controllers/highway/catalog.py": "55aec67d8a3729d515766b371ef8d9139b07b6143a81288e3368f724f9b3e3e0",
+    "simulation/highway/interaction_env.py": "c3c751de4355fd276f15d8732677ccfa7ea1b95bcb30ddacb7e6a23496d14a07"
+  }
+}

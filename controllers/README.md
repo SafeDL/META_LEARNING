@@ -1,24 +1,24 @@
 # 被测驾驶系统
 
-本目录存放“实际开车”的控制器。测试选择算法在 [methods](../methods/README.md)，负责选择下一次测试场景；控制器接收交通信息，决定被测车辆如何行驶。
+本目录提供被测车辆的驾驶控制器：接收可见交通状态，决定加速、制动和换道。测试场景选择算法位于 [testing_methods](../testing_methods/README.md)。
 
-## HighwayEnv 控制器
-
-[highway/catalog.py](highway/catalog.py) 登记了 20 个对象，由 [highway/factory.py](highway/factory.py) 创建。8 个历史系统提供测试经验，4 个开发系统用于选参，8 个目标系统用于正式比较；每个对象记录实现路线、版本或独立训练运行。
+## HighwayEnv
 
 | 类别 | 实现路线 |
 |---|---|
-| 规则 | IDM/MOBIL；FVDM/换道规则 |
-| 优化 | 线性化 MPC；非线性约束轨迹优化 |
-| 搜索 | UCT 树搜索；确定性束搜索 |
-| 学习 | 独立训练的 PPO；DQN，采用 Stable-Baselines3 实现 |
+| 规则控制 | IDM／MOBIL、FVDM／换道规则 |
+| 优化规划 | 线性 MPC、非线性轨迹优化 |
+| 搜索规划 | UCT、束搜索 |
+| 学习策略 | PPO、DQN |
 
-所有对象接收相同规则下可见的交通状态，每秒决策 5 次，车辆运动每秒更新 20 次；共享动力学和动作限制，支持持续制动直到停车。20 个对象均已通过正常跟车、可避免制动、完整停车、合法换道和后车约束五项资格检查。
+[highway/catalog.py](highway/catalog.py) 登记系统角色、参数和策略检查点，[factory.py](highway/factory.py) 创建对应控制器。当前实验使用8个历史系统、4个开发系统和8个独立目标。注册表还保留8个早期目标的定义与资格记录。
 
-PPO 和 DQN 使用左换道、保持、右换道、加速、减速五种动作；83 维输入包含可见交通状态及控制目标。五个正式学习对象各自从头训练，入口为 `python -B -m controllers.highway.train`。正式训练设置和资格记录保留在 `highway/checkpoints/collision/` 与 `results/benchmark/collision/qualification/`；其中的早期建设记录用于追溯成本，正式对象由注册表指定。
+上述28个系统均有通过正常跟车、可避免制动、完整停车、合法换道和后车约束的资格记录。各系统使用相同的可见交通信息规则、车辆动力学和动作限制；仿真频率20 Hz，决策频率5 Hz。
 
-## MetaDrive 控制器
+PPO、DQN 使用83维观测和左换道、保持、右换道、加速、减速五种动作。工程中保留7个学习系统的训练检查点，包括独立目标 PPO、DQN；独立训练种子分别为5107和5113。训练实现见 [train.py](highway/train.py)，独立对象的准备入口见 [independent_preparation.py](../experiments/independent_preparation.py)。
 
-[metadrive](metadrive/) 保留在工程中，供 [MetaDrive 仿真平台](../simulation/metadrive/README.md) 使用。[registry.py](metadrive/registry.py) 登记六种 IDM 驾驶配置，[idm.py](metadrive/idm.py) 将交通状态转换为控制动作。它们与 HighwayEnv 的 20 个正式对象分开管理。
+训练记录位于 [highway/checkpoints/collision](highway/checkpoints/collision/)，基本驾驶能力记录位于 [qualification](../experiment_outputs/benchmark/collision/qualification/)。场景划分和实验预算见 [experiments](../experiments/README.md)。
 
-历史系统与新系统如何划分、场景和预算如何设置，见 [项目说明](../README.md)。
+## MetaDrive
+
+[metadrive](metadrive/) 提供 IDM 控制器及六种驾驶配置，由 [registry.py](metadrive/registry.py) 登记、[idm.py](metadrive/idm.py) 执行动作，供 [MetaDrive 平台](../simulator/metadrive/README.md) 的场景执行器调用。

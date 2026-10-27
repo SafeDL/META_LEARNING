@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, minimize
 
-from .control import Control, MAX_LATERAL_ACCELERATION, lane_steering
+from .control import MAX_LATERAL_ACCELERATION, Control, lane_steering
 from .planning import bicycle_rollout, predicted_actors
 
 
@@ -37,17 +37,20 @@ class OptimizationController:
         for step in range(n):
             state = a @ state
             jacobian = a @ jacobian
-            jacobian[:, 2 * step:2 * step + 2] += b
+            jacobian[:, 2 * step : 2 * step + 2] += b
             states.append(state.copy())
             jacobians.append(jacobian.copy())
         return np.array(states), np.array(jacobians)
 
     def _loss(self, states, controls, target_y, actors):
         p = self.parameters
-        loss = (0.8 * (states[..., 2] - p["desired_speed_mps"])**2
-                + 2 * (states[..., 1] - target_y)**2 + 80 * states[..., 3]**2)
-        loss = loss.sum(-1) + p["effort_weight"] * (controls[..., 0]**2).sum(-1)
-        loss += 100 * (controls[..., 1]**2).sum(-1)
+        loss = (
+            0.8 * (states[..., 2] - p["desired_speed_mps"]) ** 2
+            + 2 * (states[..., 1] - target_y) ** 2
+            + 80 * states[..., 3] ** 2
+        )
+        loss = loss.sum(-1) + p["effort_weight"] * (controls[..., 0] ** 2).sum(-1)
+        loss += 100 * (controls[..., 1] ** 2).sum(-1)
         if actors.shape[1]:
             dx = actors[:, :, 0] - states[..., :, None, 0]
             dy = actors[:, :, 1] - states[..., :, None, 1]
@@ -64,15 +67,21 @@ class OptimizationController:
         # A fixed maneuver corridor makes the obstacle constraints affine.
         t = np.arange(1, n + 1) * self.dt
         s = np.minimum(t / 2.5, 1)
-        reference_y = world.ego.y + (target_y - world.ego.y) * (10*s**3 - 15*s**4 + 6*s**5)
+        reference_y = world.ego.y + (target_y - world.ego.y) * (10 * s**3 - 15 * s**4 + 6 * s**5)
         matrices, lower, upper = [], [], []
         for k in range(n):
             matrices.extend((jac[k, 2], jac[k, 1], jac[k, 3]))
-            lower.extend((-base[k, 2], min(world.lane_centers) - 0.5 - base[k, 1], -0.6 - base[k, 3]))
-            upper.extend((40 - base[k, 2], max(world.lane_centers) + 0.5 - base[k, 1],
-                          0.6 - base[k, 3]))
+            lower.extend(
+                (-base[k, 2], min(world.lane_centers) - 0.5 - base[k, 1], -0.6 - base[k, 3])
+            )
+            upper.extend(
+                (40 - base[k, 2], max(world.lane_centers) + 0.5 - base[k, 1], 0.6 - base[k, 3])
+            )
             for j, actor in enumerate(world.vehicles):
-                if abs(actors[k, j, 1] - reference_y[k]) > (world.ego.width + actor.width) / 2 + 0.3:
+                if (
+                    abs(actors[k, j, 1] - reference_y[k])
+                    > (world.ego.width + actor.width) / 2 + 0.3
+                ):
                     continue
                 margin = (world.ego.length + actor.length) / 2 + 1
                 matrices.append(jac[k, 0])
@@ -87,14 +96,26 @@ class OptimizationController:
             states = base + np.einsum("nij,j->ni", jac, u)
             controls = u.reshape(n, 2)
             value = self._loss(states, controls, target_y, actors)
-            residual = np.column_stack((np.zeros(n), 4 * (states[:, 1] - target_y),
-                                        1.6 * (states[:, 2] - self.parameters["desired_speed_mps"]),
-                                        160 * states[:, 3]))
+            residual = np.column_stack(
+                (
+                    np.zeros(n),
+                    4 * (states[:, 1] - target_y),
+                    1.6 * (states[:, 2] - self.parameters["desired_speed_mps"]),
+                    160 * states[:, 3],
+                )
+            )
             # The front mask follows the fixed corridor, preserving a convex QP.
             if actors.shape[1]:
-                front = (actors[:, :, 0] > base[:, None, 0]) & (np.abs(actors[:, :, 1] - reference_y[:, None]) < 2.2)
-                deficit = np.maximum(0, 7 + self.parameters["headway_s"] * states[:, None, 2]
-                                     - actors[:, :, 0] + states[:, None, 0])
+                front = (actors[:, :, 0] > base[:, None, 0]) & (
+                    np.abs(actors[:, :, 1] - reference_y[:, None]) < 2.2
+                )
+                deficit = np.maximum(
+                    0,
+                    7
+                    + self.parameters["headway_s"] * states[:, None, 2]
+                    - actors[:, :, 0]
+                    + states[:, None, 0],
+                )
                 # Replace the dynamic-mask headway term with this fixed convex term.
                 dx = actors[:, :, 0] - states[:, None, 0]
                 dynamic = (dx > 0) & (np.abs(actors[:, :, 1] - states[:, None, 1]) < 2.2)
@@ -109,9 +130,15 @@ class OptimizationController:
         steering_limit = np.arctan(MAX_LATERAL_ACCELERATION * world.ego.length / 40**2)
         lower_bound = np.tile([-8, -steering_limit], n)
         upper_bound = np.tile([3, steering_limit], n)
-        result = minimize(objective, np.clip(initial, lower_bound, upper_bound), jac=True, method="SLSQP",
-                          bounds=Bounds(lower_bound, upper_bound),
-                          constraints=[constraint], options={"maxiter": 80, "ftol": 1e-5})
+        result = minimize(
+            objective,
+            np.clip(initial, lower_bound, upper_bound),
+            jac=True,
+            method="SLSQP",
+            bounds=Bounds(lower_bound, upper_bound),
+            constraints=[constraint],
+            options={"maxiter": 80, "ftol": 1e-5},
+        )
         feasible = (np.asarray(matrices) @ result.x >= np.asarray(lower) - 1e-4).all()
         feasible &= (np.asarray(matrices) @ result.x <= np.asarray(upper) + 1e-4).all()
         return result, bool(feasible and result.success)
@@ -124,13 +151,19 @@ class OptimizationController:
         def evaluate_batch(u):
             states = bicycle_rollout(world.ego, u.reshape(-1, n, 2), dt=self.dt)
             value = self._loss(states, u.reshape(-1, n, 2), target_y, actors)
-            constraints = [states[..., 1] - min(world.lane_centers) + 0.5,
-                           max(world.lane_centers) + 0.5 - states[..., 1]]
+            constraints = [
+                states[..., 1] - min(world.lane_centers) + 0.5,
+                max(world.lane_centers) + 0.5 - states[..., 1],
+            ]
             if actors.shape[1]:
                 for j, actor in enumerate(world.vehicles):
                     # An enclosing ellipse conservatively separates the rectangles.
-                    dx = (states[..., 0] - actors[:, j, 0]) / ((world.ego.length + actor.length) / 2 + 1)
-                    dy = (states[..., 1] - actors[:, j, 1]) / ((world.ego.width + actor.width) / 2 + 0.3)
+                    dx = (states[..., 0] - actors[:, j, 0]) / (
+                        (world.ego.length + actor.length) / 2 + 1
+                    )
+                    dy = (states[..., 1] - actors[:, j, 1]) / (
+                        (world.ego.width + actor.width) / 2 + 0.3
+                    )
                     constraints.append(dx**2 / 2 + dy**2 / 2 - 1)
             return value, np.concatenate(constraints, axis=-1)
 
@@ -142,32 +175,50 @@ class OptimizationController:
                 delta = 1e-5
                 batch = np.concatenate((u[None], u[None] + delta * np.eye(len(u))))
                 value, constraint = evaluate_batch(batch)
-                cached = (value[0], (value[1:] - value[0]) / delta,
-                          constraint[0], ((constraint[1:] - constraint[0]) / delta).T)
+                cached = (
+                    value[0],
+                    (value[1:] - value[0]) / delta,
+                    constraint[0],
+                    ((constraint[1:] - constraint[0]) / delta).T,
+                )
                 cached_u = u.copy()
             return cached
 
         steering_limit = np.arctan(MAX_LATERAL_ACCELERATION * world.ego.length / 40**2)
         lower_bound = np.tile([-8, -steering_limit], n)
         upper_bound = np.tile([3, steering_limit], n)
-        result = minimize(lambda u: evaluate(u)[:2], np.clip(initial, lower_bound, upper_bound), jac=True, method="SLSQP",
-                          bounds=Bounds(lower_bound, upper_bound),
-                          constraints=[{"type": "ineq", "fun": lambda u: evaluate(u)[2],
-                                        "jac": lambda u: evaluate(u)[3]}],
-                          options={"maxiter": 60, "ftol": 1e-4})
+        result = minimize(
+            lambda u: evaluate(u)[:2],
+            np.clip(initial, lower_bound, upper_bound),
+            jac=True,
+            method="SLSQP",
+            bounds=Bounds(lower_bound, upper_bound),
+            constraints=[
+                {"type": "ineq", "fun": lambda u: evaluate(u)[2], "jac": lambda u: evaluate(u)[3]}
+            ],
+            options={"maxiter": 60, "ftol": 1e-4},
+        )
         return result, bool(result.success and evaluate(result.x)[2].min() >= -1e-4)
 
     def act(self, world):
         choices, diagnostics = [], []
-        current = min(range(len(world.lane_centers)),
-                      key=lambda i: abs(world.lane_centers[i] - world.ego.y))
+        current = min(
+            range(len(world.lane_centers)), key=lambda i: abs(world.lane_centers[i] - world.ego.y)
+        )
         for lane in range(max(0, current - 1), min(len(world.lane_centers), current + 2)):
-            initial = self.warm.get(lane, np.tile(
-                [0, lane_steering(world.ego, world.lane_centers[lane])], self.horizon))
+            initial = self.warm.get(
+                lane, np.tile([0, lane_steering(world.ego, world.lane_centers[lane])], self.horizon)
+            )
             solve = self._linear_solve if self.route == "linear_mpc" else self._nonlinear_solve
             result, feasible = solve(world, lane, initial)
-            diagnostics.append({"lane": lane, "success": feasible,
-                                "iterations": int(result.nit), "message": str(result.message)})
+            diagnostics.append(
+                {
+                    "lane": lane,
+                    "success": feasible,
+                    "iterations": int(result.nit),
+                    "message": str(result.message),
+                }
+            )
             if feasible:
                 self.warm[lane] = np.r_[result.x[2:], result.x[-2:]]
                 choices.append((float(result.fun) + 0.2 * (lane != current), lane, result.x))

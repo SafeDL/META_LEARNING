@@ -1,7 +1,7 @@
 """UCT with tree expansion/backpropagation and deterministic beam planning."""
 
-from dataclasses import dataclass, field
 import math
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -10,9 +10,14 @@ from .planning import advance_visible, overlap_margin
 
 
 def actions(world):
-    current = min(range(len(world.lane_centers)), key=lambda i: abs(world.lane_centers[i] - world.ego.y))
-    return [(a, lane) for lane in range(max(0, current - 1), min(len(world.lane_centers), current + 2))
-            for a in (-8.0, -3.0, 0.0, 2.0)]
+    current = min(
+        range(len(world.lane_centers)), key=lambda i: abs(world.lane_centers[i] - world.ego.y)
+    )
+    return [
+        (a, lane)
+        for lane in range(max(0, current - 1), min(len(world.lane_centers), current + 2))
+        for a in (-8.0, -3.0, 0.0, 2.0)
+    ]
 
 
 def transition(world, action, desired_speed):
@@ -23,17 +28,19 @@ def transition(world, action, desired_speed):
     for _ in range(3):
         state = advance_visible(state, acceleration, lane, duration_s=0.2)
         margin = min(margin, overlap_margin(state.ego, state.vehicles))
-        terminal = (margin <= 0 or not min(state.lane_centers) - 0.5
-                    <= state.ego.y <= max(state.lane_centers) + 0.5)
+        terminal = (
+            margin <= 0
+            or not min(state.lane_centers) - 0.5 <= state.ego.y <= max(state.lane_centers) + 0.5
+        )
         if terminal:
             break
     reward = (state.ego.x - world.ego.x) / 15
-    reward -= 0.04 * (state.ego.speed - desired_speed)**2
+    reward -= 0.04 * (state.ego.speed - desired_speed) ** 2
     reward -= 0.003 * acceleration**2
     for actor in state.vehicles:
         if actor.x > state.ego.x and abs(actor.y - state.ego.y) < 2.2:
             gap = actor.x - state.ego.x - (actor.length + state.ego.length) / 2
-            reward -= 0.04 * max(0, 2 + 1.4 * state.ego.speed - gap)**2
+            reward -= 0.04 * max(0, 2 + 1.4 * state.ego.speed - gap) ** 2
     if terminal:
         reward -= 1000
     # Penalize approaching objects before a geometric collision occurs.
@@ -67,16 +74,16 @@ class SearchController:
 
     def _rollout_action(self, world):
         ego = world.ego
-        lane = min(range(len(world.lane_centers)),
-                   key=lambda i: abs(world.lane_centers[i] - ego.y))
+        lane = min(range(len(world.lane_centers)), key=lambda i: abs(world.lane_centers[i] - ego.y))
         desired = self.parameters["desired_speed_mps"]
         front = [v for v in world.vehicles if abs(v.y - ego.y) < 2.2 and v.x > ego.x]
         if front:
             lead = min(front, key=lambda v: v.x)
             gap = lead.x - ego.x - (lead.length + ego.length) / 2
             desired = min(desired, max(0, lead.speed + 0.6 * (gap - 2 - 1.4 * ego.speed)))
-        acceleration = min((-8.0, -3.0, 0.0, 2.0),
-                           key=lambda a: abs(a - np.clip(desired - ego.speed, -8, 2)))
+        acceleration = min(
+            (-8.0, -3.0, 0.0, 2.0), key=lambda a: abs(a - np.clip(desired - ego.speed, -8, 2))
+        )
         return acceleration, lane
 
     def _uct(self, world):
@@ -91,17 +98,29 @@ class SearchController:
                 if node.untried:
                     action = node.untried.pop(int(self.generator.integers(len(node.untried))))
                     state, reward, terminal = transition(node.world, action, p["desired_speed_mps"])
-                    child = Node(state, node.depth + 1, parent=node, action=action,
-                                 reward=reward, terminal=terminal, untried=actions(state))
+                    child = Node(
+                        state,
+                        node.depth + 1,
+                        parent=node,
+                        action=action,
+                        reward=reward,
+                        terminal=terminal,
+                        untried=actions(state),
+                    )
                     node.children.append(child)
                     node = child
                     path.append(node)
                     rewards.append(reward)
                     break
                 # The exploitation value excludes rewards already earned above this node.
-                node = max(node.children, key=lambda c: (
-                    c.total / c.visits + p["exploration"] * math.sqrt(math.log(node.visits) / c.visits),
-                    c.action))
+                node = max(
+                    node.children,
+                    key=lambda c: (
+                        c.total / c.visits
+                        + p["exploration"] * math.sqrt(math.log(node.visits) / c.visits),
+                        c.action,
+                    ),
+                )
                 path.append(node)
                 rewards.append(node.reward)
             state, depth, terminal = node.world, node.depth, node.terminal
@@ -129,11 +148,16 @@ class SearchController:
             maximum_depth = max(maximum_depth, node.depth)
             count += 1
             stack.extend(node.children)
-        self.last_diagnostics = {"route": "uct", "nodes": count, "maximum_tree_depth": maximum_depth,
-                                 "root_visits": root.visits,
-                                 "root_children": [{"action": c.action, "visits": c.visits,
-                                                    "mean_return": c.total / c.visits}
-                                                   for c in root.children]}
+        self.last_diagnostics = {
+            "route": "uct",
+            "nodes": count,
+            "maximum_tree_depth": maximum_depth,
+            "root_visits": root.visits,
+            "root_children": [
+                {"action": c.action, "visits": c.visits, "mean_return": c.total / c.visits}
+                for c in root.children
+            ],
+        }
         return best.action
 
     def _beam(self, world):
@@ -148,14 +172,18 @@ class SearchController:
                     continue
                 for action in actions(state):
                     next_state, reward, done = transition(state, action, p["desired_speed_mps"])
-                    candidates.append((total + 0.98**depth * reward, sequence + (action,),
-                                       next_state, done))
+                    candidates.append(
+                        (total + 0.98**depth * reward, sequence + (action,), next_state, done)
+                    )
             expanded.append(len(candidates))
             candidates.sort(key=lambda row: (-row[0], row[1]))
-            beam = candidates[:int(p["beam_width"])]
-        self.last_diagnostics = {"route": "beam", "expanded_per_depth": expanded,
-                                 "beam_width": int(p["beam_width"]),
-                                 "best_sequence": beam[0][1]}
+            beam = candidates[: int(p["beam_width"])]
+        self.last_diagnostics = {
+            "route": "beam",
+            "expanded_per_depth": expanded,
+            "beam_width": int(p["beam_width"]),
+            "best_sequence": beam[0][1],
+        }
         return beam[0][1][0]
 
     def act(self, world):
