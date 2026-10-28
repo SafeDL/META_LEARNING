@@ -14,7 +14,7 @@ from simulator.highway.interaction_env import GUARD_FRONT_GAP_M, GUARD_REAR_GAP_
 from simulator.highway.observation import VehicleState
 
 from .audit_collision_data import verify_archive
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .domain_risk import disclose_driving_quality, disclose_impact
 from .execution_events import analyze_events
@@ -130,7 +130,7 @@ def audit_history(source_id, role, kind):
 
 def main():
     for kind in DOMAINS:
-        load_construction(kind)
+        load_archives(kind)
     jobs = [
         (s.sut_id, s.role, kind)
         for s in SUTS

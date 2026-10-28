@@ -8,7 +8,7 @@ import numpy as np
 from controllers.highway.catalog import BY_ID
 
 from .collision_metrics import collision_recall
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .domain_risk import disclose_impact
 from .executions import ExecutionBank, execution_contract
@@ -67,7 +67,7 @@ def main():
     started = time.perf_counter()
     archives = []
     for kind in ("cut_in", "cut_out"):
-        history, development = load_construction(kind)
+        history, development = load_archives(kind)
         if len(history) != 8 or len(development) != 4:
             raise ValueError(
                 "The new comparison requires eight history and four development objects"

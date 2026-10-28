@@ -9,8 +9,6 @@ from controllers.highway.learning import CHECKPOINT_ROOT
 
 from .collision_metrics import equal_count_coverage, lineage_survival, paired_lineage_bootstrap
 from .discovery_config import read_json, write_json
-from .domain_comparison_report import METRICS
-from .independent_models import FAMILIES, model_root, scope_name
 from .independent_preparation import OUTPUT
 from .independent_protocol import (
     CONDITIONS,
@@ -26,6 +24,8 @@ from .independent_protocol import (
 )
 from .independent_validation import bank_audit_path
 from .qualification import QUALIFICATION_ROOT
+from .recorded_models import FAMILIES, model_root, scope_name
+from .report_development import METRICS
 from .scenarios import DOMAINS, dedup_key, sample
 from .statistics import method_summary, summary
 

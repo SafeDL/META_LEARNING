@@ -11,15 +11,12 @@ import torch
 from scipy.special import logsumexp
 from threadpoolctl import threadpool_limits
 
-from testing_methods.history_transfer.domain_discovery import aggregate_history
-from testing_methods.history_transfer.domain_training import load_model
+from testing_methods.history_transfer.selection import aggregate_history
 
 from .collision_metrics import collision_recall, summarize
 from .discovery_config import read_json, write_json
-from .domain_main_validation import reconstruct
 from .executions import ExecutionBank
 from .independent_data_audit import verify_trace
-from .independent_models import load_sources, model_root
 from .independent_preparation import OUTPUT
 from .independent_protocol import (
     CONTROLS,
@@ -37,9 +34,11 @@ from .independent_validation import bank_audit_path, first_jobs, public_task, se
 from .initialization import initial_indices
 from .protocol import ROOT
 from .query import PaidExecution
+from .recorded_models import load_model, load_sources, model_root
 from .scenarios import sample
 from .schema import QueryFeedback
 from .source_registration import maintained_path
+from .verify_selection import reconstruct
 
 
 def check_attempts(bank):

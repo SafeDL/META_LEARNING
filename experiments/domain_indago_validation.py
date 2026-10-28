@@ -16,7 +16,7 @@ from testing_methods.baselines.indago.pool import DEFAULT as SEARCH
 from testing_methods.baselines.indago.pool import run
 
 from .collision_metrics import collision_recall, summarize
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .executions import ExecutionBank, execution_contract
 from .initialization import initial_indices
@@ -67,7 +67,7 @@ def main():
     author = check_author_architecture()
     training = []
     for kind in ("cut_in", "cut_out"):
-        history, _ = load_construction(kind)
+        history, _ = load_archives(kind)
         path = OUTPUT / "models" / kind / "classifier.pt"
         if path.exists():
             _, checkpoint = load(path)
@@ -84,7 +84,7 @@ def main():
             report = train(history, path)
         training.append({"scenario": kind, "path": str(path.relative_to(ROOT)), **report})
     kind, target, seed = "cut_in", "development_idm_mobil", 11
-    _, development = load_construction(kind)
+    _, development = load_archives(kind)
     archive = next(a for a in development if a.source_id == target)
     bank = ExecutionBank(TEST_RECORDS_ROOT / "physical/development" / kind / target)
     if bank.candidates != archive.scenarios or not specification_matches(

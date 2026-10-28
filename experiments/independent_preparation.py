@@ -14,7 +14,7 @@ from controllers.highway.learning import CHECKPOINT_ROOT
 from controllers.highway.train import TRAINING, train, training_contract
 from simulator.highway.interaction_env import GUARD_FRONT_GAP_M, GUARD_REAR_GAP_M
 from testing_methods.common.response import ResponseArchive
-from testing_methods.history_transfer.domain_training import DEFAULT as MODEL_TRAINING
+from testing_methods.history_transfer.training import DEFAULT as MODEL_TRAINING
 
 from .discovery_config import read_json, write_json
 from .executions import collect_bank

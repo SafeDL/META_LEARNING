@@ -18,6 +18,10 @@
 
 ## 查询与数据使用
 
+连续安全度量的文献依据、RSS归一化裕度定义与追尾覆盖见 [安全度量说明](../docs/rss.md)。RSS的模型路径、来源范围及对角协方差配置统一定义在 `testing_methods/history_transfer/training.py`。训练直接使用历史／开发数据和源码中的配置，不要求已有旧实验模型或协方差决策文件。完整25组RSS模型与新的独立比较尚未完成。
+
+`python -B -m experiments.render_scenarios` 从原方法已查询的独立目标记录生成五类 GIF；`python -B -m experiments.analyze_rss` 对对应完整库作事后诊断。已冻结结果仍属于原间距响应方法。
+
 每个目标系统、每类场景有512个公开候选，单次方法运行的预算为128次，包含共同的8次随机初始化。五个算法种子使用配对设置。邻道开放与受限切入的两组条件共用同一预算。
 
 [test_records](../test_records/README.md) 保存仿真执行结果。选择器通过 [query.py](query.py) 逐次查询，只能获得已经计入预算的目标反馈；完整标签和未查询轨迹由评估端持有。各方法获准使用的碰撞、间距、TTC、撞击量或驾驶质量反馈写入 [冻结协议](../experiment_outputs/benchmark/collision/discovery/independent_validation/protocol.json)。
@@ -57,21 +61,29 @@
 | [collect.py](collect.py) | 采集历史、开发系统的场景响应与档案 |
 | [independent_preparation.py](independent_preparation.py) | 登记独立系统，准备驾驶资格、策略与交互数据 |
 | [independent_target_banks.py](independent_target_banks.py) | 采集独立目标的40个候选执行库 |
-| [independent_models.py](independent_models.py) | 构建主方法模型、基线分类器和历史后验 |
+| [train.py](train.py) | 从历史轨迹派生RSS响应，训练25组模型并导出来源后验 |
+| [check_training.py](check_training.py) | 用缩小配置核对五类真实数据上的训练与隔离查询；临时模型随检查结束清理 |
+| [recorded_models.py](recorded_models.py) | 读取原冻结实验的模型与来源后验 |
 | [independent_validation.py](independent_validation.py) | 执行预算内查询和结果复用 |
 | [independent_validation_audit.py](independent_validation_audit.py) | 核对已查询反馈、预算、选例与复用引用 |
 | [independent_validation_report.py](independent_validation_report.py) | 汇总统计、成本、曲线和报告 |
 
-从根目录运行完整工作流：
+从根目录构建当前RSS方法：
 
 ```powershell
-python -B -m experiments.independent_workflow
+python -B -m experiments.train
 ```
 
-该入口核对已完成的数据与模型，继续构建和查询流程，并写入工作流、审计及报告产物。查看已有结果直接打开报告即可。主方法从历史档案开始的训练说明见 [history_transfer](../testing_methods/history_transfer/README.md)。
+快速核对真实数据上的训练与查询链路：
+
+```powershell
+python -B -m experiments.check_training
+```
+
+该检查将模型写入临时目录，只保留检查报告。主方法的训练顺序与超参数见 [history_transfer](../testing_methods/history_transfer/README.md)。复现旧研究使用原登记源码归档和冻结协议；当前源码保留结果读取、核验与统计工具。
 
 ## 实验记录与源码
 
-实验产物位于 [experiment_outputs](../experiment_outputs/README.md)。冻结协议与原始源码归档保存实验执行时的定义，当前源码的整理记录见 [source_maintenance.json](../experiment_outputs/benchmark/collision/discovery/independent_validation/model_construction/source_maintenance.json)。其中的 `obsolete_output_cleanup` 列出已清理的过时文件及核对依据。
+实验产物位于 [experiment_outputs](../experiment_outputs/README.md)。冻结协议与原始源码归档保存实验执行时的定义；原目录整理记录见 [source_maintenance.json](../experiment_outputs/benchmark/collision/discovery/independent_validation/model_construction/source_maintenance.json)。当前RSS代码的合并、删除与回归检查记录见 [self_check.json](../experiment_outputs/benchmark/collision/rss_response/self_check.json)。
 
 开发期复核使用 [原源码归档](../experiment_outputs/benchmark/collision/discovery/domain_comparison/source_snapshot.zip) 和对应模型。原记录中的 `benchmark`、`gcrt` 和旧根路径按登记信息解释，当前运行入口使用 `experiments` 与 `testing_methods`。

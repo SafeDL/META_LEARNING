@@ -11,6 +11,9 @@
 | [方法定型](benchmark/collision/discovery/domain_comparison/diagonal_controls/finalization.json) | 协方差选择与匹配机制对照 |
 | [实验记录索引](benchmark/README.md) | 协议、预算审计、驾驶资格和历史响应概览 |
 | [主方法模型与运行](gcrt/README.md) | 基础核、历史编码器、来源后验与逐次查询 |
+| [五类发现案例 GIF](benchmark/collision/discovered_scenarios/index.html) | 实际查询轨迹、碰撞对象、查询次序及事后 RSS 裕度；[度量说明](../docs/rss.md) |
+| [RSS 已有轨迹试算图](benchmark/collision/discovered_scenarios/rss_trial.png) | 2,560条轨迹的裕度分布；[逐条数据](benchmark/collision/discovered_scenarios/rss_trial.csv)及[完整统计](benchmark/collision/discovered_scenarios/bank_diagnostics.json) |
+| [RSS 历史／开发响应](benchmark/collision/rss_response/construction.json) | 统一参数下30,720条执行的派生响应；[五类训练与查询链路检查](benchmark/collision/rss_response/integration_check.json)；[参数依据](../docs/rss.md) |
 
 独立验证包含1,880项实际运行、240,640次回放查询和600条跨条件复用引用；目标候选库由20,480次仿真执行组成。比较范围与查询规则见 [实验设置](../experiments/README.md)。
 

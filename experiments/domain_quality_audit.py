@@ -13,7 +13,7 @@ from testing_methods.baselines.scenario_fuzz.driving_quality import (
     understeer_level,
 )
 
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .domain_risk import disclose_driving_quality
 from .executions import ExecutionBank
@@ -92,7 +92,7 @@ def main():
     rules = fuzzy_rule_check()
     tasks = []
     for kind in ("cut_in", "cut_out"):
-        history, development = load_construction(kind)
+        history, development = load_archives(kind)
         tasks.extend(
             (kind, archive.source_id, archive.role) for archive in (*history, *development)
         )

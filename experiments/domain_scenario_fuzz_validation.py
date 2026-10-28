@@ -8,7 +8,7 @@ from testing_methods.baselines.scenario_fuzz.pool import run
 from testing_methods.common.response import archive_fingerprints
 
 from .collision_metrics import collision_recall, summarize
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .domain_risk import disclose_driving_quality
 from .executions import ExecutionBank, execution_contract
@@ -22,7 +22,7 @@ OUTPUT = ROOT / "experiment_outputs/scenario_fuzz/collision/discovery/domain_com
 
 def main():
     kind, target, seed = "cut_in", "development_idm_mobil", 11
-    history, development = load_construction(kind)
+    history, development = load_archives(kind)
     archive = next(a for a in development if a.source_id == target)
     bank = ExecutionBank(TEST_RECORDS_ROOT / "physical/development" / kind / target)
     if bank.candidates != archive.scenarios or not specification_matches(

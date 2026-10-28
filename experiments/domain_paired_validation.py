@@ -9,7 +9,7 @@ from testing_methods.baselines.paired_system_active_evaluation.method import run
 from testing_methods.common.response import HistoricalPredictor, archive_fingerprints
 
 from .collision_metrics import collision_recall, summarize
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .executions import ExecutionBank, execution_contract
 from .initialization import initial_indices
@@ -39,7 +39,7 @@ def build_proxy(candidates, history):
 
 def main():
     kind, target, seed = "cut_in", "development_idm_mobil", 11
-    history, development = load_construction(kind)
+    history, development = load_archives(kind)
     archive = next(a for a in development if a.source_id == target)
     bank = ExecutionBank(TEST_RECORDS_ROOT / "physical/development" / kind / target)
     if bank.candidates != archive.scenarios or not specification_matches(

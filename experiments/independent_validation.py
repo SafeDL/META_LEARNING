@@ -20,15 +20,13 @@ from testing_methods.baselines.samota import pool as samota
 from testing_methods.baselines.scenario_fuzz import model as graph_model
 from testing_methods.baselines.scenario_fuzz import pool as scenario_fuzz
 from testing_methods.common.response import archive_fingerprints
-from testing_methods.history_transfer.domain_discovery import aggregate_history, select
-from testing_methods.history_transfer.domain_training import load_model
+from testing_methods.history_transfer.selection import aggregate_history, select
 
 from .collision_metrics import collision_recall, summarize
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import read_json, write_json
 from .domain_paired_validation import build_proxy
 from .executions import ExecutionBank
-from .independent_models import load_sources, model_root
 from .independent_preparation import OUTPUT
 from .independent_protocol import (
     CONTROLS,
@@ -36,7 +34,6 @@ from .independent_protocol import (
     REUSED_METHODS,
     WORKERS,
     canonical_task,
-    freeze,
     held_family,
     jobs,
     reuse_jobs,
@@ -48,6 +45,7 @@ from .independent_protocol import (
 from .initialization import initial_indices
 from .protocol import ROOT
 from .query import PaidExecution, QueryLedger, run_isolated
+from .recorded_models import load_model, load_sources, model_root
 from .scenarios import sample
 from .schema import QueryFeedback
 
@@ -134,7 +132,7 @@ def execute(task, method):
             if saved["specification"] != setting or saved["result"]["actual_queries"] != 128:
                 raise ValueError("A saved independent run differs from its frozen paid task")
         else:
-            history, _ = load_construction(task["scenario"], held_family(task))
+            history, _ = load_archives(task["scenario"], held_family(task))
             selector, public = public_task(task, method, bank.candidates, history)
             construction_s = time.perf_counter() - started
 
@@ -321,12 +319,10 @@ def run(first_only=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "stage", choices=("freeze", "banks", "first", "audit_first", "run", "audit", "report")
+        "stage", choices=("banks", "first", "audit_first", "run", "audit", "report")
     )
     stage = parser.parse_args().stage
-    if stage == "freeze":
-        freeze()
-    elif stage in ("first", "run"):
+    if stage in ("first", "run"):
         run(first_only=stage == "first")
     elif stage in ("banks", "audit_first", "audit"):
         from .independent_validation_audit import audit, prepare_banks

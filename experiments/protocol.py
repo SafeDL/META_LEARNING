@@ -7,7 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TEST_RECORDS_ROOT = ROOT / "test_records" / "collision"
+TEST_RECORDS_ROOT = ROOT / "test_records"
 
 
 @dataclass(frozen=True)

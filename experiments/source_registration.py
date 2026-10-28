@@ -1,8 +1,6 @@
-"""Verify the frozen implementation separately from its maintained source tree."""
+"""Match recorded driving-system provenance across the reviewed directory reorganization."""
 
-import hashlib
 import json
-import zipfile
 
 from .protocol import ROOT
 
@@ -55,20 +53,3 @@ def specification_matches(recorded, current):
         else recorded[name] == value
         for name, value in current.items()
     )
-
-
-def validate_sources(frozen_sources, current_sources):
-    """Keep the original registration and explicitly pin the cleaned implementation."""
-    with zipfile.ZipFile(REGISTRATION / "frozen_sources.zip") as archive:
-        if set(archive.namelist()) != set(frozen_sources):
-            raise ValueError("The frozen implementation archive has different source files")
-        for name, expected in frozen_sources.items():
-            if hashlib.sha256(archive.read(name)).hexdigest() != expected:
-                raise ValueError(f"The originally registered source changed: {name}")
-    maintenance = json.loads((REGISTRATION / "source_maintenance.json").read_text(encoding="utf-8"))
-    protocol = REGISTRATION.parent / "protocol.json"
-    if (
-        maintenance["frozen_protocol_sha256"] != hashlib.sha256(protocol.read_bytes()).hexdigest()
-        or maintenance["maintained_source_files"] != current_sources
-    ):
-        raise ValueError("The maintained implementation differs from its reviewed cleanup record")

@@ -14,7 +14,7 @@ from testing_methods.baselines.av_bo_rf_ei.method import DEFAULT as RF_CONFIG
 from testing_methods.baselines.av_bo_rf_ei.method import risk, run
 
 from .collision_metrics import collision_recall, summarize
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .domain_risk import disclose_impact
 from .executions import ExecutionBank, execution_contract
@@ -90,7 +90,7 @@ def independent_acquisition_check(result, candidates, steps=(9, 51, 101, 128)):
 
 
 def main():
-    _, development = load_construction(SCENARIO)
+    _, development = load_archives(SCENARIO)
     archive = next(a for a in development if a.source_id == TARGET)
     bank = ExecutionBank(TEST_RECORDS_ROOT / "physical/development" / SCENARIO / TARGET)
     if (

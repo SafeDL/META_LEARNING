@@ -17,7 +17,7 @@ from controllers.highway.catalog import BY_ID
 from testing_methods.baselines.samota.pool import RadialNetwork, run
 
 from .collision_metrics import collision_recall, summarize
-from .construction import load_construction
+from .construction import load_archives
 from .discovery_config import write_json
 from .executions import ExecutionBank, execution_contract
 from .initialization import initial_indices
@@ -108,7 +108,7 @@ def main():
     torch.set_num_threads(1)
     checks = author_checks()
     kind, target, seed = "cut_in", "development_idm_mobil", 11
-    _, development = load_construction(kind)
+    _, development = load_archives(kind)
     archive = next(a for a in development if a.source_id == target)
     bank = ExecutionBank(TEST_RECORDS_ROOT / "physical/development" / kind / target)
     if bank.candidates != archive.scenarios or not specification_matches(
