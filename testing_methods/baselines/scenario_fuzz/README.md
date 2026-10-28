@@ -39,6 +39,6 @@ python -B -m experiments.domain_scenario_fuzz_validation
 python -B -m pytest tests/experiments/test_scenario_fuzz.py tests/experiments/test_scenario_fuzz_pool.py tests/experiments/test_driving_quality.py -q -p no:cacheprovider
 ```
 
-上述 `train` 入口构建开发比较的切入、切出模型，输出至 `experiment_outputs/scenario_fuzz/collision/discovery/domain_comparison/stage_a/models/`。独立验证模型由 `python -B -m experiments.independent_models classifiers` 构建，保存于 [independent_models](../../../experiment_outputs/scenario_fuzz/collision/independent_models/)，包括5类场景、5种来源范围，共25个模型。
+上述 `train` 入口构建开发比较的切入、切出模型，输出至 `experiment_outputs/scenario_fuzz/collision/discovery/domain_comparison/stage_a/models/`。原独立验证模型保存于 [independent_models](../../../experiment_outputs/scenario_fuzz/collision/independent_models/)，包括5类场景、5种来源范围，共25个模型。
 
 开发比较和独立验证均已完成；独立验证包含全来源、严格留家族条件各200项 ScenarioFuzz 运行。结果见 [独立验证报告](../../../experiment_outputs/benchmark/collision/discovery/independent_validation/report.md)。

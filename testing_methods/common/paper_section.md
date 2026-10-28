@@ -148,8 +148,8 @@ $$
 | 深核、证据计算与目标适配 | [gp_classifier.py](gp_classifier.py) 中的 `ClassificationKernel`、`laplace`、`fit_target` |
 | 收敛的分类后验推断 | [gp_laplace.py](gp_laplace.py) 中的 `laplace`、`posterior` |
 | 碰撞概率积分 | [classification.py](classification.py) 中的 `torch_moments` |
-| 联合响应核与间距变换 | [joint_response.py](../history_transfer/joint_response.py) 中的 `JointResponseKernel`、`margin_values` |
-| 历史后验与训练前缀预测 | [domain_consistency.py](../history_transfer/domain_consistency.py) 中的 `historical_prior`、`query_probabilities` |
-| 两阶段训练 | [domain_training.py](../history_transfer/domain_training.py) 中的 `train_target`、`train` |
-| 来源条件预测 | [converged_response.py](../history_transfer/converged_response.py) 中的 `component_probabilities` |
-| 权重递推与在线选例 | [domain_discovery.py](../history_transfer/domain_discovery.py) 中的 `select` |
+| 联合响应核与间距变换 | [model.py](../history_transfer/model.py) 中的 `JointResponseKernel`、`margin_values` |
+| 历史后验与训练前缀预测 | [inference.py](../history_transfer/inference.py) 中的 `historical_prior`、`query_probabilities` |
+| 两阶段训练 | [training.py](../history_transfer/training.py) 中的 `train_target`、`train` |
+| 来源条件预测 | [inference.py](../history_transfer/inference.py) 中的 `component_probabilities` |
+| 权重递推与在线选例 | [selection.py](../history_transfer/selection.py) 中的 `select` |

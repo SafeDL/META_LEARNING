@@ -1,0 +1,78 @@
+{
+  "status": "complete",
+  "specification": {
+    "history_fingerprints": {
+      "history_beam": "216e33496e67b16f10ca438f7102c8af2bcb25dddefe2e6f7c3296dc16adf09c",
+      "history_dqn": "b1aea8849a84b31394b088f64fb94177307d05547f0b28a9214f32926891395f",
+      "history_fvdm_lane": "d38e9f090fa032f9fbbfa1855c6be0fb4e40b3dd529ec637c04e46baedd6185f"
+    },
+    "development_fingerprints": {
+      "development_idm_mobil": "4f27f7d959b6d3ca7c4be7eab6745fcc56b4bd643339b4283d097fbdc8c5336a"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 2,
+      "learning_rate": 0.001,
+      "support_counts": [
+        2,
+        4
+      ],
+      "query_count": 4,
+      "historical_context": 8,
+      "validation_interval": 1,
+      "seed": 1301,
+      "validation_seed": 1319
+    },
+    "covariance_mode": "diagonal",
+    "training_contract": {
+      "testing_methods/history_transfer/domain_training.py": "98d8e261699269e8146cb6befda1c15c25f514be23763e4955e9acaaaf0a0ffb",
+      "testing_methods/history_transfer/domain_consistency.py": "b524f9037ef2f46542bd069d3ab6ca37ee800719bd22392b6fbc0d9cee726889",
+      "testing_methods/history_transfer/joint_response.py": "93291964eabbd430d975c2e6df36f007857aef88c1d8a2561d7ce11ee4ac3110",
+      "testing_methods/history_transfer/converged_response.py": "85f0aa45a9ffe27d0438ae581b8b3496d2311df0dbb22e8d941cb718e9a6b4fd",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "1b4e0281d60d650d5cfc76fac655790adee243e5f4ec6b79d6ba0cfd15035591",
+      "experiments/scenarios.py": "030e3415875732725329e398d90f6ac02b1d2fd18cfae41c29ec7bfdea74b456",
+      "experiments/safety_margin.py": "898b94b059e66bbdbf25a26897519b0160e654c6139b471f336ac558c2eb16d1",
+      "experiments/rss_response.py": "cd49654d838eb1e36548c946a39dd883f490db4f1f53ed9b1dffd32c7acbe097"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "collision Boolean only",
+    "historical_feedback": "collision and ego-normalized RSS margin",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "response_s": 1.0,
+        "acceleration_mps2": 3.0,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 9.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "same reference response time for every actor; no human-driver role"
+    }
+  },
+  "curve": [
+    {
+      "step": 1,
+      "training_evidence": 0.7921178776612998,
+      "validation_nll": 0.37900319274711797
+    },
+    {
+      "step": 2,
+      "training_evidence": 0.7134982659134778,
+      "validation_nll": 0.379497820601846
+    }
+  ],
+  "best_validation_nll": 0.37900319274711797,
+  "training_s": 0.18241529999068007
+}

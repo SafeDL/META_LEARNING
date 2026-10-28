@@ -51,9 +51,9 @@ def test_construction_checks_actual_registered_version_and_coordinate_pool(
     write_archive(tmp_path, development)
     if stale:
         with pytest.raises(ValueError, match="version|coordinates"):
-            construction.load_construction("front_brake")
+            construction.load_archives("front_brake")
     else:
-        historical, dev = construction.load_construction("front_brake")
+        historical, dev = construction.load_archives("front_brake")
         assert [a.source_id for a in historical + dev] == [history.sut_id, development.sut_id]
 
 

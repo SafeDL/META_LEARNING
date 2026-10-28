@@ -1,0 +1,56 @@
+{
+  "rss_definition": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "formula_update": "Intel suggested values; separate ADS/other response times; all five cases regenerated",
+  "overview_visual_inspection": "passed",
+  "gif_decode_checks": [
+    {
+      "kind": "front_brake",
+      "frames": 19,
+      "decoded": "all frames",
+      "csv_rows": 36
+    },
+    {
+      "kind": "cut_in",
+      "frames": 28,
+      "decoded": "all frames",
+      "csv_rows": 55
+    },
+    {
+      "kind": "cut_out",
+      "frames": 36,
+      "decoded": "all frames",
+      "csv_rows": 70
+    },
+    {
+      "kind": "lane_change_rear",
+      "frames": 27,
+      "decoded": "all frames",
+      "csv_rows": 53
+    },
+    {
+      "kind": "cut_in_interaction",
+      "frames": 35,
+      "decoded": "all frames",
+      "csv_rows": 68
+    }
+  ]
+}

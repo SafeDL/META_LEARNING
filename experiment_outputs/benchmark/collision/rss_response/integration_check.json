@@ -1,0 +1,131 @@
+{
+  "status": "passed",
+  "interpretation": "Reduced training and process-isolated development replay only. Not a full retraining or an independent evaluation of testing efficiency.",
+  "continuous_response": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "configuration": {
+    "steps": 2,
+    "learning_rate": 0.001,
+    "support_counts": [
+      2,
+      4
+    ],
+    "query_count": 4,
+    "historical_context": 8,
+    "validation_interval": 1,
+    "seed": 1301,
+    "validation_seed": 1319
+  },
+  "checks": [
+    {
+      "scenario": "front_brake",
+      "training_status": "complete",
+      "historical_systems": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane"
+      ],
+      "development_system": "development_idm_mobil",
+      "paid_queries": 4,
+      "selected_indices": [
+        0,
+        1,
+        10,
+        2
+      ],
+      "best_validation_nll": 0.2597820935398535
+    },
+    {
+      "scenario": "cut_in",
+      "training_status": "complete",
+      "historical_systems": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane"
+      ],
+      "development_system": "development_idm_mobil",
+      "paid_queries": 4,
+      "selected_indices": [
+        0,
+        1,
+        2,
+        8
+      ],
+      "best_validation_nll": 0.7084206947543223
+    },
+    {
+      "scenario": "cut_out",
+      "training_status": "complete",
+      "historical_systems": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane"
+      ],
+      "development_system": "development_idm_mobil",
+      "paid_queries": 4,
+      "selected_indices": [
+        0,
+        1,
+        5,
+        6
+      ],
+      "best_validation_nll": 0.3141386350697176
+    },
+    {
+      "scenario": "lane_change_rear",
+      "training_status": "complete",
+      "historical_systems": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane"
+      ],
+      "development_system": "development_idm_mobil",
+      "paid_queries": 4,
+      "selected_indices": [
+        0,
+        1,
+        10,
+        2
+      ],
+      "best_validation_nll": 0.5507159110575591
+    },
+    {
+      "scenario": "cut_in_interaction",
+      "training_status": "complete",
+      "historical_systems": [
+        "history_beam",
+        "history_dqn",
+        "history_fvdm_lane"
+      ],
+      "development_system": "development_idm_mobil",
+      "paid_queries": 4,
+      "selected_indices": [
+        0,
+        1,
+        5,
+        9
+      ],
+      "best_validation_nll": 0.4576409549573731
+    }
+  ],
+  "independent_target_records_used": false,
+  "new_simulator_calls": 0
+}

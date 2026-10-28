@@ -31,21 +31,6 @@ def registration(tmp_path, monkeypatch):
     return {"method.py": hashlib.sha256(original).hexdigest()}, maintained
 
 
-def test_maintenance_does_not_relabel_the_original_source(tmp_path, monkeypatch):
-    frozen, maintained = registration(tmp_path, monkeypatch)
-    source_registration.validate_sources(frozen, maintained)
-    with pytest.raises(ValueError, match="maintained implementation"):
-        source_registration.validate_sources(frozen, {"method.py": "unreviewed-change"})
-
-
-def test_original_source_corruption_is_rejected(tmp_path, monkeypatch):
-    frozen, maintained = registration(tmp_path, monkeypatch)
-    with zipfile.ZipFile(source_registration.REGISTRATION / "frozen_sources.zip", "w") as archive:
-        archive.writestr("method.py", b"changed source")
-    with pytest.raises(ValueError, match="originally registered source"):
-        source_registration.validate_sources(frozen, maintained)
-
-
 @pytest.mark.parametrize(
     ("old_name", "new_name"),
     [
@@ -82,3 +67,25 @@ def test_reorganization_accepts_only_reviewed_source_changes(
         {**current, "extra.py": "new"},
     ):
         assert not source_registration.source_contract_matches(original, changed)
+
+
+def test_preserved_protocol_rejects_corrupted_archived_source(tmp_path, monkeypatch):
+    from experiments import independent_protocol
+
+    folder = tmp_path / "model_construction"
+    folder.mkdir()
+    with zipfile.ZipFile(folder / "frozen_sources.zip", "w") as archive:
+        archive.writestr("model.py", b"corrupted source")
+    (tmp_path / "protocol.json").write_text(
+        json.dumps(
+            {
+                "recipe": {
+                    "source_files": {"model.py": hashlib.sha256(b"original source").hexdigest()}
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(independent_protocol, "OUTPUT", tmp_path)
+    with pytest.raises(ValueError, match="preserved source file changed"):
+        independent_protocol.validate_protocol()

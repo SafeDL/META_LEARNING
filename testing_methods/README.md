@@ -9,4 +9,4 @@
 | [common](common/README.md) | 测试档案、概率模型、分类推断和模型加载工具 |
 | [selection.py](selection.py) | 检查共同初始化和查询预算，统一并列候选的选择规则 |
 
-论文方法描述按 [问题定义](paper_section.md)、[主方法](history_transfer/paper_section.md)、[概率模型与推断](common/paper_section.md) 的顺序阅读。模型训练入口见主方法与各基线的说明，实验设置、数据权限和评价指标见 [实验运行说明](../experiments/README.md)。
+原间距实验的方法描述按 [问题定义](paper_section.md)、[主方法](history_transfer/paper_section.md)、[概率模型与推断](common/paper_section.md) 的顺序阅读。当前RSS辅助响应的定义见 [安全度量说明](../docs/rss.md)，训练入口见 [history_transfer](history_transfer/README.md)。实验设置、数据权限和评价指标见 [实验运行说明](../experiments/README.md)。

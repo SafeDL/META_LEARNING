@@ -1,0 +1,71 @@
+{
+  "scope": "Complete 512-candidate bank for each of the five displayed target/scenario pairs; evaluator-only post-hoc diagnosis; no fitting or selector changes.",
+  "parameters": {
+    "response_s": 1.0,
+    "acceleration_mps2": 3.0,
+    "braking_min_mps2": 4.0,
+    "braking_max_mps2": 9.0,
+    "lateral_acceleration_mps2": 0.2,
+    "lateral_braking_mps2": 0.8,
+    "lateral_buffer_m": 0.1
+  },
+  "results": [
+    {
+      "kind": "front_brake",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 23,
+      "collisions_with_negative_margin": 23,
+      "noncollisions_with_negative_margin": 489,
+      "initial_negative": 508,
+      "distinct_minimum_margins": 1,
+      "descriptive_collision_auc": 0.5
+    },
+    {
+      "kind": "cut_in",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 96,
+      "collisions_with_negative_margin": 96,
+      "noncollisions_with_negative_margin": 389,
+      "initial_negative": 0,
+      "distinct_minimum_margins": 493,
+      "descriptive_collision_auc": 0.6340144230769231
+    },
+    {
+      "kind": "cut_out",
+      "target": "independent_linear_mpc",
+      "executions": 512,
+      "collisions": 30,
+      "collisions_with_negative_margin": 30,
+      "noncollisions_with_negative_margin": 482,
+      "initial_negative": 510,
+      "distinct_minimum_margins": 296,
+      "descriptive_collision_auc": 0.3330567081604426
+    },
+    {
+      "kind": "lane_change_rear",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 383,
+      "collisions_with_negative_margin": 383,
+      "noncollisions_with_negative_margin": 129,
+      "initial_negative": 509,
+      "distinct_minimum_margins": 405,
+      "descriptive_collision_auc": 0.45629161859655515
+    },
+    {
+      "kind": "cut_in_interaction",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 235,
+      "collisions_with_negative_margin": 235,
+      "noncollisions_with_negative_margin": 255,
+      "initial_negative": 0,
+      "distinct_minimum_margins": 419,
+      "descriptive_collision_auc": 0.6659881711344957
+    }
+  ],
+  "wall_s": 6.909963199985214,
+  "interpretation": "Archived trial BEFORE the directional lateral-stopping correction. Current raw and normalized results are both in bank_diagnostics.json."
+}

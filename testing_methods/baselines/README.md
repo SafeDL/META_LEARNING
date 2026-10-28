@@ -17,4 +17,4 @@
 
 全来源独立验证包含本文方法和全部六个基线。严格留家族比较包含本文方法、ScenarioFuzz、Random、RF-EI 和 SAMOTA；后三者不使用历史来源，复用相同的全来源运行。配对系统主动评估与 Indago 的正式结果属于全来源比较。
 
-当前离线分类器包括25个 ScenarioFuzz 模型和5个 Indago 模型，由 [independent_models](../../experiments/independent_models.py) 构建。其余方法在运行时根据允许的数据构建代理或更新模型。完整运行入口见 [实验指导](../../experiments/README.md)，比较结果见 [独立验证报告](../../experiment_outputs/benchmark/collision/discovery/independent_validation/report.md)。
+原独立验证保留25个 ScenarioFuzz 模型和5个 Indago 模型；模型位置及来源后验读取见 [recorded_models.py](../../experiments/recorded_models.py)，构建源码保存在原登记归档中。其余方法在运行时根据允许的数据构建代理或更新模型。运行入口见 [实验指导](../../experiments/README.md)，比较结果见 [独立验证报告](../../experiment_outputs/benchmark/collision/discovery/independent_validation/report.md)。

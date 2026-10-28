@@ -7,6 +7,7 @@ from functools import cached_property
 
 import numpy as np
 
+from experiments.rss import measurement_contract, rss_values
 from experiments.scenarios import difficult, features
 
 
@@ -20,6 +21,8 @@ class ResponseArchive:
     collision: np.ndarray
     safety: np.ndarray
     provenance: dict = field(default_factory=dict)
+    rss_margin: np.ndarray | None = None
+    rss_contract: dict = field(default_factory=dict)
 
     def __post_init__(self):
         self.collision = np.asarray(self.collision)
@@ -35,6 +38,18 @@ class ResponseArchive:
         if len({s.coordinate() for s in self.scenarios}) != len(self.scenarios):
             raise ValueError("Repeated coordinates must be stored as environment repetitions")
         features(self.scenarios)
+        if self.rss_margin is not None:
+            self.rss_margin = rss_values(self.rss_margin)
+            if self.rss_margin.shape != (len(self.scenarios),):
+                raise ValueError("RSS responses must align with the archive scenarios")
+            if self.rss_contract != measurement_contract():
+                raise ValueError("All construction archives must use the same global RSS contract")
+
+    @property
+    def continuous_margin(self):
+        if self.rss_margin is None:
+            raise ValueError("RSS construction requires derived trajectory margins, not clearance")
+        return self.rss_margin
 
     @cached_property
     def x(self):
@@ -59,9 +74,13 @@ def archive_fingerprints(archives):
             "execution_contract": archive.provenance.get("contract"),
             "scenarios": [asdict(s) for s in archive.scenarios],
         }
+        if archive.rss_margin is not None:
+            metadata["rss_contract"] = archive.rss_contract
         digest = hashlib.sha256(json.dumps(metadata, sort_keys=True).encode("utf-8"))
         digest.update(archive.collision.tobytes())
         digest.update(archive.safety.astype("<f8").tobytes())
+        if archive.rss_margin is not None:
+            digest.update(archive.rss_margin.astype("<f8").tobytes())
         fingerprints[archive.source_id] = digest.hexdigest()
     return fingerprints
 

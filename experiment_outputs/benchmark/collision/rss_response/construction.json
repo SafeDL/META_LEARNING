@@ -1,0 +1,1289 @@
+{
+  "status": "complete",
+  "measure": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "archives": [
+    {
+      "source_id": "development_idm_mobil",
+      "role": "development",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 92,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9616315217882891,
+        -0.8429377505778537,
+        -0.8027425382748141,
+        -0.7204042108217338,
+        -0.20202768065972854
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.0754285138166955,
+        "npc": 7.086825092406677
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_linear_mpc",
+      "role": "development",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 55,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9336918407763162,
+        -0.812532761106991,
+        -0.7132107331227309,
+        -0.566402296599531,
+        0.392017709656848
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.788779095691166,
+        "npc": 7.086825092406677
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_ppo",
+      "role": "development",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 318,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.7867530092111863,
+        -0.5822892834082358,
+        -0.4407985412157323,
+        0.4678899082568806,
+        0.4678899082568806
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.201929584293838,
+        "npc": 7.086825092406677
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_uct",
+      "role": "development",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.8890797896759122,
+        -0.7256902307893489,
+        -0.6722707774754451,
+        -0.6078156075365753,
+        -0.24976479532722817
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 7.284671450073058,
+        "npc": 7.086825092406677
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_idm_mobil",
+      "role": "development",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 96,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.962324910137554,
+        -0.8557879460622523,
+        -0.8046688524848502,
+        -0.7219024175995236,
+        -0.20202768065972854
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.084863403798416,
+        "npc": 7.073744792440604
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_linear_mpc",
+      "role": "development",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 56,
+      "negative": 510,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9588227705058602,
+        -0.8272560538444897,
+        -0.7556062077074293,
+        -0.6258819222289296,
+        0.392017709656848
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.788779095691166,
+        "npc": 7.073744792440604
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_ppo",
+      "role": "development",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 85,
+      "negative": 417,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9744356270568093,
+        -0.8337453592791367,
+        -0.6681030953513869,
+        -0.4464985487072084,
+        0.4678899082568806
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.201929584293838,
+        "npc": 7.073744792440604
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_uct",
+      "role": "development",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 29,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.929220578497547,
+        -0.7756538805974919,
+        -0.7037611089658455,
+        -0.6479749809344387,
+        -0.24976479532722817
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.589336934411556,
+        "npc": 7.073744792440604
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_idm_mobil",
+      "role": "development",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 88,
+      "negative": 512,
+      "initial_negative": 510,
+      "margin_quantiles": [
+        -0.9568509132602062,
+        -0.8638992253745386,
+        -0.7690082672005785,
+        -0.6630146034765485,
+        -0.0955931385973392
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.189382959998664,
+        "npc": 7.083172371608815
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_linear_mpc",
+      "role": "development",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 24,
+      "negative": 512,
+      "initial_negative": 510,
+      "margin_quantiles": [
+        -0.9669862860296492,
+        -0.8380541044597735,
+        -0.7640775255919214,
+        -0.6749260433931568,
+        -0.43383987929878787
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 7.190260101613046,
+        "npc": 7.083172371608815
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_ppo",
+      "role": "development",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 22,
+      "negative": 510,
+      "initial_negative": 510,
+      "margin_quantiles": [
+        -0.9707394237815161,
+        -0.8311488295686186,
+        -0.7491798829032444,
+        -0.6601749188544994,
+        0.286718496378334
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.263178144637029,
+        "npc": 7.083172371608815
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_uct",
+      "role": "development",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 25,
+      "negative": 512,
+      "initial_negative": 510,
+      "margin_quantiles": [
+        -0.94012183497422,
+        -0.8304614408210316,
+        -0.7494771193096907,
+        -0.6837784819851946,
+        -0.33634953153577607
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.798981735565854,
+        "npc": 7.083172371608815
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_idm_mobil",
+      "role": "development",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.917198639392377,
+        -0.7345729613863178,
+        -0.6010591572117416,
+        -0.4543069454612716,
+        -0.004785620133829327
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.100888536938296,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_linear_mpc",
+      "role": "development",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9116406402761126,
+        -0.7298304966074088,
+        -0.6188564374620971,
+        -0.581916322507932,
+        -0.4443672197052434
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 4.270354207852068,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_ppo",
+      "role": "development",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9116406402761126,
+        -0.735370047069132,
+        -0.6219188581110118,
+        -0.5349952953415023,
+        -0.10009577049748641
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.2478042036525645,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_uct",
+      "role": "development",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9116406402761126,
+        -0.7298304966074088,
+        -0.6218257870019503,
+        -0.5603102680805977,
+        -0.32221508022727663
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.4776976052141295,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_idm_mobil",
+      "role": "development",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 26,
+      "negative": 512,
+      "initial_negative": 509,
+      "margin_quantiles": [
+        -0.9634340176328493,
+        -0.8131613506545199,
+        -0.7183551111202773,
+        -0.6192236950945641,
+        -0.2909650673663301
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.13804003942331,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_linear_mpc",
+      "role": "development",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 63,
+      "negative": 512,
+      "initial_negative": 509,
+      "margin_quantiles": [
+        -0.9845212755902163,
+        -0.9001888837850281,
+        -0.8158520000242582,
+        -0.7099204234062888,
+        -0.4854494227460502
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.7923701524154465,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_ppo",
+      "role": "development",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 52,
+      "negative": 512,
+      "initial_negative": 509,
+      "margin_quantiles": [
+        -0.9845641217242462,
+        -0.8670680901471941,
+        -0.7921707393717061,
+        -0.6520334251080019,
+        -0.1102820677378733
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.262849895857507,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "development_uct",
+      "role": "development",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 21,
+      "negative": 512,
+      "initial_negative": 509,
+      "margin_quantiles": [
+        -0.9355224838121874,
+        -0.8785727745648511,
+        -0.8417505184175701,
+        -0.7167282630964452,
+        -0.2951031603186609
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.2836092335939995,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_beam",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 1,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.8840667524985034,
+        -0.713005848882228,
+        -0.6389957535038985,
+        -0.5571525208845947,
+        0.4435617870398505
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.65131565104607,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_dqn",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 150,
+      "negative": 510,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9749997322705319,
+        -0.8645326417473893,
+        -0.7667992535723971,
+        -0.6070129739008734,
+        0.46782765079206556
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.175772572874037,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_fvdm_lane",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 97,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9644411036587869,
+        -0.8529327637600815,
+        -0.8101576081169244,
+        -0.7344350522838243,
+        0.4555240778138596
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.14090937000019,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_idm_mobil",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 87,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9488468467848302,
+        -0.8432580326516772,
+        -0.7981460565199519,
+        -0.708238919500819,
+        -0.049361433500325624
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.071544730088267,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_linear_mpc",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 44,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9243969925086026,
+        -0.8119892139177578,
+        -0.7033400249732258,
+        -0.5714620974209679,
+        0.46782765079206556
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.774244842828105,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_nonlinear_trajectory",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 71,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9392249053013003,
+        -0.8253716994324247,
+        -0.7314216007111274,
+        -0.6394026813485951,
+        0.46528770349624415
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.791259303255029,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_ppo",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 1,
+      "negative": 510,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.816385186579339,
+        -0.7247593699748034,
+        -0.6808069789643562,
+        -0.5640847019714168,
+        0.09617833866309033
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.1739471013333915,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_uct",
+      "role": "history",
+      "scenario": "cut_in",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.8643050185765809,
+        -0.7212328358481015,
+        -0.6618041432210942,
+        -0.5864416708208252,
+        0.13207707300065263
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.496267573522526,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_beam",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 20,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9451991533571892,
+        -0.7999801373495689,
+        -0.7155592050858633,
+        -0.6132035679720375,
+        -0.19470224393033886
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.837555903417209,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_dqn",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 253,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9770158925159957,
+        -0.9682693547647547,
+        -0.843963773523668,
+        -0.7106470804472804,
+        0.09617833866309033
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.169004481912731,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_fvdm_lane",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 101,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.963135304645871,
+        -0.8656769310362419,
+        -0.8101301028665271,
+        -0.7337560559792998,
+        -0.23490909984245079
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.145289330686685,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_idm_mobil",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 91,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9502161586939116,
+        -0.8565299707109489,
+        -0.7984319189481135,
+        -0.7185796182142501,
+        -0.3470846392693254
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.080514000179857,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_linear_mpc",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 38,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9492329479954591,
+        -0.8380308293487689,
+        -0.7407102589829649,
+        -0.6281371069811725,
+        -0.13528376818894294
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.766348392716874,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_nonlinear_trajectory",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 55,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9511132699768361,
+        -0.8393421879694153,
+        -0.74932506802291,
+        -0.6605974099117596,
+        -0.13528649034732343
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.791259303255029,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_ppo",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 176,
+      "negative": 511,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9760795778712213,
+        -0.9240787965429168,
+        -0.7560955489708043,
+        -0.6764917222346506,
+        0.09617833866309033
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.1734949899829275,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_uct",
+      "role": "history",
+      "scenario": "cut_in_interaction",
+      "executions": 512,
+      "collisions": 23,
+      "negative": 512,
+      "initial_negative": 0,
+      "margin_quantiles": [
+        -0.9180773829739788,
+        -0.7598366459399946,
+        -0.6917177254958166,
+        -0.6300070953335923,
+        -0.2565506558591746
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.672893039955216,
+        "npc": 7.094575475099932
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_beam",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 105,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9530866378279089,
+        -0.8677421053679651,
+        -0.8031585410736388,
+        -0.7328587621874206,
+        -0.4542992422888542
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.697084623237594,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_dqn",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 134,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9774437574750325,
+        -0.8850674396917996,
+        -0.783995953017373,
+        -0.6815339313067815,
+        -0.29081666675750495
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.174303938297378,
+        "npc": 7.082969268947515
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_fvdm_lane",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 116,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9578517366108351,
+        -0.8753256018668869,
+        -0.7897342519246071,
+        -0.6863976868982571,
+        -0.2995366695592071
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.32484445169494,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_idm_mobil",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 81,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9559055085750429,
+        -0.8727652972654052,
+        -0.7736778362943639,
+        -0.6690946204239907,
+        -0.09723274819955852
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.190568708551747,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_linear_mpc",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 24,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9668830441340779,
+        -0.8393695214345877,
+        -0.7717418365188403,
+        -0.6818188795484926,
+        -0.4174492705126932
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 7.173897946113853,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_nonlinear_trajectory",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 44,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9668830441340779,
+        -0.8425194826748424,
+        -0.7776007098084885,
+        -0.7010856453439003,
+        -0.413967118971337
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.73326120626572,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_ppo",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 25,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9419324163439848,
+        -0.8393594248311818,
+        -0.7638858982739212,
+        -0.6698697994780723,
+        -0.29081666675750495
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.175862018321675,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_uct",
+      "role": "history",
+      "scenario": "cut_out",
+      "executions": 512,
+      "collisions": 16,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9377463981478211,
+        -0.8266360051324853,
+        -0.7533459967378782,
+        -0.6759616159223893,
+        -0.253934365220719
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.862846633898463,
+        "npc": 7.096264340564209
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_beam",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9026353607225641,
+        -0.7264576484853029,
+        -0.6425110301362642,
+        -0.6048581518650258,
+        -0.4640421892233404
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.176409740214192,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_dqn",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 91,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9778202102860698,
+        -0.7829581935907701,
+        -0.6719796031245125,
+        -0.5678097145019578,
+        -0.300644722527579
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.175772572874037,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_fvdm_lane",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9096143207801346,
+        -0.7321472769973041,
+        -0.604979094017368,
+        -0.4625485062871772,
+        -0.311952099863973
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.180670932123231,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_idm_mobil",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.909933390601066,
+        -0.7311855173326399,
+        -0.6038436214151381,
+        -0.44989707050161326,
+        -0.07945890773026465
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.098524637991072,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_linear_mpc",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9026353607225641,
+        -0.7260420250167591,
+        -0.6482245627173496,
+        -0.6210710122660477,
+        -0.48042610811388375
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 4.26791203174667,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_nonlinear_trajectory",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9026353607225641,
+        -0.7345044378545285,
+        -0.663428997300383,
+        -0.6358314127925032,
+        -0.4425214164264387
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 4.267912080411271,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_ppo",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9102056066538491,
+        -0.7326000784705019,
+        -0.6346921564315828,
+        -0.5636581853181185,
+        -0.37235002506277715
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.175772572874037,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_uct",
+      "role": "history",
+      "scenario": "front_brake",
+      "executions": 512,
+      "collisions": 0,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9026353607225641,
+        -0.7250626777560839,
+        -0.6213479075503381,
+        -0.5597129027582194,
+        -0.33270571141172167
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.910451192973775,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_beam",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 114,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9778399187894344,
+        -0.9046173955854009,
+        -0.8479884276642687,
+        -0.7829281716663442,
+        -0.5857585244824326
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.593444220077885,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_dqn",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 433,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9805664942832875,
+        -0.973042119671014,
+        -0.9489618939900881,
+        -0.9193206935018461,
+        -0.7864376519801697
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.167533985135988,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_fvdm_lane",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 24,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9699959006416502,
+        -0.7960071445673789,
+        -0.7050159088657411,
+        -0.5840099567111595,
+        -0.4038133947118089
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.263195512141715,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_idm_mobil",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 21,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9725937514305589,
+        -0.824164220970412,
+        -0.7319973571199546,
+        -0.6367282481238438,
+        -0.2735809247780616
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.131239959193012,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_linear_mpc",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 64,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9850110767873553,
+        -0.9103047388750972,
+        -0.8315958367486118,
+        -0.7397446167878429,
+        -0.5664096788402678
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.659109466403097,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_nonlinear_trajectory",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 44,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.98543343354453,
+        -0.9075250426154934,
+        -0.8430832966087803,
+        -0.7509416961978798,
+        -0.5663543972222951
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.741538202899167,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_ppo",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 130,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9833954124801635,
+        -0.9221394835538808,
+        -0.8756281677545612,
+        -0.8216118473167312,
+        -0.635383646104312
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.173118207678799,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    },
+    {
+      "source_id": "history_uct",
+      "role": "history",
+      "scenario": "lane_change_rear",
+      "executions": 512,
+      "collisions": 23,
+      "negative": 512,
+      "initial_negative": 508,
+      "margin_quantiles": [
+        -0.9326351697682325,
+        -0.8806755486153393,
+        -0.8407180009457415,
+        -0.7230249630115846,
+        -0.2827750660054513
+      ],
+      "preimpact_sampled_lateral_acceleration_max_mps2": {
+        "ego": 6.994549556735057,
+        "npc": 0.0
+      },
+      "new_simulator_calls": 0
+    }
+  ],
+  "executions": 30720,
+  "independent_target_records_used": false,
+  "new_simulator_calls": 0,
+  "interpretation": "Fixed reference-parameter response derivation, not statistical parameter fitting or a safety guarantee."
+}

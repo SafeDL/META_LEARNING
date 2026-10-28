@@ -1,0 +1,335 @@
+{
+  "selection": "Fixed seed 11, all_sources; earliest collision after initialization matching each stated mechanism; cut-out uses linear MPC because DQN has no paid obstacle impact in this run.",
+  "interpretation": "Illustrative discoveries, not representative frequencies. RSS is post-hoc and did not select these cases. Full actor state includes occluded actors; no new selector queries or simulator calls.",
+  "style_reference": "simulator/metadrive/scripts/render_stage_a.py (blue/red palette and scientific panels); historical SAC renderer (blue SUT/red adversary).",
+  "rss_parameters": {
+    "ego_response_s": 1.0,
+    "other_response_s": 2.0,
+    "acceleration_mps2": 3.5,
+    "braking_min_mps2": 4.0,
+    "braking_max_mps2": 8.0,
+    "lateral_acceleration_mps2": 0.2,
+    "lateral_braking_mps2": 0.8,
+    "lateral_buffer_m": 0.1
+  },
+  "rss_definition": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "cases": [
+    {
+      "kind": "front_brake",
+      "title": "Front braking",
+      "target": "independent_dqn",
+      "method": "gcrt",
+      "condition": "all_sources",
+      "algorithm_seed": 11,
+      "query_number": 11,
+      "budget": 128,
+      "candidate_index": 72,
+      "physical_bank_index": 72,
+      "run_path": "experiment_outputs/gcrt/collision/discovery/independent_validation/gcrt/independent_dqn/front_brake/all_sources/11.json",
+      "execution_path": "test_records/independent_targets/independent_dqn/front_brake/env_81001/executions/000072.json.gz",
+      "scenario": {
+        "scenario_id": "front_brake:new:0:000076",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.875416696071625,
+          "gap_m": 10.0262870490551,
+          "closing_speed_mps": 1.6463482715189457,
+          "deceleration_mps2": 6.613079586997628,
+          "event_time_s": 0.6159767876379192,
+          "brake_ramp_s": 0.1504464488476515
+        },
+        "categories": {}
+      },
+      "collision_time_s": 1.75,
+      "collision_partner": "lead",
+      "contact_direction": "front",
+      "events": {
+        "scheduled_event_s": 0.6159767876379192,
+        "measured_background_onset_s": 0.65,
+        "background_complete_s": null,
+        "obstacle_visible_s": null,
+        "ego_lane_change_onset_s": null,
+        "first_ego_brake_s": null,
+        "ego_brake_at_or_after_event_s": null,
+        "brake_latency_from_scheduled_event_s": null,
+        "ego_brake_at_or_after_reveal_s": null,
+        "brake_latency_from_reveal_s": null
+      },
+      "rss": {
+        "minimum_margin": -0.9748980193315626,
+        "risk": 0.9748980193315626,
+        "critical_time_s": 1.75,
+        "critical_actor": "lead",
+        "first_negative_time_s": 0.0,
+        "initial_margin": -0.8910670080562552
+      },
+      "ego_response_sensitivity": {
+        "0.3": -0.9663977902235213,
+        "0.5": -0.9692983377423859,
+        "1.0": -0.9748980193315626,
+        "1.5": -0.9789216582483029
+      },
+      "gif": "front_brake.gif",
+      "gif_frames": 19,
+      "playback_speed": 0.5
+    },
+    {
+      "kind": "cut_in",
+      "title": "Vehicle cut-in",
+      "target": "independent_dqn",
+      "method": "gcrt",
+      "condition": "all_sources",
+      "algorithm_seed": 11,
+      "query_number": 9,
+      "budget": 128,
+      "candidate_index": 449,
+      "physical_bank_index": 449,
+      "run_path": "experiment_outputs/gcrt/collision/discovery/independent_validation/gcrt/independent_dqn/cut_in/all_sources/11.json",
+      "execution_path": "test_records/independent_targets/independent_dqn/cut_in/env_81001/executions/000449.json.gz",
+      "scenario": {
+        "scenario_id": "cut_in:new:0:000466",
+        "kind": "cut_in",
+        "parameters": {
+          "ego_speed_mps": 25.985389545559883,
+          "gap_m": 14.323781947605312,
+          "closing_speed_mps": 3.3111747466027737,
+          "lateral_duration_s": 3.2622850064188245,
+          "event_time_s": 1.1628778157755733
+        },
+        "categories": {
+          "side": "right"
+        }
+      },
+      "collision_time_s": 2.7,
+      "collision_partner": "cut_in",
+      "contact_direction": "side",
+      "events": {
+        "scheduled_event_s": 1.1628778157755733,
+        "measured_background_onset_s": 1.4,
+        "background_complete_s": null,
+        "obstacle_visible_s": null,
+        "ego_lane_change_onset_s": null,
+        "first_ego_brake_s": null,
+        "ego_brake_at_or_after_event_s": null,
+        "brake_latency_from_scheduled_event_s": null,
+        "ego_brake_at_or_after_reveal_s": null,
+        "brake_latency_from_reveal_s": null
+      },
+      "rss": {
+        "minimum_margin": -0.8132892333799124,
+        "risk": 0.8132892333799124,
+        "critical_time_s": 2.7,
+        "critical_actor": "cut_in",
+        "first_negative_time_s": 1.6,
+        "initial_margin": 0.4678899082568806
+      },
+      "ego_response_sensitivity": {
+        "0.3": -0.8114933036249561,
+        "0.5": -0.8118115705380965,
+        "1.0": -0.8132892333799124,
+        "1.5": -0.8157011035101975
+      },
+      "gif": "cut_in.gif",
+      "gif_frames": 28,
+      "playback_speed": 0.5
+    },
+    {
+      "kind": "cut_out",
+      "title": "Cut-out reveals an obstacle",
+      "target": "independent_linear_mpc",
+      "method": "gcrt",
+      "condition": "all_sources",
+      "algorithm_seed": 11,
+      "query_number": 86,
+      "budget": 128,
+      "candidate_index": 365,
+      "physical_bank_index": 365,
+      "run_path": "experiment_outputs/gcrt/collision/discovery/independent_validation/gcrt/independent_linear_mpc/cut_out/all_sources/11.json",
+      "execution_path": "test_records/independent_targets/independent_linear_mpc/cut_out/env_81001/executions/000365.json.gz",
+      "scenario": {
+        "scenario_id": "cut_out:new:0:001178",
+        "kind": "cut_out",
+        "parameters": {
+          "ego_speed_mps": 22.210968554019928,
+          "gap_m": 8.41970212571323,
+          "lead_speed_mps": 15.94237795099616,
+          "obstacle_distance_m": 65.542076472193,
+          "event_time_s": 0.7782419375143945,
+          "lateral_duration_s": 1.9545813316479326
+        },
+        "categories": {}
+      },
+      "collision_time_s": 3.45,
+      "collision_partner": "obstacle",
+      "contact_direction": "front",
+      "events": {
+        "scheduled_event_s": 0.7782419375143945,
+        "measured_background_onset_s": 0.95,
+        "background_complete_s": 2.5,
+        "obstacle_visible_s": 1.95,
+        "ego_lane_change_onset_s": 0.55,
+        "first_ego_brake_s": 0.0,
+        "ego_brake_at_or_after_event_s": 0.7782419375143945,
+        "brake_latency_from_scheduled_event_s": 0.0,
+        "ego_brake_at_or_after_reveal_s": 2.0,
+        "brake_latency_from_reveal_s": 0.050000000000000044
+      },
+      "rss": {
+        "minimum_margin": -0.8852267520072432,
+        "risk": 0.8852267520072432,
+        "critical_time_s": 1.65,
+        "critical_actor": "lead",
+        "first_negative_time_s": 0.0,
+        "initial_margin": -0.8597845724219078
+      },
+      "ego_response_sensitivity": {
+        "0.3": -0.8233657424442796,
+        "0.5": -0.8424669578842707,
+        "1.0": -0.8852267520072432,
+        "1.5": -0.9084622676583842
+      },
+      "gif": "cut_out.gif",
+      "gif_frames": 36,
+      "playback_speed": 0.5
+    },
+    {
+      "kind": "lane_change_rear",
+      "title": "Lane change and rear-end impact",
+      "target": "independent_dqn",
+      "method": "gcrt",
+      "condition": "all_sources",
+      "algorithm_seed": 11,
+      "query_number": 14,
+      "budget": 128,
+      "candidate_index": 221,
+      "physical_bank_index": 221,
+      "run_path": "experiment_outputs/gcrt/collision/discovery/independent_validation/gcrt/independent_dqn/lane_change_rear/all_sources/11.json",
+      "execution_path": "test_records/independent_targets/independent_dqn/lane_change_rear/env_81001/executions/000221.json.gz",
+      "scenario": {
+        "scenario_id": "lane_change_rear:new:0:000246",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 21.047808185219765,
+          "lead_gap_m": 26.477203969843686,
+          "lead_speed_mps": 15.972748056054115,
+          "rear_gap_m": 31.137400683946908,
+          "rear_speed_mps": 36.362155854701996,
+          "adjacent_front_gap_m": 30.610656305216253
+        },
+        "categories": {}
+      },
+      "collision_time_s": 2.6,
+      "collision_partner": "rear",
+      "contact_direction": "rear",
+      "events": {
+        "scheduled_event_s": null,
+        "measured_background_onset_s": null,
+        "background_complete_s": null,
+        "obstacle_visible_s": null,
+        "ego_lane_change_onset_s": 0.25,
+        "first_ego_brake_s": null,
+        "ego_brake_at_or_after_event_s": null,
+        "brake_latency_from_scheduled_event_s": null,
+        "ego_brake_at_or_after_reveal_s": null,
+        "brake_latency_from_reveal_s": null
+      },
+      "rss": {
+        "minimum_margin": -0.9637107606345794,
+        "risk": 0.9637107606345794,
+        "critical_time_s": 2.6,
+        "critical_actor": "rear",
+        "first_negative_time_s": 0.0,
+        "initial_margin": -0.6389261062752289
+      },
+      "ego_response_sensitivity": {
+        "0.3": -0.957748214857873,
+        "0.5": -0.9594766839119608,
+        "1.0": -0.9637107606345794,
+        "1.5": -0.9676829155271254
+      },
+      "gif": "lane_change_rear.gif",
+      "gif_frames": 27,
+      "playback_speed": 0.5
+    },
+    {
+      "kind": "cut_in_interaction",
+      "title": "Cut-in with restricted adjacent space",
+      "target": "independent_dqn",
+      "method": "gcrt",
+      "condition": "all_sources",
+      "algorithm_seed": 11,
+      "query_number": 9,
+      "budget": 128,
+      "candidate_index": 407,
+      "physical_bank_index": 407,
+      "run_path": "experiment_outputs/gcrt/collision/discovery/independent_validation/gcrt/independent_dqn/cut_in_interaction/all_sources/11.json",
+      "execution_path": "test_records/independent_targets/independent_dqn/cut_in_interaction/env_81001/executions/000407.json.gz",
+      "scenario": {
+        "scenario_id": "cut_in_interaction:new:0:000407",
+        "kind": "cut_in_interaction",
+        "parameters": {
+          "ego_speed_mps": 31.37858672440052,
+          "gap_m": 30.00845983158797,
+          "closing_speed_mps": 6.107823550701141,
+          "lateral_duration_s": 2.454020248539746,
+          "event_time_s": 0.7206312958151102
+        },
+        "categories": {
+          "side": "left",
+          "adjacent_space": "restricted"
+        }
+      },
+      "collision_time_s": 3.35,
+      "collision_partner": "cut_in",
+      "contact_direction": "front",
+      "events": {
+        "scheduled_event_s": 0.7206312958151102,
+        "measured_background_onset_s": 0.9,
+        "background_complete_s": 2.75,
+        "obstacle_visible_s": null,
+        "ego_lane_change_onset_s": null,
+        "first_ego_brake_s": null,
+        "ego_brake_at_or_after_event_s": null,
+        "brake_latency_from_scheduled_event_s": null,
+        "ego_brake_at_or_after_reveal_s": null,
+        "brake_latency_from_reveal_s": null
+      },
+      "rss": {
+        "minimum_margin": -0.9734605315389488,
+        "risk": 0.9734605315389488,
+        "critical_time_s": 3.35,
+        "critical_actor": "cut_in",
+        "first_negative_time_s": 1.0,
+        "initial_margin": 0.4678899082568806
+      },
+      "ego_response_sensitivity": {
+        "0.3": -0.96406436057698,
+        "0.5": -0.9672949967544571,
+        "1.0": -0.9734605315389488,
+        "1.5": -0.9778336879572087
+      },
+      "gif": "cut_in_interaction.gif",
+      "gif_frames": 35,
+      "playback_speed": 0.5
+    }
+  ]
+}

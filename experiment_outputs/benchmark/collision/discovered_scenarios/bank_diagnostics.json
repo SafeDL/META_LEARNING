@@ -1,0 +1,526 @@
+{
+  "scope": "Complete 512-candidate bank for each displayed target/scenario pair.",
+  "interpretation": "Metric-development diagnostics on existing target data, not independent validation of a new method. AUC uses complete trajectories including impact, not pre-impact predictions. Negative margin does not imply collision. Raw means max of four directed centre-separation deficits in metres, then min over actors and sampled times. Normalized means each directional deficit divided by its own required centre separation BEFORE max/min. No fitting, new simulator calls, or selector changes.",
+  "parameters": {
+    "ego_response_s": 1.0,
+    "other_response_s": 2.0,
+    "acceleration_mps2": 3.5,
+    "braking_min_mps2": 4.0,
+    "braking_max_mps2": 8.0,
+    "lateral_acceleration_mps2": 0.2,
+    "lateral_braking_mps2": 0.8,
+    "lateral_buffer_m": 0.1
+  },
+  "continuous_response": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "results": [
+    {
+      "kind": "front_brake",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 23,
+      "collisions_with_negative_margin": 23,
+      "noncollisions_with_negative_margin": 489,
+      "initial_negative": 507,
+      "minimum_at_initial": 0,
+      "distinct_minimum_margins": 512,
+      "raw_distinct_minimum_margins": 1,
+      "raw_distribution_m": {
+        "min": -2.725,
+        "p05": -2.725,
+        "p25": -2.725,
+        "median": -2.725,
+        "p75": -2.725,
+        "p95": -2.725,
+        "max": -2.725
+      },
+      "normalized_distribution": {
+        "min": -0.9755307289203342,
+        "p05": -0.8922290998969936,
+        "p25": -0.7758543928466011,
+        "median": -0.6705887913206194,
+        "p75": -0.577021555002715,
+        "p95": -0.4364398832941919,
+        "max": -0.26737426912711293
+      },
+      "collision_normalized_distribution": {
+        "min": -0.9755307289203342,
+        "p05": -0.975432854768974,
+        "p25": -0.9742988582929628,
+        "median": -0.9738704649219735,
+        "p75": -0.9728086811915662,
+        "p95": -0.971937715985613,
+        "max": -0.9715603326406913
+      },
+      "noncollision_normalized_distribution": {
+        "min": -0.9045802334621162,
+        "p05": -0.8499350041505215,
+        "p25": -0.7581710822917724,
+        "median": -0.6678773679504371,
+        "p75": -0.5710533554299391,
+        "p95": -0.43089993614907895,
+        "max": -0.26737426912711293
+      },
+      "raw_descriptive_collision_association_auc": 0.5,
+      "descriptive_collision_association_auc": 1.0,
+      "raw_normalized_spearman": null,
+      "raw_normalized_frame_sign_mismatches": 0,
+      "negative_sample_fraction_distribution": {
+        "min": 0.11940298507462686,
+        "p05": 0.11940298507462686,
+        "p25": 0.11940298507462686,
+        "median": 0.13930348258706468,
+        "p75": 0.23880597014925373,
+        "p95": 0.495522388059701,
+        "max": 1.0
+      },
+      "asinh_rank_max_difference": 0.0,
+      "asinh_zero_sign_mismatches": 0,
+      "zero_clipping_distinct_values": 512,
+      "response_time_sensitivity": [
+        {
+          "ego_response_s": 0.3,
+          "other_response_s": 2.0,
+          "negative": 511,
+          "initial_negative": 417,
+          "median_minimum_margin": -0.5472719578015793,
+          "rank_correlation_with_default": 0.9971574734496057
+        },
+        {
+          "ego_response_s": 0.5,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 457,
+          "median_minimum_margin": -0.5887171213629244,
+          "rank_correlation_with_default": 0.9986784705771277
+        },
+        {
+          "ego_response_s": 1.0,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 507,
+          "median_minimum_margin": -0.6705887913206194,
+          "rank_correlation_with_default": 1.0
+        },
+        {
+          "ego_response_s": 1.5,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 512,
+          "median_minimum_margin": -0.7321119374062903,
+          "rank_correlation_with_default": 0.999236729809684
+        }
+      ]
+    },
+    {
+      "kind": "cut_in",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 96,
+      "collisions_with_negative_margin": 96,
+      "noncollisions_with_negative_margin": 412,
+      "initial_negative": 0,
+      "minimum_at_initial": 0,
+      "distinct_minimum_margins": 512,
+      "raw_distinct_minimum_margins": 509,
+      "raw_distribution_m": {
+        "min": -9.876517592234055,
+        "p05": -9.194265557018804,
+        "p25": -7.750386477882437,
+        "median": -5.760268729764319,
+        "p75": -5.409479576171298,
+        "p95": -4.265899092549613,
+        "max": 1.2749999999999997
+      },
+      "normalized_distribution": {
+        "min": -0.9740062308959411,
+        "p05": -0.9687494341466749,
+        "p25": -0.8310617881544977,
+        "median": -0.708368433997929,
+        "p75": -0.5505479758117378,
+        "p95": -0.4292739557319819,
+        "max": 0.34783579359930883
+      },
+      "collision_normalized_distribution": {
+        "min": -0.9740062308959411,
+        "p05": -0.9723756435014272,
+        "p25": -0.9690464068602376,
+        "median": -0.8889895948682041,
+        "p75": -0.8336509874976419,
+        "p95": -0.7970562535564034,
+        "max": -0.7800703582262446
+      },
+      "noncollision_normalized_distribution": {
+        "min": -0.9665672199388696,
+        "p05": -0.885247274718995,
+        "p25": -0.7686428074125758,
+        "median": -0.6456251863511504,
+        "p75": -0.5222178883212585,
+        "p95": -0.42479546437765725,
+        "max": 0.34783579359930883
+      },
+      "raw_descriptive_collision_association_auc": 0.35724659455128205,
+      "descriptive_collision_association_auc": 0.9289112580128205,
+      "raw_normalized_spearman": 0.08296222214046625,
+      "raw_normalized_frame_sign_mismatches": 0,
+      "negative_sample_fraction_distribution": {
+        "min": 0.0,
+        "p05": 0.13208955223880597,
+        "p25": 0.1691542288557214,
+        "median": 0.20398009950248755,
+        "p75": 0.357409381663113,
+        "p95": 0.7809445921079534,
+        "max": 0.9565217391304348
+      },
+      "asinh_rank_max_difference": 0.0,
+      "asinh_zero_sign_mismatches": 0,
+      "zero_clipping_distinct_values": 509,
+      "response_time_sensitivity": [
+        {
+          "ego_response_s": 0.3,
+          "other_response_s": 2.0,
+          "negative": 508,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.6782348682143249,
+          "rank_correlation_with_default": 0.9771389089161259
+        },
+        {
+          "ego_response_s": 0.5,
+          "other_response_s": 2.0,
+          "negative": 508,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.6947985355104369,
+          "rank_correlation_with_default": 0.9902135654490107
+        },
+        {
+          "ego_response_s": 1.0,
+          "other_response_s": 2.0,
+          "negative": 508,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.708368433997929,
+          "rank_correlation_with_default": 1.0
+        },
+        {
+          "ego_response_s": 1.5,
+          "other_response_s": 2.0,
+          "negative": 508,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.7114939132423213,
+          "rank_correlation_with_default": 0.9953512670088465
+        }
+      ]
+    },
+    {
+      "kind": "cut_out",
+      "target": "independent_linear_mpc",
+      "executions": 512,
+      "collisions": 30,
+      "collisions_with_negative_margin": 30,
+      "noncollisions_with_negative_margin": 482,
+      "initial_negative": 510,
+      "minimum_at_initial": 246,
+      "distinct_minimum_margins": 512,
+      "raw_distinct_minimum_margins": 241,
+      "raw_distribution_m": {
+        "min": -8.442909260226466,
+        "p05": -6.652998439218301,
+        "p25": -5.6376058104896885,
+        "median": -2.725,
+        "p75": -2.725,
+        "p95": -2.725,
+        "max": -2.725
+      },
+      "normalized_distribution": {
+        "min": -0.9650089067821055,
+        "p05": -0.9146864253790634,
+        "p25": -0.8418393332014341,
+        "median": -0.7601161811071523,
+        "p75": -0.6713689854794371,
+        "p95": -0.542682593434087,
+        "max": -0.3632345208472828
+      },
+      "collision_normalized_distribution": {
+        "min": -0.9650089067821055,
+        "p05": -0.9609357665629977,
+        "p25": -0.9551398393461255,
+        "median": -0.9479868925748531,
+        "p75": -0.9026245945303965,
+        "p95": -0.8583302329491268,
+        "max": -0.8551142296077922
+      },
+      "noncollision_normalized_distribution": {
+        "min": -0.9217240852114239,
+        "p05": -0.8841995272458625,
+        "p25": -0.8267424986316523,
+        "median": -0.7522771289603984,
+        "p75": -0.6617021286520515,
+        "p95": -0.5339942408919388,
+        "max": -0.3632345208472828
+      },
+      "raw_descriptive_collision_association_auc": 0.39256569847856154,
+      "descriptive_collision_association_auc": 0.9721991701244813,
+      "raw_normalized_spearman": 0.03342573902774952,
+      "raw_normalized_frame_sign_mismatches": 0,
+      "negative_sample_fraction_distribution": {
+        "min": 0.11940298507462686,
+        "p05": 0.12437810945273632,
+        "p25": 0.14925373134328357,
+        "median": 0.48756218905472637,
+        "p75": 0.8619402985074627,
+        "p95": 1.0,
+        "max": 1.0
+      },
+      "asinh_rank_max_difference": 0.0,
+      "asinh_zero_sign_mismatches": 0,
+      "zero_clipping_distinct_values": 512,
+      "response_time_sensitivity": [
+        {
+          "ego_response_s": 0.3,
+          "other_response_s": 2.0,
+          "negative": 509,
+          "initial_negative": 468,
+          "median_minimum_margin": -0.6474424139150747,
+          "rank_correlation_with_default": 0.9851186005825066
+        },
+        {
+          "ego_response_s": 0.5,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 494,
+          "median_minimum_margin": -0.6867418334972536,
+          "rank_correlation_with_default": 0.9929222492589923
+        },
+        {
+          "ego_response_s": 1.0,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 510,
+          "median_minimum_margin": -0.7601161811071523,
+          "rank_correlation_with_default": 1.0
+        },
+        {
+          "ego_response_s": 1.5,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 512,
+          "median_minimum_margin": -0.8097810601850814,
+          "rank_correlation_with_default": 0.9956986144013
+        }
+      ]
+    },
+    {
+      "kind": "lane_change_rear",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 383,
+      "collisions_with_negative_margin": 383,
+      "noncollisions_with_negative_margin": 129,
+      "initial_negative": 509,
+      "minimum_at_initial": 0,
+      "distinct_minimum_margins": 512,
+      "raw_distinct_minimum_margins": 405,
+      "raw_distribution_m": {
+        "min": -5.4338122146788175,
+        "p05": -5.4105044971344665,
+        "p25": -5.405726067049749,
+        "median": -5.396058550377401,
+        "p75": -5.340954919536288,
+        "p95": -2.725,
+        "max": -2.725
+      },
+      "normalized_distribution": {
+        "min": -0.9828287265020598,
+        "p05": -0.9761092781659607,
+        "p25": -0.9736937593386503,
+        "median": -0.9621108280914421,
+        "p75": -0.9080611783357713,
+        "p95": -0.8351282562074743,
+        "max": -0.7128913441354325
+      },
+      "collision_normalized_distribution": {
+        "min": -0.9828287265020598,
+        "p05": -0.9765488207483713,
+        "p25": -0.9744259961022942,
+        "median": -0.9716062220425336,
+        "p75": -0.9409597279456319,
+        "p95": -0.8901313719324325,
+        "max": -0.7652861264772491
+      },
+      "noncollision_normalized_distribution": {
+        "min": -0.9653405547504962,
+        "p05": -0.9590447153729228,
+        "p25": -0.9122761990504797,
+        "median": -0.8817660661918726,
+        "p75": -0.8465065623021961,
+        "p95": -0.8044907962836517,
+        "max": -0.7128913441354325
+      },
+      "raw_descriptive_collision_association_auc": 0.3511445746554132,
+      "descriptive_collision_association_auc": 0.9099520310887121,
+      "raw_normalized_spearman": -0.15139275591131943,
+      "raw_normalized_frame_sign_mismatches": 0,
+      "negative_sample_fraction_distribution": {
+        "min": 0.6318407960199005,
+        "p05": 1.0,
+        "p25": 1.0,
+        "median": 1.0,
+        "p75": 1.0,
+        "p95": 1.0,
+        "max": 1.0
+      },
+      "asinh_rank_max_difference": 0.0,
+      "asinh_zero_sign_mismatches": 0,
+      "zero_clipping_distinct_values": 512,
+      "response_time_sensitivity": [
+        {
+          "ego_response_s": 0.3,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 467,
+          "median_minimum_margin": -0.9487456819411211,
+          "rank_correlation_with_default": 0.9952361103958526
+        },
+        {
+          "ego_response_s": 0.5,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 489,
+          "median_minimum_margin": -0.952931996683605,
+          "rank_correlation_with_default": 0.9974090656149507
+        },
+        {
+          "ego_response_s": 1.0,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 509,
+          "median_minimum_margin": -0.9621108280914421,
+          "rank_correlation_with_default": 1.0
+        },
+        {
+          "ego_response_s": 1.5,
+          "other_response_s": 2.0,
+          "negative": 512,
+          "initial_negative": 512,
+          "median_minimum_margin": -0.968582624421668,
+          "rank_correlation_with_default": 0.9967316264405305
+        }
+      ]
+    },
+    {
+      "kind": "cut_in_interaction",
+      "target": "independent_dqn",
+      "executions": 512,
+      "collisions": 235,
+      "collisions_with_negative_margin": 235,
+      "noncollisions_with_negative_margin": 274,
+      "initial_negative": 0,
+      "minimum_at_initial": 0,
+      "distinct_minimum_margins": 441,
+      "raw_distinct_minimum_margins": 422,
+      "raw_distribution_m": {
+        "min": -9.876517592234055,
+        "p05": -8.930540856279835,
+        "p25": -5.929217013263113,
+        "median": -5.678336391877835,
+        "p75": -5.418523998898099,
+        "p95": -4.7173806260004,
+        "max": 1.2749999999999997
+      },
+      "normalized_distribution": {
+        "min": -0.9778992291365367,
+        "p05": -0.9747114526236316,
+        "p25": -0.9476945899759311,
+        "median": -0.8264238958274481,
+        "p75": -0.6783437464103302,
+        "p95": -0.454400948544191,
+        "max": 0.24609670487138913
+      },
+      "collision_normalized_distribution": {
+        "min": -0.9778992291365367,
+        "p05": -0.9756063928302625,
+        "p25": -0.9727860014908446,
+        "median": -0.959471357156143,
+        "p75": -0.8419667324456142,
+        "p95": -0.7822648261192793,
+        "max": -0.7621282806094205
+      },
+      "noncollision_normalized_distribution": {
+        "min": -0.9665672199388696,
+        "p05": -0.9017057651300945,
+        "p25": -0.8141423085320731,
+        "median": -0.6952191820570597,
+        "p75": -0.5497086365020628,
+        "p95": -0.42797036798301624,
+        "max": 0.24609670487138913
+      },
+      "raw_descriptive_collision_association_auc": 0.427459866349182,
+      "descriptive_collision_association_auc": 0.914233044012597,
+      "raw_normalized_spearman": -0.011137866096026452,
+      "raw_normalized_frame_sign_mismatches": 0,
+      "negative_sample_fraction_distribution": {
+        "min": 0.0,
+        "p05": 0.13930348258706468,
+        "p25": 0.19402985074626866,
+        "median": 0.3465431463372791,
+        "p75": 0.6367991125453811,
+        "p95": 0.8009950248756219,
+        "max": 0.9516129032258065
+      },
+      "asinh_rank_max_difference": 0.0,
+      "asinh_zero_sign_mismatches": 0,
+      "zero_clipping_distinct_values": 439,
+      "response_time_sensitivity": [
+        {
+          "ego_response_s": 0.3,
+          "other_response_s": 2.0,
+          "negative": 509,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.8100564244159438,
+          "rank_correlation_with_default": 0.987650576354866
+        },
+        {
+          "ego_response_s": 0.5,
+          "other_response_s": 2.0,
+          "negative": 509,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.8121523620519425,
+          "rank_correlation_with_default": 0.994377156539059
+        },
+        {
+          "ego_response_s": 1.0,
+          "other_response_s": 2.0,
+          "negative": 509,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.8264238958274481,
+          "rank_correlation_with_default": 1.0
+        },
+        {
+          "ego_response_s": 1.5,
+          "other_response_s": 2.0,
+          "negative": 509,
+          "initial_negative": 0,
+          "median_minimum_margin": -0.8318381122383964,
+          "rank_correlation_with_default": 0.995588808225856
+        }
+      ]
+    }
+  ]
+}

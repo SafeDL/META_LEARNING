@@ -12,7 +12,6 @@ from experiments import independent_validation as workflow
 from experiments import independent_validation_audit as auditing
 from experiments.collision_metrics import collision_recall, summarize
 from experiments.discovery_config import write_json
-from experiments.independent_models import available_jobs
 from experiments.independent_protocol import (
     CONTROLS,
     METHODS,
@@ -63,9 +62,6 @@ def test_reduced_matrix_keeps_all_main_comparisons_and_only_required_controls():
         and (tuple(canonical_task(task, method).items()), method) in full_keys
         for task, method in references
     )
-    models = available_jobs("classifiers")
-    assert Counter(owner for owner, _, _ in models) == {"scenario_fuzz": 25, "indago": 5}
-    assert all(held is None for owner, _, held in models if owner == "indago")
 
 
 def test_main_public_inputs_exclude_target_identity_and_preserve_aggregate_information(monkeypatch):

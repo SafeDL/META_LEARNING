@@ -2,7 +2,7 @@
 
 from dataclasses import asdict
 
-from experiments.construction import load_construction
+from experiments.construction import load_archives
 from experiments.discovery_config import read_json, write_json
 from experiments.protocol import ROOT
 from testing_methods.common.response import archive_fingerprints
@@ -23,7 +23,7 @@ def main():
         )
     reports = []
     for kind in ("cut_in", "cut_out"):
-        history, _ = load_construction(kind)
+        history, _ = load_archives(kind)
         path = OUTPUT / "models" / kind / "risk.pt"
         if path.exists():
             _, checkpoint = load(path)
