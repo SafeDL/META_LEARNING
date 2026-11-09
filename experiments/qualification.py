@@ -5,14 +5,14 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from controllers.highway.catalog import SUTS
+from controllers.highway.catalog import CURRENT_SUTS
 from controllers.highway.factory import create
 from simulator.highway.collision_env import CollisionWorld
 
 from .protocol import ROOT
 from .schema import Scenario
 
-QUALIFICATION_ROOT = ROOT / "experiment_outputs" / "benchmark" / "collision" / "qualification"
+QUALIFICATION_ROOT = ROOT / "artifacts/runs/qualification/reports"
 
 
 @dataclass(frozen=True)
@@ -147,11 +147,8 @@ def qualify(policy_factory, *, save_root=None):
 
 def main():
     QUALIFICATION_ROOT.mkdir(parents=True, exist_ok=True)
-    (QUALIFICATION_ROOT / "nonlearning.json").write_text(
-        json.dumps({"status": "running", "qualified": False, "objects": []}), encoding="utf-8"
-    )
     rows = []
-    for sut in SUTS:
+    for sut in CURRENT_SUTS:
         if sut.family == "learning":
             continue
         root = QUALIFICATION_ROOT / sut.sut_id
@@ -169,13 +166,7 @@ def main():
             [r["course"] for r in report["courses"] if not r["passed"]],
             flush=True,
         )
-    (QUALIFICATION_ROOT / "nonlearning.json").write_text(
-        json.dumps(
-            {"status": "complete", "qualified": all(r["qualified"] for r in rows), "objects": rows},
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    return rows
 
 
 if __name__ == "__main__":

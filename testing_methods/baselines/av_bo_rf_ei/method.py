@@ -130,11 +130,20 @@ class RandomForestEI:
         return mean, variance, expected_improvement(mean, variance, self.best)
 
 
-def run(candidates, oracle, *, initial_indices, budget=128, seed=11, config=DEFAULT):
+def run(
+    candidates,
+    oracle,
+    *,
+    initial_indices,
+    budget=128,
+    seed=11,
+    config=DEFAULT,
+    feature_fn=features,
+):
     initial = list(initial_indices)
     size = len(candidates)
     validate_initial_indices(len(candidates), initial, budget, minimum=2)
-    x = features(candidates)
+    x = feature_fn(candidates)
     model = RandomForestEI(seed=seed, config=config)
     available = set(range(size))
     selected, values, queries = [], [], []

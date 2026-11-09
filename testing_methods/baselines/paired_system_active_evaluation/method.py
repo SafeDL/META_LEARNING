@@ -11,7 +11,9 @@ from sklearn.cluster import KMeans
 from torch import nn
 from torch.nn import functional as F
 
+from experiments.domain import Domain
 from experiments.scenarios import features
+from testing_methods.common.response import HistoricalPredictor, archive_fingerprints
 from testing_methods.selection import validate_initial_indices
 
 
@@ -30,6 +32,31 @@ class Config:
 
 
 DEFAULT = Config()
+
+
+def build_proxy(candidates, history, *, feature_fn=features):
+    started = time.perf_counter()
+    predictor = HistoricalPredictor(history, bandwidth=0.25)
+    if predictor.domain is not None:
+        definition = predictor.domain.to_dict()
+        supplied = getattr(feature_fn, "__self__", None)
+        if feature_fn is not features and (
+            not isinstance(supplied, Domain) or supplied.to_dict() != definition
+        ):
+            raise ValueError("Proxy features differ from the historical parameter definition")
+        feature_fn = predictor.domain.features
+    values = predictor.predict(feature_fn(candidates)).mean(axis=0)
+    specification = {
+        "rule": "equal mean of the allowed historical collision predictors",
+        "kernel_bandwidth": 0.25,
+        "history_ids": [a.source_id for a in history],
+        "history_fingerprints": archive_fingerprints(history),
+        "construction_s": time.perf_counter() - started,
+        "new_proxy_executions": 0,
+    }
+    if predictor.domain is not None:
+        specification["parameter_definition"] = predictor.domain.to_dict()
+    return values, specification
 
 
 def binary_entropy(probabilities):
@@ -201,10 +228,20 @@ def choose_batch(x, observed, proxy, model, count, generator, *, seed=11, config
     ]
 
 
-def run(candidates, oracle, *, proxy, initial_indices, budget=128, seed=11, config=DEFAULT):
+def run(
+    candidates,
+    oracle,
+    *,
+    proxy,
+    initial_indices,
+    budget=128,
+    seed=11,
+    config=DEFAULT,
+    feature_fn=features,
+):
     initial = list(initial_indices)
     validate_initial_indices(len(candidates), initial, budget, minimum=2)
-    x, proxy = features(candidates), np.asarray(proxy, dtype=float)
+    x, proxy = feature_fn(candidates), np.asarray(proxy, dtype=float)
     if proxy.shape != (len(candidates),) or not np.isfinite(proxy).all():
         raise ValueError(
             "The predeclared proxy supplies one finite prediction per public candidate"

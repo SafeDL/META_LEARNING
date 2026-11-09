@@ -94,10 +94,11 @@ def test_rule_controllers_use_front_and_rear_constraints(route):
     assert controller.acceleration(ego, standstill) == -8
 
 
-def test_query_feedback_and_private_trace_are_separate():
+def test_executor_keeps_trace_private_until_paid_query_disclosure():
     scene = sample("front_brake", 1, "qualification")[0]
     execution = execute(FullBrake(), scene, duration_s=0.4)
     assert execution.feedback.execution_s > 0
     assert isinstance(execution.feedback.collision, bool)
     assert execution.trajectory[0]["actors"][0]["actor_id"] == "ego"
-    assert not hasattr(execution.feedback, "trajectory")
+    assert execution.feedback.trajectory is None
+    assert "trajectory" not in execution.feedback.to_dict()

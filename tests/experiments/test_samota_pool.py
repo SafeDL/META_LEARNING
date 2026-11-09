@@ -7,11 +7,46 @@ from experiments.scenarios import sample
 from experiments.schema import QueryFeedback, SafetyMeasurements
 from testing_methods.baselines.samota.pool import (
     Config,
+    PoolSearch,
     RadialNetwork,
     local_clusters,
     mixed_distance,
     run,
 )
+
+
+@pytest.mark.parametrize(
+    ("covered", "expected"),
+    [(set(), [2, 0, 1]), ({0}, [0, 1, 2]), ({0, 1}, [0, 2])],
+)
+def test_global_proposals_keep_objective_order_ties_and_unique_candidates(
+    monkeypatch, covered, expected
+):
+    class FixedCommittee:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def predict(self, x):
+            assert len(x) == 3
+            return (
+                np.array([[0.4, 0.0, 0.2], [0.2, 0.3, 0.2], [0.1, 0.1, 0.9]]),
+                np.array([[0.4, 0.1, 0.1], [0.1, 0.9, 0.2], [0.2, 0.2, 0.8]]),
+            )
+
+    monkeypatch.setattr("testing_methods.baselines.samota.pool.Committee", FixedCommittee)
+    scenes = sample("car_following", 6, "development", replicate=43)
+    search = PoolSearch(scenes)
+    search.indices, search.values, search.covered = [0, 1, 2], [[1, 1, 1]] * 3, covered
+    available = {3, 4, 5}
+    ordered = sorted(available, key=lambda i: scenes[i].scenario_id)
+    actual = []
+    for _ in expected:
+        index, phase, _ = search.propose(available)
+        assert phase == "global"
+        actual.append(index)
+        available.remove(index)
+    assert actual == [ordered[i] for i in expected]
+    assert search.pending == []
 
 
 def test_trainable_radial_layer_matches_gaussian_centers_and_individual_widths():

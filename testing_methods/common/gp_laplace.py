@@ -78,23 +78,3 @@ def laplace(mean, covariance, labels):
         + factor.diagonal().log().sum()
     )
     return LaplaceState(nll, alpha, root, factor, iterations, gradient_max, backtracks)
-
-
-def posterior(mean, covariance, observed, labels):
-    if not len(observed):
-        return mean, covariance, {"iterations": 0, "gradient_max": 0.0, "backtracks": 0}
-    indices = torch.as_tensor(observed, dtype=torch.long, device=mean.device)
-    cross = covariance[indices]
-    state = laplace(mean[indices], cross[:, indices], labels)
-    result_mean = mean + cross.T @ state.alpha
-    solved = torch.linalg.solve_triangular(state.factor, state.root[:, None] * cross, upper=False)
-    result_covariance = covariance - solved.T @ solved
-    return (
-        result_mean,
-        0.5 * (result_covariance + result_covariance.T),
-        {
-            "iterations": state.iterations,
-            "gradient_max": state.gradient_max,
-            "backtracks": state.backtracks,
-        },
-    )

@@ -1,0 +1,94 @@
+{
+  "format": "joint-historical-batches",
+  "scenarios": [
+    "front_brake"
+  ],
+  "archives": [
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_idm_mobil",
+      "path": "history_idm_mobil.npz",
+      "records": 768,
+      "fingerprint": "daa452a211fa63e3a7c452d5f19c5ae4becded8f1c9c0ba425e74e992f07fbab"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_fvdm_lane",
+      "path": "history_fvdm_lane.npz",
+      "records": 768,
+      "fingerprint": "60a36976b7a52fbe973094b68d4a44feea755363f8f0584e458b8c12c1fdcbb2"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_linear_mpc",
+      "path": "history_linear_mpc.npz",
+      "records": 768,
+      "fingerprint": "53948040523acea25449462b8970c276ea211ba45dc43f2aa06cf21a4eafb106"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_nonlinear_trajectory",
+      "path": "history_nonlinear_trajectory.npz",
+      "records": 768,
+      "fingerprint": "32fb2be310c7c840ccbf723b4234c6198e0e3cebb68a1db800d9286f8cfe1fcb"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_uct",
+      "path": "history_uct.npz",
+      "records": 768,
+      "fingerprint": "f6a59721a8aa7a98d08075e00bd65c8e450a2c43ce0cb33dca6e79f075f1d796"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_beam",
+      "path": "history_beam.npz",
+      "records": 768,
+      "fingerprint": "5eeb716017c79eb9ad704263ba8b6c60f2922ee922ecec4afa0bdcbd5a16557f"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_ppo",
+      "path": "history_ppo.npz",
+      "records": 768,
+      "fingerprint": "e68214fd9ff6bdb0ce59c1a09ec91b5e163b8def3fcb76eb568fdae9ae30dd13"
+    },
+    {
+      "scenario": "front_brake",
+      "role": "history",
+      "source_id": "history_dqn",
+      "path": "history_dqn.npz",
+      "records": 768,
+      "fingerprint": "a045e48b8a4ae02e8dfef8a38100db41285ffc1f5f06f777b4d54f558e87714e"
+    }
+  ],
+  "rss_contract": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "total_records": 6144,
+  "development_ads_used": false
+}

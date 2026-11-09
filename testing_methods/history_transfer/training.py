@@ -1,31 +1,25 @@
-"""Historical construction with the deployed global Boolean-feedback inference."""
+"""Historical joint evidence and next-response training with paid-prefix replay."""
 
-import copy
 import hashlib
 import json
-import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, replace
+from math import ceil
 from pathlib import Path
 
 import numpy as np
 import torch
 from torch.nn import functional as F
 
-from experiments.construction import load_training_data
-from experiments.discovery_config import read_json, write_json
+from experiments.costs import PeakMemory, synchronized_time
 from experiments.protocol import ROOT
 from experiments.rss import measurement_contract
-from experiments.scenarios import DOMAINS
-from testing_methods.common.gp_classifier import ClassificationKernel, fit_target, laplace
-from testing_methods.common.response import archive_fingerprints, source_weights
+from experiments.scenarios import TEST_SCENARIOS
+from experiments.source_registration import source_contract_matches, specification_matches
+from experiments.storage import read_json, write_json
+from testing_methods.common.response import archive_fingerprints, shared_domain, source_weights
 
-from .inference import (
-    adaptation_states,
-    component_probabilities,
-    historical_prior,
-    query_probabilities,
-)
+from .inference import adapted_model, historical_prior, joint_evidence, sequential_probability
 from .model import JointResponseKernel
 
 
@@ -33,19 +27,26 @@ from .model import JointResponseKernel
 class Config:
     steps: int = 1500
     learning_rate: float = 0.001
-    support_counts: tuple = (8, 16, 32, 64, 128)
-    query_count: int = 32
+    initial_count: int = 20
+    budget: int = 200
     historical_context: int = 64
-    validation_interval: int = 100
+    diagnostic_interval: int = 100
     seed: int = 1301
-    validation_seed: int = 1319
+    device: str = "cpu"
+    historical_rss: bool = True
+
+    def __post_init__(self):
+        if self.steps < 1 or self.learning_rate <= 0 or not 0 < self.initial_count < self.budget:
+            raise ValueError("Training needs positive steps/rate and initialization below budget")
+        if self.historical_context < 1 or self.diagnostic_interval < 1:
+            raise ValueError("Training context and diagnostic interval must be positive")
+        if torch.device(self.device).type not in ("cpu", "cuda"):
+            raise ValueError("Training supports CPU or CUDA")
 
 
 DEFAULT = Config()
-DEVICE = "cpu"
-MODEL_ROOT = ROOT / "experiment_outputs/gcrt/collision/rss_models"
-HELD_FAMILIES = (None, "rule", "optimization", "search", "learning")
-COVARIANCE_MODE = "diagonal"
+MODEL_ROOT = ROOT / "artifacts/runs/joint_response/models"
+COVARIANCE_MODE = "point_joint_blocks"
 
 
 def model_directory(kind, held_family=None):
@@ -53,209 +54,292 @@ def model_directory(kind, held_family=None):
     return MODEL_ROOT / kind / scope
 
 
-def training_contract():
-    return {
+def training_contract(kernel_type=JointResponseKernel):
+    contract = {
         p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest()
         for p in (
             "testing_methods/history_transfer/training.py",
             "testing_methods/history_transfer/inference.py",
             "testing_methods/history_transfer/model.py",
+            "testing_methods/history_transfer/selection.py",
             "testing_methods/common/gp_classifier.py",
             "testing_methods/common/gp_laplace.py",
             "testing_methods/common/classification.py",
             "testing_methods/common/response.py",
             "experiments/scenarios.py",
             "experiments/rss.py",
-            "experiments/construction.py",
+            "experiments/history.py",
+            "experiments/schema.py",
+            "experiments/query.py",
+            "experiments/costs.py",
         )
     }
+    if kernel_type is not JointResponseKernel:
+        path = kernel_type.source_path
+        contract[path] = hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
+    return contract
 
 
-def specification(history, development, held_family, config):
+def specification(history, held_family, config, kernel_type=JointResponseKernel):
     if (
         len(history) < 2
-        or not development
-        or any(a.role != "history" for a in history)
-        or any(a.role != "development" for a in development)
-        or len({a.source_id for a in (*history, *development)}) != len(history) + len(development)
-    ):
-        raise ValueError(
-            "Consistent construction requires disjoint historical and development systems"
+        or any(
+            a.role != "history" and not (a.role == "target" and a.provenance.get("completed_task"))
+            for a in history
         )
-    if held_family is not None and any(a.family == held_family for a in (*history, *development)):
-        raise ValueError("Held family entered training, response context or checkpoint selection")
-    if len({a.scenarios[0].kind for a in (*history, *development)}) != 1:
-        raise ValueError("Construct one functional scenario and source scope at a time")
-    for archive in (*history, *development):
+        or len({a.source_id for a in history}) != len(history)
+    ):
+        raise ValueError("Construction requires distinct historical or admitted completed systems")
+    if held_family is not None and any(a.family == held_family for a in history):
+        raise ValueError("Held family entered historical construction")
+    if len({a.scenarios[0].kind for a in history}) != 1:
+        raise ValueError("Construct one functional scenario at a time")
+    if not any(len(a.scenarios) >= 2 for a in history):
+        raise ValueError("Supervised training needs a task with at least two executed records")
+    for archive in history:
         archive.continuous_margin
+    domain = shared_domain(history)
+    domain_record = {} if domain is None else {"parameter_definition": domain.to_dict()}
     return json.loads(
         json.dumps(
             {
+                **domain_record,
+                "scenario": history[0].scenarios[0].kind,
                 "history_fingerprints": archive_fingerprints(history),
-                "development_fingerprints": archive_fingerprints(development),
                 "held_family": held_family,
                 "config": asdict(config),
                 "covariance_mode": COVARIANCE_MODE,
-                "training_contract": training_contract(),
+                "training_contract": training_contract(kernel_type),
                 "online_features": "float64",
-                "training_device": DEVICE,
+                "training_device": config.device,
                 "training_threads": 1,
-                "target_feedback": "collision Boolean only",
-                "historical_feedback": "collision and ego-normalized RSS margin",
+                "target_feedback": "paid collision and RSS",
+                "historical_feedback": "collision and ego-normalized RSS margin"
+                if config.historical_rss
+                else "collision only",
                 "continuous_response": measurement_contract(),
+                "supervision": "uniform next-response time after initialization; all preceding feedback",
+                "checkpoint": "final fixed step, no development data",
             }
         )
     )
 
 
-def selected_indices(archive, config, seed):
-    return np.random.default_rng(seed).choice(
-        len(archive.scenarios), max(config.support_counts) + config.query_count, replace=False
-    )
+def episode_layout(archive, config):
+    length = min(len(archive.scenarios), config.budget)
+    if length < 2:
+        raise ValueError("Supervised episodes require at least two executed records")
+    return min(config.initial_count, length - 1), length
 
 
-def target_validation(model, development, config):
-    rows = []
-    for archive in development:
-        indices = selected_indices(archive, config, config.validation_seed)
-        x, labels = archive.x[indices], archive.collision[indices]
-        for count in config.support_counts:
-            adapted = copy.deepcopy(model)
-            fit_target(adapted, x[:count], labels[:count], steps=10, learning_rate=0.003)
-            with torch.no_grad():
-                p, _ = component_probabilities(
-                    adapted.mean.expand(1, len(x)),
-                    adapted.covariance(x)[None],
-                    list(range(count)),
-                    labels[:count],
-                )
-                truth = torch.as_tensor(
-                    labels[-config.query_count :], dtype=p.dtype, device=p.device
-                )
-                rows.append(
-                    float(
-                        F.binary_cross_entropy(
-                            p[0, -config.query_count :].clamp(1e-8, 1 - 1e-8), truth
-                        )
-                    )
-                )
-    return float(np.mean(rows))
+def selected_indices(archive, config, seed, segment=0):
+    """Cycle full-length windows over one fixed historical permutation."""
+    _, length = episode_layout(archive, config)
+    if archive.provenance.get("completed_task"):
+        return np.arange(length)
+    order = np.random.default_rng(seed).permutation(len(archive.scenarios))
+    return np.take(order, np.arange(segment * length, (segment + 1) * length), mode="wrap")
+
+
+def scheduled_item(items, new_source_ids, step):
+    new = [a for a in items if a.source_id in new_source_ids]
+    old = [a for a in items if a.source_id not in new_source_ids]
+    if new and old:
+        group = new if step % 2 else old
+        return group[((step - 1) // 2) % len(group)]
+    return items[(step - 1) % len(items)]
+
+
+def validate_model(model):
+    values = [*model.state_dict().values(), model.point_covariance(1), model.point_mean(1)]
+    if any(not torch.isfinite(value).all() for value in values):
+        raise FloatingPointError("Shared model contains nonfinite parameters or joint moments")
+
+
+def optimize(model, optimizer, loss):
+    loss.backward()
+    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
+    if not torch.isfinite(norm):
+        raise FloatingPointError("Shared model training produced nonfinite gradients")
+    optimizer.step()
 
 
 def save_model(path, model, part, spec, step):
+    validate_model(model)
+    path = Path(path)
+    temporary = path.with_suffix(".tmp")
     torch.save(
         {
-            "format": "domain-consistent-collision",
+            "format": "sequential-joint-collision-rss",
             "part": part,
             "dimension": model.dimension,
             "state_dict": {k: v.detach().cpu() for k, v in model.state_dict().items()},
             "specification": spec,
             "step": step,
         },
-        path,
+        temporary,
     )
+    temporary.replace(path)
 
 
-def load_model(path):
+def load_model(path, *, device="cpu", kernel_type=JointResponseKernel):
     saved = torch.load(path, map_location="cpu", weights_only=True)
+    spec = saved["specification"]
     if (
-        saved["specification"].get("continuous_response") != measurement_contract()
-        or saved["format"] != "domain-consistent-collision"
-        or saved["specification"]["training_contract"] != training_contract()
+        saved["format"] != "sequential-joint-collision-rss"
+        or spec.get("continuous_response") != measurement_contract()
+        or not source_contract_matches(spec["training_contract"], training_contract(kernel_type))
+        or saved["step"] != spec["config"]["steps"]
     ):
-        raise ValueError("Consistent model construction differs from its registered source")
-    model = (
-        ClassificationKernel(saved["dimension"], deep=True)
-        if saved["part"] == "target"
-        else JointResponseKernel(saved["dimension"])
-    )
-    model = model.double()
+        raise ValueError("Sequential model construction differs from its registered source")
+    model = kernel_type(saved["dimension"]).double().to(device)
     model.load_state_dict(saved["state_dict"])
+    model.construction_specification = spec
+    validate_model(model)
     return model.eval(), saved
 
 
-def train_target(history, development, destination, spec, config):
+def completed_report(path, spec, kernel_type=JointResponseKernel):
+    report_path = path.with_suffix(".json")
+    if not path.exists() and not report_path.exists():
+        return None
+    report = read_json(report_path)
+    if report["status"] != "complete" or not specification_matches(report["specification"], spec):
+        raise ValueError("Existing construction is incomplete or uses another source scope")
+    load_model(path, kernel_type=kernel_type)
+    return report
+
+
+def train_target(
+    history,
+    destination,
+    spec,
+    config,
+    initial=None,
+    new_source_ids=(),
+    kernel_type=JointResponseKernel,
+):
+    items = [a for a in history if len(a.scenarios) >= 2]
     destination = Path(destination)
-    report_path = destination.with_suffix(".json")
-    if destination.exists() or report_path.exists():
-        report = read_json(report_path)
-        if report["status"] != "complete" or report["specification"] != spec:
-            raise ValueError(
-                "Existing target construction is incomplete or uses another source scope"
-            )
-        load_model(destination)
-        return report
+    previous = completed_report(destination, spec, kernel_type)
+    if previous is not None:
+        return previous
     destination.parent.mkdir(parents=True, exist_ok=True)
     torch.manual_seed(config.seed)
-    generator = np.random.default_rng(config.seed)
-    device = DEVICE
-    model = ClassificationKernel(history[0].x.shape[1], deep=True).double().to(device)
+    model = kernel_type(items[0].x.shape[1]).double().to(config.device)
+    if initial is not None:
+        model.load_state_dict(initial.state_dict())
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
-    started, best, curve = time.perf_counter(), float("inf"), []
+    started = synchronized_time(config.device)
+    curve, visits, losses = [], {}, []
     for step in range(1, config.steps + 1):
-        archive = history[(step - 1) % len(history)]
-        count = int(generator.choice(config.support_counts))
-        indices = generator.choice(len(archive.scenarios), count, replace=False)
+        archive = scheduled_item(items, new_source_ids, step)
+        visit = visits.get(archive.source_id, 0)
+        visits[archive.source_id] = visit + 1
+        indices = selected_indices(archive, config, config.seed + items.index(archive), visit)
         optimizer.zero_grad(set_to_none=True)
-        loss = laplace(model, archive.x[indices], archive.collision[indices])[0] / count
+        loss = joint_evidence(
+            model,
+            archive.x[indices],
+            archive.collision[indices],
+            archive.continuous_margin[indices] if config.historical_rss else None,
+        )
         if not torch.isfinite(loss):
-            raise FloatingPointError("Nonfinite historical target-kernel evidence")
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 5)
-        optimizer.step()
-        if step % config.validation_interval == 0 or step == config.steps:
-            score = target_validation(model, development, config)
+            raise FloatingPointError("Nonfinite historical joint evidence")
+        optimize(model, optimizer, loss)
+        losses.append(float(loss.detach()))
+        if step % config.diagnostic_interval == 0 or step == config.steps:
             curve.append(
-                {"step": step, "training_evidence": float(loss.detach()), "validation_nll": score}
+                {
+                    "step": step,
+                    "training_joint_evidence": float(np.mean(losses)),
+                    "diagnostic_steps": len(losses),
+                }
             )
-            if score < best:
-                best = score
+            losses.clear()
+            if step == config.steps:
                 save_model(destination, model, "target", spec, step)
             report = {
                 "status": "complete" if step == config.steps else "running",
                 "specification": spec,
                 "curve": curve,
-                "best_validation_nll": best,
-                "training_s": time.perf_counter() - started,
+                "final_step": step,
+                "training_s": synchronized_time(config.device) - started,
             }
-            write_json(report_path, report)
+            write_json(destination.with_suffix(".json"), report)
             print(
-                "consistent_target",
+                "joint_target",
                 step,
                 "/",
                 config.steps,
-                "validation_nll",
-                round(score, 6),
+                "evidence",
+                curve[-1]["training_joint_evidence"],
                 flush=True,
             )
     return report
 
 
-def cache_episode(base, archive, config, seed):
-    indices = selected_indices(archive, config, seed)
-    x = archive.x[indices]
-    labels = archive.collision[indices[: max(config.support_counts)]]
+def cache_episode(base, archive, config, seed, segment=0):
+    initial, length = episode_layout(archive, config)
+    indices = selected_indices(archive, config, seed, segment)
+    frozen = adapted_model(base, archive.x[:0], [], [])
+    physical = type(base)(base.dimension, deep=False).double().to(base.mean.device)
+    for parameter in physical.parameters():
+        parameter.requires_grad_(False)
     return {
         "target": archive,
         "indices": indices,
-        "x": x,
-        "labels": labels,
-        "query_labels": archive.collision[indices[-config.query_count :]],
-        "states": adaptation_states(base, x, labels),
+        "initial_count": initial,
+        "length": length,
+        "x": archive.x[indices],
+        "labels": archive.collision[indices],
+        "margins": archive.continuous_margin[indices] if config.historical_rss else None,
+        "base": frozen,
+        "physical_base": physical,
+        "encoded_target": frozen.features(archive.x[indices]).detach(),
+        "encoded_physical": physical.features(archive.x[indices]).detach(),
+        "states": [(frozen, physical)],
+        "reference": base.point_mean(1)[0].detach().clone(),
     }
+
+
+def ensure_states(episode, count):
+    if not 0 <= count < episode["length"]:
+        raise ValueError("Sequential time must precede the end of the episode")
+    while len(episode["states"]) <= count:
+        n = len(episode["states"])
+        x, labels = episode["x"][:n], episode["labels"][:n]
+        margins = None if episode["margins"] is None else episode["margins"][:n]
+        episode["states"].append(
+            (
+                adapted_model(
+                    episode["base"], x, labels, margins, encoded=episode["encoded_target"][:n]
+                ),
+                adapted_model(
+                    episode["physical_base"],
+                    x,
+                    labels,
+                    margins,
+                    learning_rate=0.01,
+                    encoded=episode["encoded_physical"][:n],
+                ),
+            )
+        )
 
 
 def contexts_for_episode(history, episode, generator, config):
     target = episode["target"]
-    excluded = {target.scenarios[i].coordinate() for i in episode["indices"]}
     contexts = []
     for archive in history:
         if archive.source_id == target.source_id:
             continue
-        available = [
-            i for i, scene in enumerate(archive.scenarios) if scene.coordinate() not in excluded
-        ]
-        indices = generator.choice(available, config.historical_context, replace=False)
+        if archive.scenarios[0].kind != target.scenarios[0].kind:
+            raise ValueError("Historical contexts must share the target functional scenario")
+        indices = generator.choice(
+            len(archive.scenarios),
+            min(len(archive.scenarios), config.historical_context),
+            replace=False,
+        )
         contexts.append(
             replace(
                 archive,
@@ -265,171 +349,221 @@ def contexts_for_episode(history, episode, generator, config):
                 rss_margin=archive.continuous_margin[indices],
             )
         )
+    if not contexts:
+        raise ValueError("Historical encoder needs a source other than the simulated target")
     return contexts
 
 
-def episode_probabilities(encoder, contexts, episode, support_counts, config):
-    priors = [historical_prior(encoder, archive, episode["x"]) for archive in contexts]
-    means, covariances = [torch.stack(values) for values in zip(*priors)]
-    weights = means.new_tensor(source_weights(contexts))
-    maximum = max(support_counts)
-    return query_probabilities(
-        means,
-        covariances,
-        weights,
-        episode["states"][: maximum + 1],
-        episode["labels"][:maximum],
-        support_counts,
-        config.query_count,
+def episode_probability(encoder, contexts, episode, count):
+    if count < episode["initial_count"]:
+        raise ValueError("Training supervision starts after the common initialization")
+    ensure_states(episode, count)
+    encoded_query = encoder.features(episode["x"])
+    priors = [
+        historical_prior(
+            encoder,
+            archive,
+            episode["x"],
+            encoded_query=encoded_query,
+            use_rss=episode["margins"] is not None,
+        )
+        for archive in contexts
+    ]
+    means, blocks = [torch.stack(values) for values in zip(*priors)]
+    sources = {
+        "means": means,
+        "blocks": blocks,
+        "weights": source_weights(contexts),
+        "names": [a.source_id for a in contexts],
+    }
+    return sequential_probability(
+        sources,
+        episode["states"],
+        episode["reference"],
+        episode["x"],
+        episode["labels"],
+        episode["margins"],
+        count,
+        encoded_target=episode["encoded_target"],
+        encoded_physical=episode["encoded_physical"],
     )
 
 
-def encoder_validation(encoder, history, episodes, config):
-    rows = []
-    encoder.eval()
-    with torch.no_grad():
-        for episode in episodes:
-            probabilities = episode_probabilities(
-                encoder, history, episode, config.support_counts, config
-            )
-            for count, p in probabilities.items():
-                truth = p.new_tensor(episode["query_labels"], dtype=p.dtype)
-                rows.append(
-                    {
-                        "source_id": episode["target"].source_id,
-                        "support_count": count,
-                        "collision_nll": float(
-                            F.binary_cross_entropy(p.clamp(1e-8, 1 - 1e-8), truth)
-                        ),
-                        "brier": float((p - truth).square().mean()),
-                    }
-                )
-    encoder.train()
-    return {
-        metric: float(np.mean([r[metric] for r in rows])) for metric in ("collision_nll", "brier")
-    }, rows
-
-
-def train(history, development, destination, *, held_family=None, config=DEFAULT):
+def train(
+    history,
+    destination,
+    *,
+    held_family=None,
+    config=DEFAULT,
+    initial_models=None,
+    new_source_ids=(),
+    parent_version=None,
+    kernel_type=JointResponseKernel,
+):
     torch.set_num_threads(1)
-    history, development = tuple(history), tuple(development)
-    spec = specification(history, development, held_family, config)
+    history = tuple(history)
+    spec = specification(history, held_family, config, kernel_type)
+    if kernel_type is not JointResponseKernel:
+        spec["response_kernel"] = kernel_type.__name__
+    for model in initial_models or ():
+        construction = getattr(model, "construction_specification", None)
+        if construction is not None and construction["scenario"] != spec["scenario"]:
+            raise ValueError("Initial shared model belongs to another functional scenario")
+        if construction is not None and construction.get("parameter_definition") != spec.get(
+            "parameter_definition"
+        ):
+            raise ValueError("Initial shared model uses another parameter definition")
+    if not set(new_source_ids).issubset({a.source_id for a in history}):
+        raise ValueError("New-source schedule contains an unavailable historical task")
+    spec.update(new_source_ids=list(new_source_ids), parent_version=parent_version)
     destination = Path(destination)
     target_path, encoder_path = (
         destination / "target_kernel.pt",
         destination / "historical_encoder.pt",
     )
-    target_report = train_target(history, development, target_path, spec, config)
-    if encoder_path.exists() or encoder_path.with_suffix(".json").exists():
-        report = read_json(encoder_path.with_suffix(".json"))
-        if report["status"] != "complete" or report["specification"] != spec:
-            raise ValueError(
-                "Existing encoder construction is incomplete or uses another allowed data scope"
-            )
-        load_model(encoder_path)
-        return {"target": target_report, "encoder": report}
-    device = DEVICE
-    base, _ = load_model(target_path)
-    base = base.to(device)
-    started = time.perf_counter()
-    training = [cache_episode(base, a, config, config.seed + i) for i, a in enumerate(history)]
-    validation = [cache_episode(base, a, config, config.validation_seed) for a in development]
-    cache_s = time.perf_counter() - started
-    print(
-        "consistent_prefix_caches",
-        "history",
-        len(training),
-        "development",
-        len(validation),
-        "wall_s",
-        round(cache_s, 2),
-        flush=True,
+    target_report = train_target(
+        history,
+        target_path,
+        spec,
+        config,
+        None if initial_models is None else initial_models[0],
+        new_source_ids,
+        kernel_type,
     )
+    previous = completed_report(encoder_path, spec, kernel_type)
+    if previous is not None:
+        return {"target": target_report, "encoder": previous}
+    base, _ = load_model(target_path, device=config.device, kernel_type=kernel_type)
+    for parameter in base.parameters():
+        parameter.requires_grad_(False)
     torch.manual_seed(config.seed)
-    encoder = JointResponseKernel(history[0].x.shape[1]).double().to(device)
-    with torch.no_grad():
-        parameters = dict(encoder.named_parameters())
-        for name, value in base.named_parameters():
-            parameters[name].copy_(value)
+    encoder = kernel_type(base.dimension).double().to(config.device)
+    encoder.load_state_dict((base if initial_models is None else initial_models[1]).state_dict())
     optimizer = torch.optim.Adam(encoder.parameters(), lr=config.learning_rate)
     generator = np.random.default_rng(config.seed)
-    best, curve = (float("inf"), float("inf")), []
+    items = [a for a in history if len(a.scenarios) >= 2]
+    episodes, visits, curve, losses, errors = {}, {}, [], [], []
+    started = synchronized_time(config.device)
     for step in range(1, config.steps + 1):
-        episode = training[(step - 1) % len(training)]
+        archive = scheduled_item(items, new_source_ids, step)
+        visit = visits.get(archive.source_id, 0)
+        visits[archive.source_id] = visit + 1
+        segments = (
+            1
+            if archive.provenance.get("completed_task")
+            else ceil(len(archive.scenarios) / config.budget)
+        )
+        key = archive.source_id, visit % segments
+        if key not in episodes:
+            episodes[key] = cache_episode(
+                base, archive, config, config.seed + items.index(archive), key[1]
+            )
+        episode = episodes[key]
+        count = int(generator.integers(episode["initial_count"], episode["length"]))
         contexts = contexts_for_episode(history, episode, generator, config)
-        count = int(generator.choice(config.support_counts))
         optimizer.zero_grad(set_to_none=True)
-        p = episode_probabilities(encoder, contexts, episode, (count,), config)[count]
-        truth = p.new_tensor(episode["query_labels"], dtype=p.dtype)
+        p = episode_probability(encoder, contexts, episode, count)
+        truth = p.new_tensor(episode["labels"][count], dtype=p.dtype)
         loss = F.binary_cross_entropy(p.clamp(1e-8, 1 - 1e-8), truth)
         if not torch.isfinite(loss):
-            raise FloatingPointError("Nonfinite matched global-feedback episode loss")
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(encoder.parameters(), 5)
-        optimizer.step()
-        if step % config.validation_interval == 0 or step == config.steps:
-            metrics, rows = encoder_validation(encoder, history, validation, config)
-            score = metrics["collision_nll"], metrics["brier"]
+            raise FloatingPointError("Nonfinite next-response collision loss")
+        optimize(encoder, optimizer, loss)
+        losses.append(float(loss.detach()))
+        errors.append(float((p.detach() - truth).square()))
+        if step % config.diagnostic_interval == 0 or step == config.steps:
             curve.append(
                 {
                     "step": step,
-                    "training_nll": float(loss.detach()),
-                    "validation": metrics,
-                    "episodes": rows,
+                    "training_nll": float(np.mean(losses)),
+                    "training_brier": float(np.mean(errors)),
+                    "diagnostic_steps": len(losses),
+                    "source_id": archive.source_id,
+                    "prefix_count": count,
+                    "next_record_index": int(episode["indices"][count]),
                 }
             )
-            if score < best:
-                best = score
+            losses.clear()
+            errors.clear()
+            if step == config.steps:
                 save_model(encoder_path, encoder, "historical_encoder", spec, step)
             report = {
                 "status": "complete" if step == config.steps else "running",
                 "specification": spec,
                 "curve": curve,
-                "best_score": list(best),
-                "prefix_cache_s": cache_s,
-                "training_s": time.perf_counter() - started,
+                "final_step": step,
+                "cached_episodes": len(episodes),
+                "training_s": synchronized_time(config.device) - started,
             }
             write_json(encoder_path.with_suffix(".json"), report)
             print(
-                "consistent_encoder",
+                "historical_encoder",
                 step,
                 "/",
                 config.steps,
-                "validation_nll",
-                round(score[0], 6),
+                "next_nll",
+                curve[-1]["training_nll"],
                 flush=True,
             )
     return {"target": target_report, "encoder": report}
 
 
-def build_scope(kind, held_family):
-    history, development = load_training_data(kind, held_family)
-    destination = model_directory(kind, held_family)
-    report = train(history, development, destination, held_family=held_family)
+def build_scope(
+    kind, held_family=None, *, config=DEFAULT, dataset_manifest=None, model_root=MODEL_ROOT
+):
+    from experiments.history import load_training_archives
+    from experiments.prepare_joint import DATASET_ROOT
+
+    manifest = (
+        DATASET_ROOT / "manifest.json" if dataset_manifest is None else Path(dataset_manifest)
+    )
+    history = load_training_archives(manifest, kind, held_family)
+    destination = (
+        Path(model_root)
+        / kind
+        / ("all_sources" if held_family is None else f"without_{held_family}")
+    )
+    resource_path = destination / "resources.json"
+    with PeakMemory(device=config.device) as memory:
+        report = train(history, destination, held_family=held_family, config=config)
+    if not resource_path.exists():
+        write_json(resource_path, memory.result)
     return {
         "scenario": kind,
         "scope": destination.name,
-        "destination": str(destination.relative_to(ROOT)),
+        "destination": str(destination.resolve()),
+        "resources": read_json(resource_path),
         **report,
     }
 
 
-def main():
-    jobs = [(kind, held) for kind in DOMAINS for held in HELD_FAMILIES]
+def main(*, config=DEFAULT, dataset_manifest=None, model_root=MODEL_ROOT):
     reports = []
-    with ProcessPoolExecutor(max_workers=8) as pool:
-        futures = [pool.submit(build_scope, kind, held) for kind, held in jobs]
-        for future in as_completed(futures):
-            reports.append(future.result())
-            write_json(
-                MODEL_ROOT / "construction.json",
-                {
-                    "status": "complete" if len(reports) == len(jobs) else "running",
-                    "tasks": reports,
-                    "covariance_mode": COVARIANCE_MODE,
-                    "new_physical_calls": 0,
-                },
-            )
+    workers = min(4, len(TEST_SCENARIOS)) if torch.device(config.device).type == "cpu" else 1
+
+    def record(report):
+        reports.append(report)
+        reports.sort(key=lambda r: TEST_SCENARIOS.index(r["scenario"]))
+        write_json(
+            Path(model_root) / "construction.json",
+            {
+                "status": "complete" if len(reports) == len(TEST_SCENARIOS) else "running",
+                "tasks": reports,
+                "covariance_mode": COVARIANCE_MODE,
+                "new_physical_calls": 0,
+                "parallel_workers": workers,
+                "device": config.device,
+            },
+        )
+
+    options = dict(config=config, dataset_manifest=dataset_manifest, model_root=model_root)
+    if workers == 1:
+        for kind in TEST_SCENARIOS:
+            record(build_scope(kind, **options))
+    else:
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            pending = [pool.submit(build_scope, kind, **options) for kind in TEST_SCENARIOS]
+            for future in as_completed(pending):
+                record(future.result())
     return reports
 
 

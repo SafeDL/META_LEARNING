@@ -1,154 +1,383 @@
-"""Matched H-by-F controls with global reliability and a shared historical teacher."""
+"""Budgeted collision discovery with paid joint feedback and frozen embeddings."""
 
 import copy
-import time
 
 import numpy as np
 import torch
 
+from experiments.costs import measure_resources, synchronized_time
+from experiments.domain import Domain
+from experiments.rss import measurement_contract
 from experiments.scenarios import features
-from testing_methods.common.gp_classifier import ClassificationKernel, fit_target
 from testing_methods.selection import validate_initial_indices
 
-from .inference import component_probabilities, residual_prior
+from .inference import (
+    TARGET_PARAMETERS,
+    adapted_model,
+    initial_weights,
+    mixture_weights,
+    predict_components,
+    source_tensors,
+    update_weights,
+)
+from .lookahead import JointLookahead
+from .model import JointResponseKernel
+from .reliability import local_weights
 
 MODES = ("H0F0", "H1F0", "H0F1", "H1F1")
 
 
 def aggregate_history(sources):
-    """A single Gaussian teacher preserving the mixture's latent mean and total covariance."""
+    """Represent total covariance as point blocks plus between-source low rank."""
     weights = np.asarray(sources["weights"], dtype=float)
-    means, covariances = np.asarray(sources["means"]), np.asarray(sources["covariances"])
-    mean = weights @ means
-    centered = means - mean
-    covariance = np.einsum("k,kij->ij", weights, covariances)
-    covariance += np.einsum("k,ki,kj->ij", weights, centered, centered)
+    means = np.asarray(sources["means"])
+    mean = np.einsum("s,sni->ni", weights, means)
+    low_rank = ((means - mean) * np.sqrt(weights)[:, None, None]).transpose(1, 2, 0)
+    if "low_rank" in sources:
+        previous = sources["low_rank"] * np.sqrt(weights)[:, None, None, None]
+        low_rank = np.concatenate(
+            (low_rank, previous.transpose(1, 2, 0, 3).reshape(*mean.shape, -1)), axis=-1
+        )
     return {
+        **sources,
         "names": ["aggregate_history_teacher"],
         "weights": np.ones(1),
         "means": mean[None],
-        "covariances": covariance[None],
+        "blocks": np.einsum("s,snij->nij", weights, sources["blocks"])[None],
+        "low_rank": low_rank[None],
     }
 
 
+@measure_resources
 def select(
     candidates,
     oracle,
     *,
-    pretrained,
-    sources,
-    mode,
+    pretrained=None,
+    sources=None,
+    mode="H1F1",
     initial_indices,
-    budget=128,
-    device=None,
+    budget=200,
+    device="cpu",
     feature_fn=features,
+    batch_size=128,
+    feedback_mode="joint",
+    update_source_weights=True,
+    snapshot_counts=(0, 20, 50, 200),
+    query_order=None,
+    local_reliability=False,
+    diagnose_rss=False,
+    lookahead=None,
+    raw_kernel_type=JointResponseKernel,
 ):
-    if mode not in MODES:
-        raise ValueError("Unknown H-by-F cell")
+    if mode not in MODES or feedback_mode not in ("joint", "collision"):
+        raise ValueError("Unknown source control or feedback mode")
+    if diagnose_rss and (not mode.endswith("F1") or feedback_mode != "joint"):
+        raise ValueError("RSS conditioning diagnostics require paid joint feedback updates")
+    raw_only = pretrained is None
+    if raw_only and sources is not None:
+        raise ValueError("Raw target-only GP cannot use historical sources")
+    if not raw_only and raw_kernel_type is not JointResponseKernel:
+        raise ValueError("Raw kernel type applies only to the no-history control")
+    if local_reliability and (
+        raw_only or sources is None or mode != "H1F1" or not update_source_weights
+    ):
+        raise ValueError("Local reliability requires separate sources and paid feedback updates")
+    if lookahead is not None and (
+        raw_only
+        or sources is None
+        or mode != "H1F1"
+        or feedback_mode != "joint"
+        or not update_source_weights
+        or local_reliability
+    ):
+        raise ValueError(
+            "Joint lookahead requires separate sources, joint feedback and global weights"
+        )
+    if not raw_only and not isinstance(pretrained, JointResponseKernel):
+        raise TypeError("Joint discovery requires a joint response target kernel")
     initial = list(initial_indices)
     validate_initial_indices(len(candidates), initial, budget)
-    if not sources or (mode.startswith("H0") and sources["names"] != ["aggregate_history_teacher"]):
-        raise ValueError(
-            "H0 receives only the aggregate teacher; H1 receives explicit source priors"
-        )
-    weights = np.asarray(sources["weights"])
-    if np.any(weights <= 0) or not np.isclose(weights.sum(), 1):
-        raise ValueError("Historical prior weights must form a positive probability distribution")
+    if query_order is not None:
+        query_order = list(query_order)
+        validate_initial_indices(len(candidates), query_order, budget)
+        if len(query_order) != budget or query_order[: len(initial)] != initial:
+            raise ValueError("Replay order must cover the budget and preserve initialization")
+    if sources is not None:
+        weights = np.asarray(sources["weights"])
+        if np.any(weights <= 0) or not np.isclose(weights.sum(), 1):
+            raise ValueError("Source weights must form a positive probability distribution")
+        if mode.startswith("H0") and sources["names"] != ["aggregate_history_teacher"]:
+            raise ValueError("H0 uses the aggregate historical teacher")
     torch.set_num_threads(1)
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-    base = copy.deepcopy(pretrained).to(device).double()
-    model = copy.deepcopy(base)
+    construction = getattr(pretrained, "construction_specification", {})
+    definition = construction.get("parameter_definition")
+    if definition is not None:
+        domain = Domain.from_dict(definition)
+        supplied_domain = getattr(feature_fn, "__self__", None)
+        if feature_fn is not features and (
+            not isinstance(supplied_domain, Domain) or supplied_domain.to_dict() != definition
+        ):
+            raise ValueError("Target features differ from the shared model parameter definition")
+        if (
+            sources is not None
+            and sources["specification"].get("parameter_definition") != definition
+        ):
+            raise ValueError("Source snapshot uses another parameter definition")
+        feature_fn = domain.features
     x = feature_fn(candidates)
-    physical_base = ClassificationKernel(x.shape[1]).to(device)
-    physical = copy.deepcopy(physical_base)
-    names = [*sources["names"], "independent_target", "physical_target"]
-    historical = {
-        key: torch.as_tensor(sources[key], dtype=torch.float64, device=device)
-        for key in ("weights", "means", "covariances")
-    }
-    prior = torch.cat((0.75 * historical["weights"], base.mean.new_tensor([0.25])))
+    base = (
+        (raw_kernel_type(x.shape[1], deep=False) if raw_only else copy.deepcopy(pretrained))
+        .to(device)
+        .double()
+        .eval()
+    )
+    physical_base = None if raw_only else type(base)(base.dimension, deep=False).double().to(device)
+    for model in (base,) if raw_only else (base, physical_base):
+        for parameter in model.parameters():
+            parameter.requires_grad_(False)
+    encoded_target = base.features(x).detach()
+    encoded_physical = None if raw_only else physical_base.features(x).detach()
+    model, physical = base, physical_base
+    tensors = source_tensors(sources, base)
+    reference = base.point_mean(1)[0].detach().clone()
+    prior = initial_weights(sources, reference)
     scores = prior.log()
-    reference = float(base.mean.detach())
-    feedback_enabled = mode.endswith("F1")
-    selected, labels, queries = [], [], []
+    names = (
+        ["raw_target"]
+        if raw_only
+        else [*(sources["names"] if sources else []), "independent_target", "physical_target"]
+    )
+    selected, labels, margins, queries, snapshots = [], [], [], [], []
     remaining = set(range(len(candidates)))
+    enabled = mode.endswith("F1")
     cached = None
-    for step in range(budget):
-        started = time.perf_counter()
-        if cached is None or feedback_enabled:
-            paid, used_labels = (selected, labels) if feedback_enabled else ([], [])
+    reliability_observations = []
+    reliability_bandwidth = base.log_lengthscale.exp().clamp_min(0.01).detach()
+    acquisition = (
+        None
+        if lookahead is None
+        else JointLookahead(
+            base,
+            physical_base,
+            x,
+            tensors,
+            reference,
+            encoded_target,
+            encoded_physical,
+            [s.scenario_id for s in candidates],
+            batch_size=batch_size,
+            **lookahead,
+        )
+    )
+
+    def weights_at(indices=None):
+        if not local_reliability:
+            return mixture_weights(scores, raw_only=raw_only)
+        return local_weights(
+            scores,
+            encoded_target if indices is None else encoded_target[indices],
+            encoded_target[selected],
+            reliability_observations,
+            reliability_bandwidth,
+            batch_size=batch_size,
+        )
+
+    def snapshot(count, probability, weights):
+        result = {
+            "paid_queries": count,
+            "observed_indices": list(selected),
+            "probabilities": probability.tolist(),
+            "component_weights": weights.cpu().tolist(),
+            "target_parameters": {
+                name: float(getattr(model, name).detach()) for name in TARGET_PARAMETERS
+            },
+            "physical_parameters": None
+            if physical is None
+            else {name: float(getattr(physical, name).detach()) for name in TARGET_PARAMETERS},
+        }
+        if diagnose_rss:
             with torch.no_grad():
-                means, covariances = residual_prior(
-                    model.mean,
-                    model.covariance(x),
-                    historical["means"],
-                    historical["covariances"],
+                components, _ = predict_components(
+                    model,
+                    physical,
+                    x,
+                    tensors,
                     reference,
+                    selected,
+                    labels,
+                    None,
+                    batch_size=batch_size,
+                    encoded_target=encoded_target,
+                    encoded_physical=encoded_physical,
                 )
-                learned, diagnostics = component_probabilities(
-                    means.cpu(), covariances.cpu(), paid, used_labels
+                effective = weights if local_reliability else weights[:, None]
+                result["collision_conditioned_probabilities"] = (
+                    (effective * components).sum(0).cpu().tolist()
                 )
-                raw, physical_info = component_probabilities(
-                    physical.mean.expand(1, len(x)).cpu(),
-                    physical.covariance(x)[None].cpu(),
-                    paid,
-                    used_labels,
+        if acquisition is not None:
+            result["lookahead"] = None
+        return result
+
+    for step in range(budget):
+        started = synchronized_time(device)
+        # A prescribed sequence only needs the next point, except at report checkpoints.
+        prediction_indices = (
+            [query_order[step]]
+            if query_order is not None and step not in snapshot_counts and enabled
+            else None
+        )
+        if cached is None or enabled:
+            with torch.no_grad():
+                components, diagnostics = predict_components(
+                    model,
+                    physical,
+                    x,
+                    tensors,
+                    reference,
+                    selected if enabled else [],
+                    labels if enabled else [],
+                    margins if enabled and feedback_mode == "joint" else None,
+                    batch_size=batch_size,
+                    indices=prediction_indices,
+                    encoded_target=encoded_target,
+                    encoded_physical=encoded_physical,
                 )
-                group_weights = scores.cpu().softmax(0)
-                components = torch.cat((learned, raw))
-                effective = torch.cat((0.9 * group_weights, group_weights.new_tensor([0.1])))
-                probability = (effective[:, None] * components).sum(0).numpy()
-            cached = probability, components, effective, diagnostics, physical_info[0]
-        probability, components, effective, diagnostics, physical_info = cached
-        if step < len(initial):
+                effective = weights_at(prediction_indices)
+                weighted = effective if local_reliability else effective[:, None]
+                probability = (weighted * components).sum(0).cpu().numpy()
+            cached = components, diagnostics, effective, probability
+        components, diagnostics, effective, probability = cached
+        planned, lookahead_info, lookahead_s = None, None, 0.0
+        if (
+            acquisition is not None
+            and step >= len(initial)
+            and (query_order is None or step in snapshot_counts)
+        ):
+            acquisition_started = synchronized_time(device)
+            planned, diagnostic = acquisition.choose(
+                model,
+                physical,
+                scores,
+                selected,
+                labels,
+                margins,
+                components,
+                remaining,
+                budget - step,
+            )
+            lookahead_info = {"selected_index": planned, **diagnostic}
+            lookahead_s = synchronized_time(device) - acquisition_started
+        if step in snapshot_counts:
+            current = snapshot(step, probability, effective)
+            if acquisition is not None:
+                current["lookahead"] = lookahead_info
+            snapshots.append(current)
+        if query_order is not None:
+            index = query_order[step]
+        elif step < len(initial):
             index = initial[step]
+        elif acquisition is not None:
+            index = planned
         else:
             maximum = max(probability[i] for i in remaining)
             index = min(
                 (i for i in remaining if probability[i] >= maximum - 1e-12),
                 key=lambda i: candidates[i].scenario_id,
             )
-        selection_s = time.perf_counter() - started
+        predicted_index = index if prediction_indices is None else 0
+        selection_s = synchronized_time(device) - started
         feedback = oracle.query(index, purpose="initial" if step < len(initial) else "target")
         if feedback.scenario_id != candidates[index].scenario_id:
-            raise ValueError("H-by-F feedback differs from the paid candidate")
-        before = effective.tolist()
+            raise ValueError("Feedback differs from the paid candidate")
+        if feedback_mode == "joint" and (
+            feedback.safety.rss_margin is None or feedback.rss_contract != measurement_contract()
+        ):
+            raise ValueError(
+                "Joint discovery requires measured paid RSS with the registered contract"
+            )
         selected.append(index)
         remaining.remove(index)
-        started = time.perf_counter()
+        started = synchronized_time(device)
         likelihood = None
-        if feedback_enabled:
+        if enabled:
             labels.append(feedback.collision)
-            p = components[:-1, index].to(device)
-            log_likelihood = (p if feedback.collision else 1 - p).clamp_min(1e-15).log()
-            scores = torch.log_softmax(scores + log_likelihood, dim=0)
-            likelihood = log_likelihood.cpu().tolist()
-            model = copy.deepcopy(base)
-            fit_target(model, x[selected], labels, steps=10, learning_rate=0.003)
-            physical = copy.deepcopy(physical_base)
-            fit_target(physical, x[selected], labels, steps=10, learning_rate=0.01)
-            if model.mean.is_cuda:
-                torch.cuda.synchronize(model.mean.device)
-        after = torch.cat((0.9 * scores.cpu().softmax(0), scores.new_tensor([0.1]).cpu())).tolist()
+            margins.append(feedback.safety.rss_margin)
+            if not raw_only and update_source_weights:
+                scores, likelihood = update_weights(
+                    scores, components[:-1, predicted_index], feedback.collision
+                )
+                if local_reliability:
+                    reliability_observations.append(likelihood.detach())
+            used_margins = margins if feedback_mode == "joint" else None
+            model = adapted_model(
+                base,
+                x[selected],
+                labels,
+                used_margins,
+                learning_rate=0.01 if raw_only else 0.003,
+                encoded=encoded_target[selected],
+            )
+            if not raw_only:
+                physical = adapted_model(
+                    physical_base,
+                    x[selected],
+                    labels,
+                    used_margins,
+                    learning_rate=0.01,
+                    encoded=encoded_physical[selected],
+                )
+        after = mixture_weights(scores, raw_only=raw_only)
         queries.append(
             {
                 "query": step + 1,
                 "index": index,
                 "feedback": feedback.to_dict(),
-                "prequery_probability": float(probability[index]),
-                "prequery_component_probabilities": components[:, index].tolist(),
-                "prequery_component_weights": before,
-                "component_weights_after_query": after,
-                "prequery_log_likelihood": likelihood,
-                "conditional_modes": diagnostics,
-                "physical_mode": physical_info,
-                "conditioning_queries": step if feedback_enabled else 0,
+                "prequery_probability": float(probability[predicted_index]),
+                "prequery_component_probabilities": components[:, predicted_index].cpu().tolist(),
+                "prequery_component_weights": (
+                    effective[:, predicted_index] if local_reliability else effective
+                )
+                .cpu()
+                .tolist(),
+                "component_weights_after_query": after.cpu().tolist(),
+                "prequery_log_likelihood": None
+                if likelihood is None
+                else likelihood.cpu().tolist(),
+                "conditional_modes": diagnostics if raw_only else diagnostics[:-1],
+                "physical_mode": None if raw_only else diagnostics[-1],
+                "conditioning_queries": step if enabled else 0,
                 "selection_s": selection_s,
-                "adaptation_s": time.perf_counter() - started,
+                "adaptation_s": synchronized_time(device) - started,
                 "reason": "common_initialization" if step < len(initial) else mode,
             }
         )
-    return {
+        if acquisition is not None:
+            queries[-1].update(lookahead=lookahead_info, lookahead_s=lookahead_s)
+    diagnostic_prediction_s = 0.0
+    if budget in snapshot_counts:
+        started = synchronized_time(device)
+        with torch.no_grad():
+            components, _ = predict_components(
+                model,
+                physical,
+                x,
+                tensors,
+                reference,
+                selected if enabled else [],
+                labels if enabled else [],
+                margins if enabled and feedback_mode == "joint" else None,
+                batch_size=batch_size,
+                encoded_target=encoded_target,
+                encoded_physical=encoded_physical,
+            )
+            effective = weights_at()
+            weighted = effective if local_reliability else effective[:, None]
+            probability = (weighted * components).sum(0).cpu().numpy()
+        snapshots.append(snapshot(budget, probability, effective))
+        diagnostic_prediction_s = synchronized_time(device) - started
+    result = {
+        "response_kernel": type(base).__name__,
         "method": mode,
         "queries": queries,
         "selected_indices": selected,
@@ -156,14 +385,25 @@ def select(
         "maximum_queries": budget,
         "termination": "budget_exhausted",
         "component_names": names,
-        "explicit_source_components": mode.startswith("H1"),
-        "target_feedback_updates": feedback_enabled,
-        "global_reliability": True,
+        "explicit_source_components": sources is not None and mode.startswith("H1"),
+        "target_feedback_updates": enabled,
+        "global_reliability": not raw_only and enabled and update_source_weights,
+        "local_reliability": local_reliability,
+        "source_weight_updates": not raw_only and enabled and update_source_weights,
         "group_prior_weights": prior.cpu().tolist(),
-        "physical_mass": 0.1,
+        "physical_mass": 1.0 if raw_only else 0.1,
+        "representation": "normalized_parameters" if raw_only else "historical_embedding",
         "beta": 1.0,
-        "feedback_used": "paid collision Boolean" if feedback_enabled else "paid indices only",
-        "conditional_inference_device": "cpu",
-        "kernel_and_adaptation_device": str(device),
+        "feedback_used": feedback_mode if enabled else "paid indices only",
+        "rss_contract": measurement_contract(),
+        "covariance_mode": "point_joint_blocks",
+        "batch_size": batch_size,
         "online_feature_precision": "float64",
+        "conditional_inference_device": str(device),
+        "kernel_and_adaptation_device": str(device),
+        "prediction_snapshots": snapshots,
+        "diagnostic_prediction_s": diagnostic_prediction_s,
     }
+    if acquisition is not None:
+        result.update(acquisition="joint_feedback_lookahead", lookahead_configuration=lookahead)
+    return result

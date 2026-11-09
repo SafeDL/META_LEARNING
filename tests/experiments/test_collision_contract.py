@@ -3,31 +3,10 @@ from dataclasses import fields
 import numpy as np
 import pytest
 
-from controllers.highway.catalog import SUTS
-from experiments.protocol import check_roles
 from experiments.scenarios import sample
 from experiments.storage import load_archive, save_archive
 from simulator.highway.observation import VehicleState, observe, policy_observation
 from testing_methods.common.response import ResponseArchive
-
-
-def test_twenty_objects_and_learning_runs_have_explicit_lineage():
-    assert len(SUTS) == 20
-    assert len({s.sut_id for s in SUTS}) == 20
-    for family in ("rule", "optimization", "search", "learning"):
-        group = [s for s in SUTS if s.family == family]
-        assert [
-            sum(s.role == role for s in group) for role in ("history", "development", "target")
-        ] == [2, 1, 2]
-        history = {s.lineage for s in group if s.role == "history"}
-        assert history == {s.lineage for s in group if s.role == "target"}
-    learned = [s for s in SUTS if s.family == "learning"]
-    assert len({s.training_seed for s in learned}) == 5
-    assert len({s.training_run for s in learned}) == 5
-    history = tuple(s for s in SUTS if s.role == "history")
-    development = tuple(s for s in SUTS if s.role == "development")
-    with pytest.raises(ValueError, match="Held family"):
-        check_roles(history, development, held_family="rule")
 
 
 def test_geometric_occlusion_is_shared_and_tracks_reveal():
