@@ -1,12 +1,12 @@
 # 测试场景选择方法
 
-本目录实现“下一次测试哪个交通场景”的算法。方法接收公开场景参数，以及允许使用的历史记录和已查询反馈，在给定预算内寻找碰撞场景。被测车辆的驾驶控制器位于 [controllers](../controllers/README.md)。
+本目录实现有限候选集中的预算约束测试。输入为公开场景参数、获准历史档案和当前任务已查询反馈，输出选择顺序、查询前预测及更新记录。
 
-| 位置 | 用途 |
+| 位置 | 职责 |
 |---|---|
-| [history_transfer](history_transfer/README.md) | 本文方法：利用历史系统响应和目标反馈选择场景 |
-| [baselines](baselines/README.md) | Random、RF-EI、SAMOTA、ScenarioFuzz、配对系统主动评估和 Indago |
-| [common](common/README.md) | 测试档案、概率模型、分类推断和模型加载工具 |
-| [selection.py](selection.py) | 检查共同初始化和查询预算，统一并列候选的选择规则 |
+| [history_transfer/](history_transfer/README.md) | 联合响应模型、历史来源后验、目标适配和风险选例 |
+| [baselines/](baselines/README.md) | 基线的训练、搜索与有限候选库适配 |
+| [common/](common/README.md) | 响应档案、共享核和分类推断工具 |
+| [selection.py](selection.py) | 检查初始化索引及预算是否合法 |
 
-原间距实验的方法描述按 [问题定义](paper_section.md)、[主方法](history_transfer/paper_section.md)、[概率模型与推断](common/paper_section.md) 的顺序阅读。当前RSS辅助响应的定义见 [安全度量说明](../docs/rss.md)，训练入口见 [history_transfer](history_transfer/README.md)。实验设置、数据权限和评价指标见 [实验运行说明](../experiments/README.md)。
+各方法通过 [QueryLedger](../experiments/query.py) 获取已付费反馈，并自行处理并列候选。驾驶控制器位于 [controllers/](../controllers/README.md)，统一调度和报告入口见 [experiments/](../experiments/README.md)。

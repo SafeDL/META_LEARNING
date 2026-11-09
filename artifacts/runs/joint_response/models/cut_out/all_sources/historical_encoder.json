@@ -1,0 +1,214 @@
+{
+  "status": "complete",
+  "specification": {
+    "scenario": "cut_out",
+    "history_fingerprints": {
+      "history_idm_mobil": "90922f042dbd2d8bd754f3814de44c8058e289fc6b9a46596e49793a2a8c10d4",
+      "history_fvdm_lane": "d4e76243ade4fe23b4b1d27344be02d81a32c554054487c37971811ed9c1e5f0",
+      "history_linear_mpc": "dc372149b6725e40e05ef091025ef8ae28535eae953f8284a2555e3dd6ab3f59",
+      "history_nonlinear_trajectory": "bee1c653a8bcbb1d29503133b5bd894b306f5ad31585cb344a389b910e8d786e",
+      "history_uct": "6882fa81d99dbc0e4a2913b42f95aa33a554fc3bcb9d2eae1b0716c490e9a618",
+      "history_beam": "0fa22080b6df27cdd795cfecbcc014a22a7aa7734290eb944166d37015b7a690",
+      "history_ppo": "d4972b8421b1968497b06e0a3f0a55e71be5aabfe8db0ccd25b4a8b2016340a1",
+      "history_dqn": "9bd3aeb4c7efc10e6c588f62e6001fdc3733a6caf730a6934eaa6bd9124ac508"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "initial_count": 20,
+      "budget": 200,
+      "historical_context": 64,
+      "diagnostic_interval": 100,
+      "seed": 1301,
+      "device": "cpu",
+      "historical_rss": true
+    },
+    "covariance_mode": "point_joint_blocks",
+    "training_contract": {
+      "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+      "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+      "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+      "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+      "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+      "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+      "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+      "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+      "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+      "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "paid collision and RSS",
+    "historical_feedback": "collision and ego-normalized RSS margin",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "ego_response_s": 1.0,
+        "other_response_s": 2.0,
+        "acceleration_mps2": 3.5,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 8.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+      "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+    },
+    "supervision": "uniform next-response time after initialization; all preceding feedback",
+    "checkpoint": "final fixed step, no development data",
+    "new_source_ids": [],
+    "parent_version": null
+  },
+  "curve": [
+    {
+      "step": 100,
+      "training_nll": 0.15644344542312713,
+      "training_brier": 0.037591339218304105,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 85,
+      "next_record_index": 27
+    },
+    {
+      "step": 200,
+      "training_nll": 0.28677259443293956,
+      "training_brier": 0.0904163320344459,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 99,
+      "next_record_index": 364
+    },
+    {
+      "step": 300,
+      "training_nll": 0.20961638769605506,
+      "training_brier": 0.06076280109147185,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 90,
+      "next_record_index": 600
+    },
+    {
+      "step": 400,
+      "training_nll": 0.156885250411685,
+      "training_brier": 0.04007397347573056,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 123,
+      "next_record_index": 299
+    },
+    {
+      "step": 500,
+      "training_nll": 0.2132507380841574,
+      "training_brier": 0.05926258124954464,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 102,
+      "next_record_index": 329
+    },
+    {
+      "step": 600,
+      "training_nll": 0.14961823701390084,
+      "training_brier": 0.03918250268832907,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 112,
+      "next_record_index": 537
+    },
+    {
+      "step": 700,
+      "training_nll": 0.20125209757164708,
+      "training_brier": 0.05475461765273128,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 55,
+      "next_record_index": 278
+    },
+    {
+      "step": 800,
+      "training_nll": 0.2035344897056059,
+      "training_brier": 0.058338792917776515,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 44,
+      "next_record_index": 362
+    },
+    {
+      "step": 900,
+      "training_nll": 0.170956908880346,
+      "training_brier": 0.04712961514081084,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 117,
+      "next_record_index": 672
+    },
+    {
+      "step": 1000,
+      "training_nll": 0.13887356663306152,
+      "training_brier": 0.032011515778424954,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 64,
+      "next_record_index": 492
+    },
+    {
+      "step": 1100,
+      "training_nll": 0.20044182772583694,
+      "training_brier": 0.05527120075668264,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 108,
+      "next_record_index": 434
+    },
+    {
+      "step": 1200,
+      "training_nll": 0.14696856548246637,
+      "training_brier": 0.035309315603183095,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 137,
+      "next_record_index": 336
+    },
+    {
+      "step": 1300,
+      "training_nll": 0.20287335539718762,
+      "training_brier": 0.05579164174628228,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 50,
+      "next_record_index": 84
+    },
+    {
+      "step": 1400,
+      "training_nll": 0.13648630331709885,
+      "training_brier": 0.03436870427116397,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 195,
+      "next_record_index": 462
+    },
+    {
+      "step": 1500,
+      "training_nll": 0.1947893164797902,
+      "training_brier": 0.05430748910982935,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 25,
+      "next_record_index": 217
+    }
+  ],
+  "final_step": 1500,
+  "cached_episodes": 32,
+  "training_s": 21196.31922029995
+}

@@ -1,12 +1,15 @@
 """Evaluator-owned execution and process-isolated, metered query transport."""
 
+import copy
 import multiprocessing as mp
 import time
 import traceback
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
+import psutil
 from threadpoolctl import threadpool_limits
 
+from .rss import measurement_contract, trajectory_margin
 from .scenarios import validate
 from .schema import QueryFeedback, Scenario
 
@@ -41,16 +44,36 @@ class PaidExecution:
 
 
 class QueryLedger:
-    def __init__(self, candidates, budget, execute, *, account="target"):
+    def __init__(
+        self,
+        candidates,
+        budget,
+        execute,
+        *,
+        account="target",
+        joint_feedback=False,
+        domain=None,
+        allow_registration=True,
+    ):
         self.candidates = tuple(candidates)
+        self.domain = domain
+        self.allow_registration = allow_registration
+        if domain is not None:
+            if len({s.kind for s in self.candidates}) > 1:
+                raise ValueError("A registered query domain requires one functional scenario")
+            for scene in self.candidates:
+                domain.validate(scene)
         self.budget = budget
         self.execute = execute
         self.account = account
+        self.joint_feedback = joint_feedback
         self.records = []
         self.trajectories = []
 
     def register(self, scenario):
-        validate(scenario)
+        if not self.allow_registration:
+            raise ValueError("The task uses a fixed candidate library")
+        validate(scenario, domain=self.domain)
         if self.candidates and scenario.kind != self.candidates[0].kind:
             raise ValueError(
                 "Continuous candidates must stay in the registered functional scenario"
@@ -97,6 +120,19 @@ class QueryLedger:
             execution = self.execute(scenario)
             if execution.feedback.scenario_id != scenario.scenario_id:
                 raise ValueError("Executor returned a different scene")
+            if self.joint_feedback:
+                rss_started = time.perf_counter()
+                margin = trajectory_margin(execution.trajectory)["minimum_margin"]
+                record["rss_compute_s"] = time.perf_counter() - rss_started
+                execution = replace(
+                    execution,
+                    feedback=replace(
+                        execution.feedback,
+                        safety=replace(execution.feedback.safety, rss_margin=margin),
+                        rss_contract=measurement_contract(),
+                        trajectory=copy.deepcopy(execution.trajectory),
+                    ),
+                )
         except Exception as error:
             record.update(status="failed", wall_s=time.perf_counter() - started, error=repr(error))
             raise
@@ -115,20 +151,34 @@ def _worker(connection, selector, public_task):
             result = selector(oracle=QueryClient(connection), **public_task)
         connection.send(("result", result))
     except Exception:
-        connection.send(("error", traceback.format_exc()))
+        try:
+            connection.send(("error", traceback.format_exc()))
+        except (BrokenPipeError, EOFError):
+            # The evaluator already raised its own error and closed the pipe.
+            return
     finally:
         connection.close()
 
 
-def run_isolated(selector, public_task, ledger):
+def run_isolated(selector, public_task, ledger, *, wall_limit_s=None, memory_limit_bytes=None):
     """Only explicitly assembled public inputs are serialized into the selector."""
     context = mp.get_context("spawn")
     parent, child = context.Pipe()
     process = context.Process(target=_worker, args=(child, selector, public_task))
     process.start()
     child.close()
+    started = time.perf_counter()
+    monitored = psutil.Process(process.pid) if memory_limit_bytes is not None else None
     try:
         while True:
+            if wall_limit_s is not None and time.perf_counter() - started > wall_limit_s:
+                raise TimeoutError(f"Selector exceeded its registered {wall_limit_s}s wall limit")
+            if monitored is not None and process.is_alive():
+                used = monitored.memory_info().rss
+                if used > memory_limit_bytes:
+                    raise MemoryError(
+                        f"Selector exceeded its registered {memory_limit_bytes} byte memory limit"
+                    )
             if not parent.poll(1):
                 if not process.is_alive():
                     raise RuntimeError(f"Selector exited without a result: {process.exitcode}")

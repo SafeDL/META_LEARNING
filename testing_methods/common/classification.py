@@ -2,17 +2,9 @@
 
 import numpy as np
 import torch
-from scipy.special import expit
 
 NODES, WEIGHTS = np.polynomial.hermite.hermgauss(32)
 WEIGHTS = WEIGHTS / np.sqrt(np.pi)
-
-
-def logistic_moments(mean, variance):
-    z = np.asarray(mean)[..., None] + np.sqrt(2 * np.maximum(variance, 0))[..., None] * NODES
-    p = expit(z)
-    derivative = p * (1 - p)
-    return (p @ WEIGHTS, derivative @ WEIGHTS, (derivative * (1 - 2 * p)) @ WEIGHTS)
 
 
 def torch_moments(mean, variance):

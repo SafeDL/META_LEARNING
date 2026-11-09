@@ -2,8 +2,8 @@
 
 RSS Lemmas 2/4 supply the distance envelopes; max/min supply the quantitative
 semantics of separation / all actors / all sampled times. This is a distance
-monitor, not the full RSS proper-response or responsibility checker. See
-docs/rss.md for the equations, parameter assumptions and scope.
+monitor, not the full RSS proper-response or responsibility checker. The
+measurement_contract function records its geometry and aggregation rules.
 """
 
 import math

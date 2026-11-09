@@ -1,0 +1,214 @@
+{
+  "status": "complete",
+  "specification": {
+    "scenario": "front_brake",
+    "history_fingerprints": {
+      "history_idm_mobil": "daa452a211fa63e3a7c452d5f19c5ae4becded8f1c9c0ba425e74e992f07fbab",
+      "history_fvdm_lane": "60a36976b7a52fbe973094b68d4a44feea755363f8f0584e458b8c12c1fdcbb2",
+      "history_linear_mpc": "53948040523acea25449462b8970c276ea211ba45dc43f2aa06cf21a4eafb106",
+      "history_nonlinear_trajectory": "32fb2be310c7c840ccbf723b4234c6198e0e3cebb68a1db800d9286f8cfe1fcb",
+      "history_uct": "f6a59721a8aa7a98d08075e00bd65c8e450a2c43ce0cb33dca6e79f075f1d796",
+      "history_beam": "5eeb716017c79eb9ad704263ba8b6c60f2922ee922ecec4afa0bdcbd5a16557f",
+      "history_ppo": "e68214fd9ff6bdb0ce59c1a09ec91b5e163b8def3fcb76eb568fdae9ae30dd13",
+      "history_dqn": "a045e48b8a4ae02e8dfef8a38100db41285ffc1f5f06f777b4d54f558e87714e"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "initial_count": 20,
+      "budget": 200,
+      "historical_context": 64,
+      "diagnostic_interval": 100,
+      "seed": 1301,
+      "device": "cpu",
+      "historical_rss": true
+    },
+    "covariance_mode": "point_joint_blocks",
+    "training_contract": {
+      "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+      "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+      "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+      "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+      "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+      "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+      "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+      "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+      "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+      "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "paid collision and RSS",
+    "historical_feedback": "collision and ego-normalized RSS margin",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "ego_response_s": 1.0,
+        "other_response_s": 2.0,
+        "acceleration_mps2": 3.5,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 8.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+      "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+    },
+    "supervision": "uniform next-response time after initialization; all preceding feedback",
+    "checkpoint": "final fixed step, no development data",
+    "new_source_ids": [],
+    "parent_version": null
+  },
+  "curve": [
+    {
+      "step": 100,
+      "training_nll": 0.06483037704193816,
+      "training_brier": 0.010996327804330958,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 85,
+      "next_record_index": 27
+    },
+    {
+      "step": 200,
+      "training_nll": 0.04854009448395148,
+      "training_brier": 0.0038534927221384866,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 99,
+      "next_record_index": 364
+    },
+    {
+      "step": 300,
+      "training_nll": 0.05671935176135715,
+      "training_brier": 0.0074503273858442165,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 90,
+      "next_record_index": 600
+    },
+    {
+      "step": 400,
+      "training_nll": 0.06249171513921992,
+      "training_brier": 0.009228544597101143,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 123,
+      "next_record_index": 299
+    },
+    {
+      "step": 500,
+      "training_nll": 0.04847430755356088,
+      "training_brier": 0.004170482584329494,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 102,
+      "next_record_index": 329
+    },
+    {
+      "step": 600,
+      "training_nll": 0.07836861609084617,
+      "training_brier": 0.015974175158034364,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 112,
+      "next_record_index": 537
+    },
+    {
+      "step": 700,
+      "training_nll": 0.0664033796430432,
+      "training_brier": 0.01218712202690364,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 55,
+      "next_record_index": 278
+    },
+    {
+      "step": 800,
+      "training_nll": 0.05844135601009343,
+      "training_brier": 0.0077970641810762185,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 44,
+      "next_record_index": 362
+    },
+    {
+      "step": 900,
+      "training_nll": 0.04873325400850786,
+      "training_brier": 0.0040742478417547644,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 117,
+      "next_record_index": 672
+    },
+    {
+      "step": 1000,
+      "training_nll": 0.05920245492486838,
+      "training_brier": 0.0077600071592568735,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 64,
+      "next_record_index": 492
+    },
+    {
+      "step": 1100,
+      "training_nll": 0.09673110979526749,
+      "training_brier": 0.019815108561968053,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 108,
+      "next_record_index": 434
+    },
+    {
+      "step": 1200,
+      "training_nll": 0.05452195105688474,
+      "training_brier": 0.008589560803949988,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 137,
+      "next_record_index": 336
+    },
+    {
+      "step": 1300,
+      "training_nll": 0.055971871472498685,
+      "training_brier": 0.00995219069400961,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 50,
+      "next_record_index": 84
+    },
+    {
+      "step": 1400,
+      "training_nll": 0.04289002251963586,
+      "training_brier": 0.005611820073336341,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 195,
+      "next_record_index": 462
+    },
+    {
+      "step": 1500,
+      "training_nll": 0.056467997705994886,
+      "training_brier": 0.010366373860920769,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 25,
+      "next_record_index": 217
+    }
+  ],
+  "final_step": 1500,
+  "cached_episodes": 32,
+  "training_s": 20144.09615680005
+}

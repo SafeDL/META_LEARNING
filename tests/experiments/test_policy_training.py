@@ -1,14 +1,88 @@
+import copy
+import json
+
 import numpy as np
+import pytest
 import torch
 from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.vec_env import DummyVecEnv
 
+from controllers.highway import train
+from controllers.highway.catalog import CURRENT_BY_ID, CURRENT_SUTS
 from controllers.highway.learning import DiscreteDriver
+from experiments import executions
 from experiments.qualification import brake_scene
 from experiments.scenarios import sample
 from simulator.highway.collision_env import CollisionWorld
 from simulator.highway.observation import VehicleState, VisibleWorld
 from simulator.highway.training_env import EPISODE_DURATIONS, DrivingEnv, safety_penalty
+
+
+@pytest.fixture
+def registered_training(tmp_path, monkeypatch):
+    contract = train.training_contract()
+    qualification_root = tmp_path / "artifacts/runs/qualification/reports"
+    for sut in CURRENT_SUTS:
+        if sut.family == "learning":
+            continue
+        destination = qualification_root / sut.sut_id
+        destination.mkdir(parents=True)
+        (destination / "qualification.json").write_text(
+            json.dumps({"qualified": True, "parameters": sut.parameters}), encoding="utf-8"
+        )
+    interface = tmp_path / "artifacts/runs/preparation/reports/interface.json"
+    interface.parent.mkdir(parents=True)
+    interface.write_text(json.dumps({"status": "passed"}), encoding="utf-8")
+    monkeypatch.setattr(train, "ROOT", tmp_path)
+    monkeypatch.setattr(executions, "ROOT", tmp_path)
+    monkeypatch.setattr(train, "CHECKPOINT_ROOT", tmp_path / "checkpoints")
+    monkeypatch.setattr(train, "QUALIFICATION_ROOT", qualification_root)
+    monkeypatch.setattr(executions, "QUALIFICATION_ROOT", qualification_root)
+    monkeypatch.setattr(train, "training_contract", lambda: contract)
+    monkeypatch.setattr(train, "SubprocVecEnv", lambda factories, **_: DummyVecEnv(factories))
+    configuration = copy.deepcopy(train.TRAINING)
+    configuration.update(total_timesteps=32, workers=1, evaluation_interval=64)
+    configuration["ppo"].update(n_steps=32, batch_size=16, n_epochs=1)
+    configuration["dqn"].update(learning_starts=8, buffer_size=200, batch_size=16)
+    return tmp_path, qualification_root, configuration
+
+
+@pytest.mark.parametrize("sut_id", ["independent_ppo", "independent_dqn"])
+def test_current_training_entry_runs_without_development_or_aggregate_files(
+    registered_training, sut_id
+):
+    root, _, configuration = registered_training
+    report = train.train(sut_id, configuration=configuration)
+    sut = CURRENT_BY_ID[sut_id]
+    checkpoint = root / "checkpoints" / sut.training_run
+    assert report["status"] in ("qualified", "unqualified")
+    assert report["training_seed"] == sut.training_seed
+    assert report["actual_timesteps"] >= configuration["total_timesteps"]
+    assert (checkpoint / "best.zip").is_file()
+    assert not (checkpoint / "latest.zip").exists()
+    assert not (root / "checkpoints/training_protocol.json").exists()
+    saved = json.loads((checkpoint / "training.json").read_text(encoding="utf-8"))
+    assert saved == report
+
+
+@pytest.mark.parametrize("condition", ["missing", "unqualified"])
+def test_current_training_checks_independent_controller_qualification_before_starting(
+    registered_training, condition
+):
+    root, qualification_root, configuration = registered_training
+    qualification = qualification_root / "independent_linear_mpc/qualification.json"
+    if condition == "missing":
+        qualification.unlink()
+        expected_error = FileNotFoundError
+    else:
+        report = json.loads(qualification.read_text(encoding="utf-8"))
+        report["qualified"] = False
+        qualification.write_text(json.dumps(report), encoding="utf-8")
+        expected_error = ValueError
+    with pytest.raises(expected_error):
+        train.train("independent_ppo", configuration=configuration)
+    assert not (root / "checkpoints").exists()
 
 
 def test_discrete_policy_interface_includes_full_stop_and_road_boundaries():

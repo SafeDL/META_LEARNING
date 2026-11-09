@@ -1,4 +1,4 @@
-"""Construction for the new twenty-object catalog, independent of legacy builds."""
+"""Construct registered ADS controllers behind the shared driving interface."""
 
 from .catalog import BY_ID
 from .decision_interface import DecisionInterface

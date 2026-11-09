@@ -5,6 +5,15 @@ from scipy.optimize import root
 from scipy.special import expit
 
 
+def logistic_moments(mean, variance):
+    nodes, weights = np.polynomial.hermite.hermgauss(32)
+    weights = weights / np.sqrt(np.pi)
+    z = np.asarray(mean)[..., None] + np.sqrt(2 * np.maximum(variance, 0))[..., None] * nodes
+    p = expit(z)
+    derivative = p * (1 - p)
+    return (p @ weights, derivative @ weights, (derivative * (1 - 2 * p)) @ weights)
+
+
 def mode_numpy(mean, covariance, labels):
     labels = np.asarray(labels, dtype=float)
     k = covariance + 1e-5 * np.eye(len(labels))
@@ -50,26 +59,3 @@ def posterior_numpy(mean, covariance, observed, labels):
     cross = covariance[indices]
     solved = np.linalg.solve(factor, curvature[:, None] * cross)
     return mean + cross.T @ alpha, covariance - solved.T @ solved
-
-
-def probabilities_numpy(means, covariances, paid, labels):
-    from scipy.special import expit
-
-    nodes, weights = np.polynomial.hermite.hermgauss(32)
-    probabilities = []
-    for mean, covariance in zip(means, covariances):
-        if len(paid):
-            _, alpha, curvature, factor, _ = mode_numpy(
-                mean[paid], covariance[np.ix_(paid, paid)], labels
-            )
-            cross = covariance[np.asarray(paid)]
-            solved = np.linalg.solve(factor, curvature[:, None] * cross)
-            m = mean + cross.T @ alpha
-            variance = np.diag(covariance) - np.square(solved).sum(0)
-        else:
-            m, variance = mean, np.diag(covariance)
-        probabilities.append(
-            expit(m[:, None] + np.sqrt(2 * np.maximum(variance, 1e-10))[:, None] * nodes)
-            @ (weights / np.sqrt(np.pi))
-        )
-    return np.asarray(probabilities)

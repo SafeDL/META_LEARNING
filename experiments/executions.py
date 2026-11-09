@@ -4,22 +4,25 @@ import gzip
 import hashlib
 import json
 import time
+import warnings
+from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict
 from importlib.metadata import version
 from pathlib import Path
 
-from controllers.highway.catalog import BY_ID
+from controllers.highway.catalog import BY_ID, CURRENT_BY_ID
 from controllers.highway.factory import create
 from controllers.highway.learning import CHECKPOINT_ROOT
 from simulator.highway.collision_env import execute
 
+from .domain import Domain
 from .execution_events import analyze_events
 from .protocol import DEFAULT, ROOT
 from .qualification import QUALIFICATION_ROOT
 from .query import PaidExecution
 from .schema import QueryFeedback, Scenario
-from .source_registration import specification_matches
+from .source_registration import maintained_path, specification_matches
 
 
 def execution_contract(sut, *, kind=None):
@@ -87,28 +90,36 @@ def _execute_task(sut_id, scenario, environment_seed, attempt_path, call):
     }
     attempt_path.write_text(json.dumps(record), encoding="utf-8")
     started = time.perf_counter()
-    try:
-        policy = create(sut_id)
-        if scenario.kind == "cut_in_interaction":
-            from simulator.highway.interaction_env import execute as execute_interaction
+    with warnings.catch_warnings(record=True) as notices:
+        try:
+            policy = create(sut_id)
+            if scenario.kind == "cut_in_interaction":
+                from simulator.highway.interaction_env import execute as execute_interaction
 
-            execution = execute_interaction(
-                policy,
-                scenario,
-                environment_seed=environment_seed,
-                duration_s=DEFAULT.episode_duration_s,
-            )
-        else:
-            execution = execute(
-                policy,
-                scenario,
-                environment_seed=environment_seed,
-                duration_s=DEFAULT.episode_duration_s,
-            )
-    except Exception as error:
-        record.update(status="failed", wall_s=time.perf_counter() - started, error=repr(error))
-        attempt_path.write_text(json.dumps(record), encoding="utf-8")
-        raise
+                execution = execute_interaction(
+                    policy,
+                    scenario,
+                    environment_seed=environment_seed,
+                    duration_s=DEFAULT.episode_duration_s,
+                )
+            else:
+                execution = execute(
+                    policy,
+                    scenario,
+                    environment_seed=environment_seed,
+                    duration_s=DEFAULT.episode_duration_s,
+                )
+        except Exception as error:
+            record.update(status="failed", wall_s=time.perf_counter() - started, error=repr(error))
+            raise
+        finally:
+            counts = Counter((n.category.__name__, str(n.message)) for n in notices)
+            record["warnings"] = [
+                {"category": category, "message": message, "count": count}
+                for (category, message), count in sorted(counts.items())
+            ]
+            if record["status"] == "failed":
+                attempt_path.write_text(json.dumps(record), encoding="utf-8")
     record.update(
         status="complete",
         execution_s=execution.feedback.execution_s,
@@ -129,15 +140,23 @@ class ExecutionBank:
         if self.manifest["status"] != "complete":
             raise ValueError("Incomplete physical banks cannot enter evaluations")
         self.candidates = [Scenario(**s) for s in self.manifest["scenarios"]]
+        definition = self.manifest.get("parameter_definition")
+        self.domain = None if definition is None else Domain.from_dict(definition)
+        if self.domain is not None:
+            self.domain.features(self.candidates)
         self.indices = {s.scenario_id: i for i, s in enumerate(self.candidates)}
+
+    def execution_path(self, index):
+        references = self.manifest.get("execution_refs")
+        if references is not None:
+            return ROOT / references[index]
+        return self.root / "executions" / f"{index:06d}.json.gz"
 
     def __call__(self, scenario):
         index = self.indices[scenario.scenario_id]
         if scenario != self.candidates[index]:
             raise ValueError("Cached coordinate differs from the requested scene")
-        with gzip.open(
-            self.root / "executions" / f"{index:06d}.json.gz", "rt", encoding="utf-8"
-        ) as stream:
+        with gzip.open(self.execution_path(index), "rt", encoding="utf-8") as stream:
             payload = json.load(stream)
         if payload["scenario"] != asdict(scenario):
             raise ValueError("Cached execution is attached to a different coordinate")
@@ -145,10 +164,23 @@ class ExecutionBank:
         return PaidExecution(feedback, payload["trajectory"])
 
 
-def collect_bank(sut_id, scenarios, destination, *, environment_seed=81001, workers=12):
+def collect_bank(
+    sut_id,
+    scenarios,
+    destination,
+    *,
+    environment_seed=81001,
+    workers=12,
+    current_registration=False,
+):
     if not scenarios or len({s.scenario_id for s in scenarios}) != len(scenarios):
         raise ValueError("A physical bank requires nonempty, uniquely identified scenes")
-    sut = BY_ID[sut_id]
+    sut = (CURRENT_BY_ID if current_registration else BY_ID)[sut_id]
+    if current_registration and (
+        len({s.kind for s in scenarios}) != 1
+        or any(s.kind not in sut.supported_scenarios for s in scenarios)
+    ):
+        raise ValueError("Current execution banks require one registered functional scenario")
     qualification = require_qualified(sut)
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
@@ -164,17 +196,26 @@ def collect_bank(sut_id, scenarios, destination, *, environment_seed=81001, work
         "scenarios": [asdict(s) for s in scenarios],
     }
     specification = json.loads(json.dumps(specification))
+    pending = [
+        i
+        for i in range(len(scenarios))
+        if not (destination / "executions" / f"{i:06d}.json.gz").exists()
+    ]
     if manifest_path.exists():
         existing = json.loads(manifest_path.read_text(encoding="utf-8"))
         if any(
             not specification_matches(existing[key], value)
             if key == "contract"
+            else maintained_path(existing[key]) != value.replace("\\", "/")
+            if key == "qualification"
             else existing.get(key) != value
             for key, value in specification.items()
         ):
             raise ValueError(
                 "Existing bank belongs to a different scene/controller execution contract"
             )
+        if existing["status"] == "complete" and not pending:
+            return ExecutionBank(destination)
     manifest = {**specification, "status": "running"}
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     ledger_path = destination / "calls.jsonl"
@@ -184,11 +225,6 @@ def collect_bank(sut_id, scenarios, destination, *, environment_seed=81001, work
         else []
     )
     next_call = max((r["call"] for r in previous_calls), default=0) + 1
-    pending = [
-        i
-        for i in range(len(scenarios))
-        if not (destination / "executions" / f"{i:06d}.json.gz").exists()
-    ]
     started = time.perf_counter()
     errors = []
     # Only the parent writes the ledger, including failed/incomplete attempts on restart.

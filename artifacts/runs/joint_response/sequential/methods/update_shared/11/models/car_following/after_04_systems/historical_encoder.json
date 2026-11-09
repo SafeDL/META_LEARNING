@@ -1,0 +1,221 @@
+{
+  "status": "complete",
+  "specification": {
+    "scenario": "car_following",
+    "history_fingerprints": {
+      "history_idm_mobil": "c29dddaa6b1f7491b9bdf1302b82b331b1d0b4ef3b061c1144bc74269f6c1f0b",
+      "history_fvdm_lane": "1174159f18dd99d820ad6ce2cd6d6e537e8418d11710dccfafa1ab8558816936",
+      "history_linear_mpc": "2b355da8432aa07668d48006b75163f6d79dd88e074ae8dbe147610c2f1a1cb4",
+      "history_nonlinear_trajectory": "6050b10d78dd0d3d58122409e252a44d2ec56e8dba002aca02bf7a98a0af48c4",
+      "history_uct": "84734f47b98f689aa622e84e9d3aa0a6b0f61321f9262a738c7f9f6d7eea6b7b",
+      "history_beam": "b14e2fbbe7c9736cd2757241e118858d8d1c447e4d979f32bea181e39cfe9fe3",
+      "history_ppo": "e5d4b5c662aa0e8c1f0f793e4f463a59ff3a842527222f79369314cf4ceac3c5",
+      "history_dqn": "4bafdc35ef248fd71358872a7b3e3f6c32022142ed992a7e39a5113a7a719e16",
+      "independent_nonlinear_trajectory@independent:car_following": "bfe198caeb94b3609960df39e5926cc9c51b6b4384cd58a37ef70cbed2c9b3af",
+      "independent_fvdm_lane@independent:car_following": "7ba4eae3d5dba2099ede919dffccad0403b25837b1387138410d0266384d0414",
+      "independent_dqn@independent:car_following": "dafe866fbf3b550c7e8feb8eca7f913ecbb24c5908f8909ad18fefe98dacccb6",
+      "independent_beam@independent:car_following": "3bf7872aeab6d4794ebaa9a24b88eee7161797d57fe4b32b2900dc7c1c989a01"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "initial_count": 20,
+      "budget": 200,
+      "historical_context": 64,
+      "diagnostic_interval": 100,
+      "seed": 1301,
+      "device": "cpu",
+      "historical_rss": true
+    },
+    "covariance_mode": "point_joint_blocks",
+    "training_contract": {
+      "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+      "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+      "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+      "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+      "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+      "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+      "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+      "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+      "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+      "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "paid collision and RSS",
+    "historical_feedback": "collision and ego-normalized RSS margin",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "ego_response_s": 1.0,
+        "other_response_s": 2.0,
+        "acceleration_mps2": 3.5,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 8.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+      "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+    },
+    "supervision": "uniform next-response time after initialization; all preceding feedback",
+    "checkpoint": "final fixed step, no development data",
+    "new_source_ids": [
+      "independent_dqn@independent:car_following",
+      "independent_beam@independent:car_following"
+    ],
+    "parent_version": "14f11ce3273f882b3dd796ca25af05d113b28b0ed6c34c4d6c79513135be06ef:8de4dec432f8957058bf454b6a2ee4f226cc0a8077b7a82f4734e91304e8082d"
+  },
+  "curve": [
+    {
+      "step": 100,
+      "training_nll": 0.10675010359953438,
+      "training_brier": 0.025116943380204343,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 124,
+      "next_record_index": 124
+    },
+    {
+      "step": 200,
+      "training_nll": 0.06957832018667537,
+      "training_brier": 0.009393590850614695,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 27,
+      "next_record_index": 27
+    },
+    {
+      "step": 300,
+      "training_nll": 0.07215179328820055,
+      "training_brier": 0.010492003385704867,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 169,
+      "next_record_index": 169
+    },
+    {
+      "step": 400,
+      "training_nll": 0.08413834579427769,
+      "training_brier": 0.014763596737673017,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 24,
+      "next_record_index": 24
+    },
+    {
+      "step": 500,
+      "training_nll": 0.11410152694278343,
+      "training_brier": 0.028242024029101465,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 27,
+      "next_record_index": 27
+    },
+    {
+      "step": 600,
+      "training_nll": 0.12679532729729046,
+      "training_brier": 0.030733696312273077,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 83,
+      "next_record_index": 83
+    },
+    {
+      "step": 700,
+      "training_nll": 0.11294289133050774,
+      "training_brier": 0.026283464779543,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 139,
+      "next_record_index": 139
+    },
+    {
+      "step": 800,
+      "training_nll": 0.08179127947908946,
+      "training_brier": 0.011606972121194745,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 173,
+      "next_record_index": 173
+    },
+    {
+      "step": 900,
+      "training_nll": 0.10439707860267744,
+      "training_brier": 0.02197134700495193,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 167,
+      "next_record_index": 167
+    },
+    {
+      "step": 1000,
+      "training_nll": 0.12273914146435123,
+      "training_brier": 0.02887773449076723,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 132,
+      "next_record_index": 132
+    },
+    {
+      "step": 1100,
+      "training_nll": 0.07581558279491735,
+      "training_brier": 0.011264208484499869,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 41,
+      "next_record_index": 41
+    },
+    {
+      "step": 1200,
+      "training_nll": 0.109704188150541,
+      "training_brier": 0.022489341902413508,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 93,
+      "next_record_index": 93
+    },
+    {
+      "step": 1300,
+      "training_nll": 0.08789321397084839,
+      "training_brier": 0.017389434212274922,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 141,
+      "next_record_index": 141
+    },
+    {
+      "step": 1400,
+      "training_nll": 0.08400882742761567,
+      "training_brier": 0.014639554449531238,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 86,
+      "next_record_index": 86
+    },
+    {
+      "step": 1500,
+      "training_nll": 0.06904327336526549,
+      "training_brier": 0.008856789901846508,
+      "diagnostic_steps": 100,
+      "source_id": "independent_fvdm_lane@independent:car_following",
+      "prefix_count": 68,
+      "next_record_index": 68
+    }
+  ],
+  "final_step": 1500,
+  "cached_episodes": 28,
+  "training_s": 25041.593920400017
+}

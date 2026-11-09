@@ -1,0 +1,103 @@
+{
+  "status": "complete",
+  "checked_at": "2026-11-05T19:26:52+08:00",
+  "deleted_directories": [
+    {
+      "path": "config",
+      "files": 2,
+      "bytes": 791
+    },
+    {
+      "path": "artifacts/manuscripts",
+      "files": 431,
+      "bytes": 222189478
+    }
+  ],
+  "dependencies": "README.md#环境安装",
+  "preserved_active_documents": [
+    "中文初稿+v7.docx",
+    "修改意见.docx"
+  ],
+  "tests": {
+    "decision": "Keep executable regression tests for maintained code; passing once is not a reason to delete tests.",
+    "description": "tests/README.md"
+  },
+  "baselines": {
+    "primary": [
+      "random",
+      "av_bo_rf_ei",
+      "samota",
+      "scenario_fuzz",
+      "paired_system_active_evaluation",
+      "behavexplor"
+    ],
+    "supplemental_and_frozen_reproduction": [
+      "indago"
+    ],
+    "selection_uses_target_results": false,
+    "plan": "docs/experiment_plan.md#基线选择与共同比较协议"
+  },
+  "additional_literature": [
+    {
+      "title": "Failure Prediction from Limited Hardware Demonstrations",
+      "venue": "Allerton 2025",
+      "url": "https://www.ideals.illinois.edu/items/137353",
+      "decision": "Related work: controlled model/noise trials and Flow-GMM initialization are not provided by the historical ADS archives."
+    },
+    {
+      "title": "Cost-aware Discovery of Contextual Failures using Bayesian Active Learning",
+      "venue": "CoRL 2025",
+      "url": "https://mit-realm.github.io/contextualfailures-website/",
+      "code": "https://github.com/MIT-REALM/contextual_failure",
+      "decision": "Related work: expert-context feedback is unavailable; a single-mode analytical-risk reproduction would need a separately registered implementation. Full paper access was blocked by verification; no reproduced method is claimed."
+    },
+    {
+      "title": "DETOUR: A Tool for Regression Testing of Autonomous Driving Systems",
+      "url": "https://doi.org/10.1016/j.scico.2026.103490",
+      "code": "https://github.com/cetinkaya/detour",
+      "decision": "Related work: road geometry is fixed within each functional scenario; replacing road-shape features would change the method."
+    },
+    {
+      "title": "The Pursuit of Diversity: Multi-Objective Testing of Deep Reinforcement Learning Agents",
+      "venue": "SSBSE 2025",
+      "url": "https://arxiv.org/html/2510.14727v1",
+      "decision": "Related work: target-policy training logs are not part of the permitted black-box test interface."
+    }
+  ],
+  "comparison": {
+    "entry": "experiments.pilot.main",
+    "output": "artifacts/runs/joint_response/baseline_comparison",
+    "planned_runs": 72,
+    "planned_logical_queries": 14400,
+    "executed": false,
+    "initialization": 20,
+    "budget": 200,
+    "seed": 11,
+    "suite": "pilot",
+    "entry_protocol_check": "passed"
+  },
+  "code_changes": {
+    "experiments/pilot.py": {
+      "before_sha256": "d68e5a51fcfdc92cb3125ae13ec00806c4c592dfdf82badd9fcb78826f854291",
+      "after_sha256": "8ff064ec2ab801144de9afa37adce6398807e52e2e181c7ac59d4331dc884e19"
+    },
+    "tests/experiments/test_pilot.py": {
+      "before_sha256": "20828b70e4fddf2f5dc27fc1525edd57143ac9612307613998ff2e7ea2c24d6e",
+      "after_sha256": "14b474eabd383906fdfa9ad37636cb42c2d685ed756c8dea03ca66ab356aade0"
+    }
+  },
+  "frozen_results_modified": false,
+  "verification": {
+    "protected_formal_files_unchanged": 3542,
+    "joint_models_loaded": 40,
+    "targeted_tests_passed": 36,
+    "targeted_reported_seconds": 474.77,
+    "local_links_checked": 486,
+    "missing_links": [],
+    "new_formal_queries": 0,
+    "new_formal_simulations": 0,
+    "ruff": "passed",
+    "format": "passed",
+    "temporary_verification_cache_removed": true
+  }
+}

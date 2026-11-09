@@ -12,12 +12,12 @@ from stable_baselines3 import DQN, PPO
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
+from experiments.executions import require_qualified
 from experiments.protocol import ROOT
 from experiments.qualification import QUALIFICATION_ROOT, qualify
-from experiments.source_registration import source_contract_matches
-from simulator.highway.training_env import EPISODE_DURATIONS, DrivingEnv
+from simulator.highway.training_env import DrivingEnv
 
-from .catalog import BY_ID
+from .catalog import CURRENT_BY_ID, CURRENT_SUTS
 from .learning import ACTION_INTERFACE, CHECKPOINT_ROOT, DiscreteDriver
 
 TRAINING = {
@@ -48,6 +48,7 @@ TRAINING = {
         "exploration_final_eps": 0.1,
     },
 }
+TRAINING_SYSTEMS = tuple(s.sut_id for s in CURRENT_SUTS if s.family == "learning")
 
 
 def training_contract():
@@ -105,7 +106,6 @@ class QualificationCallback(BaseCallback):
             self.model.save(self.root / "best.zip")
         self.curve.append({"steps": self.num_timesteps, "selected": selected, **report})
         (self.root / "curve.json").write_text(json.dumps(self.curve, indent=2), encoding="utf-8")
-        self.model.save(self.root / "latest.zip")
         print(
             self.sut.sut_id,
             self.num_timesteps,
@@ -118,26 +118,17 @@ class QualificationCallback(BaseCallback):
 
 
 def train(sut_id, *, configuration=TRAINING):
-    sut = BY_ID[sut_id]
+    sut = CURRENT_BY_ID[sut_id]
     if sut.family != "learning":
         raise ValueError("Only PPO and DQN are trained")
-    capability = json.loads((QUALIFICATION_ROOT / "nonlearning.json").read_text(encoding="utf-8"))
+    for candidate in CURRENT_SUTS:
+        if candidate.family != "learning":
+            require_qualified(candidate)
     interface = json.loads(
-        (ROOT / "experiment_outputs/benchmark/collision/interface.json").read_text(encoding="utf-8")
+        (ROOT / "artifacts/runs/preparation/reports/interface.json").read_text(encoding="utf-8")
     )
-    if (
-        not capability["qualified"]
-        or len(capability["objects"]) != 15
-        or interface["status"] != "passed"
-    ):
-        raise ValueError("Common interface and nonlearning capabilities must pass before training")
-    if sut.role == "target":
-        frozen_path = CHECKPOINT_ROOT / "training_protocol.json"
-        frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
-        if frozen["configuration"] != configuration or not source_contract_matches(
-            frozen["source_contract"], training_contract()
-        ):
-            raise ValueError("Final target training must follow the frozen training protocol")
+    if interface["status"] != "passed":
+        raise ValueError("Common interface must pass before training")
     root = CHECKPOINT_ROOT / sut.training_run
     root.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(1)
@@ -205,64 +196,13 @@ def main():
         "sut",
         nargs="?",
         default="all",
-        choices=(
-            "all",
-            "history_ppo",
-            "history_dqn",
-            "development_ppo",
-            "target_ppo",
-            "target_dqn",
-        ),
+        choices=("all", *TRAINING_SYSTEMS),
     )
     selected = parser.parse_args().sut
-    if selected != "all":
-        report = train(selected)
-        if report["status"] != "qualified":
-            raise RuntimeError(f"{selected} did not qualify; return to policy construction")
-        return
-    for name in ("history_ppo", "history_dqn", "development_ppo"):
+    for name in TRAINING_SYSTEMS if selected == "all" else (selected,):
         manifest = train(name)
         if manifest["status"] != "qualified":
             raise RuntimeError(f"{name} did not qualify; return to policy construction")
-    freeze_training()
-    for name in ("target_ppo", "target_dqn"):
-        manifest = train(name)
-        if manifest["status"] != "qualified":
-            raise RuntimeError(f"{name} did not qualify; return to policy construction")
-
-
-def freeze_training():
-    evidence = []
-    for name in ("history_ppo", "history_dqn", "development_ppo"):
-        sut = BY_ID[name]
-        report = json.loads(
-            (CHECKPOINT_ROOT / sut.training_run / "training.json").read_text(encoding="utf-8")
-        )
-        if (
-            report["status"] != "qualified"
-            or report["configuration"] != TRAINING
-            or not source_contract_matches(report["source_contract"], training_contract())
-            or report["object"] != asdict(sut)
-        ):
-            raise ValueError("Historical/development runs must qualify under one training protocol")
-        evidence.append(name)
-    manifest = {
-        "configuration": TRAINING,
-        "qualification_courses": [
-            "normal_following",
-            "avoidable_braking",
-            "full_stop",
-            "legal_lane_change",
-            "rear_constraint",
-        ],
-        "checkpoint_order": ["collision_free", "road_compliance", "qualified_courses", "progress"],
-        "qualified_before_targets": evidence,
-        "qualified_runs_before_targets": [BY_ID[name].training_run for name in evidence],
-        "training_episode_durations_s": EPISODE_DURATIONS,
-        "source_contract": training_contract(),
-    }
-    with (CHECKPOINT_ROOT / "training_protocol.json").open("x", encoding="utf-8") as stream:
-        json.dump(manifest, stream, indent=2)
 
 
 if __name__ == "__main__":

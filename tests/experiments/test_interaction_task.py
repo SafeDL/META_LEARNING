@@ -5,14 +5,13 @@ from dataclasses import asdict
 import numpy as np
 import pytest
 
-from controllers.highway.catalog import BY_ID, INDEPENDENT_SUTS, SUTS
+from controllers.highway.catalog import BY_ID, HISTORY_SUTS, INDEPENDENT_SUTS
 from controllers.highway.control import Control
 from experiments.execution_events import analyze_events
 from experiments.executions import execution_contract
-from experiments.protocol import TEST_RECORDS_ROOT
+from experiments.protocol import DATA_ROOT
 from experiments.scenarios import features, sample
 from experiments.schema import Scenario
-from experiments.source_registration import specification_matches
 from simulator.highway.collision_env import CollisionWorld
 from simulator.highway.interaction_env import InteractionWorld
 
@@ -80,27 +79,25 @@ def test_open_world_matches_legacy_and_restricted_background_has_independent_mot
     assert events["measured_background_onset_s"] is not None
 
 
-def test_independent_registry_keeps_old_contracts_and_declares_eight_fresh_objects():
-    assert len(SUTS) == 20 and len(INDEPENDENT_SUTS) == 8 and len(BY_ID) == 28
-    assert not {s.sut_id for s in SUTS} & {s.sut_id for s in INDEPENDENT_SUTS}
+def test_independent_registry_preserves_recorded_history_and_declares_eight_targets():
+    assert len(HISTORY_SUTS) == 8 and len(INDEPENDENT_SUTS) == 8 and len(BY_ID) == 16
+    assert {s.role for s in HISTORY_SUTS} == {"history"}
+    assert not {s.sut_id for s in HISTORY_SUTS} & {s.sut_id for s in INDEPENDENT_SUTS}
     for sut in INDEPENDENT_SUTS:
         assert sut.role == "independent"
         assert len(sut.supported_scenarios) == 5
     learned = {s.lineage: s.training_seed for s in INDEPENDENT_SUTS if s.family == "learning"}
     assert learned == {"ppo": 5107, "dqn": 5113}
     assert BY_ID["independent_fvdm_lane"].parameters["velocity_gain"] == 0.5
-    # Existing banks remain valid under the unchanged old physical worlds and object values.
-    for sut in SUTS:
-        if sut.role not in ("history", "development"):
-            continue
-        path = TEST_RECORDS_ROOT / "physical" / sut.role / "cut_in" / sut.sut_id / "manifest.json"
-        if not path.exists():
-            continue
-        manifest = json.loads(path.read_text(encoding="utf-8"))
-        assert specification_matches(
-            manifest["contract"], json.loads(json.dumps(execution_contract(sut, kind="cut_in")))
-        )
-        assert asdict(sut) == manifest["contract"]["object"]
+    for sut in HISTORY_SUTS:
+        for kind in ("front_brake", "cut_out", "lane_change_rear"):
+            path = DATA_ROOT / "physical/history" / kind / sut.sut_id / "manifest.json"
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+            assert asdict(sut) == manifest["contract"]["object"]
+            assert (
+                manifest["contract"]["episode_duration_s"]
+                == execution_contract(sut, kind=kind)["episode_duration_s"]
+            )
         assert (
             "simulator/highway/interaction_env.py"
             in execution_contract(sut, kind="cut_in_interaction")["source_files"]

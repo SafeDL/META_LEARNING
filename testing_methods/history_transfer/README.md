@@ -1,36 +1,55 @@
-# 历史响应驱动的跨系统碰撞场景发现
+# 历史响应迁移与联合反馈测试
 
-本方法从历史驾驶系统的碰撞标签与RSS连续安全裕度学习危险区域，再用已付费获得的目标碰撞标签更新预测和历史来源权重，在预算内逐次选择测试场景。每类功能场景分别建模；RSS参数在全部场景、全部系统间固定，定义见 [RSS说明](../../docs/rss.md)。
-
-## 实现
+本目录实现碰撞—RSS 联合响应、来源后验、目标适配和预算内选例。
 
 | 文件 | 职责 |
 |---|---|
-| [model.py](model.py) | 碰撞与RSS裕度的联合核 |
-| [inference.py](inference.py) | 历史响应后验、目标残差、来源条件概率及训练前缀预测 |
-| [training.py](training.py) | 基础核与编码器训练、检查点选择、训练配置和模型路径 |
-| [selection.py](selection.py) | 按预算查询、目标适配、来源权重更新及机制对照 |
+| [model.py](model.py)、[shared_private.py](shared_private.py) | 定义原联合核及共享／独立潜过程核 |
+| [inference.py](inference.py) | 构建后验、适配目标并分块预测 |
+| [training.py](training.py) | 训练基础核和历史编码器，保存模型与构建配置 |
+| [selection.py](selection.py) | 查询、记录反馈并更新来源权重 |
+| [reliability.py](reliability.py)、[lookahead.py](lookahead.py) | 保留局部权重和联合反馈前瞻算子 |
 
-先训练碰撞预测基础核，再训练碰撞—RSS联合响应编码器，最后在公开候选坐标上导出各历史来源的后验。历史系统用于训练，开发系统用于检查点选择；留家族时同时排除该家族的历史与开发数据。目标端在线更新只使用已查询的碰撞布尔值。
+历史来源保存两个输出的均值及联合协方差块。目标推断先对 RSS 做高斯条件化，再对碰撞标签做 Laplace 推断。来源权重仅按查询前碰撞预测似然更新，下一次选择使用更新后的状态。
 
-历史来源等权初始化，历史组与独立目标分量的初始比例为0.75／0.25；原始参数模型在最终混合中占0.1。目标模型和原始参数模型每轮从固定初始化出发，使用已查询标签适配10步，学习率分别为0.003／0.01。历史来源后验使用对角协方差。
+在线冻结共享特征，每轮从固定初始化使用全部已付费反馈适配 10 步。目标核与原始参数核各更新六个标量，学习率分别为 0.003 和 0.01；历史组／独立目标的初始比例为 0.75／0.25，原始参数分量权重为 0.1。默认每批预测 128 个候选，按碰撞概率贪心选择。
 
-## 运行
+## 构建与使用
 
-从项目根目录构建全部5类场景、5种来源范围的模型：
+训练先拟合历史联合响应的基础核，再以历史前缀的下一条碰撞标签训练编码器。默认每阶段 1,500 步，学习率 0.001、种子 1301，使用最终模型。输入来自同类场景的历史档案。
 
-```powershell
-python -B -m experiments.train
-```
+论文选定 `SharedPrivateKernel`。下面示例从已有档案构建一套该结构的模型：
 
-该入口从保存的原始轨迹构建RSS响应，依次训练模型并导出来源后验，输出到 `experiment_outputs/gcrt/collision/rss_models/`。来源读取入口为 `experiments.train.load_sources`。完整25组RSS训练和新的独立验证尚未完成。
+~~~python
+from pathlib import Path
 
-真实数据上的缩小配置检查：
+from experiments.history import load_training_archives
+from testing_methods.history_transfer.shared_private import SharedPrivateKernel
+from testing_methods.history_transfer.training import Config, train
 
-```powershell
+kind = 'car_following'
+history = load_training_archives('artifacts/data/joint_response/manifest.json', kind)
+train(
+    history,
+    Path('artifacts/runs/joint_response/models/shared_private') / kind,
+    config=Config(device='cpu'),
+    kernel_type=SharedPrivateKernel,
+)
+~~~
+
+加载该结构时同样传入 `load_model(..., kernel_type=SharedPrivateKernel)`。`Config.device` 和 `select(device=...)` 支持 CPU／CUDA。当前已选模型见[模型索引](../../artifacts/runs/joint_response/method_exploration/e2/models/)。
+
+`python -B -m testing_methods.history_transfer.training` 默认构建 `JointResponseKernel`，输出到各场景的 `all_sources/`。该入口用于原联合核；共享／独立核使用上面的显式类型入口。
+
+[history.build_source](../../experiments/history.py) 根据模型、历史档案和实际候选构建来源。`select` 接收候选、查询接口、共同初始化和预算；无历史联合 GP 通过 `raw_kernel_type` 指定核类型，只使用原始归一化参数和目标反馈。显式参数域通过 `feature_fn=domain.features` 传入。
+
+## 归档与核验
+
+任务归档、来源构建和共享模型发布分别由 [history.py](../../experiments/history.py) 的 `finalize_task`、`build_source`、`update_shared_model` 完成。任务内固定启动时的模型与来源快照。
+
+~~~powershell
 python -B -m experiments.check_training
-```
+python -B -m pytest tests/history_transfer -q
+~~~
 
-临时模型随检查结束清理，只保存检查报告。该检查覆盖五类场景的训练、来源后验和进程隔离查询。
-
-原间距训练、局部来源权重及旧构建流程已删除。原冻结实验的模型与结果由 [recorded_models.py](../../experiments/recorded_models.py) 读取，保留原定义；原始训练源码保存在实验源码归档中。`H1F0` 表示静态历史排序，`H0F1` 表示聚合历史教师加目标反馈。完整实验范围见 [实验说明](../../experiments/README.md)。
+`check_training` 使用临时执行与模型核对链路。局部权重和前瞻算子保留各自数值回归；当前主方法采用默认的全局权重与贪心选择。比较记录见[方法比较](../../artifacts/runs/joint_response/method_exploration/)，实验运行见 [experiments/](../../experiments/README.md)。

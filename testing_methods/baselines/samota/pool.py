@@ -29,36 +29,6 @@ class Config:
 DEFAULT = Config()
 
 
-def preference_order(values, active):
-    selected = []
-    for objective in active:
-        best = int(np.argmin(values[:, objective]))
-        if best not in selected:
-            selected.append(best)
-    remaining = set(range(len(values))) - set(selected)
-    objectives = values[:, active]
-    dominance = np.all(objectives[:, None] <= objectives[None, :], axis=2) & np.any(
-        objectives[:, None] < objectives[None, :], axis=2
-    )
-    while remaining:
-        indices = sorted(remaining)
-        front = [i for i in indices if not dominance[indices, i].any()]
-        crowding = {i: 0.0 for i in front}
-        for objective in active:
-            ordered = sorted(front, key=lambda i: values[i, objective])
-            span = values[ordered[-1], objective] - values[ordered[0], objective]
-            crowding[ordered[0]] = crowding[ordered[-1]] = np.inf
-            if span > 1e-12:
-                for position in range(1, len(ordered) - 1):
-                    crowding[ordered[position]] += (
-                        values[ordered[position + 1], objective]
-                        - values[ordered[position - 1], objective]
-                    ) / span
-        selected.extend(sorted(front, key=lambda i: (-crowding[i], i)))
-        remaining.difference_update(front)
-    return selected
-
-
 class RadialNetwork(nn.Module):
     def __init__(self, x, *, centers=10, seed=11):
         super().__init__()
@@ -132,8 +102,8 @@ class Committee:
         return np.asarray(means).T, np.asarray(spread).T
 
 
-def mixed_distance(x, kind):
-    domain = DOMAINS[kind]
+def mixed_distance(x, kind, *, domain=None):
+    domain = DOMAINS[kind] if domain is None else domain
     continuous = len(domain.bounds)
     distance = np.abs(x[:, None, :continuous] - x[None, :, :continuous]).sum(-1)
     offset = continuous
@@ -144,7 +114,7 @@ def mixed_distance(x, kind):
     return distance / (continuous + len(domain.categories))
 
 
-def local_clusters(x, y, objective, kind, *, config=DEFAULT):
+def local_clusters(x, y, objective, kind, *, config=DEFAULT, domain=None):
     count = min(len(x), max(config.min_cluster_size, int(np.ceil(len(x) * config.elite_fraction))))
     indices = np.argsort(y[:, objective], kind="stable")[:count]
     if len(indices) <= config.min_cluster_size:
@@ -154,7 +124,7 @@ def local_clusters(x, y, objective, kind, *, config=DEFAULT):
         min_cluster_size=config.min_cluster_size,
         min_samples=config.min_cluster_size + 1,
         metric="precomputed",
-    ).fit_predict(mixed_distance(x[indices], kind))
+    ).fit_predict(mixed_distance(x[indices], kind, domain=domain))
     clusters = [indices[labels == label] for label in sorted(set(labels) - {-1})]
     return clusters if clusters else [indices]
 
@@ -170,9 +140,10 @@ def objectives(feedback):
 
 
 class PoolSearch:
-    def __init__(self, candidates, *, seed=11, config=DEFAULT):
+    def __init__(self, candidates, *, seed=11, config=DEFAULT, domain=None):
         self.candidates = candidates
-        self.x = features(candidates)
+        self.x = features(candidates, domain=domain)
+        self.domain = domain
         self.kind, self.seed, self.config = candidates[0].kind, seed, config
         self.indices, self.values, self.pending = [], [], []
         self.covered, self.restarts = set(), []
@@ -204,13 +175,13 @@ class PoolSearch:
                 model = Committee(x, y, seed=self.seed, config=self.config)
                 fitting_s += time.perf_counter() - started
                 mean, uncertainty = model.predict(self.x[candidates])
-                order = preference_order(mean, active)
-                best = {int(np.argmin(mean[:, j])) for j in active}
-                proposals.extend(candidates[i] for i in order if i in best)
+                proposals.extend(candidates[int(np.argmin(mean[:, j]))] for j in active)
                 proposals.extend(candidates[int(np.argmax(uncertainty[:, j]))] for j in active)
             else:
                 for objective in active:
-                    for cluster in local_clusters(x, y, objective, self.kind, config=self.config):
+                    for cluster in local_clusters(
+                        x, y, objective, self.kind, config=self.config, domain=self.domain
+                    ):
                         started = time.perf_counter()
                         local = RadialSurrogate(
                             x[cluster], y[cluster, objective], seed=self.seed, config=self.config
@@ -230,11 +201,11 @@ class PoolSearch:
         return index, phase, fitting_s
 
 
-def run(candidates, oracle, *, initial_indices, budget=128, seed=11, config=DEFAULT):
+def run(candidates, oracle, *, initial_indices, budget=128, seed=11, config=DEFAULT, domain=None):
     initial = list(initial_indices)
     validate_initial_indices(len(candidates), initial, budget, minimum=3)
     torch.set_num_threads(1)
-    search = PoolSearch(candidates, seed=seed, config=config)
+    search = PoolSearch(candidates, seed=seed, config=config, domain=domain)
     available, queries, selected = set(range(len(candidates))), [], []
     for step in range(budget):
         started = time.perf_counter()

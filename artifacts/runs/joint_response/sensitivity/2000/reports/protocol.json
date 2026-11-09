@@ -1,0 +1,368 @@
+{
+  "format": "joint-response-discovery",
+  "cpu_torch_threads": 1,
+  "suite": "sensitivity",
+  "config": {
+    "candidate_count": 2000,
+    "budget": 200,
+    "initial_count": 20,
+    "algorithm_seeds": [
+      11
+    ],
+    "scenarios": [
+      "front_brake"
+    ],
+    "update_every_systems": 2,
+    "batch_size": 128,
+    "environment_seed": 81001,
+    "device": "cpu"
+  },
+  "candidate_counts": {
+    "front_brake": 2000
+  },
+  "systems": [
+    {
+      "sut_id": "independent_idm_mobil",
+      "family": "rule",
+      "lineage": "idm_mobil",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "headway_s": 1.3,
+        "desired_speed_mps": 31,
+        "politeness": 0.5,
+        "rear_brake_limit": 2.5
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_idm_mobil",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_fvdm_lane",
+      "family": "rule",
+      "lineage": "fvdm_lane",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "headway_s": 1.8,
+        "desired_speed_mps": 29,
+        "velocity_gain": 0.5,
+        "rear_brake_limit": 4
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_fvdm_lane",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_linear_mpc",
+      "family": "optimization",
+      "lineage": "linear_mpc",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_s": 4,
+        "desired_speed_mps": 31,
+        "headway_s": 1.7,
+        "effort_weight": 0.15
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_linear_mpc",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_nonlinear_trajectory",
+      "family": "optimization",
+      "lineage": "nonlinear_trajectory",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_s": 2,
+        "desired_speed_mps": 29,
+        "headway_s": 1.3,
+        "effort_weight": 0.1
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_nonlinear_trajectory",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_uct",
+      "family": "search",
+      "lineage": "uct",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_steps": 6,
+        "iterations": 128,
+        "exploration": 1.2,
+        "desired_speed_mps": 31
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_uct",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_beam",
+      "family": "search",
+      "lineage": "beam",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {
+        "horizon_steps": 4,
+        "beam_width": 16,
+        "desired_speed_mps": 29
+      },
+      "training_run": null,
+      "training_seed": null,
+      "reference_id": "history_beam",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_ppo",
+      "family": "learning",
+      "lineage": "ppo",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {},
+      "training_run": "independent_ppo_persistent_speed",
+      "training_seed": 5107,
+      "reference_id": "history_ppo",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    },
+    {
+      "sut_id": "independent_dqn",
+      "family": "learning",
+      "lineage": "dqn",
+      "version": "independent",
+      "role": "independent",
+      "parameters": {},
+      "training_run": "independent_dqn_persistent_speed",
+      "training_seed": 5113,
+      "reference_id": "history_dqn",
+      "supported_scenarios": [
+        "car_following",
+        "front_brake",
+        "cut_out",
+        "lane_change_rear"
+      ]
+    }
+  ],
+  "rss_contract": {
+    "measure": "ego-normalized-rss-distance-margin",
+    "parameters": {
+      "ego_response_s": 1.0,
+      "other_response_s": 2.0,
+      "acceleration_mps2": 3.5,
+      "braking_min_mps2": 4.0,
+      "braking_max_mps2": 8.0,
+      "lateral_acceleration_mps2": 0.2,
+      "lateral_braking_mps2": 0.8,
+      "lateral_buffer_m": 0.1
+    },
+    "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+    "geometry": "road-axis enclosing body projections",
+    "normalization": "directional centre separation / required centre separation - 1",
+    "aggregation": "max over directions, min over ego-object pairs and recorded times",
+    "orientation": "larger margin means safer; risk is negative margin",
+    "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+    "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+  },
+  "training_contract": {
+    "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+    "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+    "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+    "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+    "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+    "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+    "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+    "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+    "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+    "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+    "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+    "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+    "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+    "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+  },
+  "runner_contract": {
+    "experiments/joint_validation.py": "b5d748e5b518d534415f4500fe9bc5724d4945bc8dd94ba37c68ce436f51d381",
+    "experiments/initialization.py": "f2e39255096d2c8257d97cdd6656a145230208ff7da282902c43bc2d97070158",
+    "experiments/candidate_sensitivity.py": "a5df9002fe065061483800e1b6b998320a67db024b82089913c186f2e6e69b21",
+    "experiments/parallel_comparisons.py": "3e1eac93ef2fb6279dd2c36caaa489d97f7fb740a69d62ccc1f941a1ef8816c0",
+    "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+    "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+    "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+    "experiments/failure_metrics.py": "0419d1bbde7cc37884d91fb91d58225abd5560ccce83f4330dd5c1719f09383c",
+    "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810"
+  },
+  "dataset_sha256": "b47517df771b1839093faf27ea23b42daa5389f2b3ed64f5621948e952a4b14e",
+  "source_availability": "fixed original historical ADSs; completed tasks remain sealed",
+  "main_methods": [
+    "joint",
+    "random",
+    "av_bo_rf_ei",
+    "samota",
+    "scenario_fuzz",
+    "paired_system_active_evaluation",
+    "indago",
+    "behavexplor"
+  ],
+  "controls": [],
+  "method_configurations": {
+    "av_bo_rf_ei": {
+      "jackknife_folds": 10,
+      "tune_every": 50,
+      "tuning_trials": 20,
+      "n_estimators": 100,
+      "max_depth": 10,
+      "min_samples_split": 2,
+      "ttc_horizon_s": 10.0
+    },
+    "samota": {
+      "rbf_centers": 10,
+      "rbf_epochs": 1000,
+      "elite_fraction": 0.2,
+      "min_cluster_size": 5,
+      "thresholds": [
+        0.0,
+        0.0,
+        0.2
+      ]
+    },
+    "scenario_fuzz": {
+      "cycles": 3,
+      "mutants": 100,
+      "executions": 3,
+      "neighbor_steps": 5,
+      "filter_attempts": 6
+    },
+    "paired_system_active_evaluation": {
+      "batch_size": 5,
+      "shortlist_size": 64,
+      "training_epochs": 1000,
+      "learning_rate": 0.001,
+      "mc_draws": 32,
+      "local_samples": 64,
+      "paired_samples": 16,
+      "maximum_clusters": 10,
+      "existing_support_probability": 0.01,
+      "failure_threshold": 0.5
+    },
+    "indago": {
+      "neighborhood_size": 50,
+      "max_neighborhoods": 100,
+      "max_stagnation": 20,
+      "stagnation_tolerance": 0.005
+    },
+    "behavexplor": {
+      "interval_s": 0.1,
+      "window": 10,
+      "clusters": 10,
+      "novelty_threshold": 0.4,
+      "energy_threshold": 0.5,
+      "mutation_probability": 0.5,
+      "offset_sigma_m": 12,
+      "speed_sigma_mps": 6,
+      "other_sigma_fraction": 0.1
+    },
+    "indago_training": {
+      "layers": 4,
+      "epochs": 20,
+      "batch_size": 64,
+      "learning_rate": 0.0003,
+      "validation_fraction": 0.2,
+      "seed": 1409
+    },
+    "scenario_fuzz_training": {
+      "hidden_dim": 64,
+      "heads": 4,
+      "epochs": 1000,
+      "batch_size": 16,
+      "learning_rate": 0.001,
+      "seed": 1409
+    }
+  },
+  "baseline_contract": {
+    "testing_methods/baselines/__init__.py": "390ba32e55f1a61de356684586e6c645fa57b9f88a7438b76c2a22fa86778213",
+    "testing_methods/baselines/av_bo_rf_ei/__init__.py": "143465fd631e205d0980112360378b87d0eaf3532561351b2cf51e4ce6ce1a21",
+    "testing_methods/baselines/av_bo_rf_ei/method.py": "5dcf01dfa69a72d26313a73572cd9fe67eecc3a8ec3982bad0e01dca106b211d",
+    "testing_methods/baselines/behavexplor/__init__.py": "8de220aa72a984c20f8319c0af19d0b00f3069b7aa65221a9cc399aa7df34668",
+    "testing_methods/baselines/behavexplor/behavior.py": "ab3cf41611dbc5100ada652084edb9502273c6d7e987bad28482ec5483ef3f64",
+    "testing_methods/baselines/behavexplor/pool.py": "36908033c2ec6549becc06b2cabf8dfc0259e08c89e536a5857e1221b5e78182",
+    "testing_methods/baselines/indago/__init__.py": "0d21c7f56ec84b60f223df078733ab0727f8d2133b56b7a474c8b18412bf3689",
+    "testing_methods/baselines/indago/method.py": "c87b4d7975adaad0653fe855d29f0260a3f6f59e34860a8907a3610500b590e7",
+    "testing_methods/baselines/indago/mutation.py": "db4bcd65567ba080bceff61329d878aedf7d591e7025dcc80f8e74d4fc478453",
+    "testing_methods/baselines/indago/pool.py": "274c8ab1982beb6fbf1a0a1f4d3cff3a56b3787455f4586e68cdead3372f1239",
+    "testing_methods/baselines/paired_system_active_evaluation/__init__.py": "985538bb82307e83194a654486f14421ce27e8d267a4ad645a75f74418102398",
+    "testing_methods/baselines/paired_system_active_evaluation/method.py": "d6c9a1a0beeb2b15ed425f8baca69ffd7d57a2a8713bed5330563e6ee395ef8e",
+    "testing_methods/baselines/response_baselines/__init__.py": "b7219911a6f18b108091fe7211dab6a33fcc876366867a45593fb7b765a3ee53",
+    "testing_methods/baselines/response_baselines/collision.py": "c2f8e967db9e6956691c422f1f634d037a95150ba8a1ec773246a00ece1341ea",
+    "testing_methods/baselines/samota/__init__.py": "c454387f9c1df6f699e4488c5527fa718f317a21460793fae86b9baf9a578e8c",
+    "testing_methods/baselines/samota/pool.py": "ee7c571795291570374967017e56cc92778622a5e6d637ec9ae3782bbadd1d6d",
+    "testing_methods/baselines/scenario_fuzz/__init__.py": "12e1c0f9213bf3afa72afa8bb91b2e1f4174242a9ac95093ff5002711d2c075a",
+    "testing_methods/baselines/scenario_fuzz/driving_quality.py": "80f9b539671f56e13207715c272b2c7e3813305f81cd65992e94002f0e25a284",
+    "testing_methods/baselines/scenario_fuzz/graphs.py": "d5a20c155ded7c53e31fff0f0a02ae5ec34b8c8d247350a1a0b98319d50ce2ed",
+    "testing_methods/baselines/scenario_fuzz/model.py": "18d73482d69d7971b673168fc400ad6d36d766630c9b8a6f5ef831a8cb053f03",
+    "testing_methods/baselines/scenario_fuzz/pool.py": "aa0ff7c4cd6e9855b953d4ba2727884b5ed2f1aef31783c0f6680af1fb3bd852",
+    "testing_methods/baselines/scenario_fuzz/train.py": "231953327753042c3f1cd53719f09ea27dfca8764402677fccb4c3980e5df462",
+    "testing_methods/common/__init__.py": "21a71dd68366a1003125ae6fad83ae377aa1e1303bb4adfdf629ca884f745140",
+    "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+    "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+    "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+    "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+    "experiments/pilot.py": "6fe4f162df91344a9569b23ec33ce2f5c5e75b38c14502bd744dcd49998b0239",
+    "experiments/domain_risk.py": "afaf1a11d8d4fffaaca9aabc0e053c8c93354e1597ebffa3f8b7e843d4cee678",
+    "experiments/domain_paired_validation.py": "5c7c1bb6d80e5d769d0b541c392a065d4b0dcb453c604952970b3a33990c5d30",
+    "experiments/initialization.py": "f2e39255096d2c8257d97cdd6656a145230208ff7da282902c43bc2d97070158"
+  },
+  "candidate_replicate": 30,
+  "execution_layout": {
+    "unit": "independent ADS",
+    "workers": 4,
+    "within_task_queries": "serial",
+    "selector_torch_threads": 1,
+    "orchestrator_sha256": "3e1eac93ef2fb6279dd2c36caaa489d97f7fb740a69d62ccc1f941a1ef8816c0"
+  },
+  "initial_pool_size": 1000,
+  "physical_bank": "largest nested pool only",
+  "historical_classifier_root": "../../pilot/models"
+}

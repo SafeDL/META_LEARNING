@@ -7,8 +7,9 @@ from functools import cached_property
 
 import numpy as np
 
+from experiments.domain import Domain
 from experiments.rss import measurement_contract, rss_values
-from experiments.scenarios import difficult, features
+from experiments.scenarios import features
 
 
 @dataclass
@@ -23,6 +24,7 @@ class ResponseArchive:
     provenance: dict = field(default_factory=dict)
     rss_margin: np.ndarray | None = None
     rss_contract: dict = field(default_factory=dict)
+    domain: Domain | None = None
 
     def __post_init__(self):
         self.collision = np.asarray(self.collision)
@@ -31,13 +33,12 @@ class ResponseArchive:
             raise ValueError("Archives require actual Boolean collision labels")
         if self.safety.shape != (len(self.scenarios), 2) or np.isnan(self.safety).any():
             raise ValueError("Archive safety columns are clearance and TTC")
-        if self.role not in ("history", "development"):
+        completed = self.role == "target" and self.provenance.get("completed_task")
+        if self.role not in ("history", "development") and not completed:
             raise ValueError("Final targets cannot enter representation/model construction")
-        if any(difficult(s) for s in self.scenarios):
-            raise ValueError("Held difficult combinations cannot enter method archives")
         if len({s.coordinate() for s in self.scenarios}) != len(self.scenarios):
             raise ValueError("Repeated coordinates must be stored as environment repetitions")
-        features(self.scenarios)
+        features(self.scenarios, domain=self.domain)
         if self.rss_margin is not None:
             self.rss_margin = rss_values(self.rss_margin)
             if self.rss_margin.shape != (len(self.scenarios),):
@@ -53,13 +54,16 @@ class ResponseArchive:
 
     @cached_property
     def x(self):
-        return features(self.scenarios)
+        return features(self.scenarios, domain=self.domain)
 
-    @cached_property
-    def auxiliary(self):
-        return np.column_stack(
-            (np.clip(self.safety[:, 0], -5, 100) / 100, np.minimum(self.safety[:, 1], 10) / 10)
-        )
+
+def shared_domain(archives):
+    """Keep feature order, ranges and fixed execution parameters identical across sources."""
+    first = archives[0].domain
+    definition = None if first is None else first.to_dict()
+    if any((None if a.domain is None else a.domain.to_dict()) != definition for a in archives):
+        raise ValueError("Historical sources use different parameter definitions")
+    return first
 
 
 def archive_fingerprints(archives):
@@ -76,6 +80,10 @@ def archive_fingerprints(archives):
         }
         if archive.rss_margin is not None:
             metadata["rss_contract"] = archive.rss_contract
+            if "record_ids" in archive.provenance:
+                metadata["record_ids"] = archive.provenance["record_ids"]
+        if archive.domain is not None:
+            metadata["parameter_definition"] = archive.domain.to_dict()
         digest = hashlib.sha256(json.dumps(metadata, sort_keys=True).encode("utf-8"))
         digest.update(archive.collision.tobytes())
         digest.update(archive.safety.astype("<f8").tobytes())
@@ -95,6 +103,7 @@ class HistoricalPredictor:
         if not archives or any(a.role != "history" for a in archives):
             raise ValueError("Historical prediction accepts historical sources only")
         self.archives = tuple(archives)
+        self.domain = shared_domain(self.archives)
         self.bandwidth = bandwidth
 
     def predict(self, x):

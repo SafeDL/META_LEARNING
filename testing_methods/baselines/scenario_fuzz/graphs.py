@@ -64,7 +64,9 @@ def graph(scenario):
         for index in path:
             connect(index)
 
-    if scenario.kind == "front_brake":
+    if scenario.kind == "car_following":
+        background_path(p["gap_m"] + 5, 0, p["lead_speed_mps"])
+    elif scenario.kind == "front_brake":
         speed = p["ego_speed_mps"] - p["closing_speed_mps"]
         ramp, deceleration, event = p["brake_ramp_s"], p["deceleration_mps2"], p["event_time_s"]
         after_ramp = speed - deceleration * ramp / 2
@@ -90,7 +92,7 @@ def graph(scenario):
         initial_y = -4 if scenario.categories["side"] == "left" else 4
         speed = p["ego_speed_mps"] - p["closing_speed_mps"]
         final_y = 0
-    else:
+    elif scenario.kind == "cut_out":
         initial_y, final_y, speed = 0, -4, p["lead_speed_mps"]
     if scenario.kind in ("cut_in", "cut_out", "cut_in_interaction"):
         times = (0, p["event_time_s"], p["event_time_s"] + p["lateral_duration_s"], 10)

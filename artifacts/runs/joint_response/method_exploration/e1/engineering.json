@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "command": "python -B -m pytest tests/history_transfer/test_reliability.py tests/experiments/test_method_exploration.py tests/history_transfer/test_joint_feedback.py tests/experiments/test_paid_trajectory.py -q",
+  "passed_tests": 24,
+  "source_files": {
+    "experiments/method_exploration.py": "8848ecf1e3937b42be3c18e8e6a036e07c04fc9fe97ea9eb9dc34ca59cdef32e",
+    "experiments/query.py": "55022b245e020597639dddb64500085601c041b98100789e668dc7287a8f9094",
+    "testing_methods/history_transfer/selection.py": "ffa6e07c7f8e061dc29cce3d24ab0d20065567a16d96c125a304b17d990cc9a3",
+    "testing_methods/history_transfer/reliability.py": "a1cc448377427404d33c3392195fa977a7fffcc2647b4a6917dbc80e945b8b2f"
+  },
+  "python": "3.10.0",
+  "torch": "2.5.0+cu118",
+  "device": "cpu",
+  "precision": "float64",
+  "workers": 4,
+  "threads_per_worker": 1,
+  "host_memory_gib": 127.69407272338867,
+  "max_selector_wall_s": 1800,
+  "max_selector_rss_gib": 8,
+  "max_selector_gpu_gib": 0,
+  "checks": [
+    "local preference reversal",
+    "normalization and raw mass",
+    "global fallback",
+    "candidate-paid cross distances only",
+    "chunk invariant sequence",
+    "future feedback isolation",
+    "registered wall limit enforcement",
+    "existing joint inference regression"
+  ],
+  "additional_validation": {
+    "passed_tests": 31,
+    "command": "python -B -m pytest tests/experiments/test_source_registration.py tests/history_transfer/test_reliability.py tests/history_transfer/test_joint_feedback.py tests/experiments/test_paid_trajectory.py -q",
+    "strict_checkpoint_load": "all four original target and encoder models passed their registered source contract after explicit source-maintenance review"
+  },
+  "source_snapshots": {
+    "experiments/method_exploration.py": "artifacts\\runs\\joint_response\\method_exploration\\e1\\source\\experiments\\method_exploration.py",
+    "experiments/query.py": "artifacts\\runs\\joint_response\\method_exploration\\e1\\source\\experiments\\query.py",
+    "testing_methods/history_transfer/selection.py": "artifacts\\runs\\joint_response\\method_exploration\\e1\\source\\testing_methods\\history_transfer\\selection.py",
+    "testing_methods/history_transfer/reliability.py": "artifacts\\runs\\joint_response\\method_exploration\\e1\\source\\testing_methods\\history_transfer\\reliability.py"
+  },
+  "completed_common_checks": {
+    "tasks": 32,
+    "queries_per_task": 200,
+    "component_probability_absolute_tolerance": 1e-06,
+    "result": "all passed"
+  },
+  "completed_adaptive_checks": {
+    "tasks": 32,
+    "queries_per_task": 200,
+    "same_initialization": 20,
+    "metric_recomputation": "all passed"
+  }
+}

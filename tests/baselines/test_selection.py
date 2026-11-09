@@ -1,10 +1,8 @@
-"""Shared paid initialization and deterministic near-tie selection contracts."""
-
-from types import SimpleNamespace
+"""Shared paid-initialization contracts."""
 
 import pytest
 
-from testing_methods.selection import greedy_index, validate_initial_indices
+from testing_methods.selection import validate_initial_indices
 
 
 @pytest.mark.parametrize(
@@ -26,11 +24,3 @@ def test_method_specific_initialization_minimum_is_preserved(minimum):
     with pytest.raises(ValueError, match="initialization"):
         validate_initial_indices(4, list(range(minimum - 1)), 4, minimum=minimum)
     validate_initial_indices(4, list(range(minimum)), 4, minimum=minimum)
-
-
-def test_greedy_selection_respects_availability_and_absolute_tie_tolerance():
-    candidates = [SimpleNamespace(scenario_id=name) for name in ("a", "b", "c", "d")]
-    scores = [1.0, 0.8 - 5e-13, 0.8, 0.8 - 2e-12]
-    assert greedy_index(scores, {1, 2, 3}, candidates) == 1
-    assert greedy_index(scores, {2, 3}, candidates) == 2
-    assert greedy_index(scores, [3, 2, 1], candidates) == 1

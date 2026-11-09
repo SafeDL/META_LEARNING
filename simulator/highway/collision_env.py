@@ -49,6 +49,7 @@ class ScheduledVehicle(Vehicle):
         super().__init__(road, [x, y], speed=speed)
         self.elapsed = 0.0
         self.longitudinal_speed = speed
+        self.longitudinal_acceleration = 0.0
         self.initial_y = y
         self.event_time = event_time
         self.deceleration = deceleration
@@ -58,12 +59,14 @@ class ScheduledVehicle(Vehicle):
 
     def step(self, dt):
         if self.crashed:
+            self.longitudinal_acceleration = None
             super().step(dt)
             return
         self.elapsed += dt
         t = max(0, self.elapsed - self.event_time)
         a = -self.deceleration * min(1, t / self.ramp)
         next_speed = max(0, self.longitudinal_speed + a * dt)
+        self.longitudinal_acceleration = (next_speed - self.longitudinal_speed) / dt
         self.position[0] += (self.longitudinal_speed + next_speed) / 2 * dt
         self.longitudinal_speed = next_speed
         lateral_speed = 0.0
@@ -152,6 +155,8 @@ class CollisionWorld:
                 deceleration=p["deceleration_mps2"],
                 ramp=p["brake_ramp_s"],
             )
+        elif scenario.kind == "car_following":
+            self.add("lead", 105 + p["gap_m"], 4, p["lead_speed_mps"])
         elif scenario.kind == "cut_in":
             y = 0 if scenario.categories["side"] == "left" else 8
             self.add(
@@ -179,6 +184,8 @@ class CollisionWorld:
             self.add("rear", 100 - p["rear_gap_m"] - 5, 0, p["rear_speed_mps"])
             self.add("adjacent_front", 100 + p["adjacent_front_gap_m"] + 5, 0, p["ego_speed_mps"])
             # Right lane is unavailable in this functional scenario.
+        else:
+            raise ValueError(f"Unsupported CollisionWorld scenario: {scenario.kind}")
         self.lane_centers = (
             tuple(lane_centers)
             if lane_centers is not None
@@ -260,6 +267,15 @@ class CollisionWorld:
                 "collision_partner": self.collision_partner,
             }
         )
+        if self.scenario.kind == "car_following":
+            self.trace[-1]["background_controls"] = {
+                name: {
+                    "acceleration_mps2": actor.longitudinal_acceleration,
+                    "scripted": not bool(actor.crashed),
+                }
+                for name, actor in self.actors.items()
+                if name != "ego"
+            }
 
 
 def execute(policy, scenario, *, environment_seed=81001, duration_s=10):

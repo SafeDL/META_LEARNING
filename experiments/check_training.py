@@ -1,62 +1,58 @@
 """Reduced real-data training and paid-query checks; not a performance experiment."""
 
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import numpy as np
 import torch
 
+from controllers.highway.factory import create
+from simulator.highway.collision_env import execute
 from testing_methods.history_transfer.selection import select
 from testing_methods.history_transfer.training import Config, load_model, train
 
-from .construction import OUTPUT, load_training_data
-from .discovery_config import write_json
-from .executions import ExecutionBank
-from .protocol import TEST_RECORDS_ROOT
+from .history import build_source, load_training_archives
+from .joint_validation import OUTPUT
+from .prepare_joint import prepare_dataset
 from .query import QueryLedger, run_isolated
 from .rss import measurement_contract
-from .scenarios import DOMAINS
-from .train import source_predictions
+from .scenarios import RECORDED_SCENARIOS, TEST_SCENARIOS, candidate_pool
+from .storage import write_json
 
-CONFIG = Config(
-    steps=2, support_counts=(2, 4), query_count=4, historical_context=8, validation_interval=1
-)
-
-
-def subset(archive, count=32):
-    return replace(
-        archive,
-        scenarios=archive.scenarios[:count],
-        collision=archive.collision[:count],
-        safety=archive.safety[:count],
-        rss_margin=archive.continuous_margin[:count],
-    )
+CONFIG = Config(steps=2, initial_count=2, budget=4, historical_context=8, diagnostic_interval=1)
 
 
 def main():
+    from controllers.highway.catalog import HISTORY_SUTS
+
     torch.set_num_threads(1)
     rows = []
     with TemporaryDirectory(prefix="rss-integration-") as temporary:
-        for kind in DOMAINS:
-            history, development = load_training_data(kind)
-            history = [subset(a) for a in history[:3]]
-            development = [subset(development[0])]
+        systems = [s for s in HISTORY_SUTS if s.family == "rule"]
+        dataset = Path(temporary) / "records"
+        prepare_dataset(
+            dataset,
+            recorded_count=8,
+            additions=dict.fromkeys(TEST_SCENARIOS, 8),
+            workers=2,
+            systems=systems,
+        )
+        for kind in TEST_SCENARIOS:
+            history = load_training_archives(dataset / "manifest.json", kind)
             root = Path(temporary) / kind
-            report = train(history, development, root, config=CONFIG)
+            report = train(history, root, config=CONFIG)
             encoder, _ = load_model(root / "historical_encoder.pt")
             base, _ = load_model(root / "target_kernel.pt")
-            candidates = development[0].scenarios[:12]
-            predictions = source_predictions(encoder, history, candidates)
-            assert np.isfinite(predictions["means"]).all()
-            sources = {
-                "means": predictions["means"],
-                "covariances": np.stack([np.diag(v) for v in predictions["variances"]]),
-                "weights": predictions["weights"],
-                "names": predictions["names"],
-            }
-            bank = ExecutionBank(TEST_RECORDS_ROOT / development[0].provenance["bank"])
-            ledger = QueryLedger(candidates, 4, bank)
+            candidates = candidate_pool(kind, 12, replicate=99)
+            sources = build_source(encoder, history, candidates)
+            assert np.isfinite(sources["means"]).all()
+            ledger = QueryLedger(
+                candidates,
+                4,
+                lambda scene: execute(create("independent_idm_mobil"), scene),
+                joint_feedback=True,
+            )
             result = run_isolated(
                 select,
                 dict(
@@ -76,23 +72,43 @@ def main():
                     "scenario": kind,
                     "training_status": report["encoder"]["status"],
                     "historical_systems": [a.source_id for a in history],
-                    "development_system": development[0].source_id,
+                    "engineering_target": "independent_idm_mobil",
                     "paid_queries": len(ledger.records),
                     "selected_indices": result["selected_indices"],
-                    "best_validation_nll": report["encoder"]["best_score"][0],
+                    "final_training_nll": report["encoder"]["curve"][-1]["training_nll"],
+                    "queries": result["queries"],
+                    "query_ledger": ledger.records,
+                    "resources": result["resources"],
+                    "source_blocks_shape": list(sources["blocks"].shape),
                 }
             )
-            print(f"RSS integration {len(rows)}/5", flush=True)
+            if kind not in RECORDED_SCENARIOS:
+                from .render_joint import render_execution
+
+                position = max(
+                    range(len(ledger.trajectories)), key=lambda i: len(ledger.trajectories[i])
+                )
+                render_execution(
+                    candidates[ledger.records[position]["index"]],
+                    ledger.trajectories[position],
+                    OUTPUT / "reports/sequential_training_scenarios",
+                    provenance={
+                        "source_id": "independent_idm_mobil",
+                        "query": ledger.records[position],
+                    },
+                )
+            print(f"Joint integration {len(rows)}/{len(TEST_SCENARIOS)}", flush=True)
     summary = {
         "status": "passed",
-        "interpretation": "Reduced training and process-isolated development replay only. Not a full retraining or an independent evaluation of testing efficiency.",
+        "interpretation": "Temporary historical preparation, reduced sequential training and isolated paid queries. Not a method-effectiveness experiment.",
         "continuous_response": measurement_contract(),
         "configuration": asdict(CONFIG),
         "checks": rows,
-        "independent_target_records_used": False,
-        "new_simulator_calls": 0,
+        "development_ads_used": False,
+        "formal_target_bank_used": False,
+        "new_simulator_calls": len(TEST_SCENARIOS) * (len(systems) * 8 + 4),
     }
-    write_json(OUTPUT / "integration_check.json", summary)
+    write_json(OUTPUT / "reports/sequential_training_check.json", summary)
     return summary
 
 

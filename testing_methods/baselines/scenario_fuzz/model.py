@@ -15,7 +15,7 @@ from torch.nn import functional as F
 from torch_geometric.data import Batch
 from torch_geometric.nn import GATConv, global_mean_pool
 
-from testing_methods.common.response import archive_fingerprints
+from testing_methods.common.response import archive_fingerprints, shared_domain
 
 from .graphs import graph
 
@@ -102,12 +102,26 @@ class ScenarioRiskNetwork(nn.Module):
         return self.readout_mlp2(F.relu(self.readout_mlp1(combined))).squeeze(-1)
 
 
-def train(history, destination, *, held_family=None, config=DEFAULT):
+def train(
+    history,
+    destination,
+    *,
+    held_family=None,
+    config=DEFAULT,
+    graph_fn=graph,
+    graph_definition=None,
+):
     history = tuple(history)
     if not history or any(a.role != "history" for a in history):
         raise ValueError("ScenarioFuzz's graph risk model uses allowed historical objects only")
     if held_family is not None and any(a.family == held_family for a in history):
         raise ValueError("Held family entered ScenarioFuzz graph-model training")
+    domain = shared_domain(history)
+    if domain is not None:
+        if graph_fn is graph or not graph_definition:
+            raise ValueError("Explicit domains require a registered public graph builder")
+    elif graph_fn is not graph or graph_definition is not None:
+        raise ValueError("A custom graph builder requires an explicit parameter definition")
     destination = Path(destination)
     if destination.exists():
         raise FileExistsError(destination)
@@ -117,7 +131,7 @@ def train(history, destination, *, held_family=None, config=DEFAULT):
     scenarios = [scene for archive in history for scene in archive.scenarios]
     x = np.concatenate([a.x for a in history])
     unique, representative, groups = np.unique(x, axis=0, return_index=True, return_inverse=True)
-    graphs = [graph(scenarios[i]) for i in representative]
+    graphs = [graph_fn(scenarios[i]) for i in representative]
     labels = torch.tensor(np.concatenate([a.collision for a in history]), dtype=torch.float32)
     order = generator.permutation(len(unique))
     validation_groups = set(order[: max(1, round(0.2 * len(unique)))].tolist())
@@ -186,6 +200,13 @@ def train(history, destination, *, held_family=None, config=DEFAULT):
             "constant position/weather features stay finite",
         ],
     }
+    if domain is not None:
+        checkpoint.update(
+            format="scenariofuzz-public-graph",
+            parameter_definition=domain.to_dict(),
+            graph_definition=graph_definition,
+            graph_scope="registered public geometry and background path builder",
+        )
     destination.parent.mkdir(parents=True, exist_ok=True)
     torch.save(checkpoint, destination)
     return {k: v for k, v in checkpoint.items() if k != "state_dict"}
@@ -193,9 +214,14 @@ def train(history, destination, *, held_family=None, config=DEFAULT):
 
 def load(path):
     checkpoint = torch.load(path, weights_only=True, map_location="cpu")
-    if checkpoint["format"] != "scenariofuzz-highway-graph":
+    if checkpoint["format"] not in ("scenariofuzz-highway-graph", "scenariofuzz-public-graph"):
         raise ValueError("ScenarioFuzz requires its task-specific historical graph model")
     config = checkpoint["config"]
     model = ScenarioRiskNetwork(hidden_dim=config["hidden_dim"], heads=config["heads"])
     model.load_state_dict(checkpoint["state_dict"])
+    if checkpoint["format"] == "scenariofuzz-public-graph":
+        model.graph_specification = {
+            "parameter_definition": checkpoint["parameter_definition"],
+            "graph_definition": checkpoint["graph_definition"],
+        }
     return model.eval().requires_grad_(False), checkpoint

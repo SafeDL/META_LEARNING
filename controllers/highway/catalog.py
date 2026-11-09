@@ -1,8 +1,9 @@
-"""Legacy experiment objects and eight separately registered independent systems."""
+"""Eight historical ADSs and eight independently configured target systems."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
-from experiments.scenarios import DOMAINS
+from experiments.scenarios import RECORDED_DOMAINS as DOMAINS
+from experiments.scenarios import TEST_SCENARIOS
 
 
 @dataclass(frozen=True)
@@ -51,63 +52,22 @@ ROUTES = {
 LEARNING_RUNS = {
     "history_ppo": ("history_ppo_persistent_speed", 4117),
     "history_dqn": ("history_dqn_persistent_speed", 1103),
-    "development_ppo": ("development_ppo_persistent_speed", 2111),
-    "target_ppo": ("target_ppo_persistent_speed", 3109),
-    "target_dqn": ("target_dqn_persistent_speed", 3137),
 }
 
 
-def _objects():
+def _historical_objects():
     output = []
     for route, (family, base) in ROUTES.items():
-        for role in ("history", "target"):
-            parameters = dict(base)
-            if role == "target" and family != "learning":
-                parameters["desired_speed_mps"] = 32
-                if "headway_s" in parameters:
-                    parameters["headway_s"] -= 0.2
-                if "exploration" in parameters:
-                    parameters["exploration"] = 1.1
-                if "beam_width" in parameters:
-                    parameters["beam_width"] = 16
-            name = f"{role}_{route}"
-            run, seed = LEARNING_RUNS.get(name, (None, None))
-            output.append(
-                SUT(
-                    name,
-                    family,
-                    route,
-                    f"{role}-persistent-speed-training" if seed is not None else role,
-                    role,
-                    parameters,
-                    run,
-                    seed,
-                    f"history_{route}" if role == "target" else None,
-                )
-            )
-    for family, route in (
-        ("rule", "idm_mobil"),
-        ("optimization", "linear_mpc"),
-        ("search", "uct"),
-        ("learning", "ppo"),
-    ):
-        parameters = dict(ROUTES[route][1])
-        if family != "learning":
-            parameters["desired_speed_mps"] = 31
-            if "headway_s" in parameters:
-                parameters["headway_s"] += 0.2
-            if "exploration" in parameters:
-                parameters["exploration"] = 1.7
-        name = f"development_{route}"
+        name = f"history_{route}"
         run, seed = LEARNING_RUNS.get(name, (None, None))
         output.append(
             SUT(
                 name,
                 family,
                 route,
-                "development-persistent-speed-training" if family == "learning" else "development",
-                "development",
-                parameters,
+                "history-persistent-speed-training" if seed is not None else "history",
+                "history",
+                dict(base),
                 run,
                 seed,
             )
@@ -115,7 +75,7 @@ def _objects():
     return tuple(output)
 
 
-SUTS = _objects()
+HISTORY_SUTS = _historical_objects()
 
 
 def _independent_objects():
@@ -171,4 +131,13 @@ def _independent_objects():
 
 
 INDEPENDENT_SUTS = _independent_objects()
-BY_ID = {sut.sut_id: sut for sut in (*SUTS, *INDEPENDENT_SUTS)}
+BY_ID = {sut.sut_id: sut for sut in (*HISTORY_SUTS, *INDEPENDENT_SUTS)}
+
+# The original objects are part of frozen execution contracts. Current experiments
+# register their four supported scenarios without changing a controller or checkpoint.
+CURRENT_SUTS = tuple(
+    replace(sut, supported_scenarios=list(TEST_SCENARIOS))
+    for sut in (*HISTORY_SUTS, *INDEPENDENT_SUTS)
+)
+CURRENT_BY_ID = {sut.sut_id: sut for sut in CURRENT_SUTS}
+CURRENT_INDEPENDENT_SUTS = tuple(sut for sut in CURRENT_SUTS if sut.role == "independent")

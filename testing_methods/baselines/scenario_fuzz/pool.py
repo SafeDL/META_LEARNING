@@ -27,12 +27,12 @@ class Config:
 DEFAULT = Config()
 
 
-def mutate(parent, generator, *, local, steps=5):
-    domain = DOMAINS[parent.kind]
+def mutate(parent, generator, *, local, steps=5, domain=None):
+    definition = DOMAINS[parent.kind] if domain is None else domain
     while True:
         parameters = {}
-        for name, (low, high) in domain.bounds.items():
-            precision = domain.quantization[name]
+        for name, (low, high) in definition.bounds.items():
+            precision = definition.quantization[name]
             if local:
                 lower = max(-steps, int(np.ceil((low - parent.parameters[name]) / precision)))
                 upper = min(steps, int(np.floor((high - parent.parameters[name]) / precision)))
@@ -44,24 +44,26 @@ def mutate(parent, generator, *, local, steps=5):
                     low + int(generator.integers(int((high - low) / precision) + 1)) * precision
                 )
         categories = {}
-        for name, options in domain.categories.items():
+        for name, options in definition.categories.items():
             current = options.index(parent.categories[name])
             choices = options[max(0, current - steps) : current + steps + 1] if local else options
             categories[name] = str(generator.choice(choices))
         proposal = Scenario("public_mutation", parent.kind, parameters, categories)
         try:
-            validate(proposal)
+            validate(proposal, domain=domain)
         except ValueError:
             continue
         return proposal
 
 
-def probabilities(classifier, candidates):
+def probabilities(classifier, candidates, *, graph_fn=graph):
     classifier.eval().requires_grad_(False)
     device = next(classifier.parameters()).device
     with torch.no_grad():
         output = [
-            classifier(batch_graphs([graph(s) for s in candidates[start : start + 100]]).to(device))
+            classifier(
+                batch_graphs([graph_fn(s) for s in candidates[start : start + 100]]).to(device)
+            )
             .sigmoid()
             .cpu()
             .numpy()
@@ -70,17 +72,37 @@ def probabilities(classifier, candidates):
     return np.concatenate(output)
 
 
-def run(candidates, oracle, *, classifier, initial_indices, budget=128, seed=11, config=DEFAULT):
+def run(
+    candidates,
+    oracle,
+    *,
+    classifier,
+    initial_indices,
+    budget=128,
+    seed=11,
+    config=DEFAULT,
+    domain=None,
+    graph_fn=graph,
+    graph_definition=None,
+):
     initial = list(initial_indices)
     validate_initial_indices(len(candidates), initial, budget)
     if budget >= 1000:
         raise ValueError("This fixed-model adaptation is limited to fewer than 1000 new records")
+    if domain is not None:
+        if graph_fn is graph or not graph_definition:
+            raise ValueError("Explicit domains require a registered public graph builder")
+        expected = {"parameter_definition": domain.to_dict(), "graph_definition": graph_definition}
+        if getattr(classifier, "graph_specification", None) != expected:
+            raise ValueError("ScenarioFuzz classifier and query graph definitions differ")
+    elif graph_fn is not graph or graph_definition is not None:
+        raise ValueError("A custom graph builder requires an explicit parameter definition")
     torch.set_num_threads(1)
     generator = np.random.default_rng(seed)
     started = time.perf_counter()
-    risk = probabilities(classifier, candidates)
+    risk = probabilities(classifier, candidates, graph_fn=graph_fn)
     inference_s = time.perf_counter() - started
-    x = features(candidates)
+    x = features(candidates, domain=domain)
     remaining, selected, queries = set(range(len(candidates))), [], []
     queue, frequency, campaign_log = deque(), Counter(), []
 
@@ -128,10 +150,10 @@ def run(candidates, oracle, *, classifier, initial_indices, budget=128, seed=11,
             count = min(config.executions, budget - len(selected), len(available))
             for attempt in range(1, config.filter_attempts + 1):
                 proposals = [
-                    mutate(base, generator, local=local, steps=config.neighbor_steps)
+                    mutate(base, generator, local=local, steps=config.neighbor_steps, domain=domain)
                     for _ in range(config.mutants)
                 ]
-                points = features(proposals)
+                points = features(proposals, domain=domain)
                 distance = ((points[:, None] - x[available][None]) ** 2).sum(-1)
                 projected = sorted({available[i] for i in distance.argmin(-1)})
                 ranked = sorted(projected, key=lambda i: (-risk[i], candidates[i].scenario_id))
