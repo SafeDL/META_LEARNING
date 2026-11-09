@@ -1,0 +1,385 @@
+{
+  "wall_s": 11700.0209453,
+  "sampled_peak_cpu_bytes": 6841647104,
+  "sampled_cpu_increase_bytes": 6385041408,
+  "peak_cuda_allocated_bytes": 0,
+  "device": "cpu",
+  "cpu_sampling_interval_s": 0.01,
+  "versions": {
+    "target": "03bf9ebc4a33ffabacc6f4c9040d2553b175d3436f7c5b2f2863b332b4aa12de",
+    "encoder": "478137cab2f6936741ce3d3d6c778b1d26c6b44a972caddffbedd1de29b5faed"
+  },
+  "training": {
+    "target": {
+      "status": "complete",
+      "specification": {
+        "scenario": "lane_change_rear",
+        "history_fingerprints": {
+          "history_idm_mobil": "c6f181644cb86a5890433ad708a6918a4b17cc4a9803dbc48757809de9bd8170",
+          "history_fvdm_lane": "e49093319d5cc71ef1f2d1efea3c0a3274aedccde7b2c4c7409c93e21b9230c2",
+          "history_linear_mpc": "85a0291fe7b444ea74b1a8d5135c78bb31c103a0525e034551aa496dccb9c735",
+          "history_nonlinear_trajectory": "887b3a4921e79cffbdce9f9ecbece16805968011107c1ebda72192751b5d1726",
+          "history_uct": "05dda942d4a2f1289ccb67d4c4079b14689c09ef54f182aff7e17e60eaa18b0c",
+          "history_beam": "c40531b9fdfc513a68480feae492d53ce9662f693d5fb6c4d67610634c22c9e9",
+          "history_ppo": "0dcc7f9fb731966a8a603ea1fed40ded7216a09384f0f469e7622143e5c86ee5",
+          "history_dqn": "90dcbf23beb177c6755a131b6d93394f800b5ed208bf480a8d32dd2299c1120d"
+        },
+        "held_family": null,
+        "config": {
+          "steps": 1500,
+          "learning_rate": 0.001,
+          "initial_count": 20,
+          "budget": 200,
+          "historical_context": 64,
+          "diagnostic_interval": 100,
+          "seed": 1301,
+          "device": "cpu",
+          "historical_rss": true
+        },
+        "covariance_mode": "point_joint_blocks",
+        "training_contract": {
+          "testing_methods/history_transfer/training.py": "952ccda9d33dbe6e28fe3dccf9c45e7f08665248668f7f622314b52fc1c24d15",
+          "testing_methods/history_transfer/inference.py": "89fa9c666b84c23e2a8e073f76f37785afab20a07f5b52fa9873907f28e02f6c",
+          "testing_methods/history_transfer/model.py": "6897bd29871bd9acd1b70df5913342cae0038ba2661aa39d6e0567bd32e03912",
+          "testing_methods/history_transfer/selection.py": "f0b6b9cd692cf94dfd81346788a51505591a5dd618bfb00a53d689ee4499c61d",
+          "testing_methods/common/gp_classifier.py": "22064358a60999f8fb94d796c42c94a13b1e5f05cfb4e9dd00327c9def0cce91",
+          "testing_methods/common/gp_laplace.py": "fba807ca2e01c86c664853b47630a769b88b63938a691085fdb055b2e99041ba",
+          "testing_methods/common/classification.py": "502917fc4a0b811d630c4a08a65263352e6b95fe0c23bf24da21361b9dfbc4b4",
+          "testing_methods/common/response.py": "287fabbf394cc155da8a16ee578c5e6216186b71c083a5fc05a97c0576aca844",
+          "experiments/scenarios.py": "ef808214a3f6fbf7878fa6e8cd75aa9a6030dcf1d3318db7712ef4479058dcd7",
+          "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+          "experiments/history.py": "f6b079daf35ee9058534ba9152f1b1046f8d23396098f9985db3f88ceef7ccf7",
+          "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+          "experiments/query.py": "55022b245e020597639dddb64500085601c041b98100789e668dc7287a8f9094",
+          "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9",
+          "testing_methods/history_transfer/shared_private.py": "8d1272572fbb705a32c4d039dc94ba99e6e55cb249996c7d0c5229c226dd769c"
+        },
+        "online_features": "float64",
+        "training_device": "cpu",
+        "training_threads": 1,
+        "target_feedback": "paid collision and RSS",
+        "historical_feedback": "collision and ego-normalized RSS margin",
+        "continuous_response": {
+          "measure": "ego-normalized-rss-distance-margin",
+          "parameters": {
+            "ego_response_s": 1.0,
+            "other_response_s": 2.0,
+            "acceleration_mps2": 3.5,
+            "braking_min_mps2": 4.0,
+            "braking_max_mps2": 8.0,
+            "lateral_acceleration_mps2": 0.2,
+            "lateral_braking_mps2": 0.8,
+            "lateral_buffer_m": 0.1
+          },
+          "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+          "geometry": "road-axis enclosing body projections",
+          "normalization": "directional centre separation / required centre separation - 1",
+          "aggregation": "max over directions, min over ego-object pairs and recorded times",
+          "orientation": "larger margin means safer; risk is negative margin",
+          "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+          "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+        },
+        "supervision": "uniform next-response time after initialization; all preceding feedback",
+        "checkpoint": "final fixed step, no development data",
+        "response_kernel": "SharedPrivateKernel",
+        "new_source_ids": [],
+        "parent_version": null
+      },
+      "curve": [
+        {
+          "step": 100,
+          "training_joint_evidence": -0.8872759068285412,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 200,
+          "training_joint_evidence": -1.0592869398653513,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 300,
+          "training_joint_evidence": -1.1277449976003617,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 400,
+          "training_joint_evidence": -1.1719925279562091,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 500,
+          "training_joint_evidence": -1.2088160644534398,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 600,
+          "training_joint_evidence": -1.229575939007565,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 700,
+          "training_joint_evidence": -1.2614570702445338,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 800,
+          "training_joint_evidence": -1.2726674016826,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 900,
+          "training_joint_evidence": -1.2938091299667653,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1000,
+          "training_joint_evidence": -1.3031617955239774,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1100,
+          "training_joint_evidence": -1.3183828350141527,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1200,
+          "training_joint_evidence": -1.3312455088167485,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1300,
+          "training_joint_evidence": -1.3364555987211875,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1400,
+          "training_joint_evidence": -1.3473472069004928,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1500,
+          "training_joint_evidence": -1.3497517097111853,
+          "diagnostic_steps": 100
+        }
+      ],
+      "final_step": 1500,
+      "training_s": 38.962159700000484
+    },
+    "encoder": {
+      "status": "complete",
+      "specification": {
+        "scenario": "lane_change_rear",
+        "history_fingerprints": {
+          "history_idm_mobil": "c6f181644cb86a5890433ad708a6918a4b17cc4a9803dbc48757809de9bd8170",
+          "history_fvdm_lane": "e49093319d5cc71ef1f2d1efea3c0a3274aedccde7b2c4c7409c93e21b9230c2",
+          "history_linear_mpc": "85a0291fe7b444ea74b1a8d5135c78bb31c103a0525e034551aa496dccb9c735",
+          "history_nonlinear_trajectory": "887b3a4921e79cffbdce9f9ecbece16805968011107c1ebda72192751b5d1726",
+          "history_uct": "05dda942d4a2f1289ccb67d4c4079b14689c09ef54f182aff7e17e60eaa18b0c",
+          "history_beam": "c40531b9fdfc513a68480feae492d53ce9662f693d5fb6c4d67610634c22c9e9",
+          "history_ppo": "0dcc7f9fb731966a8a603ea1fed40ded7216a09384f0f469e7622143e5c86ee5",
+          "history_dqn": "90dcbf23beb177c6755a131b6d93394f800b5ed208bf480a8d32dd2299c1120d"
+        },
+        "held_family": null,
+        "config": {
+          "steps": 1500,
+          "learning_rate": 0.001,
+          "initial_count": 20,
+          "budget": 200,
+          "historical_context": 64,
+          "diagnostic_interval": 100,
+          "seed": 1301,
+          "device": "cpu",
+          "historical_rss": true
+        },
+        "covariance_mode": "point_joint_blocks",
+        "training_contract": {
+          "testing_methods/history_transfer/training.py": "952ccda9d33dbe6e28fe3dccf9c45e7f08665248668f7f622314b52fc1c24d15",
+          "testing_methods/history_transfer/inference.py": "89fa9c666b84c23e2a8e073f76f37785afab20a07f5b52fa9873907f28e02f6c",
+          "testing_methods/history_transfer/model.py": "6897bd29871bd9acd1b70df5913342cae0038ba2661aa39d6e0567bd32e03912",
+          "testing_methods/history_transfer/selection.py": "f0b6b9cd692cf94dfd81346788a51505591a5dd618bfb00a53d689ee4499c61d",
+          "testing_methods/common/gp_classifier.py": "22064358a60999f8fb94d796c42c94a13b1e5f05cfb4e9dd00327c9def0cce91",
+          "testing_methods/common/gp_laplace.py": "fba807ca2e01c86c664853b47630a769b88b63938a691085fdb055b2e99041ba",
+          "testing_methods/common/classification.py": "502917fc4a0b811d630c4a08a65263352e6b95fe0c23bf24da21361b9dfbc4b4",
+          "testing_methods/common/response.py": "287fabbf394cc155da8a16ee578c5e6216186b71c083a5fc05a97c0576aca844",
+          "experiments/scenarios.py": "ef808214a3f6fbf7878fa6e8cd75aa9a6030dcf1d3318db7712ef4479058dcd7",
+          "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+          "experiments/history.py": "f6b079daf35ee9058534ba9152f1b1046f8d23396098f9985db3f88ceef7ccf7",
+          "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+          "experiments/query.py": "55022b245e020597639dddb64500085601c041b98100789e668dc7287a8f9094",
+          "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9",
+          "testing_methods/history_transfer/shared_private.py": "8d1272572fbb705a32c4d039dc94ba99e6e55cb249996c7d0c5229c226dd769c"
+        },
+        "online_features": "float64",
+        "training_device": "cpu",
+        "training_threads": 1,
+        "target_feedback": "paid collision and RSS",
+        "historical_feedback": "collision and ego-normalized RSS margin",
+        "continuous_response": {
+          "measure": "ego-normalized-rss-distance-margin",
+          "parameters": {
+            "ego_response_s": 1.0,
+            "other_response_s": 2.0,
+            "acceleration_mps2": 3.5,
+            "braking_min_mps2": 4.0,
+            "braking_max_mps2": 8.0,
+            "lateral_acceleration_mps2": 0.2,
+            "lateral_braking_mps2": 0.8,
+            "lateral_buffer_m": 0.1
+          },
+          "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+          "geometry": "road-axis enclosing body projections",
+          "normalization": "directional centre separation / required centre separation - 1",
+          "aggregation": "max over directions, min over ego-object pairs and recorded times",
+          "orientation": "larger margin means safer; risk is negative margin",
+          "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+          "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+        },
+        "supervision": "uniform next-response time after initialization; all preceding feedback",
+        "checkpoint": "final fixed step, no development data",
+        "response_kernel": "SharedPrivateKernel",
+        "new_source_ids": [],
+        "parent_version": null
+      },
+      "curve": [
+        {
+          "step": 100,
+          "training_nll": 0.24117624277410094,
+          "training_brier": 0.06257748172871275,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 85,
+          "next_record_index": 27
+        },
+        {
+          "step": 200,
+          "training_nll": 0.253615792913403,
+          "training_brier": 0.07145075220978211,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 99,
+          "next_record_index": 364
+        },
+        {
+          "step": 300,
+          "training_nll": 0.25167034927846127,
+          "training_brier": 0.07116882215418677,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 90,
+          "next_record_index": 600
+        },
+        {
+          "step": 400,
+          "training_nll": 0.2398622833849919,
+          "training_brier": 0.06615047671944953,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 123,
+          "next_record_index": 299
+        },
+        {
+          "step": 500,
+          "training_nll": 0.26308623074467685,
+          "training_brier": 0.07647249310122535,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 102,
+          "next_record_index": 329
+        },
+        {
+          "step": 600,
+          "training_nll": 0.22457923658422593,
+          "training_brier": 0.05779350200993208,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 112,
+          "next_record_index": 537
+        },
+        {
+          "step": 700,
+          "training_nll": 0.1780305883830059,
+          "training_brier": 0.04067715929707452,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 55,
+          "next_record_index": 278
+        },
+        {
+          "step": 800,
+          "training_nll": 0.2919417056431755,
+          "training_brier": 0.08476736740547924,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 44,
+          "next_record_index": 362
+        },
+        {
+          "step": 900,
+          "training_nll": 0.20999091145319876,
+          "training_brier": 0.055465752843526894,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 117,
+          "next_record_index": 672
+        },
+        {
+          "step": 1000,
+          "training_nll": 0.24865218249673518,
+          "training_brier": 0.06892211123301291,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 64,
+          "next_record_index": 492
+        },
+        {
+          "step": 1100,
+          "training_nll": 0.27890070943643386,
+          "training_brier": 0.08261914867299475,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 108,
+          "next_record_index": 434
+        },
+        {
+          "step": 1200,
+          "training_nll": 0.2233978211075953,
+          "training_brier": 0.058580101972226316,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 137,
+          "next_record_index": 336
+        },
+        {
+          "step": 1300,
+          "training_nll": 0.24169962204839593,
+          "training_brier": 0.06466183114628352,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 50,
+          "next_record_index": 84
+        },
+        {
+          "step": 1400,
+          "training_nll": 0.2677348391483749,
+          "training_brier": 0.07799377202448102,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 195,
+          "next_record_index": 462
+        },
+        {
+          "step": 1500,
+          "training_nll": 0.2433072023784785,
+          "training_brier": 0.06763632686859569,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 25,
+          "next_record_index": 217
+        }
+      ],
+      "final_step": 1500,
+      "cached_episodes": 32,
+      "training_s": 11656.449811699998
+    }
+  }
+}

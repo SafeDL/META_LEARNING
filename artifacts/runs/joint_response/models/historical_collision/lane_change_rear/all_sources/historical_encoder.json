@@ -1,0 +1,214 @@
+{
+  "status": "complete",
+  "specification": {
+    "scenario": "lane_change_rear",
+    "history_fingerprints": {
+      "history_idm_mobil": "c6f181644cb86a5890433ad708a6918a4b17cc4a9803dbc48757809de9bd8170",
+      "history_fvdm_lane": "e49093319d5cc71ef1f2d1efea3c0a3274aedccde7b2c4c7409c93e21b9230c2",
+      "history_linear_mpc": "85a0291fe7b444ea74b1a8d5135c78bb31c103a0525e034551aa496dccb9c735",
+      "history_nonlinear_trajectory": "887b3a4921e79cffbdce9f9ecbece16805968011107c1ebda72192751b5d1726",
+      "history_uct": "05dda942d4a2f1289ccb67d4c4079b14689c09ef54f182aff7e17e60eaa18b0c",
+      "history_beam": "c40531b9fdfc513a68480feae492d53ce9662f693d5fb6c4d67610634c22c9e9",
+      "history_ppo": "0dcc7f9fb731966a8a603ea1fed40ded7216a09384f0f469e7622143e5c86ee5",
+      "history_dqn": "90dcbf23beb177c6755a131b6d93394f800b5ed208bf480a8d32dd2299c1120d"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "initial_count": 20,
+      "budget": 200,
+      "historical_context": 64,
+      "diagnostic_interval": 100,
+      "seed": 1301,
+      "device": "cpu",
+      "historical_rss": false
+    },
+    "covariance_mode": "point_joint_blocks",
+    "training_contract": {
+      "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+      "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+      "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+      "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+      "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+      "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+      "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+      "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+      "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+      "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "paid collision and RSS",
+    "historical_feedback": "collision only",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "ego_response_s": 1.0,
+        "other_response_s": 2.0,
+        "acceleration_mps2": 3.5,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 8.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+      "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+    },
+    "supervision": "uniform next-response time after initialization; all preceding feedback",
+    "checkpoint": "final fixed step, no development data",
+    "new_source_ids": [],
+    "parent_version": null
+  },
+  "curve": [
+    {
+      "step": 100,
+      "training_nll": 0.1832541489316246,
+      "training_brier": 0.04315003808676047,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 85,
+      "next_record_index": 27
+    },
+    {
+      "step": 200,
+      "training_nll": 0.22191834936081714,
+      "training_brier": 0.06455423046755944,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 99,
+      "next_record_index": 364
+    },
+    {
+      "step": 300,
+      "training_nll": 0.192383599753176,
+      "training_brier": 0.05116997482347134,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 90,
+      "next_record_index": 600
+    },
+    {
+      "step": 400,
+      "training_nll": 0.1984587734000377,
+      "training_brier": 0.053204283017804624,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 123,
+      "next_record_index": 299
+    },
+    {
+      "step": 500,
+      "training_nll": 0.2074391768047694,
+      "training_brier": 0.05451785713739685,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 102,
+      "next_record_index": 329
+    },
+    {
+      "step": 600,
+      "training_nll": 0.1970658524871671,
+      "training_brier": 0.053722743774112104,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 112,
+      "next_record_index": 537
+    },
+    {
+      "step": 700,
+      "training_nll": 0.1356982552927215,
+      "training_brier": 0.028618192172433204,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 55,
+      "next_record_index": 278
+    },
+    {
+      "step": 800,
+      "training_nll": 0.23517669976151578,
+      "training_brier": 0.0621698661983897,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 44,
+      "next_record_index": 362
+    },
+    {
+      "step": 900,
+      "training_nll": 0.1713084701698651,
+      "training_brier": 0.04308048393599354,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 117,
+      "next_record_index": 672
+    },
+    {
+      "step": 1000,
+      "training_nll": 0.20588402493455532,
+      "training_brier": 0.053587823996198346,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 64,
+      "next_record_index": 492
+    },
+    {
+      "step": 1100,
+      "training_nll": 0.24322198518563226,
+      "training_brier": 0.07369267092560144,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 108,
+      "next_record_index": 434
+    },
+    {
+      "step": 1200,
+      "training_nll": 0.18096403460888955,
+      "training_brier": 0.04476027838518021,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 137,
+      "next_record_index": 336
+    },
+    {
+      "step": 1300,
+      "training_nll": 0.18027931521980747,
+      "training_brier": 0.046367739790026334,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 50,
+      "next_record_index": 84
+    },
+    {
+      "step": 1400,
+      "training_nll": 0.21100446888238,
+      "training_brier": 0.0608528187392049,
+      "diagnostic_steps": 100,
+      "source_id": "history_dqn",
+      "prefix_count": 195,
+      "next_record_index": 462
+    },
+    {
+      "step": 1500,
+      "training_nll": 0.19568035355940666,
+      "training_brier": 0.053030653985977325,
+      "diagnostic_steps": 100,
+      "source_id": "history_nonlinear_trajectory",
+      "prefix_count": 25,
+      "next_record_index": 217
+    }
+  ],
+  "final_step": 1500,
+  "cached_episodes": 32,
+  "training_s": 20815.562058200012
+}

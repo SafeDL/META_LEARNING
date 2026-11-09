@@ -1,0 +1,94 @@
+{
+  "status": "proposal_complete_native_validation_pending",
+  "title": "Investigation of Discretionary Lane-Changing Decisions: Insights From the Third Generation Simulation (TGSIM) Dataset",
+  "authors": "Zhang et al.",
+  "doi": "10.1177/03611981251318329",
+  "author_page": "https://zhang-yanlin.github.io/publication/trr25_lc/",
+  "author_pdf": "https://zhang-yanlin.github.io/publication/trr25_lc/TRR25_LC.pdf",
+  "source_location": "Data Preparation, equations (1)-(4), Table 1, PDF pp.3-4",
+  "sample_definition": {
+    "events": 477,
+    "time_points_per_event": 60,
+    "pooled_time_points": 28620,
+    "window": "3 s before and 3 s after the vehicle centre crosses the lane boundary",
+    "sampling_interval_s": 0.1,
+    "neighbour_filter": "both target-lane leader and follower present, longitudinal distance no greater than 500 m at crossing"
+  },
+  "interquartile_ranges": {
+    "ego_speed_mps": [19.14, 30.10],
+    "target_lead_speed_minus_ego_mps": [-2.32, 1.62],
+    "ego_speed_minus_target_rear_mps": [-0.87, 3.83],
+    "source_lead_time_gap_s": [0.97, 3.21],
+    "source_rear_time_gap_s": [1.05, 3.57]
+  },
+  "source_geometry": {
+    "positions": "vehicle centres",
+    "lead_time_gap": "(x_lead-x_ego-L_lead)/v_ego",
+    "rear_time_gap": "(x_ego-x_rear-L_ego)/v_rear"
+  },
+  "body_clearance_mapping": {
+    "lead_gap_m": "lead_time_gap_s*v_ego+(L_lead-L_ego)/2",
+    "rear_gap_m": "rear_time_gap_s*v_rear+(L_ego-L_rear)/2",
+    "equal_length_limit": "Both length corrections vanish only when the corresponding vehicles have equal length",
+    "target_lead_speed_mps": "v_ego+target_lead_speed_minus_ego_mps",
+    "target_rear_speed_mps": "v_ego-ego_speed_minus_target_rear_mps"
+  },
+  "sampling_scope": "If used, independently sample primitive speeds/relative speeds/time gaps and deterministically derive physical positions. Do not claim the derived distances are independent or reproduce the natural joint distribution.",
+  "proposed_design": {
+    "status": "native_ODD_geometry_history_and_dynamics_validation_pending",
+    "free_parameters": {
+      "ego_speed_mps": [19.14, 30.10],
+      "lead_speed_mps": [5.0, 40.0],
+      "lead_gap_m": [15.0, 100.0],
+      "adjacent_front_closing_speed_mps": [-1.62, 2.32],
+      "rear_closing_speed_mps": [-3.83, 0.87],
+      "adjacent_front_time_gap_s": [0.97, 3.21],
+      "rear_time_gap_s": [1.05, 3.57]
+    },
+    "source_roles": {
+      "ego_and_target_lane_neighbours": "Zhang et al. Table 1 interquartile envelopes; negate the published relative speeds to express positive closing speed",
+      "original_lane_leader": "Cai et al., DOI 10.3390/machines11040426, section 4.1, Figure 7(a), Table 2: 5-40 m/s lead speed and 15-100 m body clearance for the same initial ego-following-lead relationship"
+    },
+    "sampling": "independent uniform primitive parameters, Sobol design, 2000 target candidates and 512 separate historical design points",
+    "derived_values": {
+      "target_front_speed_mps": "ego_speed_mps-adjacent_front_closing_speed_mps",
+      "rear_speed_mps": "ego_speed_mps+rear_closing_speed_mps",
+      "adjacent_front_gap_m": "adjacent_front_time_gap_s*ego_speed_mps+(L_target_front-L_ego)/2",
+      "rear_gap_m": "rear_time_gap_s*rear_speed_mps+(L_ego-L_rear)/2",
+      "original_lead_centre_x": "lead_gap_m+(L_ego+L_original_lead)/2",
+      "target_front_centre_x": "adjacent_front_gap_m+(L_ego+L_target_front)/2",
+      "rear_centre_x": "-rear_gap_m-(L_ego+L_rear)/2"
+    },
+    "fixed_context": {
+      "vehicles": "ego, original-lane lead, target-lane lead, target-lane rear",
+      "target_lane": "left adjacent lane",
+      "duration_s": 10,
+      "ego_manoeuvre": "Controlled by the actual ADS. Lane-change duration, decision and speed response are outputs rather than sampled inputs."
+    },
+    "engineering_definitions": [
+      "Use published pooled decision-window interquartile limits as a declared logical design envelope at initialization, not as measured initial-state marginals",
+      "Compose the original-lane following relationship and target-lane interaction envelopes by their physical roles; do not claim one natural traffic cohort or preserve empirical correlations",
+      "Derived physical speeds and distances need not be mutually independent; only the seven primitive inputs are sampled independently",
+      "The three background vehicles' subsequent response laws and common geometry must be fixed in B2; these ranges define initial kinematics only"
+    ],
+    "predeclared_feasibility": [
+      "Initial full footprints and actual observation history are valid",
+      "Speeds, geometry and intended road/route lie in the declared native ADS execution scope",
+      "Do not screen candidate coordinates using target collisions, RSS, lane-change success or test-method discovery counts",
+      "Freeze geometry and dynamic checks before generation and disclose resulting conditional dependencies"
+    ]
+  },
+  "unresolved": [
+    "The role-based logical composition and pooled-window envelope are engineering choices requiring clear reporting, not a recovered initial-state distribution",
+    "All actor speeds and contexts must be checked against the common public ADS execution scope before any final range is frozen",
+    "Native observation history, actual vehicle lengths, background responses and full execution semantics remain unverified"
+  ],
+  "library_check": "No TGSIM or Discretionary title found in the user-provided Google Drive folder; the author-hosted full text supplied the formulas. No Drive files were changed.",
+  "mapping_verification": {
+    "endpoint_combinations": 256,
+    "varying_values": "ego speed, two closing speeds, two time gaps, three vehicle lengths; two endpoints each",
+    "checks": "positive derived speeds and body gaps; source time-gap equations recovered from derived centres; relative-speed sign conversions",
+    "scope": "Algebra only; no physical execution, native dynamics or ADS validation"
+  },
+  "new_physical_executions": 0
+}
