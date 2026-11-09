@@ -1,0 +1,467 @@
+{
+  "accepted": true,
+  "specification": {
+    "scenario": "front_brake",
+    "history_fingerprints": {
+      "history_idm_mobil": "daa452a211fa63e3a7c452d5f19c5ae4becded8f1c9c0ba425e74e992f07fbab",
+      "history_fvdm_lane": "60a36976b7a52fbe973094b68d4a44feea755363f8f0584e458b8c12c1fdcbb2",
+      "history_linear_mpc": "53948040523acea25449462b8970c276ea211ba45dc43f2aa06cf21a4eafb106",
+      "history_nonlinear_trajectory": "32fb2be310c7c840ccbf723b4234c6198e0e3cebb68a1db800d9286f8cfe1fcb",
+      "history_uct": "f6a59721a8aa7a98d08075e00bd65c8e450a2c43ce0cb33dca6e79f075f1d796",
+      "history_beam": "5eeb716017c79eb9ad704263ba8b6c60f2922ee922ecec4afa0bdcbd5a16557f",
+      "history_ppo": "e68214fd9ff6bdb0ce59c1a09ec91b5e163b8def3fcb76eb568fdae9ae30dd13",
+      "history_dqn": "a045e48b8a4ae02e8dfef8a38100db41285ffc1f5f06f777b4d54f558e87714e",
+      "independent_nonlinear_trajectory@independent:front_brake": "aa01c836cc59e42fe305f6a9180458112f26de81283ec0354d35676fc49cc83a",
+      "independent_fvdm_lane@independent:front_brake": "9ff15d00f4ca5e1f88288b6bebb7460ed9809eef4886636e8edcd18471b5a003",
+      "independent_dqn@independent:front_brake": "a5966c991229a695663b59acf63060d313ff42f28263aa1eb6195c6faf93f8ae",
+      "independent_beam@independent:front_brake": "26e40fa0b53eacf8b03aa7aeb203a4c94c951a6f20866574f7ab6ac4b0731b95"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "initial_count": 20,
+      "budget": 200,
+      "historical_context": 64,
+      "diagnostic_interval": 100,
+      "seed": 1301,
+      "device": "cpu",
+      "historical_rss": true
+    },
+    "covariance_mode": "point_joint_blocks",
+    "training_contract": {
+      "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+      "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+      "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+      "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+      "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+      "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+      "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+      "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+      "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+      "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "paid collision and RSS",
+    "historical_feedback": "collision and ego-normalized RSS margin",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "ego_response_s": 1.0,
+        "other_response_s": 2.0,
+        "acceleration_mps2": 3.5,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 8.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+      "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+    },
+    "supervision": "uniform next-response time after initialization; all preceding feedback",
+    "checkpoint": "final fixed step, no development data",
+    "new_source_ids": [
+      "independent_dqn@independent:front_brake",
+      "independent_beam@independent:front_brake"
+    ],
+    "parent_version": "9a5184331e8e736efcd2ea013b16dce22c471fa5f40ad65a18e14077ff5b19d7:869789d9a57ef3b47f18341782327e02c9fe1db25ceb42059685aea4e3504db4"
+  },
+  "parent_version": "9a5184331e8e736efcd2ea013b16dce22c471fa5f40ad65a18e14077ff5b19d7:869789d9a57ef3b47f18341782327e02c9fe1db25ceb42059685aea4e3504db4",
+  "reason": "finite_final_fixed_step_model",
+  "training": {
+    "target": {
+      "status": "complete",
+      "specification": {
+        "scenario": "front_brake",
+        "history_fingerprints": {
+          "history_idm_mobil": "daa452a211fa63e3a7c452d5f19c5ae4becded8f1c9c0ba425e74e992f07fbab",
+          "history_fvdm_lane": "60a36976b7a52fbe973094b68d4a44feea755363f8f0584e458b8c12c1fdcbb2",
+          "history_linear_mpc": "53948040523acea25449462b8970c276ea211ba45dc43f2aa06cf21a4eafb106",
+          "history_nonlinear_trajectory": "32fb2be310c7c840ccbf723b4234c6198e0e3cebb68a1db800d9286f8cfe1fcb",
+          "history_uct": "f6a59721a8aa7a98d08075e00bd65c8e450a2c43ce0cb33dca6e79f075f1d796",
+          "history_beam": "5eeb716017c79eb9ad704263ba8b6c60f2922ee922ecec4afa0bdcbd5a16557f",
+          "history_ppo": "e68214fd9ff6bdb0ce59c1a09ec91b5e163b8def3fcb76eb568fdae9ae30dd13",
+          "history_dqn": "a045e48b8a4ae02e8dfef8a38100db41285ffc1f5f06f777b4d54f558e87714e",
+          "independent_nonlinear_trajectory@independent:front_brake": "aa01c836cc59e42fe305f6a9180458112f26de81283ec0354d35676fc49cc83a",
+          "independent_fvdm_lane@independent:front_brake": "9ff15d00f4ca5e1f88288b6bebb7460ed9809eef4886636e8edcd18471b5a003",
+          "independent_dqn@independent:front_brake": "a5966c991229a695663b59acf63060d313ff42f28263aa1eb6195c6faf93f8ae",
+          "independent_beam@independent:front_brake": "26e40fa0b53eacf8b03aa7aeb203a4c94c951a6f20866574f7ab6ac4b0731b95"
+        },
+        "held_family": null,
+        "config": {
+          "steps": 1500,
+          "learning_rate": 0.001,
+          "initial_count": 20,
+          "budget": 200,
+          "historical_context": 64,
+          "diagnostic_interval": 100,
+          "seed": 1301,
+          "device": "cpu",
+          "historical_rss": true
+        },
+        "covariance_mode": "point_joint_blocks",
+        "training_contract": {
+          "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+          "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+          "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+          "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+          "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+          "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+          "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+          "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+          "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+          "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+          "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+          "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+          "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+          "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+        },
+        "online_features": "float64",
+        "training_device": "cpu",
+        "training_threads": 1,
+        "target_feedback": "paid collision and RSS",
+        "historical_feedback": "collision and ego-normalized RSS margin",
+        "continuous_response": {
+          "measure": "ego-normalized-rss-distance-margin",
+          "parameters": {
+            "ego_response_s": 1.0,
+            "other_response_s": 2.0,
+            "acceleration_mps2": 3.5,
+            "braking_min_mps2": 4.0,
+            "braking_max_mps2": 8.0,
+            "lateral_acceleration_mps2": 0.2,
+            "lateral_braking_mps2": 0.8,
+            "lateral_buffer_m": 0.1
+          },
+          "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+          "geometry": "road-axis enclosing body projections",
+          "normalization": "directional centre separation / required centre separation - 1",
+          "aggregation": "max over directions, min over ego-object pairs and recorded times",
+          "orientation": "larger margin means safer; risk is negative margin",
+          "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+          "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+        },
+        "supervision": "uniform next-response time after initialization; all preceding feedback",
+        "checkpoint": "final fixed step, no development data",
+        "new_source_ids": [
+          "independent_dqn@independent:front_brake",
+          "independent_beam@independent:front_brake"
+        ],
+        "parent_version": "9a5184331e8e736efcd2ea013b16dce22c471fa5f40ad65a18e14077ff5b19d7:869789d9a57ef3b47f18341782327e02c9fe1db25ceb42059685aea4e3504db4"
+      },
+      "curve": [
+        {
+          "step": 100,
+          "training_joint_evidence": -1.776522309396776,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 200,
+          "training_joint_evidence": -1.818201206892187,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 300,
+          "training_joint_evidence": -1.8416127538263474,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 400,
+          "training_joint_evidence": -1.856537505160143,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 500,
+          "training_joint_evidence": -1.8664297685330928,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 600,
+          "training_joint_evidence": -1.8736883000215139,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 700,
+          "training_joint_evidence": -1.8799717226174493,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 800,
+          "training_joint_evidence": -1.8841859524749185,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 900,
+          "training_joint_evidence": -1.8898592706961932,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1000,
+          "training_joint_evidence": -1.8914896979933296,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1100,
+          "training_joint_evidence": -1.893564376258583,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1200,
+          "training_joint_evidence": -1.8976644591098315,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1300,
+          "training_joint_evidence": -1.8978326864115533,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1400,
+          "training_joint_evidence": -1.8985888196078888,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1500,
+          "training_joint_evidence": -1.9025456108714784,
+          "diagnostic_steps": 100
+        }
+      ],
+      "final_step": 1500,
+      "training_s": 46.9979699999094
+    },
+    "encoder": {
+      "status": "complete",
+      "specification": {
+        "scenario": "front_brake",
+        "history_fingerprints": {
+          "history_idm_mobil": "daa452a211fa63e3a7c452d5f19c5ae4becded8f1c9c0ba425e74e992f07fbab",
+          "history_fvdm_lane": "60a36976b7a52fbe973094b68d4a44feea755363f8f0584e458b8c12c1fdcbb2",
+          "history_linear_mpc": "53948040523acea25449462b8970c276ea211ba45dc43f2aa06cf21a4eafb106",
+          "history_nonlinear_trajectory": "32fb2be310c7c840ccbf723b4234c6198e0e3cebb68a1db800d9286f8cfe1fcb",
+          "history_uct": "f6a59721a8aa7a98d08075e00bd65c8e450a2c43ce0cb33dca6e79f075f1d796",
+          "history_beam": "5eeb716017c79eb9ad704263ba8b6c60f2922ee922ecec4afa0bdcbd5a16557f",
+          "history_ppo": "e68214fd9ff6bdb0ce59c1a09ec91b5e163b8def3fcb76eb568fdae9ae30dd13",
+          "history_dqn": "a045e48b8a4ae02e8dfef8a38100db41285ffc1f5f06f777b4d54f558e87714e",
+          "independent_nonlinear_trajectory@independent:front_brake": "aa01c836cc59e42fe305f6a9180458112f26de81283ec0354d35676fc49cc83a",
+          "independent_fvdm_lane@independent:front_brake": "9ff15d00f4ca5e1f88288b6bebb7460ed9809eef4886636e8edcd18471b5a003",
+          "independent_dqn@independent:front_brake": "a5966c991229a695663b59acf63060d313ff42f28263aa1eb6195c6faf93f8ae",
+          "independent_beam@independent:front_brake": "26e40fa0b53eacf8b03aa7aeb203a4c94c951a6f20866574f7ab6ac4b0731b95"
+        },
+        "held_family": null,
+        "config": {
+          "steps": 1500,
+          "learning_rate": 0.001,
+          "initial_count": 20,
+          "budget": 200,
+          "historical_context": 64,
+          "diagnostic_interval": 100,
+          "seed": 1301,
+          "device": "cpu",
+          "historical_rss": true
+        },
+        "covariance_mode": "point_joint_blocks",
+        "training_contract": {
+          "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+          "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+          "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+          "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+          "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+          "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+          "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+          "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+          "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+          "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+          "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+          "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+          "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+          "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+        },
+        "online_features": "float64",
+        "training_device": "cpu",
+        "training_threads": 1,
+        "target_feedback": "paid collision and RSS",
+        "historical_feedback": "collision and ego-normalized RSS margin",
+        "continuous_response": {
+          "measure": "ego-normalized-rss-distance-margin",
+          "parameters": {
+            "ego_response_s": 1.0,
+            "other_response_s": 2.0,
+            "acceleration_mps2": 3.5,
+            "braking_min_mps2": 4.0,
+            "braking_max_mps2": 8.0,
+            "lateral_acceleration_mps2": 0.2,
+            "lateral_braking_mps2": 0.8,
+            "lateral_buffer_m": 0.1
+          },
+          "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+          "geometry": "road-axis enclosing body projections",
+          "normalization": "directional centre separation / required centre separation - 1",
+          "aggregation": "max over directions, min over ego-object pairs and recorded times",
+          "orientation": "larger margin means safer; risk is negative margin",
+          "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+          "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+        },
+        "supervision": "uniform next-response time after initialization; all preceding feedback",
+        "checkpoint": "final fixed step, no development data",
+        "new_source_ids": [
+          "independent_dqn@independent:front_brake",
+          "independent_beam@independent:front_brake"
+        ],
+        "parent_version": "9a5184331e8e736efcd2ea013b16dce22c471fa5f40ad65a18e14077ff5b19d7:869789d9a57ef3b47f18341782327e02c9fe1db25ceb42059685aea4e3504db4"
+      },
+      "curve": [
+        {
+          "step": 100,
+          "training_nll": 0.08004370154341114,
+          "training_brier": 0.013311736982946219,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 124,
+          "next_record_index": 124
+        },
+        {
+          "step": 200,
+          "training_nll": 0.050274607748549256,
+          "training_brier": 0.004078980143952533,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 27,
+          "next_record_index": 27
+        },
+        {
+          "step": 300,
+          "training_nll": 0.057015390664058495,
+          "training_brier": 0.006622724112344012,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 169,
+          "next_record_index": 169
+        },
+        {
+          "step": 400,
+          "training_nll": 0.05004463547972459,
+          "training_brier": 0.004499733326864601,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 24,
+          "next_record_index": 24
+        },
+        {
+          "step": 500,
+          "training_nll": 0.06417238247482343,
+          "training_brier": 0.00978077060797061,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 27,
+          "next_record_index": 27
+        },
+        {
+          "step": 600,
+          "training_nll": 0.04785029114955238,
+          "training_brier": 0.003966479634989975,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 83,
+          "next_record_index": 83
+        },
+        {
+          "step": 700,
+          "training_nll": 0.057820407548677955,
+          "training_brier": 0.008132799984555194,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 139,
+          "next_record_index": 139
+        },
+        {
+          "step": 800,
+          "training_nll": 0.05522013269903371,
+          "training_brier": 0.007493122297748326,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 173,
+          "next_record_index": 173
+        },
+        {
+          "step": 900,
+          "training_nll": 0.045613862338251314,
+          "training_brier": 0.003444794387965726,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 167,
+          "next_record_index": 167
+        },
+        {
+          "step": 1000,
+          "training_nll": 0.1372319963439003,
+          "training_brier": 0.03254583185425716,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 132,
+          "next_record_index": 132
+        },
+        {
+          "step": 1100,
+          "training_nll": 0.04864089068649848,
+          "training_brier": 0.004202745567697529,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 41,
+          "next_record_index": 41
+        },
+        {
+          "step": 1200,
+          "training_nll": 0.07729254578412348,
+          "training_brier": 0.012387880255886526,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 93,
+          "next_record_index": 93
+        },
+        {
+          "step": 1300,
+          "training_nll": 0.04916496522769437,
+          "training_brier": 0.004419401519596941,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 141,
+          "next_record_index": 141
+        },
+        {
+          "step": 1400,
+          "training_nll": 0.06400720659420926,
+          "training_brier": 0.00997349091827243,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 86,
+          "next_record_index": 86
+        },
+        {
+          "step": 1500,
+          "training_nll": 0.07024966427594626,
+          "training_brier": 0.013245590678994047,
+          "diagnostic_steps": 100,
+          "source_id": "independent_fvdm_lane@independent:front_brake",
+          "prefix_count": 68,
+          "next_record_index": 68
+        }
+      ],
+      "final_step": 1500,
+      "cached_episodes": 36,
+      "training_s": 20375.443110499997
+    }
+  },
+  "model_version": "182c1b0c7cf2143d512d71940cf15a87105562fee7383543501f1aa2c50ebd7d:7d85ce4c370eeacea14a135e78b772970293d83985c887915ea1e8c1ac309879"
+}

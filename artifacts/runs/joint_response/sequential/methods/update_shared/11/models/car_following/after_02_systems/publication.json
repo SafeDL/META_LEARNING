@@ -1,0 +1,461 @@
+{
+  "accepted": true,
+  "specification": {
+    "scenario": "car_following",
+    "history_fingerprints": {
+      "history_idm_mobil": "c29dddaa6b1f7491b9bdf1302b82b331b1d0b4ef3b061c1144bc74269f6c1f0b",
+      "history_fvdm_lane": "1174159f18dd99d820ad6ce2cd6d6e537e8418d11710dccfafa1ab8558816936",
+      "history_linear_mpc": "2b355da8432aa07668d48006b75163f6d79dd88e074ae8dbe147610c2f1a1cb4",
+      "history_nonlinear_trajectory": "6050b10d78dd0d3d58122409e252a44d2ec56e8dba002aca02bf7a98a0af48c4",
+      "history_uct": "84734f47b98f689aa622e84e9d3aa0a6b0f61321f9262a738c7f9f6d7eea6b7b",
+      "history_beam": "b14e2fbbe7c9736cd2757241e118858d8d1c447e4d979f32bea181e39cfe9fe3",
+      "history_ppo": "e5d4b5c662aa0e8c1f0f793e4f463a59ff3a842527222f79369314cf4ceac3c5",
+      "history_dqn": "4bafdc35ef248fd71358872a7b3e3f6c32022142ed992a7e39a5113a7a719e16",
+      "independent_nonlinear_trajectory@independent:car_following": "bfe198caeb94b3609960df39e5926cc9c51b6b4384cd58a37ef70cbed2c9b3af",
+      "independent_fvdm_lane@independent:car_following": "7ba4eae3d5dba2099ede919dffccad0403b25837b1387138410d0266384d0414"
+    },
+    "held_family": null,
+    "config": {
+      "steps": 1500,
+      "learning_rate": 0.001,
+      "initial_count": 20,
+      "budget": 200,
+      "historical_context": 64,
+      "diagnostic_interval": 100,
+      "seed": 1301,
+      "device": "cpu",
+      "historical_rss": true
+    },
+    "covariance_mode": "point_joint_blocks",
+    "training_contract": {
+      "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+      "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+      "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+      "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+      "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+      "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+      "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+      "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+      "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+      "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+      "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+      "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+      "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+      "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+    },
+    "online_features": "float64",
+    "training_device": "cpu",
+    "training_threads": 1,
+    "target_feedback": "paid collision and RSS",
+    "historical_feedback": "collision and ego-normalized RSS margin",
+    "continuous_response": {
+      "measure": "ego-normalized-rss-distance-margin",
+      "parameters": {
+        "ego_response_s": 1.0,
+        "other_response_s": 2.0,
+        "acceleration_mps2": 3.5,
+        "braking_min_mps2": 4.0,
+        "braking_max_mps2": 8.0,
+        "lateral_acceleration_mps2": 0.2,
+        "lateral_braking_mps2": 0.8,
+        "lateral_buffer_m": 0.1
+      },
+      "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+      "geometry": "road-axis enclosing body projections",
+      "normalization": "directional centre separation / required centre separation - 1",
+      "aggregation": "max over directions, min over ego-object pairs and recorded times",
+      "orientation": "larger margin means safer; risk is negative margin",
+      "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+      "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+    },
+    "supervision": "uniform next-response time after initialization; all preceding feedback",
+    "checkpoint": "final fixed step, no development data",
+    "new_source_ids": [
+      "independent_nonlinear_trajectory@independent:car_following",
+      "independent_fvdm_lane@independent:car_following"
+    ],
+    "parent_version": "d2edccbc152d7f06c42cea622e462fa1db4f5f3040d94d4d7e4ca9c161395bcd:6898c7d5dd943efe658e2913c3c87cc2a9a174fb06560e393b8907841b46eb77"
+  },
+  "parent_version": "d2edccbc152d7f06c42cea622e462fa1db4f5f3040d94d4d7e4ca9c161395bcd:6898c7d5dd943efe658e2913c3c87cc2a9a174fb06560e393b8907841b46eb77",
+  "reason": "finite_final_fixed_step_model",
+  "training": {
+    "target": {
+      "status": "complete",
+      "specification": {
+        "scenario": "car_following",
+        "history_fingerprints": {
+          "history_idm_mobil": "c29dddaa6b1f7491b9bdf1302b82b331b1d0b4ef3b061c1144bc74269f6c1f0b",
+          "history_fvdm_lane": "1174159f18dd99d820ad6ce2cd6d6e537e8418d11710dccfafa1ab8558816936",
+          "history_linear_mpc": "2b355da8432aa07668d48006b75163f6d79dd88e074ae8dbe147610c2f1a1cb4",
+          "history_nonlinear_trajectory": "6050b10d78dd0d3d58122409e252a44d2ec56e8dba002aca02bf7a98a0af48c4",
+          "history_uct": "84734f47b98f689aa622e84e9d3aa0a6b0f61321f9262a738c7f9f6d7eea6b7b",
+          "history_beam": "b14e2fbbe7c9736cd2757241e118858d8d1c447e4d979f32bea181e39cfe9fe3",
+          "history_ppo": "e5d4b5c662aa0e8c1f0f793e4f463a59ff3a842527222f79369314cf4ceac3c5",
+          "history_dqn": "4bafdc35ef248fd71358872a7b3e3f6c32022142ed992a7e39a5113a7a719e16",
+          "independent_nonlinear_trajectory@independent:car_following": "bfe198caeb94b3609960df39e5926cc9c51b6b4384cd58a37ef70cbed2c9b3af",
+          "independent_fvdm_lane@independent:car_following": "7ba4eae3d5dba2099ede919dffccad0403b25837b1387138410d0266384d0414"
+        },
+        "held_family": null,
+        "config": {
+          "steps": 1500,
+          "learning_rate": 0.001,
+          "initial_count": 20,
+          "budget": 200,
+          "historical_context": 64,
+          "diagnostic_interval": 100,
+          "seed": 1301,
+          "device": "cpu",
+          "historical_rss": true
+        },
+        "covariance_mode": "point_joint_blocks",
+        "training_contract": {
+          "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+          "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+          "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+          "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+          "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+          "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+          "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+          "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+          "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+          "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+          "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+          "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+          "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+          "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+        },
+        "online_features": "float64",
+        "training_device": "cpu",
+        "training_threads": 1,
+        "target_feedback": "paid collision and RSS",
+        "historical_feedback": "collision and ego-normalized RSS margin",
+        "continuous_response": {
+          "measure": "ego-normalized-rss-distance-margin",
+          "parameters": {
+            "ego_response_s": 1.0,
+            "other_response_s": 2.0,
+            "acceleration_mps2": 3.5,
+            "braking_min_mps2": 4.0,
+            "braking_max_mps2": 8.0,
+            "lateral_acceleration_mps2": 0.2,
+            "lateral_braking_mps2": 0.8,
+            "lateral_buffer_m": 0.1
+          },
+          "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+          "geometry": "road-axis enclosing body projections",
+          "normalization": "directional centre separation / required centre separation - 1",
+          "aggregation": "max over directions, min over ego-object pairs and recorded times",
+          "orientation": "larger margin means safer; risk is negative margin",
+          "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+          "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+        },
+        "supervision": "uniform next-response time after initialization; all preceding feedback",
+        "checkpoint": "final fixed step, no development data",
+        "new_source_ids": [
+          "independent_nonlinear_trajectory@independent:car_following",
+          "independent_fvdm_lane@independent:car_following"
+        ],
+        "parent_version": "d2edccbc152d7f06c42cea622e462fa1db4f5f3040d94d4d7e4ca9c161395bcd:6898c7d5dd943efe658e2913c3c87cc2a9a174fb06560e393b8907841b46eb77"
+      },
+      "curve": [
+        {
+          "step": 100,
+          "training_joint_evidence": -1.775574522174499,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 200,
+          "training_joint_evidence": -1.7930262598025548,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 300,
+          "training_joint_evidence": -1.8012296675518895,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 400,
+          "training_joint_evidence": -1.8020282160851944,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 500,
+          "training_joint_evidence": -1.8109831356067196,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 600,
+          "training_joint_evidence": -1.8154324312020558,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 700,
+          "training_joint_evidence": -1.8182691253722632,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 800,
+          "training_joint_evidence": -1.8172617753750735,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 900,
+          "training_joint_evidence": -1.8255129800914336,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1000,
+          "training_joint_evidence": -1.8263762212238566,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1100,
+          "training_joint_evidence": -1.8277416216892248,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1200,
+          "training_joint_evidence": -1.82717600740793,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1300,
+          "training_joint_evidence": -1.8322531915531335,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1400,
+          "training_joint_evidence": -1.8345860984435882,
+          "diagnostic_steps": 100
+        },
+        {
+          "step": 1500,
+          "training_joint_evidence": -1.8336984387507562,
+          "diagnostic_steps": 100
+        }
+      ],
+      "final_step": 1500,
+      "training_s": 47.93517419998534
+    },
+    "encoder": {
+      "status": "complete",
+      "specification": {
+        "scenario": "car_following",
+        "history_fingerprints": {
+          "history_idm_mobil": "c29dddaa6b1f7491b9bdf1302b82b331b1d0b4ef3b061c1144bc74269f6c1f0b",
+          "history_fvdm_lane": "1174159f18dd99d820ad6ce2cd6d6e537e8418d11710dccfafa1ab8558816936",
+          "history_linear_mpc": "2b355da8432aa07668d48006b75163f6d79dd88e074ae8dbe147610c2f1a1cb4",
+          "history_nonlinear_trajectory": "6050b10d78dd0d3d58122409e252a44d2ec56e8dba002aca02bf7a98a0af48c4",
+          "history_uct": "84734f47b98f689aa622e84e9d3aa0a6b0f61321f9262a738c7f9f6d7eea6b7b",
+          "history_beam": "b14e2fbbe7c9736cd2757241e118858d8d1c447e4d979f32bea181e39cfe9fe3",
+          "history_ppo": "e5d4b5c662aa0e8c1f0f793e4f463a59ff3a842527222f79369314cf4ceac3c5",
+          "history_dqn": "4bafdc35ef248fd71358872a7b3e3f6c32022142ed992a7e39a5113a7a719e16",
+          "independent_nonlinear_trajectory@independent:car_following": "bfe198caeb94b3609960df39e5926cc9c51b6b4384cd58a37ef70cbed2c9b3af",
+          "independent_fvdm_lane@independent:car_following": "7ba4eae3d5dba2099ede919dffccad0403b25837b1387138410d0266384d0414"
+        },
+        "held_family": null,
+        "config": {
+          "steps": 1500,
+          "learning_rate": 0.001,
+          "initial_count": 20,
+          "budget": 200,
+          "historical_context": 64,
+          "diagnostic_interval": 100,
+          "seed": 1301,
+          "device": "cpu",
+          "historical_rss": true
+        },
+        "covariance_mode": "point_joint_blocks",
+        "training_contract": {
+          "testing_methods/history_transfer/training.py": "2e63e9beffe891524bc9a620c7395e5e8fb208613716b4aa0bd7bf8a227aeeb6",
+          "testing_methods/history_transfer/inference.py": "3ecea9a85326d01d8b057f4af1bb889f9aeb3c1810e19665ce7cf9a77284c17b",
+          "testing_methods/history_transfer/model.py": "a644ac7a3284bda47e32f13e700f4a259cb3cfc0340cafcb71d59d2c5f6b2cdf",
+          "testing_methods/history_transfer/selection.py": "e5c95b97d214cee1576f9f29ed994256129e2679ecbbc163951307cb662e0810",
+          "testing_methods/common/gp_classifier.py": "ec30cb222c16cf1a0ddb0d236f2e4c96b06ca0c6fe8c92ddfb9153f2f5516ab3",
+          "testing_methods/common/gp_laplace.py": "9fbd33f925a72d97fd1282faa5d26512359f98fdf70afda48d49369cd3710ad1",
+          "testing_methods/common/classification.py": "6a631f00077c6f807a79d793885120ce75207f43360eb02eef0e2e6fb554bce8",
+          "testing_methods/common/response.py": "54826e23a5fe6dedb13feaeab25806edf83152e22890926d73c9d34ba3bf3729",
+          "experiments/scenarios.py": "bfa6843b2fe8561cde8e53c03a0dc8ab1ca8c09b237d00861d9d78d3c7336f3c",
+          "experiments/rss.py": "7eec0c84f059a9b324895f4b6ef52b7bdaff0159e8b76f430a1f8003b102a446",
+          "experiments/history.py": "1b674b47ab8feae570232ecc78ce0cf3178ad29692f6d9b9b5e3be9b18406ca2",
+          "experiments/schema.py": "f27ee4d66f9bf083a9f3d0f1e5ca503f5acaaf3d47cb31494b76f95b7af1635a",
+          "experiments/query.py": "a359ccc6d77444aa834473925c155f1929129ae75f6fe704d7a7a9a98c8f6489",
+          "experiments/costs.py": "d977ddf1cf3218872c242023d9698ef98f32f657346740450377609cf58354c9"
+        },
+        "online_features": "float64",
+        "training_device": "cpu",
+        "training_threads": 1,
+        "target_feedback": "paid collision and RSS",
+        "historical_feedback": "collision and ego-normalized RSS margin",
+        "continuous_response": {
+          "measure": "ego-normalized-rss-distance-margin",
+          "parameters": {
+            "ego_response_s": 1.0,
+            "other_response_s": 2.0,
+            "acceleration_mps2": 3.5,
+            "braking_min_mps2": 4.0,
+            "braking_max_mps2": 8.0,
+            "lateral_acceleration_mps2": 0.2,
+            "lateral_braking_mps2": 0.8,
+            "lateral_buffer_m": 0.1
+          },
+          "actor_scope": "ego-versus-each-other-object; exclude NPC-NPC pairs",
+          "geometry": "road-axis enclosing body projections",
+          "normalization": "directional centre separation / required centre separation - 1",
+          "aggregation": "max over directions, min over ego-object pairs and recorded times",
+          "orientation": "larger margin means safer; risk is negative margin",
+          "response_assumption": "Intel fixed roles: evaluated ADS 1 s; every other object 2 s",
+          "lateral_stopping": "only inward velocity after response; original paper buffer floor"
+        },
+        "supervision": "uniform next-response time after initialization; all preceding feedback",
+        "checkpoint": "final fixed step, no development data",
+        "new_source_ids": [
+          "independent_nonlinear_trajectory@independent:car_following",
+          "independent_fvdm_lane@independent:car_following"
+        ],
+        "parent_version": "d2edccbc152d7f06c42cea622e462fa1db4f5f3040d94d4d7e4ca9c161395bcd:6898c7d5dd943efe658e2913c3c87cc2a9a174fb06560e393b8907841b46eb77"
+      },
+      "curve": [
+        {
+          "step": 100,
+          "training_nll": 0.10118626310359286,
+          "training_brier": 0.02373032440486563,
+          "diagnostic_steps": 100,
+          "source_id": "history_fvdm_lane",
+          "prefix_count": 23,
+          "next_record_index": 330
+        },
+        {
+          "step": 200,
+          "training_nll": 0.0949562894838267,
+          "training_brier": 0.02141335723118008,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 127,
+          "next_record_index": 143
+        },
+        {
+          "step": 300,
+          "training_nll": 0.07162265782564567,
+          "training_brier": 0.013518892701034757,
+          "diagnostic_steps": 100,
+          "source_id": "history_beam",
+          "prefix_count": 49,
+          "next_record_index": 97
+        },
+        {
+          "step": 400,
+          "training_nll": 0.08910446977236593,
+          "training_brier": 0.020261861690802227,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 85,
+          "next_record_index": 78
+        },
+        {
+          "step": 500,
+          "training_nll": 0.0876783201269015,
+          "training_brier": 0.021031949508905575,
+          "diagnostic_steps": 100,
+          "source_id": "history_fvdm_lane",
+          "prefix_count": 87,
+          "next_record_index": 253
+        },
+        {
+          "step": 600,
+          "training_nll": 0.09120649165285265,
+          "training_brier": 0.020498580646023692,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 25,
+          "next_record_index": 279
+        },
+        {
+          "step": 700,
+          "training_nll": 0.04581257153146749,
+          "training_brier": 0.0031445061223985653,
+          "diagnostic_steps": 100,
+          "source_id": "history_beam",
+          "prefix_count": 62,
+          "next_record_index": 151
+        },
+        {
+          "step": 800,
+          "training_nll": 0.1058523266575797,
+          "training_brier": 0.02653044045961519,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 69,
+          "next_record_index": 418
+        },
+        {
+          "step": 900,
+          "training_nll": 0.07503807326936832,
+          "training_brier": 0.013621520389712274,
+          "diagnostic_steps": 100,
+          "source_id": "history_fvdm_lane",
+          "prefix_count": 35,
+          "next_record_index": 347
+        },
+        {
+          "step": 1000,
+          "training_nll": 0.09031662912630978,
+          "training_brier": 0.020844911332196174,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 100,
+          "next_record_index": 268
+        },
+        {
+          "step": 1100,
+          "training_nll": 0.07017263798597677,
+          "training_brier": 0.010346722779783515,
+          "diagnostic_steps": 100,
+          "source_id": "history_beam",
+          "prefix_count": 69,
+          "next_record_index": 122
+        },
+        {
+          "step": 1200,
+          "training_nll": 0.12660050926071784,
+          "training_brier": 0.03322661039223767,
+          "diagnostic_steps": 100,
+          "source_id": "history_dqn",
+          "prefix_count": 179,
+          "next_record_index": 221
+        },
+        {
+          "step": 1300,
+          "training_nll": 0.05735323458295874,
+          "training_brier": 0.0068160926192174795,
+          "diagnostic_steps": 100,
+          "source_id": "history_fvdm_lane",
+          "prefix_count": 48,
+          "next_record_index": 54
+        },
+        {
+          "step": 1400,
+          "training_nll": 0.12131724287377509,
+          "training_brier": 0.031601435795414926,
+          "diagnostic_steps": 100,
+          "source_id": "history_nonlinear_trajectory",
+          "prefix_count": 89,
+          "next_record_index": 191
+        },
+        {
+          "step": 1500,
+          "training_nll": 0.08418768710934971,
+          "training_brier": 0.018900373591925368,
+          "diagnostic_steps": 100,
+          "source_id": "history_beam",
+          "prefix_count": 133,
+          "next_record_index": 504
+        }
+      ],
+      "final_step": 1500,
+      "cached_episodes": 26,
+      "training_s": 14279.263861800078
+    }
+  },
+  "model_version": "14f11ce3273f882b3dd796ca25af05d113b28b0ed6c34c4d6c79513135be06ef:8de4dec432f8957058bf454b6a2ee4f226cc0a8077b7a82f4734e91304e8082d"
+}
