@@ -5,19 +5,20 @@ import math
 import numpy as np
 
 from simulator.highway.observation import VehicleState
+from simulator.highway.timing import DECISION_DT, PHYSICS_DT
 
 from .control import MAX_LATERAL_ACCELERATION, MAX_STEERING, lane_steering
 
 
-def bicycle_rollout(ego, controls, *, dt=0.2):
+def bicycle_rollout(ego, controls, *, dt=DECISION_DT, return_substeps=False):
     """Vectorized rollouts, including batches used by optimization derivatives."""
     controls = np.asarray(controls)
     shape = controls.shape[:-2]
     state = np.broadcast_to([ego.x, ego.y, ego.speed, ego.heading], (*shape, 4)).copy()
     output = []
     for u in np.moveaxis(controls, -2, 0):
-        for _ in range(round(dt / 0.05)):
-            acceleration, steering = u[..., 0], u[..., 1]
+        for _ in range(round(dt / PHYSICS_DT)):
+            acceleration, steering = np.clip(u[..., 0], -8, 3), u[..., 1]
             x, y, v, heading = np.moveaxis(state, -1, 0)
             steering_limit = np.minimum(
                 MAX_STEERING, np.arctan(MAX_LATERAL_ACCELERATION * ego.length / np.maximum(v**2, 1))
@@ -26,14 +27,17 @@ def bicycle_rollout(ego, controls, *, dt=0.2):
             beta = np.arctan(0.5 * np.tan(steering))
             state = np.stack(
                 (
-                    x + v * np.cos(heading + beta) * 0.05,
-                    y + v * np.sin(heading + beta) * 0.05,
-                    np.clip(v + acceleration * 0.05, 0, 40),
-                    heading + 2 * v / ego.length * np.sin(beta) * 0.05,
+                    x + v * np.cos(heading + beta) * PHYSICS_DT,
+                    y + v * np.sin(heading + beta) * PHYSICS_DT,
+                    np.clip(v + acceleration * PHYSICS_DT, 0, 40),
+                    heading + 2 * v / ego.length * np.sin(beta) * PHYSICS_DT,
                 ),
                 -1,
             )
-        output.append(state)
+            if return_substeps:
+                output.append(state)
+        if not return_substeps:
+            output.append(state)
     return np.stack(output, axis=-2)
 
 
@@ -44,39 +48,83 @@ def predicted_actors(world, horizon, dt):
     return np.array([[[v.x + v.vx * t, v.y + v.vy * t] for v in world.vehicles] for t in times])
 
 
-def advance_visible(world, acceleration, target_lane, *, duration_s=0.6):
+def advance_visible(world, acceleration, target_lane, *, duration_s=0.6, return_path=False):
     """Search transition; backgrounds use their current velocities, never schedules."""
     from simulator.highway.observation import VisibleWorld
 
     ego = world.ego
-    dt = 0.2
+    dt = DECISION_DT
+    path = []
+    elapsed = 0.0
     for _ in range(round(duration_s / dt)):
         steering = lane_steering(ego, world.lane_centers[target_lane])
-        row = bicycle_rollout(ego, np.array([[acceleration, steering]]), dt=dt)[0]
+        rows = bicycle_rollout(
+            ego, np.array([[acceleration, steering]]), dt=dt, return_substeps=True
+        )
+        for row in rows:
+            elapsed += PHYSICS_DT
+            next_ego = VehicleState(ego.actor_id, *(float(v) for v in row), ego.length, ego.width)
+            actors = tuple(
+                VehicleState(
+                    v.actor_id,
+                    v.x + v.vx * elapsed,
+                    v.y + v.vy * elapsed,
+                    v.speed,
+                    v.heading,
+                    v.length,
+                    v.width,
+                )
+                for v in world.vehicles
+            )
+            path.append(
+                VisibleWorld(
+                    world.time_s + elapsed,
+                    next_ego,
+                    actors,
+                    world.lane_centers,
+                    world.speed_limit_mps,
+                )
+            )
+        ego = path[-1].ego
+    return path if return_path else path[-1]
+
+
+def trajectory_feasibility(world, controls, *, dt=DECISION_DT):
+    """Check native-equivalent prediction at 20 Hz, including rotated bodies.
+
+    This checks the declared constant-velocity prediction, not unknown future
+    traffic actions. It is not a guarantee against every actual future collision.
+    """
+    rows = bicycle_rollout(world.ego, controls, dt=dt, return_substeps=True)
+    minimum = math.inf
+    for k, row in enumerate(rows, 1):
         ego = VehicleState(
-            ego.actor_id,
-            float(row[0]),
-            float(row[1]),
-            float(row[2]),
-            float(row[3]),
-            ego.length,
-            ego.width,
+            world.ego.actor_id, *(float(v) for v in row), world.ego.length, world.ego.width
         )
-    actors = tuple(
-        VehicleState(
-            v.actor_id,
-            v.x + v.vx * duration_s,
-            v.y + v.vy * duration_s,
-            v.speed,
-            v.heading,
-            v.length,
-            v.width,
+        actors = tuple(
+            VehicleState(
+                v.actor_id,
+                v.x + v.vx * k * PHYSICS_DT,
+                v.y + v.vy * k * PHYSICS_DT,
+                v.speed,
+                v.heading,
+                v.length,
+                v.width,
+            )
+            for v in world.vehicles
         )
-        for v in world.vehicles
-    )
-    return VisibleWorld(
-        world.time_s + duration_s, ego, actors, world.lane_centers, world.speed_limit_mps
-    )
+        margin = overlap_margin(ego, actors)
+        minimum = min(minimum, margin)
+        half_width = (
+            abs(math.sin(ego.heading)) * ego.length + abs(math.cos(ego.heading)) * ego.width
+        ) / 2
+        if (
+            margin <= 0
+            or ego.y - half_width < min(world.lane_centers) - 2
+            or ego.y + half_width > max(world.lane_centers) + 2
+        ):
+            return False, minimum
+    return True, minimum
 
 
 def overlap_margin(ego, actors):

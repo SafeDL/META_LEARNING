@@ -18,6 +18,7 @@ from testing_methods.common.response import (
 from testing_methods.history_transfer.inference import historical_prior
 
 from .domain import Domain
+from .method_contracts import method_contract
 from .protocol import ROOT
 from .rss import measurement_contract, trajectory_margin
 from .scenarios import features
@@ -213,6 +214,17 @@ def completed_archives(paths, *, before_order, branch_id, current_system=None, h
     return archives
 
 
+def uniform_record_ids(record_ids, *, limit=512, seed=1301):
+    """Select solely from canonical IDs, independent of responses and storage order."""
+    available = sorted(record_ids)
+    if limit < 1 or not available or len(set(available)) != len(available):
+        raise ValueError("Uniform views require unique nonempty record IDs and a positive limit")
+    if len(available) <= limit:
+        return available
+    indices = np.sort(np.random.default_rng(seed).choice(len(available), limit, replace=False))
+    return [available[i] for i in indices]
+
+
 def calculation_view(archive, *, limit=512, seed=1301, use_rss=True, record_ids=None):
     """Select a bounded view, or replay an explicitly registered record sequence."""
     if limit < 1:
@@ -309,6 +321,9 @@ def build_source(
         "format": "joint-source-blocks",
         "scenario": kind,
         "model_version": model_version(model),
+        "model_construction": construction,
+        "kernel_type": f"{type(model).__module__}.{type(model).__qualname__}",
+        "source_contract": method_contract("source_prior"),
         "archives": archive_fingerprints(archives),
         "rss_contract": measurement_contract(),
         "historical_rss": use_rss,

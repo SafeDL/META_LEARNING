@@ -78,6 +78,16 @@ class LearnedController:
         ):
             raise ValueError("Learning SUT requires its own independently qualified checkpoint")
         self.model = (PPO if sut.lineage == "ppo" else DQN).load(root / "best.zip", device="cpu")
+        if self.model.observation_space.shape != (
+            ACTION_INTERFACE["observation_dimension"],
+        ) or self.model.action_space.n != len(ACTION_INTERFACE["actions"]):
+            raise ValueError("Checkpoint spaces do not match the deployed driving interface")
+        if manifest["configuration"].get("action_interface") != ACTION_INTERFACE:
+            raise ValueError("Checkpoint was trained with a different action/observation contract")
+        if any(
+            not bool(parameter.isfinite().all()) for parameter in self.model.policy.parameters()
+        ):
+            raise ValueError("Checkpoint contains nonfinite network parameters")
         self.driver = DiscreteDriver()
 
     def act(self, world):

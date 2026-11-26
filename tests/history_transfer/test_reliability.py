@@ -35,7 +35,8 @@ def test_local_weights_reverse_source_preference_and_stream_only_cross_distances
     assert expected[1, -1] > expected[0, -1]
     torch.testing.assert_close(expected.sum(0), torch.ones(21, dtype=torch.float64))
     assert (expected >= 0).all()
-    assert expected[-1].tolist() == [0.1] * 21
+    assert expected.shape == (2, 21)
+    assert expected[-1, -1] > expected[-1, 0]
     cdist = torch.cdist
 
     def observed(left, right):

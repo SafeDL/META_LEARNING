@@ -6,10 +6,16 @@ from .scenarios import CUT_IN_SCENARIOS
 def analyze_events(scenario, trajectory):
     if not trajectory:
         raise ValueError("Event reconstruction needs the complete execution trace")
-    onset = scenario.parameters.get("event_time_s")
+    onset = (
+        0.0 if scenario.kind in ("car_following_braking_onset", "cut_in_onset", "cut_out_reveal", "cut_out_restricted", "cut_out_rear_gap", "side_encroachment")
+        else scenario.parameters.get("event_time_s")
+    )
     initial = {a["actor_id"]: a for a in trajectory[0]["actors"]}
     cut_in = scenario.kind in CUT_IN_SCENARIOS
-    scripted_role = "cut_in" if cut_in else "lead"
+    scripted_role = (
+        "cut_in" if cut_in else "intruder" if scenario.kind == "side_encroachment"
+        else "stopped" if scenario.kind == "stopped_vehicle" else "lead"
+    )
     measured_onset, completed, revealed, maneuver = None, None, None, None
     first_brake, after_event, after_reveal = None, None, None
     lead_visible = None
@@ -32,15 +38,15 @@ def analyze_events(scenario, trajectory):
             if frame["control"]["acceleration"] < -0.5:
                 after_reveal = time_s
         actor = states[scripted_role]
-        if scenario.kind == "front_brake":
+        if scenario.kind in ("front_brake", "front_brake_single_lane", "car_following_braking_onset"):
             if measured_onset is None and actor["speed"] < initial[scripted_role]["speed"] - 0.01:
                 measured_onset = time_s
             if completed is None and actor["speed"] <= 0.02:
                 completed = time_s
-        elif cut_in or scenario.kind == "cut_out":
+        elif cut_in or scenario.kind in ("cut_out", "cut_out_reveal", "cut_out_restricted", "cut_out_rear_gap", "side_encroachment"):
             if measured_onset is None and abs(actor["y"] - initial[scripted_role]["y"]) >= 0.01:
                 measured_onset = time_s
-            destination = 4 if cut_in else 0
+            destination = 0 if scenario.kind.startswith("cut_out") else 4
             if measured_onset is not None and completed is None:
                 if abs(actor["y"] - destination) < 0.2 and abs(actor["heading"]) < 0.05:
                     completed = time_s
@@ -62,6 +68,6 @@ def analyze_events(scenario, trajectory):
         if after_reveal is not None
         else None,
     }
-    if scenario.kind == "car_following":
+    if scenario.kind in ("car_following", "car_following_braking_onset"):
         result["lead_visible_s"] = lead_visible
     return result

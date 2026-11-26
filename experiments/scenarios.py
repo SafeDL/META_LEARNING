@@ -101,8 +101,70 @@ DOMAINS["car_following"] = Domain(
     {"ego_speed_mps": 1, "lead_speed_mps": 1, "gap_m": 2},
     {},
 )
-CUT_IN_SCENARIOS = ("cut_in", "cut_in_interaction")
+DOMAINS["car_following_braking_onset"] = Domain(
+    {
+        "ego_speed_mps": (20, 34),
+        "closing_speed_mps": (0, 12),
+        "gap_m": (12, 60),
+        "deceleration_mps2": (4, 8),
+    },
+    dict.fromkeys(("ego_speed_mps", "closing_speed_mps", "gap_m", "deceleration_mps2"), 1),
+    {},
+)
+DEVELOPMENT_BOUNDS = {
+    "cut_in_onset": {
+        "ego_speed_mps": (20, 34), "closing_speed_mps": (0, 12),
+        "gap_m": (5, 45), "lateral_duration_s": (1, 3),
+    },
+    "cut_out_reveal": {
+        "ego_speed_mps": (20, 34), "gap_m": (8, 16),
+        "obstacle_distance_m": (80, 150), "lateral_duration_s": (1, 2),
+    },
+    "cut_out_restricted": {
+        "ego_speed_mps": (20, 38), "gap_m": (6, 14),
+        "obstacle_distance_m": (85, 145), "lateral_duration_s": (1, 2),
+    },
+    "cut_out_rear_gap": {
+        "ego_speed_mps": (20, 38), "rear_gap_m": (10, 70),
+        "obstacle_distance_m": (85, 175), "lateral_duration_s": (1, 2),
+    },
+    "side_encroachment": {
+        "ego_speed_mps": (20, 34), "longitudinal_offset_m": (-8, 8),
+        "relative_speed_mps": (-6, 6), "lateral_duration_s": (1, 3),
+    },
+}
+for _kind, _bounds in DEVELOPMENT_BOUNDS.items():
+    _envelope = dict(_bounds)
+    if _kind == "cut_in_onset":
+        _envelope["gap_m"] = (0, 45)
+    elif _kind == "cut_out_reveal":
+        _envelope["ego_speed_mps"] = (20, 38)
+        _envelope["gap_m"] = (6, 16)
+    elif _kind == "side_encroachment":
+        _envelope["relative_speed_mps"] = (-8, 8)
+    DOMAINS[_kind] = Domain(
+        _envelope, dict.fromkeys(_bounds, 1),
+        {} if _kind.startswith("cut_out") else {"side": ("left", "right")},
+    )
+CUT_IN_SCENARIOS = ("cut_in", "cut_in_interaction", "cut_in_onset")
 TEST_SCENARIOS = ("car_following", "front_brake", "cut_out", "lane_change_rear")
+FORMAL_SCENARIOS = (
+    "car_following_braking_onset", "cut_in_onset", "cut_out_rear_gap", "side_encroachment"
+)
+
+# New simulator development tasks are kept outside the frozen paper suite until
+# their label-independent pilot protocol has been evaluated and selected.
+DOMAINS["stopped_vehicle"] = Domain(
+    {"ego_speed_mps": (18, 34), "gap_m": (25, 140)},
+    {"ego_speed_mps": 1, "gap_m": 2},
+    {},
+)
+DOMAINS["front_brake_single_lane"] = Domain(
+    dict(DOMAINS["front_brake"].bounds),
+    dict(DOMAINS["front_brake"].quantization),
+    {},
+)
+PILOT_SCENARIOS = ("front_brake_single_lane", "stopped_vehicle", "cut_in_interaction")
 
 
 SPLIT_SEEDS = {
@@ -124,7 +186,7 @@ def candidate_count(kind):
 
 def candidate_pool(kind, count=None, *, replicate=10):
     """Current experiment coordinates; retain every physically feasible difficulty level."""
-    if kind not in TEST_SCENARIOS:
+    if kind not in (*TEST_SCENARIOS, *FORMAL_SCENARIOS):
         raise ValueError(f"Not a current test scenario: {kind}")
     domain = DOMAINS[kind]
     seed = SPLIT_SEEDS["new"] + 101 * replicate
@@ -150,7 +212,12 @@ def candidate_pool(kind, count=None, *, replicate=10):
             name: float(low + value * (high - low))
             for (name, (low, high)), value in zip(domain.bounds.items(), point)
         }
-        scene = Scenario(f"{kind}:candidate:{replicate}:{index:06d}", kind, parameters, {})
+        categories = (
+            {"side": ("left", "right")[index % 2], "adjacent_space": "restricted"}
+            if kind == "cut_in_interaction"
+            else {}
+        )
+        scene = Scenario(f"{kind}:candidate:{replicate}:{index:06d}", kind, parameters, categories)
         try:
             validate(scene)
         except ValueError:
@@ -163,7 +230,7 @@ def candidate_pool(kind, count=None, *, replicate=10):
 
 def difficult(scenario):
     p = scenario.parameters
-    if scenario.kind == "front_brake":
+    if scenario.kind in ("front_brake", "front_brake_single_lane"):
         return p["gap_m"] <= 20 and p["deceleration_mps2"] >= 7
     if scenario.kind in ("cut_in", "cut_in_interaction"):
         return p["gap_m"] <= 15 and p["lateral_duration_s"] <= 2.2
@@ -173,6 +240,8 @@ def difficult(scenario):
         return p["rear_gap_m"] <= 15 and p["rear_speed_mps"] - p["ego_speed_mps"] >= 6
     if scenario.kind == "car_following":
         return p["gap_m"] <= 20 and p["ego_speed_mps"] - p["lead_speed_mps"] >= 6
+    if scenario.kind == "stopped_vehicle":
+        return p["gap_m"] < p["ego_speed_mps"] ** 2 / 16 + 5
     raise ValueError(f"Unknown functional scenario: {scenario.kind}")
 
 

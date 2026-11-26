@@ -1,4 +1,4 @@
-"""From-scratch SB3 runs; qualification, never final discovery, chooses checkpoints."""
+"""SB3 construction and native fine-tuning; development courses select checkpoints."""
 
 import argparse
 import hashlib
@@ -14,10 +14,12 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from experiments.executions import require_qualified
 from experiments.protocol import ROOT
-from experiments.qualification import QUALIFICATION_ROOT, qualify
+from experiments.qualification import DEVELOPMENT_COURSES, QUALIFICATION_ROOT, qualify
+from simulator.highway.timing import timing_contract
 from simulator.highway.training_env import DrivingEnv
 
 from .catalog import CURRENT_BY_ID, CURRENT_SUTS
+from .contracts import runtime_contract
 from .learning import ACTION_INTERFACE, CHECKPOINT_ROOT, DiscreteDriver
 
 TRAINING = {
@@ -49,6 +51,11 @@ TRAINING = {
     },
 }
 TRAINING_SYSTEMS = tuple(s.sut_id for s in CURRENT_SUTS if s.family == "learning")
+NATIVE_INITIALIZATION = {
+    "history_dqn_native": "independent_dqn_persistent_speed",
+    "target_dqn": "independent_dqn_persistent_speed",
+    "target_ppo": "independent_ppo_persistent_speed",
+}
 
 
 def training_contract():
@@ -58,6 +65,7 @@ def training_contract():
         "simulator/highway/training_env.py",
         "simulator/highway/observation.py",
         "simulator/highway/collision_env.py",
+        "simulator/highway/timing.py",
         "controllers/highway/control.py",
         "experiments/scenarios.py",
         "experiments/qualification.py",
@@ -75,7 +83,7 @@ class ModelController:
         return self.driver.command(int(action), world)
 
 
-class QualificationCallback(BaseCallback):
+class DevelopmentCallback(BaseCallback):
     def __init__(self, sut, root, configuration):
         super().__init__()
         self.sut = sut
@@ -92,7 +100,7 @@ class QualificationCallback(BaseCallback):
         return True
 
     def evaluate(self):
-        report = qualify(lambda: ModelController(self.model))
+        report = qualify(lambda: ModelController(self.model), courses=DEVELOPMENT_COURSES)
         rows = report["courses"]
         score = (
             sum(not r["collision"] for r in rows),
@@ -117,15 +125,18 @@ class QualificationCallback(BaseCallback):
         )
 
 
-def train(sut_id, *, configuration=TRAINING):
+def train(sut_id, *, configuration=TRAINING, initial_checkpoint=None):
     sut = CURRENT_BY_ID[sut_id]
     if sut.family != "learning":
         raise ValueError("Only PPO and DQN are trained")
-    for candidate in CURRENT_SUTS:
+    # Native policy construction is independent of other ADS capability results.
+    # Collection applies the joint acceptance gate after construction completes.
+    systems = () if sut_id in NATIVE_INITIALIZATION else CURRENT_SUTS
+    for candidate in systems:
         if candidate.family != "learning":
             require_qualified(candidate)
     interface = json.loads(
-        (ROOT / "artifacts/runs/preparation/reports/interface.json").read_text(encoding="utf-8")
+        (ROOT / "results/provenance/interface.json").read_text(encoding="utf-8")
     )
     if interface["status"] != "passed":
         raise ValueError("Common interface must pass before training")
@@ -140,7 +151,16 @@ def train(sut_id, *, configuration=TRAINING):
         "configuration": configuration,
         "object": asdict(sut),
         "source_contract": training_contract(),
+        "timing": timing_contract(),
+        "checkpoint_selection": [asdict(c) for c in DEVELOPMENT_COURSES],
+        "initial_checkpoint": None
+        if initial_checkpoint is None
+        else {
+            "path": str(initial_checkpoint),
+            "sha256": hashlib.sha256(initial_checkpoint.read_bytes()).hexdigest(),
+        },
     }
+    manifest = json.loads(json.dumps(manifest))
     (root / "training.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     env = None
     try:
@@ -149,17 +169,21 @@ def train(sut_id, *, configuration=TRAINING):
         )
         env.seed(sut.training_seed)
         algorithm = PPO if sut.lineage == "ppo" else DQN
-        model = algorithm(
-            "MlpPolicy",
-            env,
+        options = dict(
+            env=env,
             seed=sut.training_seed,
             device="cpu",
             verbose=0,
             gamma=configuration["gamma"],
-            policy_kwargs={"net_arch": configuration["policy_network"]},
             **configuration[sut.lineage],
         )
-        callback = QualificationCallback(sut, root, configuration)
+        if initial_checkpoint is None:
+            model = algorithm(
+                "MlpPolicy", policy_kwargs={"net_arch": configuration["policy_network"]}, **options
+            )
+        else:
+            model = algorithm.load(initial_checkpoint, **options)
+        callback = DevelopmentCallback(sut, root, configuration)
         model.learn(total_timesteps=configuration["total_timesteps"], callback=callback)
         callback.evaluate()
         best = algorithm.load(root / "best.zip", device="cpu")
@@ -168,6 +192,7 @@ def train(sut_id, *, configuration=TRAINING):
             "sut_id": sut.sut_id,
             "parameters": sut.parameters,
             "training_seed": sut.training_seed,
+            "runtime_contract": runtime_contract(sut, checkpoint_path=root / "best.zip"),
             **final,
         }
         (QUALIFICATION_ROOT / sut.sut_id / "qualification.json").write_text(
@@ -196,11 +221,34 @@ def main():
         "sut",
         nargs="?",
         default="all",
-        choices=("all", *TRAINING_SYSTEMS),
+        choices=("all", "native", *TRAINING_SYSTEMS, *NATIVE_INITIALIZATION),
     )
     selected = parser.parse_args().sut
-    for name in TRAINING_SYSTEMS if selected == "all" else (selected,):
-        manifest = train(name)
+    names = (
+        TRAINING_SYSTEMS
+        if selected == "all"
+        else (tuple(NATIVE_INITIALIZATION) if selected == "native" else (selected,))
+    )
+    for name in names:
+        if name in NATIVE_INITIALIZATION:
+            if (CHECKPOINT_ROOT / CURRENT_BY_ID[name].training_run / "training.json").exists():
+                require_qualified(CURRENT_BY_ID[name])
+                print(name, "already qualified under the current native contract", flush=True)
+                continue
+            import copy
+
+            config = copy.deepcopy(TRAINING)
+            config.update(total_timesteps=131072, evaluation_interval=16384)
+            config["dqn"].update(
+                learning_starts=2048, exploration_fraction=0.2, exploration_final_eps=0.05
+            )
+            manifest = train(
+                name,
+                configuration=config,
+                initial_checkpoint=CHECKPOINT_ROOT / NATIVE_INITIALIZATION[name] / "best.zip",
+            )
+        else:
+            manifest = train(name)
         if manifest["status"] != "qualified":
             raise RuntimeError(f"{name} did not qualify; return to policy construction")
 

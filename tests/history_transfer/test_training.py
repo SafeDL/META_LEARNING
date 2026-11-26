@@ -117,6 +117,44 @@ def raw_archive():
     )
 
 
+def test_training_context_is_coordinate_disjoint_even_with_renamed_source_ids():
+    target = replace(
+        raw_archive(), rss_margin=np.linspace(-0.9, 0.3, 8), rss_contract=measurement_contract()
+    )
+    source = replace(
+        target,
+        source_id="other",
+        scenarios=[replace(s, scenario_id=f"renamed-{i}") for i, s in enumerate(target.scenarios)],
+        provenance={"record_ids": [f"record-{i}" for i in range(8)]},
+    )
+    episode = {"target": target, "indices": [0, 2, 4, 6]}
+    config = Config(initial_count=1, budget=4, historical_context=8)
+    (context,) = contexts_for_episode([target, source], episode, np.random.default_rng(11), config)
+    assert {s.coordinate() for s in context.scenarios} == {
+        target.scenarios[i].coordinate() for i in (1, 3, 5, 7)
+    }
+    assert set(context.provenance["record_ids"]) == {f"record-{i}" for i in (1, 3, 5, 7)}
+    for scene, label, margin, record in zip(
+        context.scenarios, context.collision, context.rss_margin, context.provenance["record_ids"]
+    ):
+        index = int(record.split("-")[1])
+        assert scene == source.scenarios[index]
+        assert label == source.collision[index]
+        assert margin == source.rss_margin[index]
+    changed = replace(source, collision=~source.collision, rss_margin=-source.rss_margin)
+    (repeated,) = contexts_for_episode(
+        [target, changed], episode, np.random.default_rng(11), config
+    )
+    assert repeated.scenarios == context.scenarios
+    with pytest.raises(ValueError, match="coordinate-disjoint"):
+        contexts_for_episode(
+            [target, source],
+            {"target": target, "indices": list(range(8))},
+            np.random.default_rng(11),
+            config,
+        )
+
+
 def test_rss_context_is_explicit_preserves_raw_measurements_and_changes_fingerprint():
     raw = raw_archive()
     with pytest.raises(ValueError, match="requires derived"):
@@ -156,7 +194,7 @@ def test_single_record_sources_remain_context_but_do_not_supervise_base_training
     singleton = replace(
         complete,
         source_id="single",
-        scenarios=complete.scenarios[:1],
+        scenarios=sample("cut_in", 1, "history", replicate=42),
         collision=complete.collision[:1],
         safety=complete.safety[:1],
         rss_margin=complete.rss_margin[:1],

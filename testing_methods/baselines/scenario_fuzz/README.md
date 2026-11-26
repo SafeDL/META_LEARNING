@@ -22,7 +22,7 @@
 
 ## 有限候选库适配
 
-每轮生成 100 个变异，首轮全局采样，后续根据已执行安全场景的最低驾驶分数确定邻域中心，在各参数公开精度的 ±5 步内变异。提案投影到最近未查询候选并去重。每轮最多执行 3 个候选，每个种子最多 3 轮，碰撞结束该种子的本次搜索。
+每轮生成 100 个变异，首轮全局采样，后续根据已执行安全场景的最低驾驶分数确定邻域中心，在各参数公开精度的 ±5 步内变异。正式四场景的提案限制在 `formal_scenarios.FREE_BOUNDS` 登记的整数范围内，再投影到最近未查询候选并去重。每轮最多执行 3 个候选，每个种子最多 3 轮，碰撞结束该种子的本次搜索。
 
 预测阳性不足时最多重试 6 次，再按同轮预测风险补齐预算；投影候选不足时从剩余公开库补齐。碰撞后的种子按 `1−选取次数/总搜索次数` 重入队列，队列空时随机取种子。查询记录保存补齐标志、轮次和种子信息。
 
@@ -30,10 +30,12 @@
 
 ## 接入与验证
 
-[model.py](model.py)提供 `train/load`，[pool.py](pool.py)提供 `run`。历史分类器由 [experiments.pilot](../../../experiments/pilot.py)构建，保存在 `artifacts/runs/joint_response/pilot/models/<场景>/scenario_fuzz/classifier.pt`。
+[model.py](model.py)提供 `train/load`，[pool.py](pool.py)提供 `run`，[experiments.baselines](../../../experiments/baselines.py)提供共享调用。[formal_graphs.py](formal_graphs.py) 为跟车制动、受限切入、切出露障碍及侧向侵入构建公开图：分别保留一／三／两／两条车道、前车制动、变道路径、护航车辆和静态障碍，不读取 ADS 轨迹或标签。E02 的历史分类器由 [prepare_budget.py](../../../experiments/budget/prepare.py) 按同一 4,000 条历史响应构建，构建与推理沿用相同图入口。
 
 ~~~powershell
-python -B -m pytest tests/experiments/test_scenario_fuzz.py tests/experiments/test_scenario_fuzz_pool.py tests/experiments/test_driving_quality.py -q
+python -B -m pytest tests/baselines/test_scenario_fuzz.py tests/baselines/test_scenario_fuzz_pool.py tests/baselines/test_driving_quality.py -q
 ~~~
 
-结果见[论文报告](../../../artifacts/runs/joint_response/paper/reports/results.md)。
+实验安排见[长期计划](../../../docs/experiment_plan.md)。E02 四场景历史分类器及全部 32 个目标任务已完成并复算，正式比较与成本见[预算实验记录](../../../results/budget_discovery/README.md)。
+
+训练设备由 [parallel.py](../../../experiments/parallel.py) 的 `TRAINING_DEVICE` 固定，默认 CPU，显式 CUDA 使用单个 GPU 训练进程；批大小和轮数保持原配置。加载及预算推理使用 CPU。

@@ -4,9 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACTS_ROOT = ROOT / "artifacts"
-DATA_ROOT = ARTIFACTS_ROOT / "data"
-RUNS_ROOT = ARTIFACTS_ROOT / "runs"
+RESULTS_ROOT = ROOT / "results"
 
 
 @dataclass(frozen=True)
@@ -15,3 +13,11 @@ class ExecutionConfig:
 
 
 DEFAULT = ExecutionConfig()
+
+
+def episode_duration(kind):
+    return (
+        14.0
+        if kind == "car_following_braking_onset"
+        else DEFAULT.episode_duration_s
+    )

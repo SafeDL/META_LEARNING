@@ -185,7 +185,7 @@ def test_no_history_shared_private_control_is_one_raw_gp_with_default_structure_
     )
     assert result["response_kernel"] == "SharedPrivateKernel"
     assert result["component_names"] == ["raw_target"]
-    assert result["physical_mass"] == 1 and not result["global_reliability"]
+    assert result["physical_mass"] == 1 and not result["source_weight_updates"]
     assert result["representation"] == "normalized_parameters"
     x = domain().features(scenes)
     base = SharedPrivateKernel(2, deep=False).double()

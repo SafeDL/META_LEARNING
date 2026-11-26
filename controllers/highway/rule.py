@@ -31,13 +31,23 @@ class RuleController:
             return float(np.clip(free - 2 * (desired_gap / gap) ** 2, -8, 3))
         if leader is None:
             return float(np.clip(0.6 * (desired_speed - v), -8, 3))
-        gap = max(bumper_gap(follower, leader) - 4, 0.0)
-        spacing = p["headway_s"] * max(v, 1)
-        optimal_speed = desired_speed * (math.tanh((gap - spacing) / 10) + math.tanh(spacing / 10))
-        optimal_speed /= 1 + math.tanh(spacing / 10)
+        gap = max(bumper_gap(follower, leader), 0.0)
+        optimal_speed = self.optimal_velocity(gap)
         acceleration = 0.6 * (optimal_speed - v) + p["velocity_gain"] * (leader.speed - v)
         # FVDM's desired velocity vanishes at zero gap; the same actuator can stop.
         return float(np.clip(acceleration, -8, 3))
+
+    def optimal_velocity(self, gap):
+        """FVDM tanh optimal-velocity law: a function of spacing, not ego speed.
+
+        The fixed inflection spacing and transition width are model parameters.
+        This is FVDM longitudinal control with the separately declared lane rule.
+        """
+        desired = self.parameters["desired_speed_mps"]
+        spacing = 2 + self.parameters["headway_s"] * desired / 2
+        width = 10.0
+        offset = math.tanh(spacing / width)
+        return desired * (math.tanh((max(gap, 0) - spacing) / width) + offset) / (1 + offset)
 
     def act(self, world):
         ego = world.ego
@@ -79,10 +89,11 @@ class RuleController:
                 self.last_change_s = world.time_s
         target_y = world.lane_centers[self.target_lane]
         # During a lane change both the current and destination corridor constrain braking.
-        target_front, _ = neighbors(world, target_y)
-        acceleration = (
-            min(current_a, self.acceleration(ego, target_front))
-            if in_transition
-            else self.acceleration(ego, target_front)
-        )
+        # Recompute AFTER selecting the lane. Include every lane still occupied by
+        # the rotated ego body, even after its center crosses a lane boundary.
+        half_width = (
+            abs(math.cos(ego.heading)) * ego.width + abs(math.sin(ego.heading)) * ego.length
+        ) / 2
+        corridors = {target_y, *(y for y in world.lane_centers if abs(y - ego.y) < 2 + half_width)}
+        acceleration = min(self.acceleration(ego, neighbors(world, y)[0]) for y in corridors)
         return Control(acceleration, lane_steering(ego, target_y))

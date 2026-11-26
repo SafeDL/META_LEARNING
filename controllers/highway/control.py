@@ -11,6 +11,10 @@ MAX_STEERING = 0.45
 MAX_LATERAL_ACCELERATION = 6.0
 
 
+def steering_limit(speed, length=5.0):
+    return min(MAX_STEERING, math.atan(MAX_LATERAL_ACCELERATION * length / max(speed**2, 1)))
+
+
 @dataclass(frozen=True)
 class Control:
     acceleration: float
@@ -21,12 +25,10 @@ class Control:
             raise ValueError("Physical command must be finite")
 
     def limited(self, speed=0.0, length=5.0):
-        steering_limit = min(
-            MAX_STEERING, math.atan(MAX_LATERAL_ACCELERATION * length / max(speed**2, 1))
-        )
+        limit = steering_limit(speed, length)
         return Control(
             float(np.clip(self.acceleration, MIN_ACCELERATION, MAX_ACCELERATION)),
-            float(np.clip(self.steering, -steering_limit, steering_limit)),
+            float(np.clip(self.steering, -limit, limit)),
         )
 
 

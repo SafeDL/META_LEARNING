@@ -4,25 +4,19 @@ import numpy as np
 import pytest
 import torch
 
-from experiments import pilot
+from experiments import baselines
 from experiments.domain import Domain
 from experiments.executions import ExecutionBank
-from experiments.history import completed_archives, finalize_task
-from experiments.joint_validation import Config, run_one
+from experiments.history import finalize_task
 from experiments.query import PaidExecution, QueryLedger, run_isolated
 from experiments.rss import measurement_contract
 from experiments.schema import QueryFeedback, SafetyMeasurements, Scenario
 from experiments.storage import write_json
-from testing_methods.baselines.behavexplor.pool import mutate as behavior_mutate
-from testing_methods.baselines.samota.pool import mixed_distance
 from testing_methods.baselines.scenario_fuzz import model as fuzz_model
 from testing_methods.baselines.scenario_fuzz.graphs import ScenarioGraph
 from testing_methods.baselines.scenario_fuzz.pool import mutate as fuzz_mutate
 from testing_methods.baselines.scenario_fuzz.pool import run as fuzz_run
 from testing_methods.common.response import ResponseArchive
-from testing_methods.history_transfer.shared_private import SharedPrivateKernel
-from testing_methods.history_transfer.training import Config as TrainingConfig
-from testing_methods.history_transfer.training import load_model, train
 
 GRAPH_DEFINITION = {"engineering_fixture": True, "input": "public parameters only"}
 
@@ -42,19 +36,6 @@ def parameter_graph_fixture(scene):
         edge_graph_index=torch.tensor([[0, 1, 2, 3], [1, 0, 3, 2]]),
         weather_attr=torch.zeros(1, 8),
     )
-
-
-class ConstantRisk(torch.nn.Module):
-    def __init__(self, domain):
-        super().__init__()
-        self.logit = torch.nn.Parameter(torch.tensor(-1.0))
-        self.graph_specification = {
-            "parameter_definition": domain.to_dict(),
-            "graph_definition": GRAPH_DEFINITION,
-        }
-
-    def forward(self, data):
-        return self.logit.expand(len(data.weather_attr))
 
 
 class EngineeringBank:
@@ -127,98 +108,6 @@ def history(bank):
         )
         for name in ("a", "b")
     ]
-
-
-@pytest.mark.parametrize("method", pilot.PRIMARY_BASELINES)
-def test_all_six_baselines_share_the_registered_bank_and_fixed_paid_budget(
-    tmp_path, monkeypatch, method
-):
-    bank = EngineeringBank()
-    config = Config(candidate_count=10, initial_count=4, budget=7)
-    if method != "random":
-        module = pilot.BASELINES[method]
-        changes = {
-            "samota": {"rbf_epochs": 2},
-            "av_bo_rf_ei": {"n_estimators": 10, "max_depth": 3},
-            "paired_system_active_evaluation": {
-                "training_epochs": 3,
-                "mc_draws": 4,
-                "batch_size": 2,
-                "shortlist_size": 4,
-                "local_samples": 8,
-                "paired_samples": 3,
-            },
-            "scenario_fuzz": {"mutants": 8},
-        }
-        monkeypatch.setattr(module, "DEFAULT", replace(module.DEFAULT, **changes.get(method, {})))
-    options = {}
-    classifiers = {}
-    if method == "scenario_fuzz":
-        classifiers[method] = ConstantRisk(bank.domain)
-        options = {"graph_fn": parameter_graph_fixture, "graph_definition": GRAPH_DEFINITION}
-    saved, ledger = pilot.baseline_task(
-        tmp_path, bank, history(bank), classifiers, config, 11, {"method": method}, **options
-    )
-    assert saved["specification"]["parameter_definition"] == bank.domain.to_dict()
-    assert saved["metrics"]["queries"] == 7
-    assert saved["metrics"]["collision_recall"] is None
-    assert len(set(saved["result"]["selected_indices"])) == 7
-    assert [r["purpose"] for r in ledger.records] == ["initial"] * 4 + ["target"] * 3
-    assert ledger.domain.to_dict() == bank.domain.to_dict()
-    with pytest.raises(ValueError, match="fixed candidate library"):
-        ledger.register(replace(bank.candidates[0], scenario_id="extra"))
-
-
-@pytest.mark.parametrize("control", ["joint", "collision", "fixed_weights", "no_history"])
-def test_joint_and_three_controls_use_the_registered_task_dispatch(tmp_path, control):
-    bank = EngineeringBank()
-    archives = history(bank)
-    model_path = tmp_path / "model"
-    train(
-        archives,
-        model_path,
-        config=TrainingConfig(steps=1, initial_count=2, budget=5, historical_context=4),
-        kernel_type=SharedPrivateKernel,
-    )
-    models = tuple(
-        load_model(model_path / f"{part}.pt", kernel_type=SharedPrivateKernel)[0]
-        for part in ("target_kernel", "historical_encoder")
-    )
-    options = {
-        "feedback_mode": "collision" if control == "collision" else "joint",
-        "update_source_weights": control != "fixed_weights",
-    }
-    if control == "no_history":
-        models, archives = (None, None), []
-        options["raw_kernel_type"] = SharedPrivateKernel
-    saved, ledger = run_one(
-        tmp_path / "run",
-        bank,
-        models,
-        archives,
-        Config(candidate_count=10, initial_count=4, budget=7),
-        11,
-        **options,
-    )
-    assert saved["result"]["response_kernel"] == "SharedPrivateKernel"
-    assert saved["specification"]["parameter_definition"] == bank.domain.to_dict()
-    assert len(ledger.records) == len(set(saved["result"]["selected_indices"])) == 7
-    if control == "no_history":
-        assert saved["result"]["component_names"] == ["raw_target"]
-    archived = finalize_task(
-        tmp_path / "completed.json.gz",
-        ledger,
-        task_id="task",
-        sut_id="fixture",
-        sut_version="engineering",
-        family="rule",
-        lineage="fixture",
-        environment_seed=81001,
-        completed_order=1,
-        branch_id="fixture",
-    )
-    restored = completed_archives([archived], before_order=2, branch_id="fixture")[0]
-    assert restored.domain.to_dict() == bank.domain.to_dict()
 
 
 def test_execution_bank_reads_registered_definition_and_rejects_wrong_coordinates(tmp_path):
@@ -302,27 +191,8 @@ def test_new_graph_training_loading_and_query_require_the_same_registered_builde
         )
 
 
-def test_dispatch_rejects_another_bank_definition_and_a_budget_larger_than_the_library(tmp_path):
-    bank = EngineeringBank()
-    model = SharedPrivateKernel(2).double()
-    model.construction_specification = {
-        "history_fingerprints": {},
-        "scenario": "front_brake",
-        "parameter_definition": replace(
-            bank.domain, fixed_parameters={"ego_speed_mps": 12}
-        ).to_dict(),
-    }
-    config = Config(candidate_count=10, initial_count=2, budget=3)
-    with pytest.raises(ValueError, match="different parameter definitions"):
-        run_one(tmp_path / "wrong", bank, (model, None), [], config, 11)
-    with pytest.raises(ValueError, match="budget exceeds"):
-        pilot.baseline_task(
-            tmp_path / "budget", bank, [], {}, replace(config, budget=11), 11, {"method": "random"}
-        )
-
-
 @pytest.mark.parametrize("dimension", [2, 7])
-def test_mutation_and_local_distances_use_all_and_only_registered_free_dimensions(dimension):
+def test_mutation_uses_all_and_only_registered_free_dimensions(dimension):
     definition = Domain(
         {f"p{i}": (0, 1) for i in range(dimension)},
         {f"p{i}": 0.1 for i in range(dimension)},
@@ -333,16 +203,11 @@ def test_mutation_and_local_distances_use_all_and_only_registered_free_dimension
         Scenario(str(i), "front_brake", {name: float(i) for name in definition.bounds})
         for i in range(2)
     ]
-    np.testing.assert_array_equal(
-        mixed_distance(definition.features(scenes), "front_brake", domain=definition),
-        [[0, 1], [1, 0]],
-    )
     generator = np.random.default_rng(11)
-    for mutate in (fuzz_mutate, behavior_mutate):
-        for local in (False, True):
-            scene = mutate(scenes[0], generator, local=local, domain=definition)
-            definition.validate(scene)
-            assert len(scene.parameters) == dimension and "speed" not in scene.parameters
+    for local in (False, True):
+        scene = fuzz_mutate(scenes[0], generator, local=local, domain=definition)
+        definition.validate(scene)
+        assert len(scene.parameters) == dimension and "speed" not in scene.parameters
 
 
 def attempt_registration(oracle, *, proposed):
@@ -376,18 +241,20 @@ def test_graph_classifier_dispatch_reuses_only_the_same_registered_definition(
         "graph_fn": parameter_graph_fixture,
         "graph_definition": GRAPH_DEFINITION,
     }
-    classifiers = pilot.historical_classifiers(history(bank), tmp_path, **options)
+    classifiers = baselines.historical_classifiers(history(bank), tmp_path, **options)
     assert (
         classifiers["scenario_fuzz"].graph_specification["parameter_definition"]
         == bank.domain.to_dict()
     )
-    resumed = pilot.historical_classifiers(history(bank), tmp_path, train_missing=False, **options)
+    resumed = baselines.historical_classifiers(
+        history(bank), tmp_path, train_missing=False, **options
+    )
     assert (
         resumed["scenario_fuzz"].graph_specification
         == classifiers["scenario_fuzz"].graph_specification
     )
     with pytest.raises(ValueError, match="another public graph definition"):
-        pilot.historical_classifiers(
+        baselines.historical_classifiers(
             history(bank),
             tmp_path,
             train_missing=False,

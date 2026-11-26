@@ -8,6 +8,15 @@ from torch_geometric.data import Data
 from experiments.scenarios import validate
 from simulator.highway.interaction_env import GUARD_FRONT_GAP_M, GUARD_REAR_GAP_M
 
+SUPPORTED_SCENARIOS = (
+    "car_following",
+    "front_brake",
+    "lane_change_rear",
+    "cut_in",
+    "cut_in_interaction",
+    "cut_out",
+)
+
 
 class ScenarioGraph(Data):
     def __inc__(self, key, value, *args, **kwargs):
@@ -17,6 +26,14 @@ class ScenarioGraph(Data):
 
 
 def graph(scenario):
+    if scenario.kind in (
+        "car_following_braking_onset", "cut_in_onset", "cut_out_rear_gap", "side_encroachment"
+    ):
+        from .formal_graphs import graph as formal_graph
+
+        return formal_graph(scenario)
+    if scenario.kind not in SUPPORTED_SCENARIOS:
+        raise ValueError("ScenarioFuzz graph has not been adapted to this scenario")
     validate(scenario)
     nodes, edges, attributes = [], [], []
 

@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass, field, replace
 
+from experiments.scenarios import FORMAL_SCENARIOS, TEST_SCENARIOS
 from experiments.scenarios import RECORDED_DOMAINS as DOMAINS
-from experiments.scenarios import TEST_SCENARIOS
 
 
 @dataclass(frozen=True)
@@ -140,4 +140,57 @@ CURRENT_SUTS = tuple(
     for sut in (*HISTORY_SUTS, *INDEPENDENT_SUTS)
 )
 CURRENT_BY_ID = {sut.sut_id: sut for sut in CURRENT_SUTS}
-CURRENT_INDEPENDENT_SUTS = tuple(sut for sut in CURRENT_SUTS if sut.role == "independent")
+
+# Registered before testing transfer performance. Old objects and their weights
+# remain addressable for development and frozen execution records.
+FORMAL_CHANGES = {
+    "idm_mobil": {"desired_speed_mps": 29, "headway_s": 1.45, "politeness": 0.4},
+    "fvdm_lane": {"desired_speed_mps": 31, "headway_s": 1.65, "velocity_gain": 0.7},
+    "linear_mpc": {"desired_speed_mps": 29, "horizon_s": 3.4, "headway_s": 1.6},
+    "nonlinear_trajectory": {
+        "desired_speed_mps": 30,
+        "horizon_s": 3,
+        "headway_s": 1.6,
+        "effort_weight": 0.12,
+    },
+    "uct": {"desired_speed_mps": 29, "iterations": 112, "exploration": 1.3},
+    "beam": {"desired_speed_mps": 31, "horizon_steps": 6, "beam_width": 14},
+    "ppo": {},
+    "dqn": {},
+}
+FORMAL_TARGET_SUTS = tuple(
+    SUT(
+        f"target_{route}",
+        family,
+        route,
+        "registered-native",
+        "independent",
+        {**base, **FORMAL_CHANGES[route]},
+        f"target_{route}_native" if family == "learning" else None,
+        {"ppo": 6113, "dqn": 6119}.get(route),
+        "history_dqn_native" if route == "dqn" else f"history_{route}",
+        list(FORMAL_SCENARIOS),
+    )
+    for route, (family, base) in ROUTES.items()
+)
+FORMAL_HISTORY_SUTS = tuple(
+    replace(
+        sut,
+        **(
+            {
+                "sut_id": "history_dqn_native",
+                "training_run": "history_dqn_native_adapted",
+                "training_seed": 4119,
+                "version": "native-training",
+            }
+            if sut.lineage == "dqn"
+            else {}
+        ),
+        supported_scenarios=list(FORMAL_SCENARIOS),
+    )
+    for sut in HISTORY_SUTS
+)
+FORMAL_SUTS = (*FORMAL_HISTORY_SUTS, *FORMAL_TARGET_SUTS)
+FORMAL_BY_ID = {sut.sut_id: sut for sut in FORMAL_SUTS}
+BY_ID.update({s.sut_id: s for s in FORMAL_SUTS if s.sut_id not in BY_ID})
+CURRENT_BY_ID.update(FORMAL_BY_ID)

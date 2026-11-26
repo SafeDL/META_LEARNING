@@ -6,6 +6,7 @@ import numpy as np
 from controllers.highway.learning import ACTION_INTERFACE, DiscreteDriver
 from experiments.scenarios import sample
 from simulator.highway.collision_env import CollisionWorld
+from simulator.highway.timing import DECISION_DT
 
 EPISODE_DURATIONS = (10.0, 18.0)
 
@@ -40,6 +41,8 @@ class DrivingEnv(gym.Env):
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
+        if self.world is not None:
+            self.world.close()
         kind = self.np_random.choice(
             ("front_brake", "cut_in", "cut_out", "lane_change_rear"), p=[0.4, 0.2, 0.2, 0.2]
         )
@@ -48,7 +51,7 @@ class DrivingEnv(gym.Env):
         scenario = sample(str(kind), 1, "policy_train", replicate=replicate)[0]
         if kind == "lane_change_rear":
             lanes = (0.0, 4.0)
-        elif self.np_random.random() < (0.7 if kind == "front_brake" else 0.35):
+        elif kind == "front_brake" and self.np_random.random() < 0.7:
             lanes = (4.0,)
         else:
             lanes = (0.0, 4.0, 8.0)
@@ -68,7 +71,7 @@ class DrivingEnv(gym.Env):
         self.world.advance(command)
         ego = self.world.ego
         progress = ego.position[0] - before
-        reward = 0.3 * progress / 6 + 0.01
+        reward = 0.3 * progress / (30 * DECISION_DT) + 0.01
         reward -= 0.002 * command.acceleration**2 / 64
         applied = command.limited(ego.speed, ego.LENGTH)
         lateral_acceleration = ego.speed**2 * np.tan(applied.steering) / ego.LENGTH
@@ -89,4 +92,6 @@ class DrivingEnv(gym.Env):
         )
 
     def close(self):
+        if self.world is not None:
+            self.world.close()
         self.world = None

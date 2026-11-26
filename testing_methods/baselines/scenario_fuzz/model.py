@@ -4,7 +4,6 @@ Architecture follows AtongWang/ScenarioFuzz commit
 49360794846786b133799a62827528bc4644bc62, src/scenario_eval_model/eval_model.py.
 """
 
-import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -15,6 +14,8 @@ from torch.nn import functional as F
 from torch_geometric.data import Batch
 from torch_geometric.nn import GATConv, global_mean_pool
 
+from experiments.costs import synchronized_time
+from experiments.parallel import TRAINING_DEVICE
 from testing_methods.common.response import archive_fingerprints, shared_domain
 
 from .graphs import graph
@@ -139,11 +140,11 @@ def train(
     training = np.asarray([i for i, group in enumerate(groups) if group not in validation_groups])
     model = ScenarioRiskNetwork(hidden_dim=config.hidden_dim, heads=config.heads)
     model.fit_normalization([data for i, data in enumerate(graphs) if i not in validation_groups])
-    device = torch.device("cpu")
+    device = torch.device(TRAINING_DEVICE)
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     best, state, curve = float("inf"), None, []
-    started = time.perf_counter()
+    started = synchronized_time(device)
     for epoch in range(1, config.epochs + 1):
         model.train()
         indices = generator.permutation(training)
@@ -177,7 +178,7 @@ def train(
                 "validation_loss",
                 round(score, 6),
                 "wall_s",
-                round(time.perf_counter() - started),
+                round(synchronized_time(device) - started),
                 flush=True,
             )
     checkpoint = {
@@ -188,7 +189,7 @@ def train(
         "history_fingerprints": archive_fingerprints(history),
         "held_family": held_family,
         "curve": curve,
-        "training_s": time.perf_counter() - started,
+        "training_s": synchronized_time(device) - started,
         "training_rows": len(training),
         "validation_rows": len(validation),
         "training_device": str(device),

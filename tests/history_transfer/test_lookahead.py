@@ -125,9 +125,7 @@ def test_fantasy_update_matches_actual_paid_update_without_mutating_inputs():
     )
     first, final = real["prediction_snapshots"]
     query = real["queries"][1]
-    scores = torch.tensor(
-        real["queries"][0]["component_weights_after_query"][:-1], dtype=torch.float64
-    )
+    scores = torch.tensor(real["queries"][0]["component_weights_after_query"], dtype=torch.float64)
     scores = (scores / scores.sum()).log()
     before = copy.deepcopy(state.base.state_dict())
     paid, labels, margins = [0], [False], [0.3]

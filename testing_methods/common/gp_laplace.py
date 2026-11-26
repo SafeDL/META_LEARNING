@@ -7,6 +7,7 @@ from torch.nn import functional as F
 
 MODE_TOLERANCE = 1e-10
 MODE_ITERATIONS = 100
+PRIOR_JITTER = 1e-5
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,7 @@ def laplace(mean, covariance, labels):
     """Find the unique mode in whitened coordinates using damped Newton steps."""
     labels = torch.as_tensor(labels, dtype=mean.dtype, device=mean.device)
     eye = torch.eye(len(labels), dtype=mean.dtype, device=mean.device)
-    covariance = covariance + 1e-5 * eye
+    covariance = covariance + PRIOR_JITTER * eye
     prior_factor = torch.linalg.cholesky(covariance)
     whitened = torch.zeros_like(mean)
     backtracks = 0
@@ -78,3 +79,27 @@ def laplace(mean, covariance, labels):
         + factor.diagonal().log().sum()
     )
     return LaplaceState(nll, alpha, root, factor, iterations, gradient_max, backtracks)
+
+
+def laplace_evidence(mean, covariance, labels):
+    """Use the converged mode's implicit first derivative for evidence fitting."""
+    with torch.no_grad():
+        state = laplace(mean, covariance, labels)
+    eye = torch.eye(len(mean), dtype=mean.dtype, device=mean.device)
+    kernel = covariance + PRIOR_JITTER * eye
+    detached_kernel = kernel.detach()
+    alpha, root = state.alpha, state.root
+
+    # At the mode f = mean + K alpha. Differentiate this fixed point using
+    # (I + K W)^-1, with the symmetric factor of I + sqrt(W) K sqrt(W).
+    rhs = (mean - mean.detach()) + (kernel - detached_kernel) @ alpha
+    solved = torch.cholesky_solve((root * rhs)[:, None], state.factor)[:, 0]
+    latent = mean.detach() + detached_kernel @ alpha + rhs - detached_kernel @ (root * solved)
+    p = latent.sigmoid()
+    root = (p * (1 - p)).clamp_min(1e-12).sqrt()
+    factor = torch.linalg.cholesky(eye + root[:, None] * kernel * root[None, :])
+
+    # The mode objective is stationary in f. Its partial differential is
+    # -alpha.T d(mean) - alpha.T d(K) alpha / 2. The log determinant also uses df.
+    surrogate = -(alpha @ (mean + 0.5 * kernel @ alpha)) + factor.diagonal().log().sum()
+    return state.nll + (surrogate - surrogate.detach())

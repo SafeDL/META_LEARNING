@@ -29,10 +29,10 @@
 
 ## 接入与验证
 
-[build_proxy](method.py)构建历史代理，`run(candidates, oracle, proxy=..., initial_indices=..., budget=200, seed=11)`执行测试，由 [experiments.pilot](../../../experiments/pilot.py)接入。
+[build_proxy](method.py)构建历史代理，`run(candidates, oracle, proxy=..., initial_indices=..., budget=200, seed=11)`执行测试，由 [experiments.baselines](../../../experiments/baselines.py)接入。
 
 ~~~powershell
-python -B -m pytest tests/experiments/test_paired_system_active_evaluation.py -q
+python -B -m pytest tests/baselines/test_paired_system_active_evaluation.py -q
 ~~~
 
-测试覆盖控制变量数值、互信息、正负相关、重复几何和批次反馈隔离。结果见[论文报告](../../../artifacts/runs/joint_response/paper/reports/results.md)。
+测试覆盖控制变量数值、互信息、正负相关、重复几何和批次反馈隔离。实验安排见[长期计划](../../../docs/experiment_plan.md)。E02 四场景历史代理及全部 32 个目标任务已完成并复算，正式比较与成本见[预算实验记录](../../../results/budget_discovery/README.md)。

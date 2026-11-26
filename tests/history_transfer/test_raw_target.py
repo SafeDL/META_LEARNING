@@ -81,7 +81,7 @@ def test_raw_control_constructs_no_deep_model_and_matches_single_joint_gp(monkey
     result = select(scenes, Oracle(scenes, margins), initial_indices=[0, 1, 2], budget=3)
     assert deep_flags == [False]
     assert result["component_names"] == ["raw_target"]
-    assert not result["explicit_source_components"] and not result["global_reliability"]
+    assert not result["explicit_source_components"] and not result["source_weight_updates"]
     assert result["physical_mass"] == 1
     assert result["representation"] == "normalized_parameters"
     assert all(q["prequery_component_weights"] == [1] for q in result["queries"])

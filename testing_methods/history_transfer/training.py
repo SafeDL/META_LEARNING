@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict, dataclass, replace
 from math import ceil
 from pathlib import Path
@@ -11,10 +10,10 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from experiments.costs import PeakMemory, synchronized_time
+from experiments.costs import synchronized_time
+from experiments.parallel import TRAINING_DEVICE
 from experiments.protocol import ROOT
 from experiments.rss import measurement_contract
-from experiments.scenarios import TEST_SCENARIOS
 from experiments.source_registration import source_contract_matches, specification_matches
 from experiments.storage import read_json, write_json
 from testing_methods.common.response import archive_fingerprints, shared_domain, source_weights
@@ -32,7 +31,7 @@ class Config:
     historical_context: int = 64
     diagnostic_interval: int = 100
     seed: int = 1301
-    device: str = "cpu"
+    device: str = TRAINING_DEVICE
     historical_rss: bool = True
 
     def __post_init__(self):
@@ -45,19 +44,14 @@ class Config:
 
 
 DEFAULT = Config()
-MODEL_ROOT = ROOT / "artifacts/runs/joint_response/models"
 COVARIANCE_MODE = "point_joint_blocks"
-
-
-def model_directory(kind, held_family=None):
-    scope = "all_sources" if held_family is None else f"without_{held_family}"
-    return MODEL_ROOT / kind / scope
 
 
 def training_contract(kernel_type=JointResponseKernel):
     contract = {
         p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest()
         for p in (
+            "experiments/parallel.py",
             "testing_methods/history_transfer/training.py",
             "testing_methods/history_transfer/inference.py",
             "testing_methods/history_transfer/model.py",
@@ -114,11 +108,14 @@ def specification(history, held_family, config, kernel_type=JointResponseKernel)
                 "training_device": config.device,
                 "training_threads": 1,
                 "target_feedback": "paid collision and RSS",
-                "historical_feedback": "collision and ego-normalized RSS margin"
-                if config.historical_rss
-                else "collision only",
+                "historical_feedback": (
+                    "collision and ego-normalized RSS margin"
+                    if config.historical_rss
+                    else "collision only"
+                ),
                 "continuous_response": measurement_contract(),
                 "supervision": "uniform next-response time after initialization; all preceding feedback",
+                "source_context": "other ADSs; exclude every coordinate in the simulated target episode",
                 "checkpoint": "final fixed step, no development data",
             }
         )
@@ -329,17 +326,27 @@ def ensure_states(episode, count):
 
 def contexts_for_episode(history, episode, generator, config):
     target = episode["target"]
+    target_coordinates = {target.scenarios[i].coordinate() for i in episode["indices"]}
     contexts = []
     for archive in history:
         if archive.source_id == target.source_id:
             continue
         if archive.scenarios[0].kind != target.scenarios[0].kind:
             raise ValueError("Historical contexts must share the target functional scenario")
+        # Formal targets also have no coordinate shared with the historical pool.
+        eligible = [
+            i
+            for i, scene in enumerate(archive.scenarios)
+            if scene.coordinate() not in target_coordinates
+        ]
+        if not eligible:
+            continue
         indices = generator.choice(
-            len(archive.scenarios),
-            min(len(archive.scenarios), config.historical_context),
-            replace=False,
+            eligible, min(len(eligible), config.historical_context), replace=False
         )
+        provenance = dict(archive.provenance)
+        if "record_ids" in provenance:
+            provenance["record_ids"] = [provenance["record_ids"][i] for i in indices]
         contexts.append(
             replace(
                 archive,
@@ -347,10 +354,13 @@ def contexts_for_episode(history, episode, generator, config):
                 collision=archive.collision[indices],
                 safety=archive.safety[indices],
                 rss_margin=archive.continuous_margin[indices],
+                provenance=provenance,
             )
         )
     if not contexts:
-        raise ValueError("Historical encoder needs a source other than the simulated target")
+        raise ValueError(
+            "Historical encoder needs coordinate-disjoint sources outside the simulated target"
+        )
     return contexts
 
 
@@ -505,67 +515,3 @@ def train(
                 flush=True,
             )
     return {"target": target_report, "encoder": report}
-
-
-def build_scope(
-    kind, held_family=None, *, config=DEFAULT, dataset_manifest=None, model_root=MODEL_ROOT
-):
-    from experiments.history import load_training_archives
-    from experiments.prepare_joint import DATASET_ROOT
-
-    manifest = (
-        DATASET_ROOT / "manifest.json" if dataset_manifest is None else Path(dataset_manifest)
-    )
-    history = load_training_archives(manifest, kind, held_family)
-    destination = (
-        Path(model_root)
-        / kind
-        / ("all_sources" if held_family is None else f"without_{held_family}")
-    )
-    resource_path = destination / "resources.json"
-    with PeakMemory(device=config.device) as memory:
-        report = train(history, destination, held_family=held_family, config=config)
-    if not resource_path.exists():
-        write_json(resource_path, memory.result)
-    return {
-        "scenario": kind,
-        "scope": destination.name,
-        "destination": str(destination.resolve()),
-        "resources": read_json(resource_path),
-        **report,
-    }
-
-
-def main(*, config=DEFAULT, dataset_manifest=None, model_root=MODEL_ROOT):
-    reports = []
-    workers = min(4, len(TEST_SCENARIOS)) if torch.device(config.device).type == "cpu" else 1
-
-    def record(report):
-        reports.append(report)
-        reports.sort(key=lambda r: TEST_SCENARIOS.index(r["scenario"]))
-        write_json(
-            Path(model_root) / "construction.json",
-            {
-                "status": "complete" if len(reports) == len(TEST_SCENARIOS) else "running",
-                "tasks": reports,
-                "covariance_mode": COVARIANCE_MODE,
-                "new_physical_calls": 0,
-                "parallel_workers": workers,
-                "device": config.device,
-            },
-        )
-
-    options = dict(config=config, dataset_manifest=dataset_manifest, model_root=model_root)
-    if workers == 1:
-        for kind in TEST_SCENARIOS:
-            record(build_scope(kind, **options))
-    else:
-        with ProcessPoolExecutor(max_workers=workers) as pool:
-            pending = [pool.submit(build_scope, kind, **options) for kind in TEST_SCENARIOS]
-            for future in as_completed(pending):
-                record(future.result())
-    return reports
-
-
-if __name__ == "__main__":
-    main()

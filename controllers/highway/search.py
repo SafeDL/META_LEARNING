@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from simulator.highway.timing import DECISION_DT
+
 from .control import Control, lane_steering
 from .planning import advance_visible, overlap_margin
 
@@ -26,12 +28,20 @@ def transition(world, action, desired_speed):
     margin = math.inf
     terminal = False
     for _ in range(3):
-        state = advance_visible(state, acceleration, lane, duration_s=0.2)
-        margin = min(margin, overlap_margin(state.ego, state.vehicles))
-        terminal = (
-            margin <= 0
-            or not min(state.lane_centers) - 0.5 <= state.ego.y <= max(state.lane_centers) + 0.5
-        )
+        path = advance_visible(state, acceleration, lane, duration_s=DECISION_DT, return_path=True)
+        for state in path:
+            margin = min(margin, overlap_margin(state.ego, state.vehicles))
+            half_width = (
+                abs(math.sin(state.ego.heading)) * state.ego.length
+                + abs(math.cos(state.ego.heading)) * state.ego.width
+            ) / 2
+            terminal = (
+                margin <= 0
+                or state.ego.y - half_width < min(state.lane_centers) - 2
+                or state.ego.y + half_width > max(state.lane_centers) + 2
+            )
+            if terminal:
+                break
         if terminal:
             break
     reward = (state.ego.x - world.ego.x) / 15

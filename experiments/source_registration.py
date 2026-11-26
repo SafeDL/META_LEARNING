@@ -2,36 +2,50 @@
 
 import json
 
-from .protocol import ARTIFACTS_ROOT
+from .protocol import RESULTS_ROOT
 
-SOURCE_REORGANIZATION = ARTIFACTS_ROOT / "maintenance/source_reorganization.json"
-ARTIFACT_MAINTENANCE = ARTIFACTS_ROOT / "maintenance/reorganization.json"
-CODE_MAINTENANCE = ARTIFACTS_ROOT / "maintenance/source_changes.json"
+SOURCE_REORGANIZATION = RESULTS_ROOT / "provenance/source_reorganization.json"
+ARTIFACT_MAINTENANCE = RESULTS_ROOT / "provenance/reorganization.json"
+CODE_MAINTENANCE = RESULTS_ROOT / "provenance/source_changes.json"
 
 # These paths occur in frozen manifests and source contracts. New writers use
 # the current layout directly; the recorded bytes remain unchanged.
 ARTIFACT_RELOCATIONS = (
-    ("test_records", "artifacts/data"),
+    ("test_records", "results/data"),
     (
         "experiment_outputs/benchmark/collision/qualification",
+        "results/k_shot_adaptation/qualification",
+    ),
+    (
         "artifacts/runs/qualification/reports",
+        "results/k_shot_adaptation/qualification",
     ),
     (
         "experiment_outputs/benchmark/collision/interface.json",
+        "results/provenance/interface.json",
+    ),
+    (
         "artifacts/runs/preparation/reports/interface.json",
+        "results/provenance/interface.json",
     ),
     (
         "experiment_outputs/gcrt/collision/joint_response_models",
-        "artifacts/runs/joint_response/models",
+        "results/joint_response/models",
     ),
-    ("experiment_outputs/gcrt/collision/joint_response", "artifacts/runs/joint_response"),
-    ("experiment_outputs/metadrive", "artifacts/runs/metadrive"),
+    ("experiment_outputs/gcrt/collision/joint_response", "results/joint_response"),
+    ("experiment_outputs/metadrive", "results/metadrive"),
+    ("artifacts/runs/highway_learning_ads", "results/public_ads/qualification"),
+    ("artifacts/runs/braking_scene_design", "results/scene_design/braking"),
+    ("artifacts/runs/interaction_scene_design", "results/scene_design/interaction"),
+    ("artifacts/runs/safe_scene_replay", "results/scene_replays/safe"),
+    ("artifacts/runs/collision_scene_replay", "results/scene_replays/collision"),
+    ("artifacts/runs", "results"),
 )
 
 
 def maintained_path(name):
     name = str(name).replace("\\", "/")
-    if name.startswith("results/"):
+    if name.startswith(("results/benchmark/", "results/gcrt/", "results/metadrive/")):
         name = "experiment_outputs/" + name[len("results/") :]
     for old, new in ARTIFACT_RELOCATIONS:
         if name == old or name.startswith(old + "/"):

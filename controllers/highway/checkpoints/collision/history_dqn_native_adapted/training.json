@@ -1,0 +1,272 @@
+{
+  "status": "qualified",
+  "sut_id": "history_dqn_native",
+  "training_seed": 4119,
+  "configuration": {
+    "total_timesteps": 131072,
+    "workers": 8,
+    "evaluation_interval": 16384,
+    "action_interface": {
+      "actions": [
+        "left",
+        "keep",
+        "right",
+        "faster",
+        "slower"
+      ],
+      "speed_increment_mps": 5.0,
+      "speed_gain_per_s": 2.0,
+      "minimum_target_speed_mps": 0.0,
+      "maximum_target_speed_mps": 35.0,
+      "observation_dimension": 83
+    },
+    "policy_network": [
+      128,
+      128
+    ],
+    "gamma": 0.99,
+    "ppo": {
+      "learning_rate": 0.0003,
+      "n_steps": 1024,
+      "batch_size": 256,
+      "n_epochs": 10,
+      "gae_lambda": 0.95,
+      "clip_range": 0.2,
+      "ent_coef": 0.01
+    },
+    "dqn": {
+      "learning_rate": 5e-05,
+      "buffer_size": 200000,
+      "learning_starts": 2048,
+      "batch_size": 256,
+      "train_freq": 4,
+      "gradient_steps": 1,
+      "target_update_interval": 10000,
+      "exploration_fraction": 0.2,
+      "exploration_final_eps": 0.05
+    }
+  },
+  "object": {
+    "sut_id": "history_dqn_native",
+    "family": "learning",
+    "lineage": "dqn",
+    "version": "native-training",
+    "role": "history",
+    "parameters": {},
+    "training_run": "history_dqn_native_adapted",
+    "training_seed": 4119,
+    "reference_id": null,
+    "supported_scenarios": [
+      "car_following",
+      "cut_in_interaction",
+      "cut_out",
+      "lane_change_rear"
+    ]
+  },
+  "source_contract": {
+    "controllers/highway/train.py": "0d0f3627e0b7e52f10edc4bb828f5a54845d73518dece83e5e766072d73a6da8",
+    "controllers/highway/learning.py": "872ab1ab7811832ddf958504191b68f54ab72edc8109737e0c9dfb6034ab0dbc",
+    "simulator/highway/training_env.py": "d77d9542829ae0cde5687280645bbba4fd3f8fde656430ac1f73f99cdbc8fed8",
+    "simulator/highway/observation.py": "3a814eaee7e23efc8796ba3a00f81ca6cf9db2e948a4b581ca955f1764b98fae",
+    "simulator/highway/collision_env.py": "9ba320e514290e34d1e4a42c67aa2b5fa48862678e00dfa777c3c7a23c40187f",
+    "simulator/highway/timing.py": "2d3574d2205e75be3e4428ed18c007ddaaba1da5cadb4ee5238ec464424dce7c",
+    "controllers/highway/control.py": "1303652975cf7f6c819019daec862fa05caa694a709a613bc1d58c8c688469e2",
+    "experiments/scenarios.py": "c09ce72592110f877471e6ffcbaf19dcdc5bdf17b4f0733aaa1fa0cf8d678385",
+    "experiments/qualification.py": "c63597f45e5fa694ffe9698919f33fbe0a0fd31defc9f6d38066b87894eb7e94"
+  },
+  "timing": {
+    "simulation_frequency": 20,
+    "policy_frequency": 5
+  },
+  "checkpoint_selection": [
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "policy_development:normal_following",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "gap_m": 60,
+          "closing_speed_mps": 0,
+          "deceleration_mps2": 4.5,
+          "event_time_s": 3,
+          "brake_ramp_s": 1
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "policy_development:avoidable_braking",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "gap_m": 60,
+          "closing_speed_mps": 0,
+          "deceleration_mps2": 4.5,
+          "event_time_s": 1,
+          "brake_ramp_s": 1
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "policy_development:full_stop",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "gap_m": 60,
+          "closing_speed_mps": 0,
+          "deceleration_mps2": 4.5,
+          "event_time_s": 2,
+          "brake_ramp_s": 1
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "policy_development:legal_lane_change",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "lead_gap_m": 40,
+          "lead_speed_mps": 12,
+          "rear_gap_m": 50,
+          "rear_speed_mps": 22,
+          "adjacent_front_gap_m": 80
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "policy_development:rear_constraint",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25,
+          "lead_gap_m": 40,
+          "lead_speed_mps": 20,
+          "rear_gap_m": 5,
+          "rear_speed_mps": 38,
+          "adjacent_front_gap_m": 80
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    }
+  ],
+  "initial_checkpoint": {
+    "path": "F:\\PyCharm 2024.3.2\\work\\META_LEARNING\\controllers\\highway\\checkpoints\\collision\\independent_dqn_persistent_speed\\best.zip",
+    "sha256": "47c32b04c8761b6e3a32055a6d18bc282ab8158af5a28da37471608173871330"
+  },
+  "qualification": {
+    "qualified": true,
+    "courses": [
+      {
+        "course": "normal_following",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 25.0,
+        "progress_m": 75.0,
+        "final_y_m": 4.0,
+        "physics_ticks": 60,
+        "decisions": 15
+      },
+      {
+        "course": "avoidable_braking",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 0.0016011874436599066,
+        "progress_m": 109.60181492249413,
+        "final_y_m": 4.0,
+        "physics_ticks": 200,
+        "decisions": 50
+      },
+      {
+        "course": "full_stop",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 1.7323285212300222e-11,
+        "progress_m": 138.86478880688858,
+        "final_y_m": 4.0,
+        "physics_ticks": 360,
+        "decisions": 90
+      },
+      {
+        "course": "legal_lane_change",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 34.999995261618665,
+        "progress_m": 260.72166208884005,
+        "final_y_m": 0.0002935242115695267,
+        "physics_ticks": 160,
+        "decisions": 40
+      },
+      {
+        "course": "rear_constraint",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 30.999999999999943,
+        "progress_m": 55.84999999999994,
+        "final_y_m": 4.0,
+        "physics_ticks": 40,
+        "decisions": 10
+      }
+    ]
+  },
+  "elapsed_s": 327.1852969000174,
+  "actual_timesteps": 131072,
+  "qualification_executions": 50
+}

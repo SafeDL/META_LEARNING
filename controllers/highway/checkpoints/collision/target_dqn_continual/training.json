@@ -1,0 +1,108 @@
+{
+  "sut_id": "target_dqn",
+  "training_seed": 6119,
+  "object": {
+    "sut_id": "target_dqn",
+    "family": "learning",
+    "lineage": "dqn",
+    "version": "registered-native",
+    "role": "independent",
+    "parameters": {},
+    "training_run": "target_dqn_continual",
+    "training_seed": 6119,
+    "reference_id": "history_dqn_native",
+    "supported_scenarios": [
+      "car_following_braking_onset",
+      "cut_in_onset",
+      "cut_out_rear_gap",
+      "side_encroachment"
+    ]
+  },
+  "status": "qualified",
+  "configuration": {
+    "action_interface": {
+      "actions": [
+        "left",
+        "keep",
+        "right",
+        "faster",
+        "slower"
+      ],
+      "speed_increment_mps": 5.0,
+      "speed_gain_per_s": 2.0,
+      "minimum_target_speed_mps": 0.0,
+      "maximum_target_speed_mps": 35.0,
+      "observation_dimension": 83
+    },
+    "algorithm": "DQN with successful parent demonstrations",
+    "protocol": "experiments/regression/dqn_learning.py"
+  },
+  "initial_checkpoint": {
+    "path": "controllers/highway/checkpoints/collision/target_dqn_native/best.zip",
+    "sha256": "48bf03f6fbdbf35aa1f728f282b67b5d0f2de0f37438fd58236e631709c2e90d"
+  },
+  "actual_timesteps": 131072,
+  "selected_step": 98304,
+  "checkpoint_sha256": "d4d2a9db998cd6048c1c7d71218d7be63368d8f81ff2f64f47c0cfc1ef1a039b",
+  "selection": "results/dqn_continual_learning/base/selection.json",
+  "qualification": {
+    "qualified": true,
+    "courses": [
+      {
+        "course": "normal_following",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 25.0,
+        "progress_m": 75.0,
+        "final_y_m": 4.0,
+        "physics_ticks": 60,
+        "decisions": 15
+      },
+      {
+        "course": "avoidable_braking",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 7.616312707273915e-05,
+        "progress_m": 114.00775163067101,
+        "final_y_m": 4.0,
+        "physics_ticks": 200,
+        "decisions": 50
+      },
+      {
+        "course": "full_stop",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 3.18450058647207e-12,
+        "progress_m": 147.74996639999839,
+        "final_y_m": 4.0,
+        "physics_ticks": 360,
+        "decisions": 90
+      },
+      {
+        "course": "legal_lane_change",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 34.999997156971205,
+        "progress_m": 262.7386807341955,
+        "final_y_m": -0.000678406247736795,
+        "physics_ticks": 160,
+        "decisions": 40
+      },
+      {
+        "course": "rear_constraint",
+        "passed": true,
+        "collision": false,
+        "violations": [],
+        "final_speed_mps": 30.999999999999943,
+        "progress_m": 55.84673689110363,
+        "final_y_m": 3.8113605415580536,
+        "physics_ticks": 40,
+        "decisions": 10
+      }
+    ]
+  }
+}

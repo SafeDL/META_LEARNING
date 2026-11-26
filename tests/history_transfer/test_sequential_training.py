@@ -132,10 +132,9 @@ def test_historical_rss_ablation_ignores_margins_in_training_sources_and_view(tm
     for key in ("means", "blocks", "weights"):
         np.testing.assert_array_equal(priors[0][key], priors[1][key])
     for first, second in zip(historical, changed):
-        assert (
-            calculation_view(first, limit=5, use_rss=False).provenance["calculation_indices"]
-            == (calculation_view(second, limit=5, use_rss=False).provenance["calculation_indices"])
-        )
+        assert calculation_view(first, limit=5, use_rss=False).provenance[
+            "calculation_indices"
+        ] == (calculation_view(second, limit=5, use_rss=False).provenance["calculation_indices"])
     with pytest.raises(ValueError, match="Source feedback"):
         build_source(models[0][1], historical, candidates)
 
@@ -240,63 +239,3 @@ def test_both_training_stages_support_cuda_without_development_archives(tmp_path
         assert model.mean.is_cuda
         assert saved["specification"]["training_device"] == "cuda"
     assert report["encoder"]["status"] == "complete"
-
-
-def test_four_scenario_parallel_construction_matches_serial_and_records_costs(tmp_path):
-    from experiments.history import build_source, load_training_archives
-    from experiments.scenarios import TEST_SCENARIOS, candidate_pool
-    from experiments.storage import read_json, save_archive, write_json
-    from testing_methods.common.response import archive_fingerprints
-
-    entries = []
-    for kind in TEST_SCENARIOS:
-        for i in range(2):
-            item = archive(f"history_{i}", 3, offset=i)
-            item.scenarios = candidate_pool(kind, 3, replicate=90 + i)
-            path = tmp_path / "data" / kind / f"{item.source_id}.npz"
-            save_archive(path, item, provenance=item.provenance)
-            entries.append(
-                {
-                    "scenario": kind,
-                    "source_id": item.source_id,
-                    "path": path.relative_to(tmp_path / "data").as_posix(),
-                    "fingerprint": archive_fingerprints([item])[item.source_id],
-                }
-            )
-    manifest = tmp_path / "data/manifest.json"
-    write_json(manifest, {"archives": entries})
-    config = training.Config(
-        steps=1, initial_count=1, budget=3, diagnostic_interval=1, historical_context=2
-    )
-    root = tmp_path / "parallel"
-    reports = training.main(config=config, dataset_manifest=manifest, model_root=root)
-    assert [r["scenario"] for r in reports] == list(TEST_SCENARIOS)
-    saved = read_json(root / "construction.json")
-    assert saved["status"] == "complete" and saved["parallel_workers"] == 4
-    assert saved["new_physical_calls"] == 0
-    assert all(r["resources"]["sampled_peak_cpu_bytes"] > 0 for r in reports)
-    for report in reports:
-        assert report["target"]["specification"]["scenario"] == report["scenario"]
-        assert report["encoder"]["specification"]["scenario"] == report["scenario"]
-    training.build_scope(
-        "front_brake", config=config, dataset_manifest=manifest, model_root=tmp_path / "serial"
-    )
-    for name in ("target_kernel.pt", "historical_encoder.pt"):
-        parallel, _ = training.load_model(root / "front_brake/all_sources" / name)
-        serial, _ = training.load_model(tmp_path / "serial/front_brake/all_sources" / name)
-        assert model_version(parallel) == model_version(serial)
-    cut_out = load_training_archives(manifest, "cut_out")
-    candidates = candidate_pool("cut_out", 8, replicate=94)
-    with pytest.raises(ValueError, match="another functional scenario"):
-        build_source(serial, cut_out, candidates)
-    with pytest.raises(ValueError, match="one functional scenario"):
-        build_source(
-            JointResponseKernel(6).double(),
-            load_training_archives(manifest, "front_brake"),
-            candidates,
-        )
-    with pytest.raises(ValueError, match="another functional scenario"):
-        training.train(
-            cut_out, tmp_path / "invalid", config=config, initial_models=(serial, serial)
-        )
-    assert not (tmp_path / "invalid").exists()

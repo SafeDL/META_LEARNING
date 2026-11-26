@@ -11,6 +11,7 @@ from experiments.rss import measurement_contract
 from experiments.scenarios import features
 from testing_methods.selection import validate_initial_indices
 
+from .adaptation import adapted_online
 from .inference import (
     TARGET_PARAMETERS,
     adapted_model,
@@ -69,6 +70,10 @@ def select(
     diagnose_rss=False,
     lookahead=None,
     raw_kernel_type=JointResponseKernel,
+    online_settings=None,
+    collision_target=None,
+    implicit_evidence=False,
+    cpu_threads=1,
 ):
     if mode not in MODES or feedback_mode not in ("joint", "collision"):
         raise ValueError("Unknown source control or feedback mode")
@@ -98,6 +103,8 @@ def select(
         raise TypeError("Joint discovery requires a joint response target kernel")
     initial = list(initial_indices)
     validate_initial_indices(len(candidates), initial, budget)
+    if collision_target is not None and (type(collision_target) is not int or collision_target < 1):
+        raise ValueError("Collision stopping target must be a positive integer")
     if query_order is not None:
         query_order = list(query_order)
         validate_initial_indices(len(candidates), query_order, budget)
@@ -109,7 +116,9 @@ def select(
             raise ValueError("Source weights must form a positive probability distribution")
         if mode.startswith("H0") and sources["names"] != ["aggregate_history_teacher"]:
             raise ValueError("H0 uses the aggregate historical teacher")
-    torch.set_num_threads(1)
+    if type(cpu_threads) is not int or cpu_threads < 1:
+        raise ValueError("A positive CPU thread count is required")
+    torch.set_num_threads(cpu_threads)
     construction = getattr(pretrained, "construction_specification", {})
     definition = construction.get("parameter_definition")
     if definition is not None:
@@ -133,6 +142,9 @@ def select(
         .eval()
     )
     physical_base = None if raw_only else type(base)(base.dimension, deep=False).double().to(device)
+    if online_settings is not None:
+        with torch.no_grad():
+            (base if raw_only else physical_base).mean.fill_(online_settings.raw_initial_mean)
     for model in (base,) if raw_only else (base, physical_base):
         for parameter in model.parameters():
             parameter.requires_grad_(False)
@@ -141,7 +153,7 @@ def select(
     model, physical = base, physical_base
     tensors = source_tensors(sources, base)
     reference = base.point_mean(1)[0].detach().clone()
-    prior = initial_weights(sources, reference)
+    prior = initial_weights(sources, reference, raw_only=raw_only)
     scores = prior.log()
     names = (
         ["raw_target"]
@@ -173,7 +185,7 @@ def select(
 
     def weights_at(indices=None):
         if not local_reliability:
-            return mixture_weights(scores, raw_only=raw_only)
+            return mixture_weights(scores)
         return local_weights(
             scores,
             encoded_target if indices is None else encoded_target[indices],
@@ -184,18 +196,31 @@ def select(
         )
 
     def snapshot(count, probability, weights):
+        target_parameters = (
+            TARGET_PARAMETERS
+            if online_settings is None
+            else (
+                online_settings.raw.parameters if raw_only else online_settings.learned.parameters
+            )
+        )
+        physical_parameters = (
+            TARGET_PARAMETERS if online_settings is None else online_settings.raw.parameters
+        )
         result = {
             "paid_queries": count,
             "observed_indices": list(selected),
             "probabilities": probability.tolist(),
             "component_weights": weights.cpu().tolist(),
             "target_parameters": {
-                name: float(getattr(model, name).detach()) for name in TARGET_PARAMETERS
+                name: float(getattr(model, name).detach()) for name in target_parameters
             },
             "physical_parameters": None
             if physical is None
-            else {name: float(getattr(physical, name).detach()) for name in TARGET_PARAMETERS},
+            else {name: float(getattr(physical, name).detach()) for name in physical_parameters},
         }
+        if online_settings is not None:
+            result["target_fit"] = getattr(model, "adaptation_diagnostics", None)
+            result["physical_fit"] = getattr(physical, "adaptation_diagnostics", None)
         if diagnose_rss:
             with torch.no_grad():
                 components, _ = predict_components(
@@ -305,29 +330,51 @@ def select(
             margins.append(feedback.safety.rss_margin)
             if not raw_only and update_source_weights:
                 scores, likelihood = update_weights(
-                    scores, components[:-1, predicted_index], feedback.collision
+                    scores, components[:, predicted_index], feedback.collision
                 )
                 if local_reliability:
                     reliability_observations.append(likelihood.detach())
             used_margins = margins if feedback_mode == "joint" else None
-            model = adapted_model(
-                base,
-                x[selected],
-                labels,
-                used_margins,
-                learning_rate=0.01 if raw_only else 0.003,
-                encoded=encoded_target[selected],
-            )
-            if not raw_only:
-                physical = adapted_model(
-                    physical_base,
+            if online_settings is None:
+                model = adapted_model(
+                    base,
                     x[selected],
                     labels,
                     used_margins,
-                    learning_rate=0.01,
-                    encoded=encoded_physical[selected],
+                    learning_rate=0.01 if raw_only else 0.003,
+                    encoded=encoded_target[selected],
                 )
-        after = mixture_weights(scores, raw_only=raw_only)
+            else:
+                model = adapted_online(
+                    base,
+                    x[selected],
+                    labels,
+                    used_margins,
+                    online_settings.raw if raw_only else online_settings.learned,
+                    encoded=encoded_target[selected],
+                    implicit_evidence=implicit_evidence,
+                )
+            if not raw_only:
+                if online_settings is None:
+                    physical = adapted_model(
+                        physical_base,
+                        x[selected],
+                        labels,
+                        used_margins,
+                        learning_rate=0.01,
+                        encoded=encoded_physical[selected],
+                    )
+                else:
+                    physical = adapted_online(
+                        physical_base,
+                        x[selected],
+                        labels,
+                        used_margins,
+                        online_settings.raw,
+                        encoded=encoded_physical[selected],
+                        implicit_evidence=implicit_evidence,
+                    )
+        after = mixture_weights(scores)
         queries.append(
             {
                 "query": step + 1,
@@ -354,8 +401,12 @@ def select(
         )
         if acquisition is not None:
             queries[-1].update(lookahead=lookahead_info, lookahead_s=lookahead_s)
+        if getattr(oracle, "stopped", False) or (
+            collision_target is not None and sum(q["feedback"]["collision"] for q in queries) >= collision_target
+        ):
+            break
     diagnostic_prediction_s = 0.0
-    if budget in snapshot_counts:
+    if len(queries) in snapshot_counts:
         started = synchronized_time(device)
         with torch.no_grad():
             components, _ = predict_components(
@@ -374,7 +425,7 @@ def select(
             effective = weights_at()
             weighted = effective if local_reliability else effective[:, None]
             probability = (weighted * components).sum(0).cpu().numpy()
-        snapshots.append(snapshot(budget, probability, effective))
+        snapshots.append(snapshot(len(queries), probability, effective))
         diagnostic_prediction_s = synchronized_time(device) - started
     result = {
         "response_kernel": type(base).__name__,
@@ -383,17 +434,18 @@ def select(
         "selected_indices": selected,
         "actual_queries": len(queries),
         "maximum_queries": budget,
-        "termination": "budget_exhausted",
+        "termination": "evaluator_stop" if getattr(oracle, "stopped", False) else (
+            "collision_target_reached" if collision_target is not None and
+            sum(q["feedback"]["collision"] for q in queries) >= collision_target else "budget_exhausted"
+        ),
         "component_names": names,
         "explicit_source_components": sources is not None and mode.startswith("H1"),
         "target_feedback_updates": enabled,
-        "global_reliability": not raw_only and enabled and update_source_weights,
         "local_reliability": local_reliability,
         "source_weight_updates": not raw_only and enabled and update_source_weights,
         "group_prior_weights": prior.cpu().tolist(),
-        "physical_mass": 1.0 if raw_only else 0.1,
+        "physical_mass": float(after[-1]),
         "representation": "normalized_parameters" if raw_only else "historical_embedding",
-        "beta": 1.0,
         "feedback_used": feedback_mode if enabled else "paid indices only",
         "rss_contract": measurement_contract(),
         "covariance_mode": "point_joint_blocks",
@@ -401,9 +453,12 @@ def select(
         "online_feature_precision": "float64",
         "conditional_inference_device": str(device),
         "kernel_and_adaptation_device": str(device),
+        **({"cpu_threads": cpu_threads} if cpu_threads != 1 else {}),
         "prediction_snapshots": snapshots,
         "diagnostic_prediction_s": diagnostic_prediction_s,
     }
     if acquisition is not None:
         result.update(acquisition="joint_feedback_lookahead", lookahead_configuration=lookahead)
+    if online_settings is not None:
+        result["online_settings"] = online_settings.to_dict()
     return result

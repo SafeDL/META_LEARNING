@@ -6,7 +6,7 @@ from .inference import mixture_weights
 
 
 def local_weights(scores, locations, paid_locations, log_likelihoods, bandwidth, *, batch_size=128):
-    """Shrink local mean likelihood towards its global mean; keep raw mass fixed."""
+    """Shrink local mean likelihood towards its global mean for every component."""
     count = len(paid_locations)
     if len(log_likelihoods) != count:
         raise ValueError("Every reliability observation must correspond to a paid location")
@@ -25,6 +25,5 @@ def local_weights(scores, locations, paid_locations, log_likelihoods, bandwidth,
         strength = mass / (mass + 20)
         adjustment = strength[:, None] * count * (local_mean - global_mean)
         adjusted = scores[:, None] + adjustment.T
-        weights = torch.cat((0.9 * adjusted.softmax(0), mass.new_full((1, len(batch)), 0.1)))
-        outputs.append(weights)
+        outputs.append(mixture_weights(adjusted))
     return torch.cat(outputs, dim=1)

@@ -121,7 +121,7 @@ class JointLookahead:
 
     def fantasy_prediction(self, scores, paid, labels, margins, index, collision, rss, prequery):
         """Apply the real update order from the same fixed initialization."""
-        next_scores, _ = update_weights(scores, prequery[:-1], collision)
+        next_scores, _ = update_weights(scores, prequery, collision)
         next_paid = [*paid, index]
         next_labels, next_margins = [*labels, collision], [*margins, rss]
         model = adapted_model(

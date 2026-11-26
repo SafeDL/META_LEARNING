@@ -17,14 +17,16 @@ from .schema import QueryFeedback, Scenario
 class QueryClient:
     def __init__(self, connection):
         self.connection = connection
+        self.stopped = False
 
     def query(self, index, *, purpose="target"):
         self.connection.send(("query", (index, purpose)))
         kind, payload = self.connection.recv()
         if kind == "error":
             raise RuntimeError(payload)
-        if kind != "feedback":
+        if kind not in ("feedback", "final_feedback"):
             raise RuntimeError("Unexpected evaluator response")
+        self.stopped = kind == "final_feedback"
         return QueryFeedback.from_dict(payload)
 
     def register(self, scenario):
@@ -160,7 +162,8 @@ def _worker(connection, selector, public_task):
         connection.close()
 
 
-def run_isolated(selector, public_task, ledger, *, wall_limit_s=None, memory_limit_bytes=None):
+def run_isolated(selector, public_task, ledger, *, wall_limit_s=None, memory_limit_bytes=None,
+                 signal_evaluator_stop=False):
     """Only explicitly assembled public inputs are serialized into the selector."""
     context = mp.get_context("spawn")
     parent, child = context.Pipe()
@@ -195,7 +198,8 @@ def run_isolated(selector, public_task, ledger, *, wall_limit_s=None, memory_lim
                 index, purpose = payload
                 try:
                     feedback = ledger.query(index, purpose=purpose)
-                    parent.send(("feedback", feedback.to_dict()))
+                    stopped = signal_evaluator_stop and len(ledger.records) == ledger.budget
+                    parent.send(("final_feedback" if stopped else "feedback", feedback.to_dict()))
                 except Exception:
                     parent.send(("error", traceback.format_exc()))
                     raise

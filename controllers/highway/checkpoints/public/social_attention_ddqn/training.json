@@ -1,0 +1,4627 @@
+{
+  "sut_id": "social_attention_ddqn",
+  "seed": 1301,
+  "device": "cuda:0",
+  "elapsed_s": 2365.793847699999,
+  "upstream_revision": "84df15ea977271e6a4d015f10f9f355f7e866890",
+  "checkpoint_sha256": "a41576a069724b884ecd013bde5ddbde45bafed7e50ea285299d771c40126c11",
+  "settings": {
+    "control_steps": 100000,
+    "gamma": 0.99,
+    "batch_size": 64,
+    "memory_capacity": 15000,
+    "target_update": 512,
+    "epsilon_final": 0.05,
+    "epsilon_decay_steps": 6000,
+    "learning_rate": 0.0005
+  },
+  "training_source_sha256": "1a015de6dd2debb18e82d1d8d44b4db7c903390e03f474392413ca1b3b5962f1",
+  "curriculum": [
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:0",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 29.966779,
+          "gap_m": 44.141547,
+          "closing_speed_mps": 5.68382,
+          "deceleration_mps2": 7.58136,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.376187
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:1",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 22.388969,
+          "gap_m": 12.688086,
+          "closing_speed_mps": 1.974439,
+          "deceleration_mps2": 4.524606,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.485461
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:2",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 19.273021,
+          "gap_m": 59.3821,
+          "closing_speed_mps": 2.887406,
+          "deceleration_mps2": 6.063568,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.17262
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:3",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 32.816545,
+          "gap_m": 26.169999,
+          "closing_speed_mps": -2.357066,
+          "deceleration_mps2": 2.132242,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.988002
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:4",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.270645,
+          "gap_m": 53.996321,
+          "closing_speed_mps": 0.485171,
+          "deceleration_mps2": 2.9567,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.174165
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:5",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 20.81893,
+          "gap_m": 35.118598,
+          "closing_speed_mps": 7.170523,
+          "deceleration_mps2": 6.886706,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.686799
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:6",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25.968057,
+          "gap_m": 38.727719,
+          "closing_speed_mps": -3.819825,
+          "deceleration_mps2": 5.349492,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.277401
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:7",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 26.387683,
+          "gap_m": 21.664299,
+          "closing_speed_mps": 4.353461,
+          "deceleration_mps2": 8.404069,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.883905
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:8",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 27.404563,
+          "gap_m": 63.729128,
+          "closing_speed_mps": -2.715143,
+          "deceleration_mps2": 6.407266,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.08237
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:9",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 24.951123,
+          "gap_m": 25.162842,
+          "closing_speed_mps": 3.994384,
+          "deceleration_mps2": 3.350555,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.255987
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:10",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 21.832199,
+          "gap_m": 50.499416,
+          "closing_speed_mps": -0.668589,
+          "deceleration_mps2": 8.826974,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.579743
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:11",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 30.257426,
+          "gap_m": 10.115346,
+          "closing_speed_mps": 7.575749,
+          "deceleration_mps2": 4.895691,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.45964
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:12",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 33.834584,
+          "gap_m": 41.523086,
+          "closing_speed_mps": 2.483511,
+          "deceleration_mps2": 4.182024,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.967251
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:13",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 18.255049,
+          "gap_m": 15.529061,
+          "closing_speed_mps": -1.201706,
+          "deceleration_mps2": 8.112065,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.371791
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:14",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 23.403277,
+          "gap_m": 54.780847,
+          "closing_speed_mps": 6.038648,
+          "deceleration_mps2": 2.637316,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.77023
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:15",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 28.952401,
+          "gap_m": 30.548942,
+          "closing_speed_mps": 0.865216,
+          "deceleration_mps2": 5.69193,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.26847
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:16",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 28.191511,
+          "gap_m": 56.105577,
+          "closing_speed_mps": 3.829782,
+          "deceleration_mps2": 5.17987,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.440061
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:17",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 23.648121,
+          "gap_m": 32.786475,
+          "closing_speed_mps": -2.925541,
+          "deceleration_mps2": 8.234431,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.89317
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:18",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 18.514107,
+          "gap_m": 42.867194,
+          "closing_speed_mps": 7.786492,
+          "deceleration_mps2": 3.224579,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.293339
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:19",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 33.091571,
+          "gap_m": 17.747705,
+          "closing_speed_mps": -0.504332,
+          "deceleration_mps2": 7.154567,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.740233
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:20",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 30.512463,
+          "gap_m": 48.252098,
+          "closing_speed_mps": -1.459851,
+          "deceleration_mps2": 6.22893,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.204455
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:21",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 21.093222,
+          "gap_m": 8.799967,
+          "closing_speed_mps": 2.366656,
+          "deceleration_mps2": 2.297594,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.12946
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:22",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 24.19401,
+          "gap_m": 61.518531,
+          "closing_speed_mps": 0.982004,
+          "deceleration_mps2": 7.309223,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.450845
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:23",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 27.645615,
+          "gap_m": 23.811123,
+          "closing_speed_mps": 6.296859,
+          "deceleration_mps2": 4.252458,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.582044
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:24",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 26.632467,
+          "gap_m": 36.519737,
+          "closing_speed_mps": 1.388901,
+          "deceleration_mps2": 2.696681,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.651333
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:25",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25.207107,
+          "gap_m": 20.309978,
+          "closing_speed_mps": 5.144358,
+          "deceleration_mps2": 5.751312,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.215441
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:26",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 20.075977,
+          "gap_m": 51.755098,
+          "closing_speed_mps": -1.817669,
+          "deceleration_mps2": 3.803889,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.804355
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:27",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.529764,
+          "gap_m": 33.797137,
+          "closing_speed_mps": 3.473009,
+          "deceleration_mps2": 7.733948,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.362077
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:28",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 32.077628,
+          "gap_m": 60.730551,
+          "closing_speed_mps": 6.678528,
+          "deceleration_mps2": 8.770158,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.504167
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:29",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 19.528119,
+          "gap_m": 28.384287,
+          "closing_speed_mps": -0.147833,
+          "deceleration_mps2": 4.838886,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.361924
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:30",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 22.629961,
+          "gap_m": 45.46714,
+          "closing_speed_mps": 4.986813,
+          "deceleration_mps2": 6.787951,
+          "event_time_s": 3,
+          "brake_ramp_s": 1.051498
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "normal_following",
+      "scenario": {
+        "scenario_id": "ordinary:training:normal_following:31",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 29.209606,
+          "gap_m": 14.924742,
+          "closing_speed_mps": -3.328176,
+          "deceleration_mps2": 3.73125,
+          "event_time_s": 3,
+          "brake_ramp_s": 0.115619
+        },
+        "categories": {}
+      },
+      "duration_s": 3,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 60,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:0",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 32.260578,
+          "gap_m": 37.325059,
+          "closing_speed_mps": -1.604484,
+          "deceleration_mps2": 2.509137,
+          "event_time_s": 1.099151,
+          "brake_ramp_s": 1.276626
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:1",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 23.060484,
+          "gap_m": 25.033235,
+          "closing_speed_mps": 7.946074,
+          "deceleration_mps2": 8.868302,
+          "event_time_s": 2.974853,
+          "brake_ramp_s": 0.27514
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:2",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 18.282259,
+          "gap_m": 61.124427,
+          "closing_speed_mps": 0.548255,
+          "deceleration_mps2": 4.102506,
+          "event_time_s": 1.780974,
+          "brake_ramp_s": 0.609264
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:3",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 29.021679,
+          "gap_m": 15.497797,
+          "closing_speed_mps": 4.098436,
+          "deceleration_mps2": 6.520897,
+          "event_time_s": 1.155416,
+          "brake_ramp_s": 1.031019
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:4",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 26.755728,
+          "gap_m": 51.210811,
+          "closing_speed_mps": 5.30796,
+          "deceleration_mps2": 5.777551,
+          "event_time_s": 1.513509,
+          "brake_ramp_s": 1.493993
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:5",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 21.549706,
+          "gap_m": 10.926947,
+          "closing_speed_mps": -3.469346,
+          "deceleration_mps2": 4.723178,
+          "event_time_s": 2.140554,
+          "brake_ramp_s": 0.153486
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:6",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 24.794929,
+          "gap_m": 47.018141,
+          "closing_speed_mps": 2.963297,
+          "deceleration_mps2": 7.806748,
+          "event_time_s": 2.626201,
+          "brake_ramp_s": 0.739119
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:7",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.524636,
+          "gap_m": 29.383546,
+          "closing_speed_mps": 0.186369,
+          "deceleration_mps2": 3.693364,
+          "event_time_s": 0.749623,
+          "brake_ramp_s": 0.821856
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:8",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 30.996408,
+          "gap_m": 61.525278,
+          "closing_speed_mps": 2.734168,
+          "deceleration_mps2": 5.078411,
+          "event_time_s": 2.734422,
+          "brake_ramp_s": 1.103749
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:9",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25.698646,
+          "gap_m": 22.097334,
+          "closing_speed_mps": -0.886793,
+          "deceleration_mps2": 6.187583,
+          "event_time_s": 0.861048,
+          "brake_ramp_s": 0.453674
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:10",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 20.960503,
+          "gap_m": 43.020071,
+          "closing_speed_mps": 6.392463,
+          "deceleration_mps2": 3.283245,
+          "event_time_s": 1.386215,
+          "brake_ramp_s": 0.4374
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:11",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 27.719443,
+          "gap_m": 26.366471,
+          "closing_speed_mps": -3.228119,
+          "deceleration_mps2": 7.451629,
+          "event_time_s": 2.009141,
+          "brake_ramp_s": 1.207831
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:12",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 28.487652,
+          "gap_m": 47.578562,
+          "closing_speed_mps": 1.725138,
+          "deceleration_mps2": 8.348541,
+          "event_time_s": 2.359013,
+          "brake_ramp_s": 0.96568
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:13",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 19.191774,
+          "gap_m": 36.267956,
+          "closing_speed_mps": 4.619353,
+          "deceleration_mps2": 2.044162,
+          "event_time_s": 1.734523,
+          "brake_ramp_s": 0.676498
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:14",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 22.461454,
+          "gap_m": 57.190692,
+          "closing_speed_mps": -2.113305,
+          "deceleration_mps2": 6.985771,
+          "event_time_s": 0.501735,
+          "brake_ramp_s": 0.21184
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:15",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 33.234119,
+          "gap_m": 12.419756,
+          "closing_speed_mps": 6.780533,
+          "deceleration_mps2": 4.622394,
+          "event_time_s": 2.376063,
+          "brake_ramp_s": 1.343167
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:16",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 33.993204,
+          "gap_m": 55.525261,
+          "closing_speed_mps": -0.334654,
+          "deceleration_mps2": 8.008772,
+          "event_time_s": 1.241477,
+          "brake_ramp_s": 0.627799
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:17",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 22.701362,
+          "gap_m": 13.850776,
+          "closing_speed_mps": 2.18501,
+          "deceleration_mps2": 3.368732,
+          "event_time_s": 1.865814,
+          "brake_ramp_s": 0.929243
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:18",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 19.955894,
+          "gap_m": 49.051343,
+          "closing_speed_mps": -2.67934,
+          "deceleration_mps2": 5.657783,
+          "event_time_s": 2.89856,
+          "brake_ramp_s": 1.383701
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:19",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 28.724539,
+          "gap_m": 34.588624,
+          "closing_speed_mps": 5.840703,
+          "deceleration_mps2": 4.96558,
+          "event_time_s": 1.024079,
+          "brake_ramp_s": 0.261901
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:20",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 27.490246,
+          "gap_m": 41.140274,
+          "closing_speed_mps": 4.799825,
+          "deceleration_mps2": 3.832881,
+          "event_time_s": 0.670889,
+          "brake_ramp_s": 0.500635
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:21",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 20.188693,
+          "gap_m": 28.459777,
+          "closing_speed_mps": 1.553415,
+          "deceleration_mps2": 6.667915,
+          "event_time_s": 2.543805,
+          "brake_ramp_s": 1.141183
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:22",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25.466672,
+          "gap_m": 63.660347,
+          "closing_speed_mps": 6.952633,
+          "deceleration_mps2": 2.806331,
+          "event_time_s": 2.209525,
+          "brake_ramp_s": 1.169025
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:23",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 30.229388,
+          "gap_m": 20.203634,
+          "closing_speed_mps": -2.294154,
+          "deceleration_mps2": 8.693741,
+          "event_time_s": 1.586142,
+          "brake_ramp_s": 0.386332
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:24",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.265185,
+          "gap_m": 45.101896,
+          "closing_speed_mps": 7.367658,
+          "deceleration_mps2": 7.077981,
+          "event_time_s": 1.930405,
+          "brake_ramp_s": 0.100992
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:25",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 24.055387,
+          "gap_m": 31.509823,
+          "closing_speed_mps": -1.034909,
+          "deceleration_mps2": 4.187947,
+          "event_time_s": 1.303816,
+          "brake_ramp_s": 1.451112
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:26",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 21.285464,
+          "gap_m": 53.323185,
+          "closing_speed_mps": 3.529238,
+          "deceleration_mps2": 8.338562,
+          "event_time_s": 0.930017,
+          "brake_ramp_s": 0.855172
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:27",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 26.018963,
+          "gap_m": 9.052464,
+          "closing_speed_mps": 1.126294,
+          "deceleration_mps2": 2.396352,
+          "event_time_s": 2.807053,
+          "brake_ramp_s": 0.784782
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:28",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 29.75051,
+          "gap_m": 59.439999,
+          "closing_speed_mps": -3.670047,
+          "deceleration_mps2": 2.903804,
+          "event_time_s": 2.462121,
+          "brake_ramp_s": 0.329329
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:29",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 18.554436,
+          "gap_m": 16.951293,
+          "closing_speed_mps": 5.505772,
+          "deceleration_mps2": 7.488832,
+          "event_time_s": 0.586572,
+          "brake_ramp_s": 1.318468
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:30",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 23.792335,
+          "gap_m": 38.764654,
+          "closing_speed_mps": -0.01182,
+          "deceleration_mps2": 5.485394,
+          "event_time_s": 1.658228,
+          "brake_ramp_s": 0.996018
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "avoidable_braking",
+      "scenario": {
+        "scenario_id": "ordinary:training:avoidable_braking:31",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 32.527719,
+          "gap_m": 23.390567,
+          "closing_speed_mps": 3.164377,
+          "deceleration_mps2": 6.122811,
+          "event_time_s": 2.283938,
+          "brake_ramp_s": 0.56465
+        },
+        "categories": {}
+      },
+      "duration_s": 10,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:0",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 20.629169,
+          "gap_m": 60.372684,
+          "closing_speed_mps": -3.894977,
+          "deceleration_mps2": 7.37106,
+          "event_time_s": 2.378584,
+          "brake_ramp_s": 0.631226
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:1",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 30.846227,
+          "gap_m": 24.016193,
+          "closing_speed_mps": 7.837888,
+          "deceleration_mps2": 5.353525,
+          "event_time_s": 0.728864,
+          "brake_ramp_s": 0.876873
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:2",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 26.347377,
+          "gap_m": 42.057027,
+          "closing_speed_mps": -0.325652,
+          "deceleration_mps2": 5.792843,
+          "event_time_s": 1.155087,
+          "brake_ramp_s": 1.293106
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:3",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 24.130353,
+          "gap_m": 19.616605,
+          "closing_speed_mps": 4.289162,
+          "deceleration_mps2": 3.43516,
+          "event_time_s": 1.946792,
+          "brake_ramp_s": 0.389993
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:4",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 23.971884,
+          "gap_m": 43.791794,
+          "closing_speed_mps": 6.186833,
+          "deceleration_mps2": 2.421441,
+          "event_time_s": 2.141634,
+          "brake_ramp_s": 0.543241
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:5",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 29.50583,
+          "gap_m": 10.761285,
+          "closing_speed_mps": -2.129664,
+          "deceleration_mps2": 6.856977,
+          "event_time_s": 1.741762,
+          "brake_ramp_s": 1.139773
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:6",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 33.004668,
+          "gap_m": 55.089445,
+          "closing_speed_mps": 2.987116,
+          "deceleration_mps2": 3.796296,
+          "event_time_s": 0.923095,
+          "brake_ramp_s": 1.379788
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:7",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 19.470743,
+          "gap_m": 36.42021,
+          "closing_speed_mps": 1.049638,
+          "deceleration_mps2": 8.98554,
+          "event_time_s": 2.964649,
+          "brake_ramp_s": 0.128226
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:8",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 18.892201,
+          "gap_m": 36.55917,
+          "closing_speed_mps": 2.039544,
+          "deceleration_mps2": 6.54121,
+          "event_time_s": 0.574888,
+          "brake_ramp_s": 0.276766
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:9",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 32.61652,
+          "gap_m": 17.93343,
+          "closing_speed_mps": 1.923966,
+          "deceleration_mps2": 2.679944,
+          "event_time_s": 2.5371,
+          "brake_ramp_s": 1.234752
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:10",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 28.115658,
+          "gap_m": 62.222472,
+          "closing_speed_mps": 5.587529,
+          "deceleration_mps2": 8.365627,
+          "event_time_s": 1.797699,
+          "brake_ramp_s": 0.949596
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:11",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 22.391247,
+          "gap_m": 29.235457,
+          "closing_speed_mps": -1.644618,
+          "deceleration_mps2": 4.352109,
+          "event_time_s": 1.318485,
+          "brake_ramp_s": 0.736921
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:12",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25.741136,
+          "gap_m": 53.377045,
+          "closing_speed_mps": 0.30002,
+          "deceleration_mps2": 4.982269,
+          "event_time_s": 1.593011,
+          "brake_ramp_s": 0.190172
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:13",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 27.765753,
+          "gap_m": 30.952285,
+          "closing_speed_mps": 3.736734,
+          "deceleration_mps2": 7.792718,
+          "event_time_s": 2.305376,
+          "brake_ramp_s": 1.49626
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:14",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.266717,
+          "gap_m": 48.981778,
+          "closing_speed_mps": -2.880023,
+          "deceleration_mps2": 2.978402,
+          "event_time_s": 2.811016,
+          "brake_ramp_s": 1.037664
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:15",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 21.242018,
+          "gap_m": 12.64095,
+          "closing_speed_mps": 6.937192,
+          "deceleration_mps2": 6.293168,
+          "event_time_s": 1.081956,
+          "brake_ramp_s": 0.473768
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:16",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 21.722666,
+          "gap_m": 48.520978,
+          "closing_speed_mps": 1.344139,
+          "deceleration_mps2": 4.078151,
+          "event_time_s": 2.048778,
+          "brake_ramp_s": 1.440269
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:17",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 31.752744,
+          "gap_m": 13.597835,
+          "closing_speed_mps": 2.595672,
+          "deceleration_mps2": 8.638757,
+          "event_time_s": 1.219384,
+          "brake_ramp_s": 0.243514
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:18",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 27.253847,
+          "gap_m": 52.141294,
+          "closing_speed_mps": -1.076657,
+          "deceleration_mps2": 2.077862,
+          "event_time_s": 0.791177,
+          "brake_ramp_s": 0.527152
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:19",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 25.223867,
+          "gap_m": 31.802192,
+          "closing_speed_mps": 5.042927,
+          "deceleration_mps2": 7.142465,
+          "event_time_s": 2.481333,
+          "brake_ramp_s": 0.981631
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:20",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 22.878372,
+          "gap_m": 64.656744,
+          "closing_speed_mps": 3.942061,
+          "deceleration_mps2": 5.69194,
+          "event_time_s": 2.910881,
+          "brake_ramp_s": 1.178633
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:21",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 28.599358,
+          "gap_m": 26.407731,
+          "closing_speed_mps": 0.117865,
+          "deceleration_mps2": 3.58051,
+          "event_time_s": 0.831333,
+          "brake_ramp_s": 0.330064
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:22",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 32.098152,
+          "gap_m": 39.554434,
+          "closing_speed_mps": 6.743433,
+          "deceleration_mps2": 7.519615,
+          "event_time_s": 1.648322,
+          "brake_ramp_s": 0.790177
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:23",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 18.377243,
+          "gap_m": 15.444036,
+          "closing_speed_mps": -2.709783,
+          "deceleration_mps2": 5.256253,
+          "event_time_s": 2.088324,
+          "brake_ramp_s": 0.89352
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:24",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 19.986188,
+          "gap_m": 57.553718,
+          "closing_speed_mps": 7.292567,
+          "deceleration_mps2": 3.270765,
+          "event_time_s": 1.37336,
+          "brake_ramp_s": 1.086474
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:25",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 33.522547,
+          "gap_m": 33.458983,
+          "closing_speed_mps": -3.326298,
+          "deceleration_mps2": 5.956358,
+          "event_time_s": 1.890263,
+          "brake_ramp_s": 0.59936
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:26",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 29.021642,
+          "gap_m": 46.585702,
+          "closing_speed_mps": 4.846054,
+          "deceleration_mps2": 4.642254,
+          "event_time_s": 2.630427,
+          "brake_ramp_s": 0.184302
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:27",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 23.485247,
+          "gap_m": 8.35235,
+          "closing_speed_mps": -0.906243,
+          "deceleration_mps2": 8.08145,
+          "event_time_s": 0.627779,
+          "brake_ramp_s": 1.326532
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:28",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 24.647134,
+          "gap_m": 41.181782,
+          "closing_speed_mps": -1.960142,
+          "deceleration_mps2": 8.275125,
+          "event_time_s": 0.980084,
+          "brake_ramp_s": 0.823532
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:29",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 26.859771,
+          "gap_m": 20.886174,
+          "closing_speed_mps": 5.993792,
+          "deceleration_mps2": 4.507539,
+          "event_time_s": 2.747139,
+          "brake_ramp_s": 0.687217
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:30",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 30.360688,
+          "gap_m": 59.381763,
+          "closing_speed_mps": 0.868247,
+          "deceleration_mps2": 6.693437,
+          "event_time_s": 2.241957,
+          "brake_ramp_s": 0.446026
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "full_stop",
+      "scenario": {
+        "scenario_id": "ordinary:training:full_stop:31",
+        "kind": "front_brake",
+        "parameters": {
+          "ego_speed_mps": 20.148032,
+          "gap_m": 24.502115,
+          "closing_speed_mps": 3.19168,
+          "deceleration_mps2": 2.58581,
+          "event_time_s": 1.489461,
+          "brake_ramp_s": 1.239722
+        },
+        "categories": {}
+      },
+      "duration_s": 18,
+      "lane_centers": [
+        4.0
+      ],
+      "max_final_speed_mps": 0.5,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:0",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 28.056758,
+          "lead_gap_m": 29.757159,
+          "lead_speed_mps": 21.028773,
+          "rear_gap_m": 28.256125,
+          "rear_speed_mps": 28.692067,
+          "adjacent_front_gap_m": 76.167593
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:1",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 23.750454,
+          "lead_gap_m": 42.902877,
+          "lead_speed_mps": 17.791783,
+          "rear_gap_m": 41.784599,
+          "rear_speed_mps": 25.530428,
+          "adjacent_front_gap_m": 67.457706
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:2",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 18.947901,
+          "lead_gap_m": 15.877585,
+          "lead_speed_mps": 23.612498,
+          "rear_gap_m": 36.238052,
+          "rear_speed_mps": 22.730739,
+          "adjacent_front_gap_m": 55.933918
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:3",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 33.235165,
+          "lead_gap_m": 51.158136,
+          "lead_speed_mps": 11.316944,
+          "rear_gap_m": 45.207168,
+          "rear_speed_mps": 27.554456,
+          "adjacent_front_gap_m": 83.114853
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:4",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 31.93351,
+          "lead_gap_m": 13.075349,
+          "lead_speed_mps": 14.070456,
+          "rear_gap_m": 47.490521,
+          "rear_speed_mps": 26.273787,
+          "adjacent_front_gap_m": 74.207541
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:5",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 20.126467,
+          "lead_gap_m": 48.357366,
+          "lead_speed_mps": 18.874612,
+          "rear_gap_m": 33.953838,
+          "rear_speed_mps": 23.441278,
+          "adjacent_front_gap_m": 64.767379
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:6",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25.073554,
+          "lead_gap_m": 21.329923,
+          "lead_speed_mps": 12.537482,
+          "rear_gap_m": 39.498327,
+          "rear_speed_mps": 24.297547,
+          "adjacent_front_gap_m": 57.601499
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:7",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 26.860566,
+          "lead_gap_m": 34.477106,
+          "lead_speed_mps": 24.267449,
+          "rear_gap_m": 30.54291,
+          "rear_speed_mps": 29.479698,
+          "adjacent_front_gap_m": 86.09865
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:8",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 27.895431,
+          "lead_gap_m": 19.260607,
+          "lead_speed_mps": 13.827754,
+          "rear_gap_m": 35.347033,
+          "rear_speed_mps": 25.268279,
+          "adjacent_front_gap_m": 82.534534
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:9",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 24.170419,
+          "lead_gap_m": 54.981824,
+          "lead_speed_mps": 25.117315,
+          "rear_gap_m": 48.886461,
+          "rear_speed_mps": 28.446481,
+          "adjacent_front_gap_m": 54.04225
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:10",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 21.097976,
+          "lead_gap_m": 27.866571,
+          "lead_speed_mps": 15.283062,
+          "rear_gap_m": 31.958078,
+          "rear_speed_mps": 27.306992,
+          "adjacent_front_gap_m": 70.651506
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:11",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 30.84202,
+          "lead_gap_m": 40.750173,
+          "lead_speed_mps": 19.521871,
+          "rear_gap_m": 40.916239,
+          "rear_speed_mps": 22.470558,
+          "adjacent_front_gap_m": 80.096532
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:12",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 32.020617,
+          "lead_gap_m": 25.065698,
+          "lead_speed_mps": 22.776176,
+          "rear_gap_m": 43.199765,
+          "rear_speed_mps": 23.701421,
+          "adjacent_front_gap_m": 88.926311
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:13",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 19.796345,
+          "lead_gap_m": 37.947997,
+          "lead_speed_mps": 10.044382,
+          "rear_gap_m": 29.674035,
+          "rear_speed_mps": 26.521258,
+          "adjacent_front_gap_m": 61.750237
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:14",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 22.974261,
+          "lead_gap_m": 10.834734,
+          "lead_speed_mps": 20.363807,
+          "rear_gap_m": 46.60036,
+          "rear_speed_mps": 29.725261,
+          "adjacent_front_gap_m": 63.967406
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:15",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 29.218556,
+          "lead_gap_m": 46.554648,
+          "lead_speed_mps": 16.565637,
+          "rear_gap_m": 37.633989,
+          "rear_speed_mps": 24.55975,
+          "adjacent_front_gap_m": 72.682155
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:16",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 29.848507,
+          "lead_gap_m": 12.729755,
+          "lead_speed_mps": 25.88704,
+          "rear_gap_m": 39.283638,
+          "rear_speed_mps": 27.820949,
+          "adjacent_front_gap_m": 59.69485
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:17",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 22.092493,
+          "lead_gap_m": 44.593388,
+          "lead_speed_mps": 13.183516,
+          "rear_gap_m": 31.372299,
+          "rear_speed_mps": 22.893689,
+          "adjacent_front_gap_m": 88.619576
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:18",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 19.144925,
+          "lead_gap_m": 26.620829,
+          "lead_speed_mps": 19.470765,
+          "rear_gap_m": 48.408143,
+          "rear_speed_mps": 25.844045,
+          "adjacent_front_gap_m": 72.421161
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:19",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 32.919978,
+          "lead_gap_m": 36.327999,
+          "lead_speed_mps": 15.708678,
+          "rear_gap_m": 33.828071,
+          "rear_speed_mps": 28.933383,
+          "adjacent_front_gap_m": 61.939448
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:20",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 30.223787,
+          "lead_gap_m": 29.443573,
+          "lead_speed_mps": 10.961941,
+          "rear_gap_m": 37.166111,
+          "rear_speed_mps": 29.144837,
+          "adjacent_front_gap_m": 53.195429
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:21",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 21.968024,
+          "lead_gap_m": 39.152206,
+          "lead_speed_mps": 22.233126,
+          "rear_gap_m": 45.069242,
+          "rear_speed_mps": 24.077964,
+          "adjacent_front_gap_m": 81.092617
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:22",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 24.771059,
+          "lead_gap_m": 21.177499,
+          "lead_speed_mps": 16.428967,
+          "rear_gap_m": 28.031338,
+          "rear_speed_mps": 23.18431,
+          "adjacent_front_gap_m": 78.627113
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:23",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 27.046852,
+          "lead_gap_m": 53.042595,
+          "lead_speed_mps": 20.625964,
+          "rear_gap_m": 42.625111,
+          "rear_speed_mps": 26.100824,
+          "adjacent_front_gap_m": 69.758873
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:24",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 26.197427,
+          "lead_gap_m": 23.236253,
+          "lead_speed_mps": 17.217515,
+          "rear_gap_m": 46.462458,
+          "rear_speed_mps": 22.155015,
+          "adjacent_front_gap_m": 66.200196
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:25",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25.984634,
+          "lead_gap_m": 32.505181,
+          "lead_speed_mps": 21.977554,
+          "rear_gap_m": 38.562073,
+          "rear_speed_mps": 27.067604,
+          "adjacent_front_gap_m": 75.06357
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:26",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 20.807199,
+          "lead_gap_m": 14.618443,
+          "lead_speed_mps": 11.672823,
+          "rear_gap_m": 44.0403,
+          "rear_speed_mps": 28.178069,
+          "adjacent_front_gap_m": 86.982182
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:27",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 31.000961,
+          "lead_gap_m": 46.747303,
+          "lead_speed_mps": 23.38211,
+          "rear_gap_m": 29.449273,
+          "rear_speed_mps": 25.107247,
+          "adjacent_front_gap_m": 59.080127
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:28",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 33.824086,
+          "lead_gap_m": 17.442592,
+          "lead_speed_mps": 18.136655,
+          "rear_gap_m": 32.787485,
+          "rear_speed_mps": 24.814739,
+          "adjacent_front_gap_m": 67.755196
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:29",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 18.111041,
+          "lead_gap_m": 49.570148,
+          "lead_speed_mps": 14.933902,
+          "rear_gap_m": 40.70157,
+          "rear_speed_mps": 29.900204,
+          "adjacent_front_gap_m": 78.232046
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:30",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 23.183003,
+          "lead_gap_m": 31.685401,
+          "lead_speed_mps": 24.724287,
+          "rear_gap_m": 35.221284,
+          "rear_speed_mps": 26.854131,
+          "adjacent_front_gap_m": 85.133565
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "legal_lane_change",
+      "scenario": {
+        "scenario_id": "ordinary:training:legal_lane_change:31",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 28.876024,
+          "lead_gap_m": 40.953026,
+          "lead_speed_mps": 12.455158,
+          "rear_gap_m": 49.804103,
+          "rear_speed_mps": 23.922991,
+          "adjacent_front_gap_m": 56.203978
+        },
+        "categories": {}
+      },
+      "duration_s": 8,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 100,
+      "lane_change": true,
+      "initial_rear_guard": false
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:0",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 20.602666,
+          "lead_gap_m": 35.708232,
+          "lead_speed_mps": 18.683152,
+          "rear_gap_m": 23.468246,
+          "rear_speed_mps": 33.708278,
+          "adjacent_front_gap_m": 25.376235
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:1",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 31.743094,
+          "lead_gap_m": 32.100593,
+          "lead_speed_mps": 11.841228,
+          "rear_gap_m": 7.58801,
+          "rear_speed_mps": 35.277304,
+          "adjacent_front_gap_m": 52.412478
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:2",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 27.549182,
+          "lead_gap_m": 48.397149,
+          "lead_speed_mps": 22.890521,
+          "rear_gap_m": 18.488847,
+          "rear_speed_mps": 37.560389,
+          "adjacent_front_gap_m": 38.305864
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:3",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 24.659731,
+          "lead_gap_m": 19.419337,
+          "lead_speed_mps": 15.602547,
+          "rear_gap_m": 12.573559,
+          "rear_speed_mps": 31.487691,
+          "adjacent_front_gap_m": 20.664363
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:4",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 22.515272,
+          "lead_gap_m": 54.173582,
+          "lead_speed_mps": 12.283382,
+          "rear_gap_m": 15.308943,
+          "rear_speed_mps": 30.200906,
+          "adjacent_front_gap_m": 29.619371
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:5",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 29.654724,
+          "lead_gap_m": 13.640899,
+          "lead_speed_mps": 21.19217,
+          "rear_gap_m": 21.35605,
+          "rear_speed_mps": 36.752967,
+          "adjacent_front_gap_m": 47.006814
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:6",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 33.582881,
+          "lead_gap_m": 41.533351,
+          "lead_speed_mps": 16.021752,
+          "rear_gap_m": 10.455849,
+          "rear_speed_mps": 34.036294,
+          "adjacent_front_gap_m": 42.246697
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:7",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 18.692452,
+          "lead_gap_m": 26.277458,
+          "lead_speed_mps": 25.484988,
+          "rear_gap_m": 26.204222,
+          "rear_speed_mps": 32.980078,
+          "adjacent_front_gap_m": 15.542334
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:8",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 19.027165,
+          "lead_gap_m": 43.776592,
+          "lead_speed_mps": 17.2887,
+          "rear_gap_m": 19.272584,
+          "rear_speed_mps": 35.765842,
+          "adjacent_front_gap_m": 23.902023
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:9",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 32.134878,
+          "lead_gap_m": 18.413285,
+          "lead_speed_mps": 24.188745,
+          "rear_gap_m": 14.59703,
+          "rear_speed_mps": 33.217327,
+          "adjacent_front_gap_m": 34.550898
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:10",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 28.063159,
+          "lead_gap_m": 33.912471,
+          "lead_speed_mps": 13.019318,
+          "rear_gap_m": 25.498553,
+          "rear_speed_mps": 31.992832,
+          "adjacent_front_gap_m": 48.550258
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:11",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 23.204469,
+          "lead_gap_m": 28.272363,
+          "lead_speed_mps": 20.489436,
+          "rear_gap_m": 8.375838,
+          "rear_speed_mps": 37.052838,
+          "adjacent_front_gap_m": 28.58389
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:12",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25.122388,
+          "lead_gap_m": 39.736282,
+          "lead_speed_mps": 23.685556,
+          "rear_gap_m": 5.442791,
+          "rear_speed_mps": 36.25856,
+          "adjacent_front_gap_m": 18.788899
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:13",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 26.231079,
+          "lead_gap_m": 22.44792,
+          "lead_speed_mps": 14.836811,
+          "rear_gap_m": 22.785217,
+          "rear_speed_mps": 30.693816,
+          "adjacent_front_gap_m": 38.501208
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:14",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 30.037288,
+          "lead_gap_m": 49.554333,
+          "lead_speed_mps": 19.885172,
+          "rear_gap_m": 11.882955,
+          "rear_speed_mps": 32.469071,
+          "adjacent_front_gap_m": 43.135118
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:15",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 21.179573,
+          "lead_gap_m": 12.636154,
+          "lead_speed_mps": 10.606003,
+          "rear_gap_m": 16.338757,
+          "rear_speed_mps": 34.545807,
+          "adjacent_front_gap_m": 32.818122
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:16",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 21.554592,
+          "lead_gap_m": 51.244868,
+          "lead_speed_mps": 24.722345,
+          "rear_gap_m": 9.505306,
+          "rear_speed_mps": 31.021858,
+          "adjacent_front_gap_m": 40.5549
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:17",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 30.662271,
+          "lead_gap_m": 10.940148,
+          "lead_speed_mps": 17.755161,
+          "rear_gap_m": 27.153992,
+          "rear_speed_mps": 37.961739,
+          "adjacent_front_gap_m": 18.482828
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:18",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 26.606061,
+          "lead_gap_m": 38.573048,
+          "lead_speed_mps": 20.960718,
+          "rear_gap_m": 15.556167,
+          "rear_speed_mps": 35.24897,
+          "adjacent_front_gap_m": 32.53712
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:19",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 25.747405,
+          "lead_gap_m": 23.616539,
+          "lead_speed_mps": 13.547974,
+          "rear_gap_m": 21.109254,
+          "rear_speed_mps": 33.797128,
+          "adjacent_front_gap_m": 45.181836
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:20",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 23.579486,
+          "lead_gap_m": 33.147555,
+          "lead_speed_mps": 14.36919,
+          "rear_gap_m": 18.021875,
+          "rear_speed_mps": 32.514271,
+          "adjacent_front_gap_m": 35.423453
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:21",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 28.688141,
+          "lead_gap_m": 29.042792,
+          "lead_speed_mps": 23.153238,
+          "rear_gap_m": 13.040103,
+          "rear_speed_mps": 34.437679,
+          "adjacent_front_gap_m": 22.451436
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:22",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 32.509862,
+          "lead_gap_m": 45.771934,
+          "lead_speed_mps": 10.076553,
+          "rear_gap_m": 24.638494,
+          "rear_speed_mps": 36.72466,
+          "adjacent_front_gap_m": 27.103656
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:23",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 19.652183,
+          "lead_gap_m": 16.412343,
+          "lead_speed_mps": 19.41456,
+          "rear_gap_m": 6.418535,
+          "rear_speed_mps": 30.289791,
+          "adjacent_front_gap_m": 49.434364
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:24",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 18.06747,
+          "lead_gap_m": 42.4796,
+          "lead_speed_mps": 11.374522,
+          "rear_gap_m": 10.889326,
+          "rear_speed_mps": 37.456176,
+          "adjacent_front_gap_m": 46.112365
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:25",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 33.207865,
+          "lead_gap_m": 25.33681,
+          "lead_speed_mps": 18.149797,
+          "rear_gap_m": 17.333331,
+          "rear_speed_mps": 31.528978,
+          "adjacent_front_gap_m": 31.089281
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:26",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 29.029706,
+          "lead_gap_m": 52.34847,
+          "lead_speed_mps": 15.074136,
+          "rear_gap_m": 5.733445,
+          "rear_speed_mps": 33.308165,
+          "adjacent_front_gap_m": 17.000978
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:27",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 22.140288,
+          "lead_gap_m": 15.460495,
+          "lead_speed_mps": 22.418994,
+          "rear_gap_m": 22.493961,
+          "rear_speed_mps": 35.739488,
+          "adjacent_front_gap_m": 41.382182
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:28",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 24.034747,
+          "lead_gap_m": 46.876972,
+          "lead_speed_mps": 21.724733,
+          "rear_gap_m": 25.076041,
+          "rear_speed_mps": 34.94911,
+          "adjacent_front_gap_m": 50.373798
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:29",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 27.174164,
+          "lead_gap_m": 20.934127,
+          "lead_speed_mps": 12.750759,
+          "rear_gap_m": 8.798951,
+          "rear_speed_mps": 32.00519,
+          "adjacent_front_gap_m": 25.665293
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:30",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 31.118077,
+          "lead_gap_m": 37.052671,
+          "lead_speed_mps": 25.955355,
+          "rear_gap_m": 20.398029,
+          "rear_speed_mps": 30.78462,
+          "adjacent_front_gap_m": 20.960109
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    },
+    {
+      "name": "rear_constraint",
+      "scenario": {
+        "scenario_id": "ordinary:training:rear_constraint:31",
+        "kind": "lane_change_rear",
+        "parameters": {
+          "ego_speed_mps": 20.227684,
+          "lead_gap_m": 30.761627,
+          "lead_speed_mps": 16.551446,
+          "rear_gap_m": 13.470642,
+          "rear_speed_mps": 36.23218,
+          "adjacent_front_gap_m": 36.241829
+        },
+        "categories": {}
+      },
+      "duration_s": 2,
+      "lane_centers": [
+        0.0,
+        4.0
+      ],
+      "max_final_speed_mps": 40,
+      "min_progress_m": 0,
+      "lane_change": false,
+      "initial_rear_guard": true
+    }
+  ],
+  "curve": [
+    {
+      "step": 1000,
+      "loss": 1.220041036605835,
+      "episodes": 40,
+      "collisions": 16,
+      "reward_sum": -48.769120805067274
+    },
+    {
+      "step": 2000,
+      "loss": 0.7386898398399353,
+      "episodes": 38,
+      "collisions": 20,
+      "reward_sum": -131.39081764464368
+    },
+    {
+      "step": 3000,
+      "loss": 0.5726216435432434,
+      "episodes": 40,
+      "collisions": 13,
+      "reward_sum": -65.30824244509111
+    },
+    {
+      "step": 4000,
+      "loss": 0.4969411790370941,
+      "episodes": 32,
+      "collisions": 9,
+      "reward_sum": 4.603895640700516
+    },
+    {
+      "step": 5000,
+      "loss": 0.5837456583976746,
+      "episodes": 29,
+      "collisions": 8,
+      "reward_sum": 19.077250916942567
+    },
+    {
+      "step": 6000,
+      "loss": 0.6271736025810242,
+      "episodes": 24,
+      "collisions": 5,
+      "reward_sum": 76.08564816457026
+    },
+    {
+      "step": 7000,
+      "loss": 0.550835907459259,
+      "episodes": 24,
+      "collisions": 5,
+      "reward_sum": 57.893919545459994
+    },
+    {
+      "step": 8000,
+      "loss": 0.6264767050743103,
+      "episodes": 33,
+      "collisions": 8,
+      "reward_sum": 64.15423656123174
+    },
+    {
+      "step": 9000,
+      "loss": 0.5806644558906555,
+      "episodes": 20,
+      "collisions": 1,
+      "reward_sum": 71.6775891059078
+    },
+    {
+      "step": 10000,
+      "loss": 0.5329481363296509,
+      "episodes": 21,
+      "collisions": 0,
+      "reward_sum": 130.49739035784373
+    },
+    {
+      "step": 11000,
+      "loss": 0.49209097027778625,
+      "episodes": 26,
+      "collisions": 2,
+      "reward_sum": 97.20476748674902
+    },
+    {
+      "step": 12000,
+      "loss": 0.5707978010177612,
+      "episodes": 30,
+      "collisions": 2,
+      "reward_sum": 120.768226108609
+    },
+    {
+      "step": 13000,
+      "loss": 0.4829532504081726,
+      "episodes": 28,
+      "collisions": 0,
+      "reward_sum": 149.65029718946684
+    },
+    {
+      "step": 14000,
+      "loss": 0.4998948574066162,
+      "episodes": 21,
+      "collisions": 3,
+      "reward_sum": 74.08564072314987
+    },
+    {
+      "step": 15000,
+      "loss": 0.47588619589805603,
+      "episodes": 20,
+      "collisions": 0,
+      "reward_sum": 105.94906539571835
+    },
+    {
+      "step": 16000,
+      "loss": 0.4569583833217621,
+      "episodes": 24,
+      "collisions": 3,
+      "reward_sum": 105.81468849132754
+    },
+    {
+      "step": 17000,
+      "loss": 0.3933109939098358,
+      "episodes": 26,
+      "collisions": 0,
+      "reward_sum": 157.75192763230066
+    },
+    {
+      "step": 18000,
+      "loss": 0.37467414140701294,
+      "episodes": 27,
+      "collisions": 4,
+      "reward_sum": 75.87278647359034
+    },
+    {
+      "step": 19000,
+      "loss": 0.3756471574306488,
+      "episodes": 27,
+      "collisions": 2,
+      "reward_sum": 102.9585530776491
+    },
+    {
+      "step": 20000,
+      "loss": 0.3422868847846985,
+      "episodes": 30,
+      "collisions": 2,
+      "reward_sum": 174.3053307039241
+    },
+    {
+      "step": 21000,
+      "loss": 0.33437126874923706,
+      "episodes": 26,
+      "collisions": 1,
+      "reward_sum": 99.69946766214446
+    },
+    {
+      "step": 22000,
+      "loss": 0.35144639015197754,
+      "episodes": 20,
+      "collisions": 2,
+      "reward_sum": 88.97250784193551
+    },
+    {
+      "step": 23000,
+      "loss": 0.3219205439090729,
+      "episodes": 18,
+      "collisions": 1,
+      "reward_sum": 87.71667229885506
+    },
+    {
+      "step": 24000,
+      "loss": 0.3110857605934143,
+      "episodes": 22,
+      "collisions": 0,
+      "reward_sum": 127.1033219147466
+    },
+    {
+      "step": 25000,
+      "loss": 0.33268463611602783,
+      "episodes": 23,
+      "collisions": 1,
+      "reward_sum": 128.74431301842796
+    },
+    {
+      "step": 26000,
+      "loss": 0.38597366213798523,
+      "episodes": 31,
+      "collisions": 2,
+      "reward_sum": 104.58120175561136
+    },
+    {
+      "step": 27000,
+      "loss": 0.35391849279403687,
+      "episodes": 25,
+      "collisions": 3,
+      "reward_sum": 108.24421811399438
+    },
+    {
+      "step": 28000,
+      "loss": 0.3766210377216339,
+      "episodes": 19,
+      "collisions": 1,
+      "reward_sum": 98.88496895084549
+    },
+    {
+      "step": 29000,
+      "loss": 0.4292488098144531,
+      "episodes": 32,
+      "collisions": 4,
+      "reward_sum": 61.24665357390108
+    },
+    {
+      "step": 30000,
+      "loss": 0.36022987961769104,
+      "episodes": 25,
+      "collisions": 3,
+      "reward_sum": 98.9171811101885
+    },
+    {
+      "step": 31000,
+      "loss": 0.3306962549686432,
+      "episodes": 29,
+      "collisions": 1,
+      "reward_sum": 144.63539456851515
+    },
+    {
+      "step": 32000,
+      "loss": 0.3408564329147339,
+      "episodes": 19,
+      "collisions": 3,
+      "reward_sum": 84.59821417927797
+    },
+    {
+      "step": 33000,
+      "loss": 0.3803328573703766,
+      "episodes": 23,
+      "collisions": 2,
+      "reward_sum": 134.90613505745128
+    },
+    {
+      "step": 34000,
+      "loss": 0.3673209547996521,
+      "episodes": 19,
+      "collisions": 0,
+      "reward_sum": 113.82628218230674
+    },
+    {
+      "step": 35000,
+      "loss": 0.3871118426322937,
+      "episodes": 23,
+      "collisions": 1,
+      "reward_sum": 109.74270717411079
+    },
+    {
+      "step": 36000,
+      "loss": 0.382549524307251,
+      "episodes": 22,
+      "collisions": 2,
+      "reward_sum": 97.29997544552461
+    },
+    {
+      "step": 37000,
+      "loss": 0.3804779052734375,
+      "episodes": 26,
+      "collisions": 1,
+      "reward_sum": 169.04641023599945
+    },
+    {
+      "step": 38000,
+      "loss": 0.4159407913684845,
+      "episodes": 30,
+      "collisions": 2,
+      "reward_sum": 111.08426891622202
+    },
+    {
+      "step": 39000,
+      "loss": 0.4350927174091339,
+      "episodes": 33,
+      "collisions": 5,
+      "reward_sum": 51.35142390261843
+    },
+    {
+      "step": 40000,
+      "loss": 0.48783811926841736,
+      "episodes": 21,
+      "collisions": 1,
+      "reward_sum": 114.19952675138356
+    },
+    {
+      "step": 41000,
+      "loss": 0.4902292490005493,
+      "episodes": 24,
+      "collisions": 0,
+      "reward_sum": 103.58360975059783
+    },
+    {
+      "step": 42000,
+      "loss": 0.45205411314964294,
+      "episodes": 23,
+      "collisions": 1,
+      "reward_sum": 104.66953618530832
+    },
+    {
+      "step": 43000,
+      "loss": 0.3970183730125427,
+      "episodes": 30,
+      "collisions": 1,
+      "reward_sum": 114.1572272689106
+    },
+    {
+      "step": 44000,
+      "loss": 0.3745137155056,
+      "episodes": 24,
+      "collisions": 2,
+      "reward_sum": 103.78963834377272
+    },
+    {
+      "step": 45000,
+      "loss": 0.42564254999160767,
+      "episodes": 23,
+      "collisions": 0,
+      "reward_sum": 122.72268697068691
+    },
+    {
+      "step": 46000,
+      "loss": 0.4763984680175781,
+      "episodes": 20,
+      "collisions": 0,
+      "reward_sum": 118.48203467050779
+    },
+    {
+      "step": 47000,
+      "loss": 0.4827272593975067,
+      "episodes": 30,
+      "collisions": 2,
+      "reward_sum": 114.51768096459227
+    },
+    {
+      "step": 48000,
+      "loss": 0.4464046061038971,
+      "episodes": 26,
+      "collisions": 0,
+      "reward_sum": 122.53287371307871
+    },
+    {
+      "step": 49000,
+      "loss": 0.43161091208457947,
+      "episodes": 37,
+      "collisions": 4,
+      "reward_sum": 86.21615578044998
+    },
+    {
+      "step": 50000,
+      "loss": 0.4930986166000366,
+      "episodes": 23,
+      "collisions": 2,
+      "reward_sum": 76.56468871486518
+    },
+    {
+      "step": 51000,
+      "loss": 0.4309159219264984,
+      "episodes": 26,
+      "collisions": 1,
+      "reward_sum": 99.48668782244833
+    },
+    {
+      "step": 52000,
+      "loss": 0.41313308477401733,
+      "episodes": 25,
+      "collisions": 0,
+      "reward_sum": 123.76054161848482
+    },
+    {
+      "step": 53000,
+      "loss": 0.4269614517688751,
+      "episodes": 21,
+      "collisions": 2,
+      "reward_sum": 88.44944661037842
+    },
+    {
+      "step": 54000,
+      "loss": 0.4730275869369507,
+      "episodes": 24,
+      "collisions": 1,
+      "reward_sum": 115.06937484761195
+    },
+    {
+      "step": 55000,
+      "loss": 0.4583985209465027,
+      "episodes": 22,
+      "collisions": 2,
+      "reward_sum": 87.04644571869528
+    },
+    {
+      "step": 56000,
+      "loss": 0.41761279106140137,
+      "episodes": 24,
+      "collisions": 1,
+      "reward_sum": 110.82122336602447
+    },
+    {
+      "step": 57000,
+      "loss": 0.3754534423351288,
+      "episodes": 24,
+      "collisions": 2,
+      "reward_sum": 98.9900244630038
+    },
+    {
+      "step": 58000,
+      "loss": 0.35933244228363037,
+      "episodes": 20,
+      "collisions": 0,
+      "reward_sum": 61.05936121940678
+    },
+    {
+      "step": 59000,
+      "loss": 0.37616419792175293,
+      "episodes": 24,
+      "collisions": 1,
+      "reward_sum": 112.27660124605846
+    },
+    {
+      "step": 60000,
+      "loss": 0.4193229675292969,
+      "episodes": 26,
+      "collisions": 1,
+      "reward_sum": 129.9214174941745
+    },
+    {
+      "step": 61000,
+      "loss": 0.4209786057472229,
+      "episodes": 25,
+      "collisions": 2,
+      "reward_sum": 103.46492804192117
+    },
+    {
+      "step": 62000,
+      "loss": 0.4213007986545563,
+      "episodes": 22,
+      "collisions": 2,
+      "reward_sum": 90.89130934701987
+    },
+    {
+      "step": 63000,
+      "loss": 0.3892729580402374,
+      "episodes": 20,
+      "collisions": 1,
+      "reward_sum": 99.91984052489516
+    },
+    {
+      "step": 64000,
+      "loss": 0.36947503685951233,
+      "episodes": 35,
+      "collisions": 2,
+      "reward_sum": 153.23220079216614
+    },
+    {
+      "step": 65000,
+      "loss": 0.35488632321357727,
+      "episodes": 30,
+      "collisions": 0,
+      "reward_sum": 128.04977144848766
+    },
+    {
+      "step": 66000,
+      "loss": 0.42731648683547974,
+      "episodes": 31,
+      "collisions": 1,
+      "reward_sum": 120.05096957434428
+    },
+    {
+      "step": 67000,
+      "loss": 0.3994750678539276,
+      "episodes": 27,
+      "collisions": 0,
+      "reward_sum": 147.46134995317183
+    },
+    {
+      "step": 68000,
+      "loss": 0.35571587085723877,
+      "episodes": 21,
+      "collisions": 1,
+      "reward_sum": 81.0924044787104
+    },
+    {
+      "step": 69000,
+      "loss": 0.30793294310569763,
+      "episodes": 25,
+      "collisions": 2,
+      "reward_sum": 71.81920583513195
+    },
+    {
+      "step": 70000,
+      "loss": 0.29706019163131714,
+      "episodes": 32,
+      "collisions": 0,
+      "reward_sum": 175.0749688782269
+    },
+    {
+      "step": 71000,
+      "loss": 0.30132776498794556,
+      "episodes": 23,
+      "collisions": 1,
+      "reward_sum": 113.72573268355494
+    },
+    {
+      "step": 72000,
+      "loss": 0.26397237181663513,
+      "episodes": 19,
+      "collisions": 0,
+      "reward_sum": 86.25599833655068
+    },
+    {
+      "step": 73000,
+      "loss": 0.27583223581314087,
+      "episodes": 19,
+      "collisions": 1,
+      "reward_sum": 89.99185243978287
+    },
+    {
+      "step": 74000,
+      "loss": 0.265663206577301,
+      "episodes": 22,
+      "collisions": 0,
+      "reward_sum": 109.34271140072639
+    },
+    {
+      "step": 75000,
+      "loss": 0.27667760848999023,
+      "episodes": 21,
+      "collisions": 3,
+      "reward_sum": 68.23129282588195
+    },
+    {
+      "step": 76000,
+      "loss": 0.28485262393951416,
+      "episodes": 27,
+      "collisions": 1,
+      "reward_sum": 99.65490357780587
+    },
+    {
+      "step": 77000,
+      "loss": 0.26228058338165283,
+      "episodes": 24,
+      "collisions": 1,
+      "reward_sum": 99.33645114732496
+    },
+    {
+      "step": 78000,
+      "loss": 0.3347626030445099,
+      "episodes": 26,
+      "collisions": 1,
+      "reward_sum": 111.94181809691933
+    },
+    {
+      "step": 79000,
+      "loss": 0.361168771982193,
+      "episodes": 26,
+      "collisions": 0,
+      "reward_sum": 112.74843867058283
+    },
+    {
+      "step": 80000,
+      "loss": 0.37196940183639526,
+      "episodes": 26,
+      "collisions": 0,
+      "reward_sum": 124.22369021725338
+    },
+    {
+      "step": 81000,
+      "loss": 0.37509259581565857,
+      "episodes": 22,
+      "collisions": 2,
+      "reward_sum": 86.35399492452126
+    },
+    {
+      "step": 82000,
+      "loss": 0.3479456305503845,
+      "episodes": 27,
+      "collisions": 0,
+      "reward_sum": 138.03598266109768
+    },
+    {
+      "step": 83000,
+      "loss": 0.34925606846809387,
+      "episodes": 27,
+      "collisions": 0,
+      "reward_sum": 122.54320234696256
+    },
+    {
+      "step": 84000,
+      "loss": 0.37770381569862366,
+      "episodes": 24,
+      "collisions": 0,
+      "reward_sum": 139.32433232127266
+    },
+    {
+      "step": 85000,
+      "loss": 0.32819265127182007,
+      "episodes": 27,
+      "collisions": 2,
+      "reward_sum": 120.35559694030033
+    },
+    {
+      "step": 86000,
+      "loss": 0.40688690543174744,
+      "episodes": 26,
+      "collisions": 2,
+      "reward_sum": 100.57453225971264
+    },
+    {
+      "step": 87000,
+      "loss": 0.3947100043296814,
+      "episodes": 20,
+      "collisions": 0,
+      "reward_sum": 153.7056327770248
+    },
+    {
+      "step": 88000,
+      "loss": 0.35858339071273804,
+      "episodes": 32,
+      "collisions": 2,
+      "reward_sum": 130.0065082443593
+    },
+    {
+      "step": 89000,
+      "loss": 0.37839362025260925,
+      "episodes": 29,
+      "collisions": 1,
+      "reward_sum": 113.93809088425186
+    },
+    {
+      "step": 90000,
+      "loss": 0.36464518308639526,
+      "episodes": 22,
+      "collisions": 1,
+      "reward_sum": 89.0076760536272
+    },
+    {
+      "step": 91000,
+      "loss": 0.37820497155189514,
+      "episodes": 26,
+      "collisions": 1,
+      "reward_sum": 145.09706579988466
+    },
+    {
+      "step": 92000,
+      "loss": 0.3844365179538727,
+      "episodes": 25,
+      "collisions": 2,
+      "reward_sum": 129.6813383251324
+    },
+    {
+      "step": 93000,
+      "loss": 0.40404263138771057,
+      "episodes": 23,
+      "collisions": 1,
+      "reward_sum": 116.99105980668274
+    },
+    {
+      "step": 94000,
+      "loss": 0.3781977593898773,
+      "episodes": 24,
+      "collisions": 1,
+      "reward_sum": 129.0650322122127
+    },
+    {
+      "step": 95000,
+      "loss": 0.37809547781944275,
+      "episodes": 20,
+      "collisions": 2,
+      "reward_sum": 91.82631223770049
+    },
+    {
+      "step": 96000,
+      "loss": 0.3731161653995514,
+      "episodes": 26,
+      "collisions": 2,
+      "reward_sum": 142.79367230904657
+    },
+    {
+      "step": 97000,
+      "loss": 0.378498911857605,
+      "episodes": 24,
+      "collisions": 2,
+      "reward_sum": 108.87069163650007
+    },
+    {
+      "step": 98000,
+      "loss": 0.3976667523384094,
+      "episodes": 31,
+      "collisions": 2,
+      "reward_sum": 109.59289149320416
+    },
+    {
+      "step": 99000,
+      "loss": 0.44459831714630127,
+      "episodes": 29,
+      "collisions": 1,
+      "reward_sum": 114.82020756504672
+    },
+    {
+      "step": 100000,
+      "loss": 0.45299428701400757,
+      "episodes": 27,
+      "collisions": 3,
+      "reward_sum": 119.77771941750326
+    }
+  ]
+}

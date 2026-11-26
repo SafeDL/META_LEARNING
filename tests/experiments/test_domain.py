@@ -17,7 +17,7 @@ from testing_methods.history_transfer.selection import select
 def test_explicit_domain_matches_retained_features_and_gower_distance(kind):
     existing = DOMAINS[kind]
     domain = Domain(existing.bounds, existing.quantization, existing.categories)
-    scenes = sample(kind, 7, "history", replicate=22)
+    scenes = sample(kind, 7, "qualification", replicate=22)
     np.testing.assert_array_equal(domain.features(scenes), features(scenes))
     np.testing.assert_array_equal(
         domain.parameter_distances(scenes[:3], scenes[3:]),

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from testing_methods.common.classification import torch_moments
-from testing_methods.common.gp_laplace import laplace
+from testing_methods.common.gp_laplace import laplace, laplace_evidence
 
 from .model import MARGIN_NOISE, JointResponseKernel
 
@@ -25,7 +25,9 @@ TARGET_PARAMETERS = (
 class JointPosterior:
     """Condition RSS analytically, then solve the Bernoulli mode once."""
 
-    def __init__(self, mean, covariance, labels, margins):
+    _evidence = None
+
+    def __init__(self, mean, covariance, labels, margins, *, implicit_evidence=False):
         self.count = len(mean)
         self.r_factor = None
         self.state = None
@@ -53,6 +55,9 @@ class JointPosterior:
                 + self.r_factor.diagonal().log().sum()
                 + 0.5 * self.count * math.log(2 * math.pi)
             )
+        if implicit_evidence:
+            self._evidence = laplace_evidence(collision_mean, collision_covariance, labels)
+            return
         self.state = laplace(collision_mean, collision_covariance, labels)
         self.info = {
             "iterations": self.state.iterations,
@@ -62,7 +67,7 @@ class JointPosterior:
 
     @property
     def nll(self):
-        return self.r_nll + self.state.nll
+        return self.r_nll + (self.state.nll if self._evidence is None else self._evidence)
 
     def predict(self, mean, cross, blocks):
         if not self.count:
@@ -85,9 +90,10 @@ class JointPosterior:
         return flat_mean.reshape(-1, 2), 0.5 * (result + result.transpose(-1, -2))
 
 
-def joint_evidence(model, x, labels, margins, *, encoded=None):
+def joint_evidence(model, x, labels, margins, *, encoded=None, implicit_evidence=False):
     covariance = model.kernel(x) if encoded is None else model.kernel_from_features(encoded)
-    state = JointPosterior(model.point_mean(len(x)), covariance, labels, margins)
+    state = JointPosterior(model.point_mean(len(x)), covariance, labels, margins,
+                           implicit_evidence=implicit_evidence)
     return state.nll / len(labels)
 
 
@@ -284,17 +290,18 @@ def predict_components(
     return torch.stack([torch.cat(values) for values in outputs]), [state.info for state in states]
 
 
-def initial_weights(sources, reference):
-    if sources is None:
-        return reference.new_ones(1)
-    weights = torch.as_tensor(sources["weights"], dtype=reference.dtype, device=reference.device)
-    return torch.cat((0.75 * weights, weights.new_tensor([0.25])))
-
-
-def mixture_weights(scores, *, raw_only=False):
+def initial_weights(sources, reference, *, raw_only=False):
     if raw_only:
-        return scores.new_ones(1)
-    return torch.cat((0.9 * scores.softmax(0), scores.new_tensor([0.1])))
+        return reference.new_ones(1)
+    if sources is None:
+        return reference.new_tensor([0.9, 0.1])
+    weights = torch.as_tensor(sources["weights"], dtype=reference.dtype, device=reference.device)
+    historical = torch.cat((0.75 * weights, weights.new_tensor([0.25])))
+    return torch.cat((0.9 * historical, weights.new_tensor([0.1])))
+
+
+def mixture_weights(scores):
+    return scores.softmax(0)
 
 
 def update_weights(scores, probabilities, collision):
@@ -341,4 +348,4 @@ def sequential_probability(
         effective = mixture_weights(scores)
         if position == count:
             return (effective * components[:, 0]).sum()
-        scores, _ = update_weights(scores, components[:-1, 0], labels[position])
+        scores, _ = update_weights(scores, components[:, 0], labels[position])

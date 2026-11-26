@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 import numpy as np
 import torch
 
+from experiments.formal_scenarios import FREE_BOUNDS
 from experiments.scenarios import DOMAINS, features, validate
 from experiments.schema import Scenario
 from testing_methods.selection import validate_initial_indices
@@ -29,9 +30,10 @@ DEFAULT = Config()
 
 def mutate(parent, generator, *, local, steps=5, domain=None):
     definition = DOMAINS[parent.kind] if domain is None else domain
+    bounds = FREE_BOUNDS.get(parent.kind, definition.bounds) if domain is None else definition.bounds
     while True:
         parameters = {}
-        for name, (low, high) in definition.bounds.items():
+        for name, (low, high) in bounds.items():
             precision = definition.quantization[name]
             if local:
                 lower = max(-steps, int(np.ceil((low - parent.parameters[name]) / precision)))
@@ -84,9 +86,12 @@ def run(
     domain=None,
     graph_fn=graph,
     graph_definition=None,
+    collision_target=None,
 ):
     initial = list(initial_indices)
     validate_initial_indices(len(candidates), initial, budget)
+    if collision_target is not None and (type(collision_target) is not int or collision_target < 1):
+        raise ValueError("Collision stopping target must be a positive integer")
     if budget >= 1000:
         raise ValueError("This fixed-model adaptation is limited to fewer than 1000 new records")
     if domain is not None:
@@ -134,8 +139,11 @@ def run(
 
     for index in initial:
         execute(index)
+        if collision_target is not None and sum(q["feedback"]["collision"] for q in queries) >= collision_target:
+            break
     campaign = 0
-    while len(selected) < budget:
+    while len(selected) < budget and (collision_target is None or
+            sum(q["feedback"]["collision"] for q in queries) < collision_target):
         if not queue:
             queue.append(int(generator.integers(len(candidates))))
         parent = queue.popleft()
@@ -207,7 +215,8 @@ def run(
                 successor = min(
                     scores, key=lambda item: (item[0], candidates[item[1]].scenario_id)
                 )[1]
-            if error or len(selected) == budget:
+            if error or len(selected) == budget or (collision_target is not None and
+                    sum(q["feedback"]["collision"] for q in queries) >= collision_target):
                 break
     return {
         "method": "scenario_fuzz",
@@ -215,7 +224,8 @@ def run(
         "selected_indices": selected,
         "actual_queries": len(queries),
         "maximum_queries": budget,
-        "termination": "budget_exhausted",
+        "termination": "collision_target_reached" if collision_target is not None and
+        sum(q["feedback"]["collision"] for q in queries) >= collision_target else "budget_exhausted",
         "config": asdict(config),
         "model_inference_s": inference_s,
         "campaigns": campaign_log,
